@@ -13,16 +13,42 @@ import Products from '../../pages/Products';
 import { LayoutDashboard, ShoppingCart, Package, Settings, GalleryHorizontalEnd } from 'lucide-react';
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp, openWindow } = useWindowStore();
+  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition } = useWindowStore();
   const { widgets } = useWidgetStore();
+
+  const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('appId', id);
+    e.dataTransfer.setData('source', 'desktop');
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    e.dataTransfer.setData('offsetX', (e.clientX - rect.left).toString());
+    e.dataTransfer.setData('offsetY', (e.clientY - rect.top).toString());
+  };
+
+  const handleWorkspaceDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const appId = e.dataTransfer.getData('appId');
+    const source = e.dataTransfer.getData('source');
+    
+    if (source === 'taskbar' && appId) {
+      if (windows[appId].isPinned) togglePinApp(appId);
+    } else if (source === 'desktop' && appId) {
+      const offsetX = parseFloat(e.dataTransfer.getData('offsetX')) || 0;
+      const offsetY = parseFloat(e.dataTransfer.getData('offsetY')) || 0;
+      updateDesktopPosition(appId, e.clientX - offsetX, e.clientY - offsetY);
+    }
+  };
+
+  const handleWorkspaceDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
   useEffect(() => {
     // Registra le app all'avvio se non presenti
     if (Object.keys(windows).length === 0) {
-      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: <LayoutDashboard size={24} color="white" />, color: 'linear-gradient(135deg, #FF9500, #FF5E3A)', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650 });
-      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, color: 'linear-gradient(135deg, #34C759, #32B351)', component: <Orders />, x: 150, y: 100, width: 900, height: 600 });
-      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, color: 'linear-gradient(135deg, #5E5CE6, #5856D6)', component: <Products />, x: 200, y: 150, width: 900, height: 600 });
-      registerApp({ id: 'settings', title: 'Impostazioni', icon: <Settings size={24} color="white" />, color: 'linear-gradient(135deg, #8E8E93, #AEAEB2)', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400 });
+      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: <LayoutDashboard size={24} color="white" />, color: 'linear-gradient(135deg, #FF9500, #FF5E3A)', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
+      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, color: 'linear-gradient(135deg, #34C759, #32B351)', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
+      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, color: 'linear-gradient(135deg, #5E5CE6, #5856D6)', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
+      registerApp({ id: 'settings', title: 'Impostazioni', icon: <Settings size={24} color="white" />, color: 'linear-gradient(135deg, #8E8E93, #AEAEB2)', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
       registerApp({
         id: 'widget-gallery',
         title: 'Galleria Widget',
@@ -32,7 +58,9 @@ export default function DesktopOS() {
         height: 500,
         x: window.innerWidth / 2 - 400,
         y: window.innerHeight / 2 - 250,
-        color: '#8E8E93'
+        color: '#8E8E93',
+        desktopX: 30,
+        desktopY: 430
       });
     }
   }, []);
@@ -40,14 +68,26 @@ export default function DesktopOS() {
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>
       {/* Area Finestre e Widget */}
-      <div className="desktop-workspace">
+      <div 
+        className="desktop-workspace"
+        onDrop={handleWorkspaceDrop}
+        onDragOver={handleWorkspaceDragOver}
+      >
         {/* Shortcuts Desktop */}
-        <div className="desktop-shortcuts" style={{ zIndex: 10 }}>
+        <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => (
             <div 
               key={`shortcut-${app.id}`} 
               className="desktop-icon-wrapper"
               onClick={() => openWindow(app.id)}
+              draggable={true}
+              onDragStart={(e) => handleDragStartDesktopIcon(e, app.id)}
+              style={{
+                position: 'absolute',
+                left: app.desktopX ?? 30,
+                top: app.desktopY ?? 30,
+                pointerEvents: 'auto'
+              }}
             >
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
                 {app.icon}

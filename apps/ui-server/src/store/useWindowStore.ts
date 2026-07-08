@@ -16,6 +16,8 @@ export interface WindowApp {
   height: number | string;
   zIndex: number;
   color: string;
+  desktopX?: number;
+  desktopY?: number;
 }
 
 interface WindowState {
@@ -30,6 +32,7 @@ interface WindowState {
   toggleMaximize: (id: string) => void;
   focusWindow: (id: string) => void;
   updatePosition: (id: string, x: number, y: number) => void;
+  updateDesktopPosition: (id: string, x: number, y: number) => void;
   updateSize: (id: string, width: number | string, height: number | string) => void;
   setWallpaper: (url: string) => void;
 }
@@ -152,6 +155,17 @@ export const useWindowStore = create<WindowState>((set) => ({
       windows: {
         ...state.windows,
         [id]: { ...win, width, height }
+      }
+    };
+  }),
+
+  updateDesktopPosition: (id, x, y) => set((state) => {
+    const win = state.windows[id];
+    if (!win) return state;
+    return {
+      windows: {
+        ...state.windows,
+        [id]: { ...win, desktopX: x, desktopY: y }
       }
     };
   }),

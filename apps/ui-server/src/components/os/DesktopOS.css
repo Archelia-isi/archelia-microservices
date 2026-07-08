@@ -108,16 +108,11 @@
 }
 
 .desktop-shortcuts {
-  position: absolute;
-  top: 40px;
-  left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  z-index: 1;
+  /* position, flex etc rimossi perché ora le icone sono assolute e spostabili liberamente */
 }
 
 .desktop-icon-wrapper {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,6 +120,11 @@
   width: 80px;
   cursor: pointer;
   user-select: none;
+  transition: transform 0.2s;
+}
+
+.desktop-icon-wrapper:active {
+  transform: scale(0.95);
 }
 
 .desktop-icon-wrapper:hover .desktop-icon {

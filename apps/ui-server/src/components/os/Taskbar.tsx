@@ -1,11 +1,24 @@
 import { useWindowStore } from '../../store/useWindowStore';
-import { LogOut, GalleryHorizontalEnd } from 'lucide-react';
+import { LogOut, GalleryHorizontalEnd, User } from 'lucide-react';
 import './Taskbar.css';
 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, togglePinApp } = useWindowStore();
-  
-  // Mostra l'app se è pinnata oppure se è aperta
+
+  const handleTaskbarDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const appId = e.dataTransfer.getData('appId');
+    const source = e.dataTransfer.getData('source');
+    if (source === 'desktop' && appId) {
+      if (!windows[appId].isPinned) togglePinApp(appId);
+    }
+  };
+
+  const handleDragStartTaskbarIcon = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('appId', id);
+    e.dataTransfer.setData('source', 'taskbar');
+  };
+
   const visibleApps = Object.values(windows).filter(app => app.isPinned || app.isOpen);
 
   const handleAppClick = (id: string, isOpen: boolean, isMinimized: boolean, isActive: boolean) => {
@@ -24,11 +37,15 @@ export default function Taskbar() {
   };
 
   return (
-    <div className="taskbar">
+    <div 
+      className="taskbar-container"
+      onDrop={handleTaskbarDrop}
+      onDragOver={(e) => e.preventDefault()}
+    >
       {/* Sinistra: Utente e Logout */}
       <div className="taskbar-left">
         <div className="taskbar-user">
-          <div className="user-avatar flex-center">A</div>
+          <div className="user-avatar flex-center"><User size={16} /></div>
           <span className="user-name">Admin</span>
         </div>
         <button className="taskbar-btn" title="Logout">
@@ -46,6 +63,8 @@ export default function Taskbar() {
               className={`taskbar-item ${app.isOpen ? 'is-open' : ''} ${isActive ? 'is-active' : ''}`}
               onClick={() => handleAppClick(app.id, app.isOpen, app.isMinimized, isActive)}
               onContextMenu={(e) => handleContextMenu(e, app.id)}
+              draggable={true}
+              onDragStart={(e) => handleDragStartTaskbarIcon(e, app.id)}
               title={app.title + (app.isPinned ? " (Pinnata - Tasto destro per rimuovere)" : " (Tasto destro per fissare)")}
             >
               <div className="taskbar-icon flex-center" style={{ background: app.color }}>
