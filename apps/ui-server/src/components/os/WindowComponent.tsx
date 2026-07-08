@@ -47,7 +47,7 @@ export default function WindowComponent({ id }: Props) {
 
   return (
     <Rnd
-      size={windowApp.isMaximized ? { width: '100vw', height: 'calc(100vh - 52px)' } : { width: windowApp.width, height: windowApp.height }}
+      size={windowApp.isMaximized ? { width: window.innerWidth, height: window.innerHeight - 52 } : { width: windowApp.width, height: windowApp.height }}
       position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: windowApp.x, y: windowApp.y }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}

@@ -79,7 +79,7 @@ export const useWindowStore = create<WindowState>((set) => ({
     return {
       windows: {
         ...state.windows,
-        [id]: { ...win, isOpen: false, isMinimized: false, isMaximized: false }
+        [id]: { ...win, isOpen: false, isMinimized: false }
       },
       activeWindowId: state.activeWindowId === id ? null : state.activeWindowId
     };
