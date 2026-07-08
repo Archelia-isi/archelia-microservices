@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import DesktopLayout from './components/layout/DesktopLayout';
 import MobileLayout from './components/layout/MobileLayout';
+import DesktopOS from './components/os/DesktopOS';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
 import Products from './pages/Products';
-import Settings from './pages/Settings';
 
 function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -16,16 +15,20 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const Layout = isMobile ? MobileLayout : DesktopLayout;
+  if (!isMobile) {
+    // Archelia OS (Web Desktop Environment) per PC/Mac
+    return <DesktopOS />;
+  }
 
+  // Mobile App (Bottom Navigation) per Smartphone
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout />}>
+        <Route element={<MobileLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<div style={{padding: '1.5rem'}}>Impostazioni</div>} />
         </Route>
       </Routes>
     </BrowserRouter>

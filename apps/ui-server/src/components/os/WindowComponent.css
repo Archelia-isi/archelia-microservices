@@ -1,0 +1,88 @@
+.os-window {
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+}
+
+.os-window:not(.active) .window-inner {
+  opacity: 0.95;
+  box-shadow: var(--shadow-sm);
+}
+
+.os-window.active .window-inner {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.window-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-surface);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-radius: 12px;
+}
+
+.window-titlebar {
+  height: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  cursor: default;
+  user-select: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.window-controls {
+  display: flex;
+  gap: 8px;
+  width: 60px;
+}
+
+.window-controls-spacer {
+  width: 60px;
+}
+
+.mac-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mac-btn .icon {
+  opacity: 0;
+  color: rgba(0,0,0,0.6);
+  transition: opacity 0.1s;
+}
+
+.window-controls:hover .mac-btn .icon {
+  opacity: 1;
+}
+
+.mac-btn.close { background-color: #ff5f56; }
+.mac-btn.minimize { background-color: #ffbd2e; }
+.mac-btn.maximize { background-color: #27c93f; }
+
+.window-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.window-content {
+  flex: 1;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}

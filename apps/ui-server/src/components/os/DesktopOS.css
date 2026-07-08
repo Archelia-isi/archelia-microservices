@@ -1,0 +1,44 @@
+.desktop-os {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.mac-menubar {
+  height: 28px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 13px;
+  color: #1d1d1f;
+  z-index: 10000;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.menu-left, .menu-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menu-item {
+  cursor: default;
+}
+
+.menu-item.bold {
+  font-weight: 600;
+}
+
+.desktop-workspace {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
