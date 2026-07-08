@@ -60,7 +60,7 @@ export default function Dashboard() {
       {/* Recenti */}
       <div style={{ marginTop: '3rem' }}>
         <h3 className="text-h2" style={{ marginBottom: '1rem', fontSize: '18px' }}>Attività Recente</h3>
-        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', border: '1px dashed var(--color-border)' }}>
+        <div style={{ padding: '3rem', textAlign: 'center' }}>
           <p className="text-small">Il flusso degli eventi apparirà qui non appena collegheremo Redis.</p>
         </div>
       </div>

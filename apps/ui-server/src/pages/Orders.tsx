@@ -10,15 +10,15 @@ export default function Orders() {
         </button>
       </div>
 
-      {/* Empty State Apple Style */}
-      <div className="glass-panel" style={{ 
+      {/* Empty State Native App Style */}
+      <div style={{ 
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
         justifyContent: 'center',
         padding: '5rem 2rem',
         textAlign: 'center',
-        border: '1px dashed var(--color-border)'
+        height: '100%'
       }}>
         <div style={{ 
           width: '64px', height: '64px', 
