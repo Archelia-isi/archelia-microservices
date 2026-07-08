@@ -24,35 +24,20 @@
   flex: 1;
 }
 
-.taskbar-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 4px;
-  background: rgba(255,255,255,0.5);
-  border-radius: 20px;
+.taskbar-start-btn {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  color: #1d1d1f;
+  padding: 8px 12px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  user-select: none;
 }
 
-.taskbar-user:hover {
-  background: rgba(255,255,255,0.8);
-}
-
-.user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #007AFF, #00C6FF);
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.user-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1d1d1f;
+.taskbar-start-btn:hover {
+  background: rgba(0,0,0,0.05);
 }
 
 /* CENTER AREA */
@@ -123,28 +108,22 @@
   flex: 1;
 }
 
-.taskbar-btn {
-  background: transparent;
-  border: none;
-  color: #1d1d1f;
+.taskbar-clock {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.taskbar-btn:hover {
-  background: rgba(0,0,0,0.05);
-}
-
-.taskbar-logo {
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  color: #1d1d1f;
   padding-right: 8px;
+  user-select: none;
+}
+
+.taskbar-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.taskbar-date {
+  font-size: 11px;
+  color: #6e6e73;
 }

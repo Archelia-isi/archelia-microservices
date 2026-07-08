@@ -4,13 +4,11 @@ import { useWidgetStore } from '../../store/useWidgetStore';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
-import WidgetGallery from '../../pages/WidgetGallery';
-import './DesktopOS.css';
-
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
-import { LayoutDashboard, ShoppingCart, Package, Settings, GalleryHorizontalEnd } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Settings } from 'lucide-react';
+import './DesktopOS.css';
 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition } = useWindowStore();
@@ -57,19 +55,6 @@ export default function DesktopOS() {
       registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, color: 'linear-gradient(135deg, #34C759, #32B351)', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
       registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, color: 'linear-gradient(135deg, #5E5CE6, #5856D6)', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
       registerApp({ id: 'settings', title: 'Impostazioni', icon: <Settings size={24} color="white" />, color: 'linear-gradient(135deg, #8E8E93, #AEAEB2)', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
-      registerApp({
-        id: 'widget-gallery',
-        title: 'Galleria Widget',
-        component: <WidgetGallery />,
-        icon: <GalleryHorizontalEnd size={24} color="white" />,
-        width: 800,
-        height: 500,
-        x: window.innerWidth / 2 - 400,
-        y: window.innerHeight / 2 - 250,
-        color: '#8E8E93',
-        desktopX: 30,
-        desktopY: 430
-      });
     }
   }, []);
 
