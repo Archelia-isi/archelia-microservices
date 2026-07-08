@@ -1,7 +1,7 @@
 import { Rnd } from 'react-rnd';
 import { useWidgetStore, type DesktopWidget } from '../../store/useWidgetStore';
 import { useWindowStore } from '../../store/useWindowStore';
-import { findNearestFreeSpot, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
+import { checkOverlap, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const updatePosition = useWidgetStore(s => s.updateWidgetPosition);
@@ -10,6 +10,10 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const windows = useWindowStore(s => s.windows);
   
   const handleDragStop = (d: { x: number, y: number }) => {
+    // Snap to grid (10px) per facilitare l'allineamento
+    const snappedX = Math.round(d.x / 10) * 10;
+    const snappedY = Math.round(d.y / 10) * 10;
+    
     const existingItems: Rect[] = [];
     Object.values(windows).forEach(win => {
       if (!win.isPinned) {
@@ -23,18 +27,28 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       }
     });
     widgets.forEach(w => {
-      existingItems.push({
-        id: w.id,
-        x: w.x,
-        y: w.y,
-        ...getWidgetDimensions(w.type),
-        type: 'widget'
-      });
+      if (w.id !== widget.id) {
+        existingItems.push({
+          id: w.id,
+          x: w.x,
+          y: w.y,
+          ...getWidgetDimensions(w.type),
+          type: 'widget'
+        });
+      }
     });
 
     const targetDim = getWidgetDimensions(widget.type);
-    const spot = findNearestFreeSpot({ x: d.x, y: d.y, ...targetDim }, existingItems, window.innerWidth, window.innerHeight, widget.id);
-    updatePosition(widget.id, spot.x, spot.y);
+    const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
+    
+    const isOverlap = existingItems.some(item => checkOverlap(candidateRect, item));
+    
+    if (isOverlap) {
+      // Forza il re-render di react-rnd aggiornando lo stato con la sua posizione di prima (o triggeriamo update con gli stessi valori)
+      updatePosition(widget.id, widget.x, widget.y);
+    } else {
+      updatePosition(widget.id, snappedX, snappedY);
+    }
   };
 
   const renderContent = () => {

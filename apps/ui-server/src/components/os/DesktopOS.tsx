@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
-import { findNearestFreeSpot, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
+import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
@@ -44,9 +44,20 @@ export default function DesktopOS() {
       const targetX = e.clientX - offsetX;
       const targetY = e.clientY - offsetY;
       
+      const app = windows[appId];
+      const originalX = app.desktopX ?? 30;
+      const originalY = app.desktopY ?? 30;
+
+      // Snap to grid (10px) per facilitare l'allineamento
+      const snappedX = Math.round(targetX / 10) * 10;
+      const snappedY = Math.round(targetY / 10) * 10;
+
+      const targetDim = getIconDimensions();
+      const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
+
       const existingItems: Rect[] = [];
       Object.values(windows).forEach(win => {
-        if (!win.isPinned) {
+        if (!win.isPinned && win.id !== appId) {
           existingItems.push({
             id: win.id,
             x: win.desktopX ?? 30,
@@ -66,15 +77,15 @@ export default function DesktopOS() {
         });
       });
 
-      const spot = findNearestFreeSpot(
-        { x: targetX, y: targetY, ...getIconDimensions() }, 
-        existingItems, 
-        window.innerWidth, 
-        window.innerHeight, 
-        appId
-      );
+      // Importante: import checkOverlap da utils/desktopCollision in cima al file se non presente
+      const isOverlap = existingItems.some(item => checkOverlap(candidateRect, item));
       
-      updateDesktopPosition(appId, spot.x, spot.y);
+      if (isOverlap) {
+        // Torna al posto originale
+        updateDesktopPosition(appId, originalX, originalY);
+      } else {
+        updateDesktopPosition(appId, snappedX, snappedY);
+      }
     }
   };
 

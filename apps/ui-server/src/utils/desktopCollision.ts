@@ -8,12 +8,12 @@ export interface Rect {
 }
 
 export function checkOverlap(rect1: Omit<Rect, 'id'|'type'>, rect2: Omit<Rect, 'id'|'type'>): boolean {
-  const margin = 15; // Margine di sicurezza
+  const margin = 0; // Rimossa tolleranza per consentire allineamenti più stretti
   return (
     rect1.x < rect2.x + rect2.width + margin &&
-    rect1.x + rect1.width + margin > rect2.x &&
+    rect1.x + rect1.width > rect2.x - margin &&
     rect1.y < rect2.y + rect2.height + margin &&
-    rect1.y + rect1.height + margin > rect2.y
+    rect1.y + rect1.height > rect2.y - margin
   );
 }
 
