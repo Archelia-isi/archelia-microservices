@@ -16,9 +16,14 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleDragStop = (d: { x: number, y: number }) => {
-    // Snap to grid (10px) per facilitare l'allineamento
-    const snappedX = Math.round(d.x / 10) * 10;
-    const snappedY = Math.round(d.y / 10) * 10;
+    let snappedX = Math.round(d.x / 10) * 10;
+    let snappedY = Math.round(d.y / 10) * 10;
+
+    const maxW = window.innerWidth - getWidgetDimensions(widget.type, widget.size || 'small').width;
+    const maxH = window.innerHeight - 52 - getWidgetDimensions(widget.type, widget.size || 'small').height;
+
+    snappedX = Math.max(0, Math.min(snappedX, maxW));
+    snappedY = Math.max(0, Math.min(snappedY, maxH));
     
     const existingItems: Rect[] = [];
     Object.values(windows).forEach(win => {

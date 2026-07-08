@@ -49,8 +49,17 @@ export default function DesktopOS() {
       const originalY = app.desktopY ?? 30;
 
       // Snap to grid (10px) per facilitare l'allineamento
-      const snappedX = Math.round(targetX / 10) * 10;
-      const snappedY = Math.round(targetY / 10) * 10;
+      let snappedX = Math.round(targetX / 10) * 10;
+      let snappedY = Math.round(targetY / 10) * 10;
+      
+      // Clamp boundaries so icons don't go outside or under taskbar
+      const iconWidth = 80;
+      const iconHeight = 85;
+      const maxW = window.innerWidth - iconWidth;
+      const maxH = window.innerHeight - 52 - iconHeight; // 52px is taskbar height
+      
+      snappedX = Math.max(0, Math.min(snappedX, maxW));
+      snappedY = Math.max(0, Math.min(snappedY, maxH));
 
       const targetDim = getIconDimensions();
       const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
