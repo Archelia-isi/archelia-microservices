@@ -3,17 +3,18 @@ import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
-import Dock from './Dock';
+import Taskbar from './Taskbar';
+import WidgetGallery from '../../pages/WidgetGallery';
 import './DesktopOS.css';
 
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
-import { LayoutDashboard, ShoppingCart, Package, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Settings, GalleryHorizontalEnd } from 'lucide-react';
 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow } = useWindowStore();
-  const { widgets, addWidget } = useWidgetStore();
+  const { widgets } = useWidgetStore();
 
   useEffect(() => {
     // Registra le app all'avvio se non presenti
@@ -22,31 +23,26 @@ export default function DesktopOS() {
       registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, color: 'linear-gradient(135deg, #34C759, #32B351)', component: <Orders />, x: 150, y: 100, width: 900, height: 600 });
       registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, color: 'linear-gradient(135deg, #5E5CE6, #5856D6)', component: <Products />, x: 200, y: 150, width: 900, height: 600 });
       registerApp({ id: 'settings', title: 'Impostazioni', icon: <Settings size={24} color="white" />, color: 'linear-gradient(135deg, #8E8E93, #AEAEB2)', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400 });
+      registerApp({
+        id: 'widget-gallery',
+        title: 'Galleria Widget',
+        component: <WidgetGallery />,
+        icon: <GalleryHorizontalEnd size={24} color="white" />,
+        width: 800,
+        height: 500,
+        x: window.innerWidth / 2 - 400,
+        y: window.innerHeight / 2 - 250,
+        color: '#8E8E93'
+      });
     }
   }, []);
 
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>
-      {/* Top Menu Bar Auto-Hide */}
-      <div className="mac-menubar-trigger" />
-      <div className="mac-menubar">
-        <div className="menu-left">
-          <span className="menu-item bold"></span>
-          <span className="menu-item bold">Archelia OS</span>
-          <span className="menu-item" onClick={() => addWidget('clock', 100, 100)}>+ Orologio</span>
-          <span className="menu-item" onClick={() => addWidget('weather', 150, 150)}>+ Meteo</span>
-          <span className="menu-item" onClick={() => addWidget('kpi', 200, 200)}>+ Statistiche</span>
-        </div>
-        <div className="menu-right">
-          <span className="menu-item">{new Date().toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-          <span className="menu-item">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-      </div>
-
       {/* Area Finestre e Widget */}
       <div className="desktop-workspace">
         {/* Shortcuts Desktop */}
-        <div className="desktop-shortcuts">
+        <div className="desktop-shortcuts" style={{ zIndex: 10 }}>
           {Object.values(windows).map(app => (
             <div 
               key={`shortcut-${app.id}`} 
@@ -73,9 +69,8 @@ export default function DesktopOS() {
         ))}
       </div>
 
-      {/* Dock Auto-Hide */}
-      <div className="dock-trigger" />
-      <Dock />
+      {/* Nuova Taskbar */}
+      <Taskbar />
     </div>
   );
 }

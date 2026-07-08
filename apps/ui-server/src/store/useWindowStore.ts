@@ -7,6 +7,7 @@ export interface WindowApp {
   component: React.ReactNode;
   icon: React.ReactNode;
   isOpen: boolean;
+  isPinned: boolean;
   isMinimized: boolean;
   isMaximized: boolean;
   x: number;
@@ -21,8 +22,9 @@ interface WindowState {
   windows: Record<string, WindowApp>;
   activeWindowId: string | null;
   wallpaper: string;
-  registerApp: (app: Omit<WindowApp, 'isOpen' | 'isMinimized' | 'isMaximized' | 'zIndex'>) => void;
+  registerApp: (app: Omit<WindowApp, 'isOpen' | 'isPinned' | 'isMinimized' | 'isMaximized' | 'zIndex'>) => void;
   openWindow: (id: string) => void;
+  togglePinApp: (id: string) => void;
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   toggleMaximize: (id: string) => void;
@@ -45,6 +47,7 @@ export const useWindowStore = create<WindowState>((set) => ({
       [app.id]: {
         ...app,
         isOpen: false,
+        isPinned: true, // Di default le app principali sono pinnate
         isMinimized: false,
         isMaximized: true,
         zIndex: 0,
@@ -76,9 +79,20 @@ export const useWindowStore = create<WindowState>((set) => ({
     return {
       windows: {
         ...state.windows,
-        [id]: { ...win, isOpen: false }
+        [id]: { ...win, isOpen: false, isMinimized: false, isMaximized: false }
       },
       activeWindowId: state.activeWindowId === id ? null : state.activeWindowId
+    };
+  }),
+
+  togglePinApp: (id) => set((state) => {
+    const win = state.windows[id];
+    if (!win) return state;
+    return {
+      windows: {
+        ...state.windows,
+        [id]: { ...win, isPinned: !win.isPinned }
+      }
     };
   }),
 

@@ -16,9 +16,15 @@ export default function WindowComponent({ id }: Props) {
 
   const isActive = activeWindowId === id;
 
+  const handleDragStart = () => {
+    if (windowApp.isMaximized) {
+      toggleMaximize(id);
+    }
+  };
+
   const handleDragStop = (_e: any, d: any) => {
     const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
+    const screenH = window.innerHeight - 52; // altezza taskbar
     
     // Snap Left
     if (d.x <= 0) {
@@ -47,11 +53,12 @@ export default function WindowComponent({ id }: Props) {
 
   return (
     <Rnd
-      size={windowApp.isMaximized ? { width: '100vw', height: '100vh' } : { width: windowApp.width, height: windowApp.height }}
+      size={windowApp.isMaximized ? { width: '100vw', height: 'calc(100vh - 52px)' } : { width: windowApp.width, height: windowApp.height }}
       position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: windowApp.x, y: windowApp.y }}
+      onDragStart={handleDragStart}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
-      disableDragging={windowApp.isMaximized}
+      disableDragging={false}
       enableResizing={!windowApp.isMaximized}
       dragHandleClassName="window-titlebar"
       onMouseDown={() => focusWindow(id)}

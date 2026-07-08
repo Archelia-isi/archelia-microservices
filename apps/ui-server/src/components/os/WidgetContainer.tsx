@@ -36,6 +36,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     }
   };
 
+  const removeWidget = useWidgetStore(s => s.removeWidget);
+
   return (
     <Rnd
       position={{ x: widget.x, y: widget.y }}
@@ -44,7 +46,15 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       bounds="parent"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
     >
-      {renderContent()}
+      <div className="widget-wrapper" style={{ position: 'relative' }}>
+        <button 
+          className="widget-close-btn" 
+          onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+        >
+          ✕
+        </button>
+        {renderContent()}
+      </div>
     </Rnd>
   );
 }

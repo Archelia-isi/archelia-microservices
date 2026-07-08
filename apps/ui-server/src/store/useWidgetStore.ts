@@ -16,9 +16,12 @@ interface WidgetState {
 
 export const useWidgetStore = create<WidgetState>((set) => ({
   widgets: [{ id: 'default-clock', type: 'clock', x: window.innerWidth > 800 ? window.innerWidth - 450 : 50, y: 50 }],
-  addWidget: (type, x, y) => set((state) => ({
-    widgets: [...state.widgets, { id: `widget-${Date.now()}`, type, x, y }]
-  })),
+  addWidget: (type, x, y) => set((state) => {
+    if (state.widgets.some(w => w.type === type)) return state;
+    return {
+      widgets: [...state.widgets, { id: `widget-${Date.now()}`, type, x, y }]
+    };
+  }),
   removeWidget: (id) => set((state) => ({
     widgets: state.widgets.filter(w => w.id !== id)
   })),
