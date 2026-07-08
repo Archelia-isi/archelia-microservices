@@ -1,42 +1,67 @@
-import { Activity, Package, ShoppingCart } from 'lucide-react';
+import { Activity, Package, ShoppingCart, TrendingUp, Users } from 'lucide-react';
 
 export default function Dashboard() {
   return (
-    <div className="glass-panel animate-fade-in" style={{ padding: '2rem' }}>
-      <h2 className="text-h1" style={{ marginBottom: '2rem' }}>Dashboard Overview</h2>
+    <div className="animate-fade-in">
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 className="text-h1">Panoramica</h2>
+        <p className="text-small">Tieni sotto controllo le metriche vitali in tempo reale.</p>
+      </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-        {/* Stat Card 1 */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'var(--color-primary-light)', borderRadius: 'var(--radius-full)' }}>
-            <ShoppingCart size={24} color="var(--color-primary)" />
+      {/* Metric Cards - High Density */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <span className="text-small" style={{ fontWeight: 500 }}>Ordini Oggi</span>
+            <ShoppingCart size={16} color="var(--color-text-muted)" />
           </div>
-          <div>
-            <p className="text-small">Ordini Oggi</p>
-            <p className="text-h2">124</p>
-          </div>
-        </div>
-
-        {/* Stat Card 2 */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.2)', borderRadius: 'var(--radius-full)' }}>
-            <Package size={24} color="var(--color-success)" />
-          </div>
-          <div>
-            <p className="text-small">Prodotti Attivi</p>
-            <p className="text-h2">4,302</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span className="text-h1">124</span>
+            <span style={{ color: 'var(--color-success)', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <TrendingUp size={12} /> +12%
+            </span>
           </div>
         </div>
 
-        {/* Stat Card 3 */}
-        <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.2)', borderRadius: 'var(--radius-full)' }}>
-            <Activity size={24} color="var(--color-warning)" />
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <span className="text-small" style={{ fontWeight: 500 }}>Fatturato</span>
+            <Activity size={16} color="var(--color-text-muted)" />
           </div>
-          <div>
-            <p className="text-small">Sincronizzazioni</p>
-            <p className="text-h2">In corso...</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span className="text-h1">€4.200</span>
+            <span style={{ color: 'var(--color-success)', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <TrendingUp size={12} /> +5%
+            </span>
           </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <span className="text-small" style={{ fontWeight: 500 }}>Nuovi Clienti</span>
+            <Users size={16} color="var(--color-text-muted)" />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span className="text-h1">18</span>
+          </div>
+        </div>
+        
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <span className="text-small" style={{ fontWeight: 500 }}>Prodotti Attivi</span>
+            <Package size={16} color="var(--color-text-muted)" />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span className="text-h1">4.302</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recenti */}
+      <div style={{ marginTop: '3rem' }}>
+        <h3 className="text-h2" style={{ marginBottom: '1rem', fontSize: '18px' }}>Attività Recente</h3>
+        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', border: '1px dashed var(--color-border)' }}>
+          <p className="text-small">Il flusso degli eventi apparirà qui non appena collegheremo Redis.</p>
         </div>
       </div>
     </div>
