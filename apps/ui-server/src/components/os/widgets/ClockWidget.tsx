@@ -14,15 +14,27 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
   const tz3 = widget.config?.tz3 || 'Asia/Tokyo';
   const tz4 = widget.config?.tz4 || 'Europe/London';
 
-  const renderClock = (tz: string, label: string) => {
-    const formatter = new Intl.DateTimeFormat('it-IT', {
-      timeZone: tz,
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const renderClock = (tz: string) => {
+    let formatter;
+    let validTz = tz;
+    try {
+      formatter = new Intl.DateTimeFormat('it-IT', {
+        timeZone: validTz,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (e) {
+      // Fallback in caso di fuso orario non valido (es. l'utente sta ancora digitando o ha sbagliato)
+      validTz = 'Europe/Rome';
+      formatter = new Intl.DateTimeFormat('it-IT', {
+        timeZone: validTz,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
     
     // Rimuoviamo il fuso orario dal label per pulizia, prendendo l'ultima parte
-    const cleanLabel = label.split('/').pop()?.replace('_', ' ') || label;
+    const cleanLabel = validTz.split('/').pop()?.replace('_', ' ') || validTz;
 
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
@@ -38,27 +50,33 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
     <div className="widget clock-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px' }}>
       {(!widget.size || widget.size === 'small') && (
         <>
-          {renderClock(tz1, tz1)}
+          {renderClock(tz1)}
           <p style={{ fontSize: '1rem', fontWeight: 500, margin: '8px 0 0 0', opacity: 0.8, textAlign: 'center' }}>
-            {new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz1 }).format(time)}
+            {(() => {
+              try {
+                return new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: tz1 }).format(time);
+              } catch (e) {
+                return new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Rome' }).format(time);
+              }
+            })()}
           </p>
         </>
       )}
 
       {widget.size === 'medium' && (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-          {renderClock(tz1, tz1)}
+          {renderClock(tz1)}
           <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '0 16px' }} />
-          {renderClock(tz2, tz2)}
+          {renderClock(tz2)}
         </div>
       )}
 
       {widget.size === 'large' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%', gap: '16px' }}>
-          {renderClock(tz1, tz1)}
-          {renderClock(tz2, tz2)}
-          {renderClock(tz3, tz3)}
-          {renderClock(tz4, tz4)}
+          {renderClock(tz1)}
+          {renderClock(tz2)}
+          {renderClock(tz3)}
+          {renderClock(tz4)}
         </div>
       )}
     </div>
