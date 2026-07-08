@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
+import { useWidgetStore } from '../../store/useWidgetStore';
 import WindowComponent from './WindowComponent';
+import WidgetContainer from './WidgetContainer';
 import Dock from './Dock';
 import './DesktopOS.css';
 
@@ -10,7 +12,8 @@ import Products from '../../pages/Products';
 import { LayoutDashboard, ShoppingCart, Package, Settings } from 'lucide-react';
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp } = useWindowStore();
+  const { windows, wallpaper, registerApp, openWindow } = useWindowStore();
+  const { widgets, addWidget } = useWidgetStore();
 
   useEffect(() => {
     // Registra le app all'avvio se non presenti
@@ -24,14 +27,15 @@ export default function DesktopOS() {
 
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>
-      {/* Top Menu Bar macOS */}
+      {/* Top Menu Bar Auto-Hide */}
+      <div className="mac-menubar-trigger" />
       <div className="mac-menubar">
         <div className="menu-left">
           <span className="menu-item bold"></span>
           <span className="menu-item bold">Archelia OS</span>
-          <span className="menu-item">Archivio</span>
-          <span className="menu-item">Modifica</span>
-          <span className="menu-item">Finestra</span>
+          <span className="menu-item" onClick={() => addWidget('clock', 100, 100)}>+ Orologio</span>
+          <span className="menu-item" onClick={() => addWidget('weather', 150, 150)}>+ Meteo</span>
+          <span className="menu-item" onClick={() => addWidget('kpi', 200, 200)}>+ Statistiche</span>
         </div>
         <div className="menu-right">
           <span className="menu-item">{new Date().toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
@@ -41,16 +45,27 @@ export default function DesktopOS() {
 
       {/* Area Finestre e Widget */}
       <div className="desktop-workspace">
+        {/* Shortcuts Desktop */}
+        <div className="desktop-shortcuts">
+          {Object.values(windows).map(app => (
+            <div 
+              key={`shortcut-${app.id}`} 
+              className="desktop-icon-wrapper"
+              onDoubleClick={() => openWindow(app.id)}
+            >
+              <div className="desktop-icon flex-center" style={{ background: app.color }}>
+                {app.icon}
+              </div>
+              <span className="desktop-icon-label">{app.title.split(' ')[0]}</span>
+            </div>
+          ))}
+        </div>
+
         {/* Livello Widget Desktop */}
-        <div className="desktop-widgets">
-          <div className="widget clock-widget">
-            <h1 style={{ fontSize: '4rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </h1>
-            <p style={{ fontSize: '1.25rem', fontWeight: 500 }}>
-              {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
+        <div className="desktop-widgets" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 1 }}>
+          {widgets.map(w => (
+            <WidgetContainer key={w.id} widget={w} />
+          ))}
         </div>
 
         {Object.values(windows).map(win => (
@@ -58,7 +73,8 @@ export default function DesktopOS() {
         ))}
       </div>
 
-      {/* Dock Inferiore */}
+      {/* Dock Auto-Hide */}
+      <div className="dock-trigger" />
       <Dock />
     </div>
   );

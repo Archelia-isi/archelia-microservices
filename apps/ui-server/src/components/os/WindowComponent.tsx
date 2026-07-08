@@ -16,7 +16,30 @@ export default function WindowComponent({ id }: Props) {
 
   const isActive = activeWindowId === id;
 
-  const handleDragStop = (_e: any, d: any) => updatePosition(id, d.x, d.y);
+  const handleDragStop = (_e: any, d: any) => {
+    const screenW = window.innerWidth;
+    const screenH = window.innerHeight;
+    
+    // Snap Left
+    if (d.x <= 0) {
+      updateSize(id, screenW / 2, screenH);
+      updatePosition(id, 0, 0);
+      return;
+    }
+    // Snap Right (se l'utente trascina vicino al bordo destro)
+    if (d.x >= screenW - 100) {
+      updateSize(id, screenW / 2, screenH);
+      updatePosition(id, screenW / 2, 0);
+      return;
+    }
+    // Snap Top (Massimizza se tocca il tetto)
+    if (d.y <= 0) {
+      if (!windowApp.isMaximized) toggleMaximize(id);
+      return;
+    }
+
+    updatePosition(id, d.x, d.y);
+  };
   const handleResizeStop = (_e: any, _dir: any, ref: any, _delta: any, position: any) => {
     updateSize(id, ref.style.width, ref.style.height);
     updatePosition(id, position.x, position.y);
@@ -24,7 +47,7 @@ export default function WindowComponent({ id }: Props) {
 
   return (
     <Rnd
-      size={windowApp.isMaximized ? { width: '100%', height: 'calc(100% - 80px)' } : { width: windowApp.width, height: windowApp.height }}
+      size={windowApp.isMaximized ? { width: '100vw', height: '100vh' } : { width: windowApp.width, height: windowApp.height }}
       position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: windowApp.x, y: windowApp.y }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
