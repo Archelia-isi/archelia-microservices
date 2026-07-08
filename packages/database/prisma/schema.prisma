@@ -1,0 +1,1205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// === LOG SINCRONIZZAZIONI ===
+
+/// Registro di ogni operazione di sincronizzazione
+model SyncLog {
+  id        String     @id @default(cuid())
+  type      SyncType
+  status    SyncStatus
+  startedAt DateTime   @default(now())
+  endedAt   DateTime?
+
+  /// Numero di record creati
+  created Int @default(0)
+  /// Numero di record aggiornati
+  updated Int @default(0)
+  /// Numero di errori
+  errors  Int @default(0)
+
+  /// Dettagli/log in formato testo
+  details String?
+  /// Errore completo se fallita
+  error   String?
+
+  @@index([type, startedAt])
+  @@map("sync_logs")
+}
+
+enum SyncType {
+  PRODUCTS
+  PRICES
+  INVENTORY
+  TAXONOMY
+  IMAGES
+  CUSTOMERS
+  ORDERS
+  ELMARK_SYNC
+  ZUCCHETTI_SYNC
+}
+
+enum SyncStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// === SCHEDULER CONFIG (persiste tra deploy) ===
+
+// === CART SYNC QUEUE (App <-> Web Sync) ===
+
+model CartSyncQueue {
+  id          String   @id @default(uuid())
+  customerId  String   @unique // Shopify Customer ID
+  cartPayload Json     // Il JSON esatto del carrello
+  source      String   // "APP" o "WEB"
+  status      String   @default("PENDING") // "PENDING" | "PROCESSING" | "SYNCED" | "FAILED"
+  attempts    Int      @default(0)         // Numero di tentativi falliti (max 3 prima di FAILED)
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@map("cart_sync_queue")
+}
+
+
+model SchedulerConfig {
+  jobId         String   @id
+  enabled       Boolean  @default(false)
+  intervalValue Int      @default(30)
+  intervalUnit  String   @default("minutes")
+  startTime     String?
+
+  updatedAt     DateTime @updatedAt
+
+  @@map("scheduler_config")
+}
+
+// === BLACKLIST IMPORT SHOPIFY ===
+
+model ShopifyBlacklistRule {
+  id              String   @id @default("singleton")
+  
+  brands          Json     @default("[]") // Lista di codici marca bloccati
+  productGroups   Json     @default("[]") // Lista di categorie Zucchetti bloccate
+  families        Json     @default("[]") // Lista di famiglie bloccate
+  categories      Json     @default("[]") // Lista di categorie omogenee bloccate
+  products        Json     @default("[]") // Lista di SKU singoli esclusi
+
+  updatedAt       DateTime @updatedAt
+
+  @@map("shopify_blacklist_rules")
+}
+
+// === NOTIFICHE IN-PANEL ===
+
+model Notification {
+  id        String            @id @default(cuid())
+  level     NotificationLevel
+  title     String
+  message   String
+  read      Boolean           @default(false)
+  type      NotificationType  @default(SYSTEM)
+  createdAt DateTime          @default(now())
+
+  @@index([read, createdAt])
+  @@map("notifications")
+}
+
+enum NotificationLevel {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+enum NotificationType {
+  SYSTEM
+  SYNC
+  STOCK
+  PRICE
+  ERROR
+}
+
+// === AUDIT TRAIL ===
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  actor     String   @default("system")
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// === WEBHOOK MONITOR ===
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  source    String
+  topic     String
+  status    Int      @default(200)
+  payload   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// === MULTI-UTENTE ===
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  role         UserRole  @default(OPERATOR)
+  displayName  String?
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@map("admin_users")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+// === PREFERENZE UTENTE (widget, tema) ===
+
+model UserPreference {
+  username     String   @id
+  widgetConfig String? // JSON
+  theme        String   @default("dark")
+  updatedAt    DateTime @updatedAt
+
+  @@map("user_preferences")
+}
+
+// === STORICO PREZZI E CHANGELOG ===
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  oldPrice  Float
+  newPrice  Float
+  changedAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("price_history")
+}
+
+model ProductChange {
+  id        String   @id @default(cuid())
+  productId String
+  field     String
+  oldValue  String?
+  newValue  String?
+  source    String // PRICE_SYNC, STOCK_SYNC, IMPORT, MANUAL
+  changedAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_changes")
+}
+
+// === ALERT E PERFORMANCE ===
+
+model AlertRule {
+  id          String   @id @default(cuid())
+  name        String
+  field       String // stock, price, image
+  operator    String // lt, gt, eq, missing
+  value       String // threshold value
+  brandFilter String? // optional brand filter
+  enabled     Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@map("alert_rules")
+}
+
+model SyncPerformance {
+  id             String   @id @default(cuid())
+  syncType       String // STOCK, PRICE, IMPORT, IMAGE
+  durationMs     Int
+  recordsTotal   Int      @default(0)
+  recordsUpdated Int      @default(0)
+  apiResponseMs  Int? // Zucchetti API response time
+  memoryMb       Float?
+  success        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([syncType])
+  @@map("sync_performance")
+}
+
+// === MAPPING CLIENTI ===
+
+/// Mapping tra cliente Shopify e cliente Zucchetti
+model CustomerMapping {
+  id String @id @default(cuid())
+
+  /// ID cliente su Shopify
+  shopifyCustomerId String @unique
+  /// Codice cliente su Zucchetti (es. "C000039")
+  zucchettiCode     String @unique
+
+  /// Email cliente
+  email    String?
+  /// Nome completo
+  fullName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("customer_mappings")
+}
+
+// === PRODOTTI (dati completi da Zucchetti) ===
+
+/// Prodotto completo importato da Zucchetti
+model Product {
+  id String @id @default(cuid())
+
+  /// Codice articolo GUID Zucchetti (chiave primaria Zucchetti)
+  zucchettiCode String @unique
+  /// Codice articolo leggibile (SKU visibile al cliente)
+  sku           String @unique
+
+  // --- Dati prodotto ---
+  /// Titolo prodotto (armetatitle)
+  title           String?
+  /// Nome articolo originale (ardesart)
+  originalName    String?
+  /// Descrizione completa / catalogo (ardescat) — HTML
+  description     String?
+  /// Descrizione tecnica (ardessup) — coppie chiave:valore
+  technicalDesc   String?
+  /// SEO meta description (armetadescri)
+  metaDescription String?
+  /// Keywords / tag (arkeyword)
+  keywords        String?
+  /// Tag semantici generati da IA per motore di ricerca (Json formattato as array of strings)
+  semanticTags    Json?
+  /// Hash MD5 dei dati di base per evitare di rieseguire l'IA se il prodotto non è stato modificato
+  semanticHash    String?
+  /// Vettore semantico per ricerca RAG sui prodotti storici Zucchetti
+  vectorEmbedding Json?
+
+  // --- Tassonomia ---
+  /// Codice marca (arcodmar)
+  brand        String?
+  /// Gruppo merceologico (argrumer)
+  productGroup String?
+  /// Codice famiglia (arcodfam)
+  family       String?
+  /// Categoria omogenea (arcatomo)
+  category     String?
+
+  // --- Unità e misure ---
+  /// Unità di misura principale (arunmis1)
+  unit           String?
+  /// Seconda unità di misura (arunmis2)
+  unit2          String?
+  /// Moltiplicatore di conversione (armoltip) tra unit1 e unit2
+  unitMultiplier Float?  @default(1)
+
+  // --- Prezzo e stock ---
+  /// Prezzo listino ARC (liprezzo)
+  price          Float   @default(0)
+  /// Codice listino (licodlis)
+  priceList      String?
+  /// Peso netto (arpesnet)
+  netWeight      Float?  @default(0)
+  /// Peso lordo (arpeslor) espresso in decimali
+  grossWeight    Float?  @default(0)
+  /// Peso volumetrico (zzpesvol)
+  volume         Float?  @default(0)
+  /// Lunghezza (ardimlun)
+  length         Float?  @default(0)
+  /// Larghezza (ardimlar)
+  width          Float?  @default(0)
+  /// Altezza (ardimalt)
+  height         Float?  @default(0)
+  /// Stock disponibile (PR) (giacenza - riservata - impegnata)
+  stock          Int     @default(0)
+  /// Giacenza grezza (PR) (slqtaper)
+  rawStock       Float   @default(0)
+  /// Quantità riservata (PR) (slqtrper)
+  reservedStock  Float   @default(0)
+  /// Quantità impegnata (PR) (slqtiper)
+  committedStock Float   @default(0)
+
+  // --- Stock Magazzino Elmark (EK) ---
+  /// Stock disponibile Elmark (EK)
+  stockEk          Int     @default(0)
+  /// Giacenza grezza (EK)
+  rawStockEk       Float   @default(0)
+  /// Quantità riservata (EK)
+  reservedStockEk  Float   @default(0)
+  /// Quantità impegnata (EK)
+  committedStockEk Float   @default(0)
+
+  // --- Immagini ---
+  /// URL prima immagine originale (da Cloudinary)
+  imageUrl  String?
+  /// Lista URL tutte le immagini originali (JSON array)
+  imageUrls Json?
+
+  // --- Stato ---
+  /// Flag lock per ignorare il sync stock durante offerte flash con scarsità fittizia
+  isFlashPromoLock Boolean @default(false)
+  /// Pubblicato su web (arpubweb = S/N)
+  publishedOnWeb Boolean @default(false)
+  /// ID prodotto su Shopify (se sincronizzato)
+  shopifyId      String?
+  /// Stato su Shopify (ACTIVE, DRAFT, ARCHIVED)
+  shopifyStatus  String?
+  /// Handle URL su Shopify
+  shopifyHandle  String?
+  /// Numero di vendite registrate (storico)
+  soldCount      Int     @default(0)
+
+  // --- Timestamp ---
+  /// Data creazione su Zucchetti
+  zucchettiCreatedAt String?
+  /// Data ultima modifica su Zucchetti
+  zucchettiUpdatedAt String?
+  
+  zucchettiSyncedAt  DateTime? // Data ultima sincro su Zucchetti Infinity (Anagrafica)
+  zucchettiSyncError String?   // Ultimo errore restituito da Zucchetti (es. Nomenclature mancanti)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brand])
+  @@index([family])
+  @@index([publishedOnWeb])
+  @@map("products")
+}
+
+// === TABELLE LOOKUP TASSONOMIA ===
+
+/// Marche (es. EK → ELMARK, KO → KOMBO)
+model Brand {
+  code String @id
+  name String
+  isNew Boolean @default(false)
+
+  @@map("brands")
+}
+
+/// Categorie / Gruppi merceologici (es. EL → ELETTRICITÀ, IL → ILLUMINAZIONE)
+model ProductCategory {
+  code String @id
+  name String
+
+  @@map("product_categories")
+}
+
+/// Famiglie (es. AI → ACCESSORI, AU → AUTOMAZIONE)
+model Family {
+  code   String @id
+  name   String
+  source String @default("ZUCCHETTI")
+
+  @@map("families")
+}
+
+/// Categorie omogenee (es. E14 → LAMPADINE E14, CAC → CACCIAVITI)
+model HomogeneousCategory {
+  code   String @id
+  name   String
+  source String @default("ZUCCHETTI")
+
+  @@map("homogeneous_categories")
+}
+
+/// Gruppi merceologici (es. EL → ELETTRICO, ID → IDRAULICO)
+model ProductGroup {
+  code   String @id
+  name   String
+  source String @default("ZUCCHETTI")
+
+  @@map("product_groups")
+}
+
+// === MAPPING PRODOTTI ===
+
+/// Mapping tra prodotto Shopify e articolo Zucchetti
+model ProductMapping {
+  id String @id @default(cuid())
+
+  /// ID prodotto su Shopify
+  shopifyProductId String @unique
+  /// Codice articolo su Zucchetti (ARCODAR2)
+  zucchettiSku     String @unique
+
+  /// Codice produttore (es. estratto dopo il primo punto)
+  manufacturerCode String?
+
+  /// Ultimo prezzo sincronizzato
+  lastSyncedPrice Float?
+  /// Ultimo stock sincronizzato
+  lastSyncedStock Int?
+  /// Ultimo peso lordo sincronizzato
+  lastSyncedWeight Float?
+  /// Hash dei dati per sync differenziale
+  lastDataHash    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([manufacturerCode])
+  @@map("product_mappings")
+}
+
+// === CODA ORDINI ===
+
+/// Ordine ricevuto da Shopify, in attesa di invio a Zucchetti
+model OrderQueue {
+  id String @id @default(cuid())
+
+  /// ID ordine su Shopify
+  shopifyOrderId   String  @unique
+  /// Numero ordine Shopify (es. "#1001")
+  shopifyOrderName String?
+
+  /// Payload completo dell'ordine (JSON)
+  payload Json
+
+  /// Stato elaborazione
+  status OrderQueueStatus @default(PENDING)
+
+  /// Inviato a I.S.I. srl (fiscale)?
+  sentToIsi    Boolean @default(false)
+  /// Seriale documento I.S.I. srl
+  isiDocSerial String?
+
+  /// Inviato a Izzo Distribuzione (logistico)?
+  sentToIzzo    Boolean @default(false)
+  /// Seriale documento Izzo Distribuzione
+  izzoDocSerial String?
+
+  /// Numero di tentativi di invio
+  attempts  Int     @default(0)
+  /// Ultimo errore
+  lastError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("order_queue")
+}
+
+model MarketingSettings {
+  id              String   @id @default("marketing_config")
+  cartEnabled     Boolean  @default(true)
+  cartSequence    Json     @default("[]")
+  
+  winbackEnabled  Boolean  @default(false)
+  winbackSequence Json     @default("[]")
+  
+  browseEnabled      Boolean  @default(false)
+  browseCooldownDays Int      @default(10)
+  browseSequence     Json     @default("[]")
+  
+  metaCapiEnabled Boolean  @default(false)
+  
+  loopEnabled      Boolean  @default(false)
+  loopStartDays    Int      @default(30)
+  loopIntervalDays Int      @default(20)
+  loopTemplateId   String?
+
+  pushCartEnabled      Boolean  @default(false)
+  pushCartDelayMins    Int      @default(30)
+  pushCartSequence     Json     @default("[]")
+
+  pushBrowseEnabled    Boolean  @default(false)
+  pushBrowseDelayMins  Int      @default(30)
+  pushBrowseSequence   Json     @default("[]")
+
+  pushWinbackEnabled   Boolean  @default(false)
+  pushWinbackDelayMins Int      @default(1440)
+  pushWinbackSequence  Json     @default("[]")
+
+  pushPromoEnabled     Boolean  @default(false)
+
+  updatedAt       DateTime @updatedAt
+}
+
+enum OrderQueueStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// === LOG APPLICAZIONE ===
+
+/// Registro log centralizzato per la dashboard admin
+model LogEntry {
+  id       String @id @default(cuid())
+  /// Livello: info, warn, error, fatal
+  level    String
+  /// Categoria: middleware, database, sync, images, admin, system
+  category String
+  /// Messaggio di log
+  message  String
+  /// Dati extra (stack trace, dettagli, contesto)
+  data     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([category, createdAt])
+  @@index([level, createdAt])
+  @@map("log_entries")
+}
+
+// === FABBRICA BANNER AI ===
+
+/// Registro locandine generate dall'Intelligenza Artificiale
+model AiBanner {
+  id           String  @id @default(cuid())
+  /// URL permanente dell'immagine salvata su Cloudinary/Locale
+  imageUrl     String
+  /// SKU o parola chiave associata alla foto base usata (es. TR01)
+  basePhotoSku String?
+  /// Slogan testuale stampato sull'immagine (se presente)
+  slogan       String?
+  /// Contesto generato via prompt (es. 'cucina in marmo')
+  context      String?
+  /// Dimensioni dell'immagine (es. '1080x1080')
+  dimensions   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([basePhotoSku])
+  @@map("ai_banners")
+}
+
+// === BACKUP PREZZI PROMOZIONI ===
+
+/// Backup dei prezzi originali prima dell'applicazione di una promozione.
+/// Usato dallo script apply_compare_at_prices per il revert.
+model PriceBackup {
+  id        String   @id @default(cuid())
+  /// JSON array con i dati di backup delle varianti
+  data      Json
+  /// Numero di varianti nel backup
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("price_backups")
+}
+
+// === BANNERS DA CLOUDINARY ===
+
+/// Immagini per banner e promozioni sincronizzate da Cloudinary (cartella "banner")
+model Banner {
+  id String @id @default(cuid())
+
+  /// Public ID su Cloudinary (es. banner/promo_pasqua)
+  publicId String  @unique
+  /// URL sicuro dell'immagine originaria
+  url      String
+  /// Formato dell'immagine (es. webp, jpg)
+  format   String?
+  /// Larghezza originaria in pixel
+  width    Int?
+  /// Altezza originaria in pixel
+  height   Int?
+
+  /// Eventuale nome estrato dal publicId
+  name String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("banners")
+}
+
+// === IMPOSTAZIONI PROMOZIONI AUTOMATICHE ===
+
+/// Cabina di regia per il motore AI delle offerte a tempo
+model AutoPromoSettings {
+  id                    String   @id @default("singleton")
+  isActive              Boolean  @default(false)
+
+  // -- AI Autopilot Settings --
+  aiAutopilotEnabled    Boolean  @default(false)
+  aiPrioritySkus        String[] @default([])   /// SKU prioritari iniettati dal Supervisore Gemini
+
+  dailyDealsEnabled      Boolean  @default(true)
+  flashDealsEnabled      Boolean  @default(true)
+  standardHourlyEnabled  Boolean  @default(true)
+
+  deadStockDiscount      Int      @default(30)
+  deadStockMonths        Int      @default(6)
+  deadStockItemCount     Int      @default(10)
+
+  flashDealDiscount      Int      @default(40)
+  flashDealsPerDay       Int      @default(4)
+  flashDealDurations     String   @default("1,1,1,1")
+  flashDealHours         String   @default("10,14,18,21")
+
+  standardHourlyDiscount Int      @default(30)
+  standardHourlyPerDay   Int      @default(4)
+  standardHourlyMonths   Int      @default(6)
+  standardHourlyDurations String  @default("1,1,1,1")
+  standardHourlyHours    String   @default("11,15,19,22")
+
+  blacklistedCategories  String[] @default([])
+  sloganMode             String   @default("STATIC") // STATIC o AI
+  staticSlogans          String[] @default([])
+
+  dailyTargetBrands      String[] @default([])
+  dailyTargetGroups      String[] @default([])
+  dailyTargetFamilies    String[] @default([])
+  dailyTargetCategories  String[] @default([])
+
+  flashTargetBrands      String[] @default([])
+  flashTargetGroups      String[] @default([])
+  flashTargetFamilies    String[] @default([])
+  flashTargetCategories  String[] @default([])
+
+  stdTargetBrands        String[] @default([])
+  stdTargetGroups        String[] @default([])
+  stdTargetFamilies      String[] @default([])
+  stdTargetCategories    String[] @default([])
+
+  updatedAt DateTime @updatedAt
+
+  @@map("auto_promo_settings")
+}
+
+// === INTEGRAZIONE CLIENTI (SHOPIFY -> ZUCCHETTI) ===
+
+/// DATABASE 1: CRM Marketing (Mirror Shopify)
+model ZelShopifyCustomer {
+  shopifyId        String   @id /// GID o Numeric ID nativo di Shopify
+  email            String?
+  firstName        String?
+  lastName         String?
+  phone            String?
+  
+  /// Dati di fatturazione completi
+  billingAddress   Json?
+  
+  /// Array completo di tutti gli indirizzi associati al cliente su Shopify
+  addresses        Json?
+
+  /// Dati fiscali e PEC estratti dagli attributi carrello
+  fiscalData       Json?    
+  
+  /// Codice Zucchetti (es. ARC000001A) assegnato in modo permanente
+  zucchettiArcId   String?  @unique
+  
+  zucchettiQueue   ZelZucchettiCustomerQueue?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("zel_shopify_customer")
+}
+
+/// DATABASE 2: Coda ETL per ERP (Zucchetti Outbox)
+model ZelZucchettiCustomerQueue {
+  arcId            String   @id /// Codice Zucchetti auto-generato (chiave primaria coda)
+  
+  /// Foreign key a DB1
+  shopifyId        String   @unique
+  shopifyCustomer  ZelShopifyCustomer @relation(fields: [shopifyId], references: [shopifyId])
+  
+  /// Array o oggetto JSON pronto per essere convertito in XML
+  xmlPayload       Json
+  status           ZucchettiCustomerStatus @default(PENDING)
+  
+  attempts         Int      @default(0)
+  lastError        String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("zel_zucchetti_customer_queue")
+}
+
+enum ZucchettiCustomerStatus {
+  PENDING
+  SYNCED
+  ERROR
+}
+
+// === INTEGRAZIONE ORDINI (SHOPIFY -> ZUCCHETTI) ===
+
+/// DATABASE 1: CRM Ordini (Mirror Shopify)
+model ZelShopifyOrder {
+  id                String   @id @default(cuid())
+  shopifyOrderId    String   @unique
+  orderNumber       String?
+  totalPrice        Float    @default(0)
+  shopifyCustomerId String?
+
+  zucchettiQueue    ZelZucchettiOrderQueue?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("zel_shopify_order")
+}
+
+/// DATABASE 2: Coda Ordini per ERP (JSON Zucchetti)
+model ZelZucchettiOrderQueue {
+  id               String   @id @default(cuid())
+
+  /// Foreign key a DB1
+  shopifyOrderId   String   @unique
+  shopifyOrder     ZelShopifyOrder @relation(fields: [shopifyOrderId], references: [shopifyOrderId])
+
+  /// Payload completo JSON per Zucchetti
+  payload          Json
+  status           ZucchettiOrderStatus @default(PENDING)
+
+  attempts         Int      @default(0)
+  lastError        String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("zel_zucchetti_order_queue")
+}
+
+enum ZucchettiOrderStatus {
+  PENDING
+  SYNCED
+  ERROR
+}
+
+// === MOTORE MARKETING IN-HOUSE ===
+
+/// Libreria dei Template Email (Creati via UI Dashboard)
+model MarketingTemplate {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  /// Oggetto dell'email predefinito (es. "Hai dimenticato qualcosa?")
+  subject     String?
+  /// Codice sorgente HTML compilato pronto per Brevo
+  htmlContent String         @db.Text
+  /// Stato JSON per ricaricare l'editor visivo (Drag & Drop)
+  designState Json?    
+  
+  jobs        MarketingJob[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("marketing_templates")
+}
+
+// === WEB ANALYTICS & IN-HOUSE TRACKING ===
+
+/// Sessione Web tracciata dal frontend Shopify tramite App Proxy
+model TrackingSession {
+  id              String           @id @default(cuid())
+  deviceId        String           @unique /// Fingerprint del dispositivo assegnato in JS
+  customerEmail   String?
+  customerId      String?
+  
+  /// Parametri Sorgente
+  utmSource       String?
+  utmCampaign     String?
+  utmMedium       String?
+  referrer        String?
+  
+  /// Parametri Device
+  deviceCategory  String?          /// Mobile, Desktop o Tablet
+  
+  /// Geolocalizzazione (rapida via IP)
+  country         String?
+  city            String?
+  
+  bounce          Boolean          @default(true) /// Se c'è solo una pageview / durata bassissima diventa true
+  
+  events          MarketingEvent[]
+
+  startedAt       DateTime         @default(now())
+  endedAt         DateTime?
+  updatedAt       DateTime         @updatedAt
+
+  @@index([deviceId])
+  @@index([customerEmail])
+  @@index([startedAt])
+  @@map("tracking_sessions")
+}
+
+/// Storicizzazione Azioni Utente (Vista prodotto, Carrello, ecc.)
+model MarketingEvent {
+  id             String         @id @default(cuid())
+  /// Tipo d'evento: TARGET_VIEW, CHECKOUT_STARTED, PURCAHSE
+  eventType      String
+  
+  /// Identificativi Cliente
+  customerId     String?  
+  customerEmail  String?
+  customerPhone  String?
+  
+  /// Dati dinamici (Prodotti visti, link carrello, totale)
+  payload        Json     
+  
+  /// L'evento è stato "risolto"? (es. Se il carrello è diventato PURCHASE, resolved = true)
+  resolved       Boolean        @default(false)
+
+  /// Appartenenza alla sessione corrente Web Analytics
+  sessionId      String?
+  session        TrackingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  jobs           MarketingJob[]
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([eventType, resolved])
+  @@index([customerEmail])
+  @@map("marketing_events")
+}
+
+/// Schedulatore delle Azioni da sparare nel futuro
+model MarketingJob {
+  id             String   @id @default(cuid())
+  
+  /// Azione: ABANDONED_CART_EMAIL, META_CAPI_SYNC, WINBACK_EMAIL
+  jobType        String   
+  /// Stato: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  status         String   @default("PENDING") 
+  /// Quando deve essere eseguito questo lavoro?
+  scheduledFor   DateTime 
+  
+  /// Collegamento all'Evento scatenante originale
+  eventId        String?
+  event          MarketingEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  /// Collegamento al Template da inviare (se è un job Email)
+  templateId     String?
+  template       MarketingTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  attempts       Int      @default(0)
+  lastError      String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, scheduledFor])
+  @@map("marketing_jobs")
+}
+
+// === BRIDGE FDW ZUCCHETTI INFINITY (IMMAGINI) ===
+
+/// Tabella specchio strutturata esclusivamente in MAIUSCOLO
+/// per permettere l'aggregazione nativa via postgres_fdw da on-premise
+model MappedImage {
+  arcodart     String @map("ARCODART") @db.VarChar(50)
+  arfulres     String @map("ARFULRES") @db.VarChar(254)
+  ar200pix     String @map("AR200PIX") @db.VarChar(254)
+  ar400pix     String @map("AR400PIX") @db.VarChar(254)
+  ar500pix     String @map("AR500PIX") @db.VarChar(254)
+  ar600pix     String @map("AR600PIX") @db.VarChar(254)
+
+  @@id([arcodart, arfulres])
+  @@map("mapped_img")
+}
+
+// === PUSH ENGINE (V4) ===
+
+model WebPushSubscription {
+  id            String   @id @default(cuid())
+  deviceId      String   @unique
+  endpoint      String
+  keys          Json     // { p256dh, auth }
+  customerEmail String?  // Opzionale
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PushJob {
+  id             String   @id @default(cuid())
+  deviceId       String
+  jobType        String   // es. ABANDONED_CART_PUSH, BROWSE_PUSH, PROMO_PUSH, WINBACK_PUSH
+  status         String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  payload        Json?    // Contesto per l'AI
+  scheduledFor   DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AiPromoEvent {
+  id              String   @id @default(cuid())
+  promoType       String   // DAILY_DEAL, FLASH_DEAL, STANDARD_HOURLY
+  title           String   // Titolo esplosivo AI
+  description     String   // Descrizione AI
+  discount        Float
+  productGids     Json     // Lista degli ID di shopify target
+  shopifyMetaId   String?  // L'ID del metaoggetto creato su shopify
+  startsAt        DateTime // Orario esatto in cui inizia
+  endsAt          DateTime // Orario esatto in cui finisce
+  isPushScheduled Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+// === ELMARK CATALOG INTEGRATION ===
+
+model ElmarkRawProduct {
+  id        String   @id @default(cuid())
+  elmarkId  String   @unique
+  rawData     Json
+  processed   String   @default("false") // Usato dal vecchio script
+  aiProcessed Boolean  @default(false)   // Nuovo flag usato dall'Equalizzatore IA
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("elmark_raw_products")
+}
+
+model ElmarkProcessedProduct {
+  id String @id @default(cuid())
+
+  elmarkCode String @unique
+  sku        String @unique
+
+  // --- Dati prodotto ---
+  title           String?
+  originalName    String?
+  description     String?
+  technicalDesc   String?
+  metaDescription String?
+  keywords        String?
+  
+  // --- Dati SEO / Commerciali Generati (Fase 7 e 8) ---
+  seoTitle           String?
+  seoDescription     String?
+  friendlyUrl        String?
+  commercialDescHtml String?
+
+  // --- AI Data ---
+  semanticTags    Json?
+  semanticHash    String?
+  vectorEmbedding Json?
+
+  // --- Tassonomia ---
+  brand        String?
+  productGroup String?
+  family       String?
+  category     String?
+
+  // --- Unità e misure ---
+  unit           String?
+  unit2          String?
+  unitMultiplier Float?  @default(1)
+
+  // --- Prezzo e stock ---
+  price          Float   @default(0)
+  purchasePrice  Float   @default(0)   // Prezzo d'acquisto calcolato (prezzo cliente - sconto)
+  lastSyncedPrice Float?               // Prezzo Retail inviato a Zucchetti l'ultima volta
+  lastSyncedPurchasePrice Float?       // Prezzo Acquisto inviato a Zucchetti l'ultima volta
+  discountPct    Float   @default(0)   // Percentuale sconto applicata
+  discgroup      String?               // Gruppo sconto Elmark (C, E1, E2, F, L)
+  priceList      String?
+  netWeight      Float?  @default(0)
+  grossWeight    Float?  @default(0)
+  volume         Float?  @default(0)
+  
+  // --- Dimensioni (Novità Elmark) ---
+  length         Float?  @default(0)
+  width          Float?  @default(0)
+  height         Float?  @default(0)
+
+  stock          Int     @default(0)
+  rawStock       Float   @default(0)
+  reservedStock  Float   @default(0)
+  committedStock Float   @default(0)
+
+  stockEk          Int     @default(0)
+  rawStockEk       Float   @default(0)
+  reservedStockEk  Float   @default(0)
+  committedStockEk Float   @default(0)
+
+  // --- Immagini ---
+  imageUrl  String?
+  imageUrls Json?
+
+  // --- Stato ---
+  isFlashPromoLock Boolean @default(false)
+  publishedOnWeb Boolean @default(false)
+  shopifyId      String?
+  shopifyStatus  String?
+  discardedSku   String?
+  soldCount      Int     @default(0)
+  syncStatus     String  @default("compatible") // "compatible" | "pending_review" | "error"
+  zucchettiSyncedAt DateTime?
+  zucchettiSyncError String?
+
+  // --- Pipeline a 8 Fasi ---
+  processingPhase String @default("PHASE_1") // PHASE_1, PHASE_2, ..., PHASE_8_COMPLETE
+  reviewStatus    String @default("AUTO_APPROVED") // AUTO_APPROVED, PENDING_HUMAN_REVIEW, MANUALLY_APPROVED
+
+  // --- Timestamp ---
+  elmarkCreatedAt   String?
+  elmarkUpdatedAt   String?
+
+  createdAt DateTime @default(now())
+  zucchettiStockSyncedAt DateTime? // Data ultima sincro Giacenze/Prezzi
+  zucchettiStockError    String?   // Errore durante Fase C
+
+  updatedAt DateTime @updatedAt
+
+  @@index([brand])
+  @@index([family])
+  @@index([publishedOnWeb])
+  @@index([processingPhase])
+  @@map("elmark_processed_products")
+}
+
+// === ELMARK DICTIONARIES ===
+
+model TechnicalCharacteristicDictionary {
+  key         String @id
+  occurrences Int    @default(1)
+
+  @@map("technical_characteristic_dictionary")
+}
+
+model SkuPrefixMapping {
+  description String @id
+  prefix      String
+
+  @@map("sku_prefix_mapping")
+}
+
+// === COLLEZIONI SHOPIFY ===
+
+model ShopifyCollection {
+  handle     String   @id // Es: "elettricita-automazione" oppure "marca-elmark"
+  title      String
+  shopifyId  String?  // GID di Shopify
+  productIds String[] // Array di GID abbinati in Fase 1
+  toDelete   Boolean  @default(false)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("shopify_collections")
+}
+
+// === ZUCCHETTI SKU SEQUENCE MAP ===
+
+/// Mappa che mantiene in memoria l'high-water mark (ultimo numero usato) per ogni prefisso SKU
+model SkuSequenceMap {
+  prefix      String   @id // Es: "ILPALA", "E14", "CA"
+  lastNumber  Int      @default(0) // L'ultimo numero usato (es. 104 per ILPALA00104)
+  updatedAt   DateTime @updatedAt
+
+  @@map("sku_sequence_map")
+}
+
+// === EQUALIZZATORE: STAGING E REVISIONE UMANA ===
+
+/// Modello di appoggio temporaneo dove l'IA salva i suoi risultati a 3 Fasi.
+/// Nessun dato viene sovrascritto sul database web/Zucchetti finché non viene approvato qui.
+model EqualizzatoreStaging {
+  id             String   @id @default(cuid())
+  
+  /// Riferimento al prodotto originale (potrebbe essere un ID di elmark_raw_product o elmark_processed_product)
+  sourceId       String   @unique
+  sku            String?  @unique
+
+  /// Fase 1: Output Tecnico Tassonomico (JSON da Gemini)
+  phase1Payload  Json?
+  
+  /// Fase 2: Output Visivo (JSON da Gemini Vision)
+  phase2Payload  Json?
+  
+  /// Fase 3: Output Copywriting (JSON da Claude 3.5 Sonnet)
+  phase3Payload  Json?
+
+  /// Gestione concorrenza
+  lockedBy       String?
+  lockedAt       DateTime?
+
+  /// Stato di avanzamento
+  status         String   @default("PENDING_PHASE1") // PENDING_PHASE1, PENDING_PHASE2, PENDING_PHASE3, PENDING_NOMENCLATURE, PENDING_DUPLICATE_CHECK, READY_FOR_SYNC, SYNCED, DISCARDED
+
+  /// Payload approvato dall'utente nella Review Station
+  approvedPayload Json?
+
+  /// Stato di avanzamento della pipeline IA: "PENDING", "PHASE_1_DONE", "PHASE_2_DONE", "PHASE_3_DONE", "ERROR"
+  pipelineStatus String   @default("PENDING")
+
+  /// Stato della review umana: "PENDING", "APPROVED", "REJECTED"
+  reviewStatus   String   @default("PENDING")
+
+  /// Log di eventuali errori dell'IA
+  errorMessage   String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([pipelineStatus])
+  @@index([reviewStatus])
+  @@map("equalizzatore_staging")
+}
+
+/// Tabella temporanea per lo staging della nomenclatura prima dell'allineamento semantico.
+model TaxonomyStaging {
+  id             String   @id @default(cuid())
+  
+  /// Riferimento al prodotto in EqualizzatoreStaging (es. EC660163M)
+  sourceId       String   @unique
+  
+  /// Nomenclatura testuale proposta dall'IA in Fase 1
+  proposedGroup      String?
+  proposedFamily     String?
+  proposedCategory   String?
+
+  /// Nomenclatura normalizzata e codici a 3 lettere dopo Fase 2 e 3
+  finalGroupCode     String?
+  finalFamilyCode    String?
+  finalCategoryCode  String?
+
+  /// Stato della nomenclatura: "PENDING", "CLUSTERED", "MATCHED", "ERROR"
+  status         String   @default("PENDING")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@map("taxonomy_staging")
+}
+
+model EqualizzatoreUser {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  rawPassword  String?
+  role         String    @default("OPERATOR") // ADMIN, OPERATOR
+  displayName  String?
+  lastLogin    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

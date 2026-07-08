@@ -1,0 +1,36 @@
+.desktop-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.desktop-sidebar {
+  width: 280px;
+  background: var(--color-surface-solid);
+  border-right: 1px solid var(--color-border);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.desktop-main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  background-color: var(--color-bg);
+}
+
+.nav-item {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.nav-item:hover, .nav-item.active {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
