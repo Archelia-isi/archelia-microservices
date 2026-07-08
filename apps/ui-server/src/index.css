@@ -123,6 +123,8 @@ body {
 }
 
 .btn-primary:active {
+  transform: scale(0.95);
+}
 
 @keyframes popIn {
   0% { transform: scale(0.9); opacity: 0; }
