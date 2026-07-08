@@ -1,14 +1,20 @@
+import { useState } from 'react';
 import { Rnd } from 'react-rnd';
-import { useWidgetStore, type DesktopWidget } from '../../store/useWidgetStore';
+import { useWidgetStore, type DesktopWidget, type WidgetSize } from '../../store/useWidgetStore';
 import { useWindowStore } from '../../store/useWindowStore';
 import { checkOverlap, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
+import { Settings } from 'lucide-react';
+
+import ClockWidget from './widgets/ClockWidget';
+import WeatherWidget from './widgets/WeatherWidget';
+import KpiWidget from './widgets/KpiWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
-  const updatePosition = useWidgetStore(s => s.updateWidgetPosition);
-  const widgets = useWidgetStore(s => s.widgets);
-  const removeWidget = useWidgetStore(s => s.removeWidget);
+  const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
   const windows = useWindowStore(s => s.windows);
   
+  const [isFlipped, setIsFlipped] = useState(false);
+
   const handleDragStop = (d: { x: number, y: number }) => {
     // Snap to grid (10px) per facilitare l'allineamento
     const snappedX = Math.round(d.x / 10) * 10;
@@ -32,58 +38,63 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
           id: w.id,
           x: w.x,
           y: w.y,
-          ...getWidgetDimensions(w.type),
+          ...getWidgetDimensions(w.type, w.size || 'small'),
           type: 'widget'
         });
       }
     });
 
-    const targetDim = getWidgetDimensions(widget.type);
+    const targetDim = getWidgetDimensions(widget.type, widget.size || 'small');
     const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
     
     const isOverlap = existingItems.some(item => checkOverlap(candidateRect, item));
     
     if (isOverlap) {
-      // Forza il re-render di react-rnd aggiornando lo stato con la sua posizione di prima (o triggeriamo update con gli stessi valori)
-      updatePosition(widget.id, widget.x, widget.y);
+      updateWidgetPosition(widget.id, widget.x, widget.y);
     } else {
-      updatePosition(widget.id, snappedX, snappedY);
+      updateWidgetPosition(widget.id, snappedX, snappedY);
     }
+  };
+
+  const handleSizeChange = (newSize: WidgetSize) => {
+    // In futuro: potremmo validare se c'è spazio prima di ingrandirlo
+    updateWidgetSize(widget.id, newSize);
   };
 
   const renderContent = () => {
     switch (widget.type) {
-      case 'clock':
-        return (
-          <div className="widget clock-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <h1 style={{ fontSize: '3.5rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </h1>
-            <p style={{ fontSize: '1.25rem', fontWeight: 500, margin: 0, opacity: 0.8 }}>
-              {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </p>
-          </div>
-        );
-      case 'weather':
-        return (
-          <div className="widget weather-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Roma, IT</h2>
-            <h1 style={{ fontSize: '2.5rem', margin: '5px 0', fontWeight: 300 }}>24°C</h1>
-            <p style={{ margin: 0, opacity: 0.8, fontSize: '0.9rem' }}>Soleggiato</p>
-          </div>
-        );
-      case 'kpi':
-        return (
-          <div className="widget kpi-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-             <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Ordini Oggi</p>
-             <h1 style={{ fontSize: '2.5rem', margin: '5px 0' }}>124</h1>
-             <p style={{ margin: 0, color: '#32B351', fontWeight: 600 }}>+12%</p>
-          </div>
-        );
+      case 'clock': return <ClockWidget widget={widget} />;
+      case 'weather': return <WeatherWidget widget={widget} />;
+      case 'kpi': return <KpiWidget widget={widget} />;
+      default: return null;
     }
   };
 
-  const dim = getWidgetDimensions(widget.type);
+  const renderSpecificSettings = () => {
+    if (widget.type === 'weather') {
+      return (
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', alignItems: 'center' }}>
+          <div className="widget-settings-title" style={{ fontSize: '11px', opacity: 0.8 }}>Città Meteo</div>
+          <input 
+            type="text" 
+            defaultValue={widget.config?.city || 'Roma'}
+            onBlur={(e) => useWidgetStore.getState().updateWidgetConfig(widget.id, { city: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                useWidgetStore.getState().updateWidgetConfig(widget.id, { city: e.currentTarget.value });
+                e.currentTarget.blur();
+              }
+            }}
+            style={{ width: '80%', padding: '4px 8px', borderRadius: '8px', border: 'none', outline: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', textAlign: 'center', fontSize: '12px' }}
+          />
+        </div>
+      );
+    }
+    // Per clock e kpi potremmo aggiungere altri input in futuro
+    return null;
+  };
+
+  const dim = getWidgetDimensions(widget.type, widget.size || 'small');
 
   return (
     <Rnd
@@ -93,14 +104,60 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       bounds="parent"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
     >
-      <div className="widget-wrapper" style={{ position: 'relative', width: dim.width, height: dim.height, boxSizing: 'border-box' }}>
-        <button 
-          className="widget-close-btn" 
-          onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
-        >
-          ✕
-        </button>
-        {renderContent()}
+      <div className={`widget-wrapper widget-flip-container ${isFlipped ? 'flipped' : ''}`} style={{ position: 'relative', width: dim.width, height: dim.height, boxSizing: 'border-box' }}>
+        
+        <div className="widget-flipper">
+          {/* FRONTE DEL WIDGET */}
+          <div className="widget-front">
+            <button 
+              className="widget-close-btn" 
+              onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
+            >
+              ✕
+            </button>
+            <button 
+              className="widget-settings-btn" 
+              onClick={(e) => { e.stopPropagation(); setIsFlipped(true); }}
+            >
+              <Settings size={14} />
+            </button>
+            {renderContent()}
+          </div>
+
+          {/* RETRO DEL WIDGET (IMPOSTAZIONI) */}
+          <div className="widget-back">
+             <div className="widget-settings-panel" style={{ width: '100%', height: '100%', cursor: 'default' }}>
+                <div className="widget-settings-title" style={{ fontSize: '12px', textTransform: 'uppercase', opacity: 0.8 }}>Taglia</div>
+                <div className="widget-size-buttons">
+                   <button 
+                     className={`widget-size-btn ${widget.size === 'small' ? 'active' : ''}`} 
+                     onClick={(e) => { e.stopPropagation(); handleSizeChange('small'); }}
+                   >
+                     S
+                   </button>
+                   <button 
+                     className={`widget-size-btn ${widget.size === 'medium' ? 'active' : ''}`} 
+                     onClick={(e) => { e.stopPropagation(); handleSizeChange('medium'); }}
+                   >
+                     M
+                   </button>
+                   <button 
+                     className={`widget-size-btn ${widget.size === 'large' ? 'active' : ''}`} 
+                     onClick={(e) => { e.stopPropagation(); handleSizeChange('large'); }}
+                   >
+                     L
+                   </button>
+                </div>
+                
+                {renderSpecificSettings()}
+
+                <button className="widget-back-btn" onClick={(e) => { e.stopPropagation(); setIsFlipped(false); }}>
+                  Fatto
+                </button>
+             </div>
+          </div>
+        </div>
+
       </div>
     </Rnd>
   );

@@ -42,12 +42,12 @@ export default function StartMenu({ onClose }: StartMenuProps) {
           id: w.id,
           x: w.x,
           y: w.y,
-          ...getWidgetDimensions(w.type),
+          ...getWidgetDimensions(w.type, w.size || 'small'),
           type: 'widget'
         });
       });
 
-      const dim = getWidgetDimensions(type);
+      const dim = getWidgetDimensions(type, 'small');
       const target = { x: window.innerWidth / 2 - dim.width / 2, y: window.innerHeight / 2 - dim.height / 2, width: dim.width, height: dim.height };
       
       const spot = findNearestFreeSpot(target, existingItems, window.innerWidth, window.innerHeight);
@@ -92,7 +92,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
     return (
       <div className="start-menu-preview-box">
         <div style={{ fontSize: '11px', color: '#6e6e73', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>Anteprima</div>
-        <div style={{ width: getWidgetDimensions(hoveredWidget).width * 0.6, height: getWidgetDimensions(hoveredWidget).height * 0.6 }}>
+        <div style={{ width: getWidgetDimensions(hoveredWidget, 'small').width * 0.6, height: getWidgetDimensions(hoveredWidget, 'small').height * 0.6 }}>
           {content}
         </div>
       </div>

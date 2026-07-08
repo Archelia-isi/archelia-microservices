@@ -80,10 +80,9 @@
   text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 
-.widget-close-btn {
+.widget-close-btn, .widget-settings-btn {
   position: absolute;
   top: 10px;
-  left: 10px;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -99,13 +98,106 @@
   z-index: 10;
 }
 
-.widget-wrapper:hover .widget-close-btn {
+.widget-close-btn { left: 10px; }
+.widget-settings-btn { right: 10px; }
+
+.widget-wrapper:hover .widget-close-btn,
+.widget-wrapper:hover .widget-settings-btn {
   opacity: 1;
 }
 
-.widget-close-btn:hover {
-  background: #ff3b30;
+.widget-close-btn:hover { background: #ff3b30; }
+.widget-settings-btn:hover { background: #007aff; }
+
+/* Flip 3D classes */
+.widget-flip-container {
+  width: 100%;
+  height: 100%;
+  perspective: 1000px;
 }
+
+.widget-flipper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.widget-flip-container.flipped .widget-flipper {
+  transform: rotateY(180deg);
+}
+
+.widget-front, .widget-back {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.widget-back {
+  transform: rotateY(180deg);
+}
+
+.widget-settings-panel {
+  background: rgba(40, 40, 40, 0.85);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 16px;
+  box-sizing: border-box;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.widget-settings-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.widget-size-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.widget-size-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.widget-size-btn:hover, .widget-size-btn.active {
+  background: white;
+  color: black;
+}
+
+.widget-back-btn {
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
 
 .desktop-shortcuts {
   /* position, flex etc rimossi perché ora le icone sono assolute e spostabili liberamente */

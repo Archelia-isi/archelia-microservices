@@ -61,14 +61,12 @@ export function findNearestFreeSpot(
   return { x: target.x, y: target.y };
 }
 
-// Helper per ottenere l'ingombro esatto (Grid Unit: 160x160)
-export function getWidgetDimensions(type: string) {
-  switch (type) {
-    case 'clock': return { width: 320, height: 160 }; // 2 L x 1 H
-    case 'weather': return { width: 160, height: 160 }; // 1 L x 1 H
-    case 'kpi': return { width: 160, height: 160 }; // 1 L x 1 H
-    default: return { width: 160, height: 160 };
-  }
+// Helper per ottenere l'ingombro esatto in base alla size (Grid Unit: 160x160)
+export function getWidgetDimensions(_type: string, size: string = 'small') {
+  if (size === 'small') return { width: 160, height: 160 };
+  if (size === 'medium') return { width: 320, height: 160 };
+  if (size === 'large') return { width: 320, height: 320 };
+  return { width: 160, height: 160 };
 }
 
 export function getIconDimensions() {

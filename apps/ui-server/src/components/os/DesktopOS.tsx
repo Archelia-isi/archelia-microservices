@@ -72,7 +72,7 @@ export default function DesktopOS() {
           id: w.id,
           x: w.x,
           y: w.y,
-          ...getWidgetDimensions(w.type),
+          ...getWidgetDimensions(w.type, w.size || 'small'),
           type: 'widget'
         });
       });
