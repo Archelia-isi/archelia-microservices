@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
+import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { env, log } from '@archelia/core';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
@@ -10,6 +11,10 @@ async function buildApp() {
   const app = Fastify({
     logger: false, // We use Pino from @archelia/core
   });
+
+  // Add Zod type provider compilers
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
   await app.register(cors, {
     origin: true,
