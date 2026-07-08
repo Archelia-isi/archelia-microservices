@@ -90,7 +90,43 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
         </div>
       );
     }
-    // Per clock e kpi potremmo aggiungere altri input in futuro
+    
+    if (widget.type === 'clock') {
+      const renderTzInput = (key: string, label: string, defaultVal: string) => (
+        <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%', alignItems: 'center' }}>
+          <div style={{ fontSize: '9px', opacity: 0.8 }}>{label}</div>
+          <input 
+            type="text" 
+            defaultValue={widget.config?.[key] || defaultVal}
+            onBlur={(e) => useWidgetStore.getState().updateWidgetConfig(widget.id, { [key]: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                useWidgetStore.getState().updateWidgetConfig(widget.id, { [key]: e.currentTarget.value });
+                e.currentTarget.blur();
+              }
+            }}
+            style={{ width: '80%', padding: '2px 6px', borderRadius: '6px', border: 'none', outline: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', textAlign: 'center', fontSize: '10px' }}
+          />
+        </div>
+      );
+
+      const isMed = widget.size === 'medium';
+      const isLarge = widget.size === 'large';
+
+      return (
+        <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', alignItems: 'center' }}>
+          <div className="widget-settings-title" style={{ fontSize: '11px', opacity: 0.8, marginBottom: 0 }}>Fusi Orari (Es: Europe/Rome)</div>
+          <div style={{ display: 'grid', gridTemplateColumns: isLarge ? '1fr 1fr' : '1fr', gap: '4px', width: '100%', maxHeight: '70px', overflowY: 'auto' }}>
+            {renderTzInput('tz1', 'Orologio 1', 'Europe/Rome')}
+            {(isMed || isLarge) && renderTzInput('tz2', 'Orologio 2', 'America/New_York')}
+            {isLarge && renderTzInput('tz3', 'Orologio 3', 'Asia/Tokyo')}
+            {isLarge && renderTzInput('tz4', 'Orologio 4', 'Europe/London')}
+          </div>
+        </div>
+      );
+    }
+
+    // Per kpi potremmo aggiungere altri input in futuro
     return null;
   };
 
