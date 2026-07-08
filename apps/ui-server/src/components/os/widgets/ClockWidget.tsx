@@ -1,6 +1,50 @@
 import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 
+const cityToTz: Record<string, string> = {
+  'londra': 'Europe/London',
+  'parigi': 'Europe/Paris',
+  'berlino': 'Europe/Berlin',
+  'madrid': 'Europe/Madrid',
+  'mosca': 'Europe/Moscow',
+  'pechino': 'Asia/Shanghai',
+  'tokyo': 'Asia/Tokyo',
+  'new york': 'America/New_York',
+  'los angeles': 'America/Los_Angeles',
+  'san francisco': 'America/Los_Angeles',
+  'sidney': 'Australia/Sydney',
+  'sydney': 'Australia/Sydney',
+  'dubai': 'Asia/Dubai',
+  'roma': 'Europe/Rome',
+  'milano': 'Europe/Rome',
+  'napoli': 'Europe/Rome',
+  'benevento': 'Europe/Rome'
+};
+
+function resolveTimezone(input: string): string {
+  if (!input) return 'Europe/Rome';
+  const cleanInput = input.trim().toLowerCase();
+  
+  if (cityToTz[cleanInput]) return cityToTz[cleanInput];
+  
+  try {
+    const allTzs = Intl.supportedValuesOf('timeZone');
+    
+    const exactMatch = allTzs.find(tz => {
+      const cityPart = tz.split('/').pop()?.toLowerCase().replace(/_/g, ' ');
+      return cityPart === cleanInput;
+    });
+    if (exactMatch) return exactMatch;
+    
+    const partialMatch = allTzs.find(tz => tz.toLowerCase().includes(cleanInput.replace(/ /g, '_')));
+    if (partialMatch) return partialMatch;
+  } catch (e) {
+    // browser old
+  }
+  
+  return 'Europe/Rome';
+}
+
 export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
   const [time, setTime] = useState(new Date());
 
@@ -9,14 +53,14 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
     return () => clearInterval(timer);
   }, []);
 
-  const tz1 = widget.config?.tz1 || 'Europe/Rome';
-  const tz2 = widget.config?.tz2 || 'America/New_York';
-  const tz3 = widget.config?.tz3 || 'Asia/Tokyo';
-  const tz4 = widget.config?.tz4 || 'Europe/London';
+  const tz1 = widget.config?.tz1 || 'Roma';
+  const tz2 = widget.config?.tz2 || 'New York';
+  const tz3 = widget.config?.tz3 || 'Tokyo';
+  const tz4 = widget.config?.tz4 || 'Londra';
 
-  const renderClock = (tz: string) => {
+  const renderClock = (rawInput: string) => {
+    const validTz = resolveTimezone(rawInput);
     let formatter;
-    let validTz = tz;
     try {
       formatter = new Intl.DateTimeFormat('it-IT', {
         timeZone: validTz,
@@ -24,17 +68,14 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
         minute: '2-digit',
       });
     } catch (e) {
-      // Fallback in caso di fuso orario non valido (es. l'utente sta ancora digitando o ha sbagliato)
-      validTz = 'Europe/Rome';
       formatter = new Intl.DateTimeFormat('it-IT', {
-        timeZone: validTz,
+        timeZone: 'Europe/Rome',
         hour: '2-digit',
         minute: '2-digit',
       });
     }
     
-    // Rimuoviamo il fuso orario dal label per pulizia, prendendo l'ultima parte
-    const cleanLabel = validTz.split('/').pop()?.replace('_', ' ') || validTz;
+    const cleanLabel = rawInput || validTz.split('/').pop()?.replace('_', ' ') || 'Roma';
 
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>

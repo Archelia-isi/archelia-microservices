@@ -115,12 +115,12 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
 
       return (
         <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', alignItems: 'center' }}>
-          <div className="widget-settings-title" style={{ fontSize: '11px', opacity: 0.8, marginBottom: 0 }}>Fusi Orari (Es: Europe/Rome)</div>
+          <div className="widget-settings-title" style={{ fontSize: '11px', opacity: 0.8, marginBottom: 0 }}>Città (Es: Londra)</div>
           <div style={{ display: 'grid', gridTemplateColumns: isLarge ? '1fr 1fr' : '1fr', gap: '4px', width: '100%', maxHeight: '70px', overflowY: 'auto' }}>
-            {renderTzInput('tz1', 'Orologio 1', 'Europe/Rome')}
-            {(isMed || isLarge) && renderTzInput('tz2', 'Orologio 2', 'America/New_York')}
-            {isLarge && renderTzInput('tz3', 'Orologio 3', 'Asia/Tokyo')}
-            {isLarge && renderTzInput('tz4', 'Orologio 4', 'Europe/London')}
+            {renderTzInput('tz1', 'Orologio 1', 'Roma')}
+            {(isMed || isLarge) && renderTzInput('tz2', 'Orologio 2', 'New York')}
+            {isLarge && renderTzInput('tz3', 'Orologio 3', 'Tokyo')}
+            {isLarge && renderTzInput('tz4', 'Orologio 4', 'Londra')}
           </div>
         </div>
       );
