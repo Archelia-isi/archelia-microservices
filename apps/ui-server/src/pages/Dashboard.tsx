@@ -1,4 +1,4 @@
-import { Activity, Package, Settings, ShoppingCart } from 'lucide-react';
+import { Activity, Package, ShoppingCart } from 'lucide-react';
 
 export default function Dashboard() {
   return (
