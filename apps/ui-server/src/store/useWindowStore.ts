@@ -47,7 +47,7 @@ export const useWindowStore = create<WindowState>((set) => ({
       [app.id]: {
         ...app,
         isOpen: false,
-        isPinned: true, // Di default le app principali sono pinnate
+        isPinned: false, // Nessuna app è pinnata di default
         isMinimized: false,
         isMaximized: true,
         zIndex: 0,

@@ -47,7 +47,7 @@ export default function DesktopOS() {
             <div 
               key={`shortcut-${app.id}`} 
               className="desktop-icon-wrapper"
-              onDoubleClick={() => openWindow(app.id)}
+              onClick={() => openWindow(app.id)}
             >
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
                 {app.icon}
