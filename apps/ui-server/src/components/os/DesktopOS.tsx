@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import WindowComponent from './WindowComponent';
@@ -15,6 +15,7 @@ import { LayoutDashboard, ShoppingCart, Package, Settings, GalleryHorizontalEnd 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition } = useWindowStore();
   const { widgets } = useWidgetStore();
+  const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
@@ -22,6 +23,13 @@ export default function DesktopOS() {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     e.dataTransfer.setData('offsetX', (e.clientX - rect.left).toString());
     e.dataTransfer.setData('offsetY', (e.clientY - rect.top).toString());
+    
+    // Nascondi l'icona originale subito dopo che il browser ha catturato il ghost
+    setTimeout(() => setDraggingAppId(id), 0);
+  };
+
+  const handleDragEndDesktopIcon = () => {
+    setDraggingAppId(null);
   };
 
   const handleWorkspaceDrop = (e: React.DragEvent) => {
@@ -82,11 +90,13 @@ export default function DesktopOS() {
               onClick={() => openWindow(app.id)}
               draggable={true}
               onDragStart={(e) => handleDragStartDesktopIcon(e, app.id)}
+              onDragEnd={handleDragEndDesktopIcon}
               style={{
                 position: 'absolute',
                 left: app.desktopX ?? 30,
                 top: app.desktopY ?? 30,
-                pointerEvents: 'auto'
+                pointerEvents: 'auto',
+                opacity: draggingAppId === app.id ? 0 : 1
               }}
             >
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
