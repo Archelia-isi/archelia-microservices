@@ -155,3 +155,23 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.start-menu-preview-box {
+  position: absolute;
+  bottom: 12px;
+  left: 340px; /* di fianco al menu start */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  padding: 16px;
+  animation: previewFadeIn 0.2s ease-out;
+  pointer-events: none;
+}
+
+@keyframes previewFadeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}

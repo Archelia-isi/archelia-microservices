@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
+import { findNearestFreeSpot, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
@@ -40,7 +41,40 @@ export default function DesktopOS() {
     } else if (source === 'desktop' && appId) {
       const offsetX = parseFloat(e.dataTransfer.getData('offsetX')) || 0;
       const offsetY = parseFloat(e.dataTransfer.getData('offsetY')) || 0;
-      updateDesktopPosition(appId, e.clientX - offsetX, e.clientY - offsetY);
+      const targetX = e.clientX - offsetX;
+      const targetY = e.clientY - offsetY;
+      
+      const existingItems: Rect[] = [];
+      Object.values(windows).forEach(win => {
+        if (!win.isPinned) {
+          existingItems.push({
+            id: win.id,
+            x: win.desktopX ?? 30,
+            y: win.desktopY ?? 30,
+            ...getIconDimensions(),
+            type: 'icon'
+          });
+        }
+      });
+      widgets.forEach(w => {
+        existingItems.push({
+          id: w.id,
+          x: w.x,
+          y: w.y,
+          ...getWidgetDimensions(w.type),
+          type: 'widget'
+        });
+      });
+
+      const spot = findNearestFreeSpot(
+        { x: targetX, y: targetY, ...getIconDimensions() }, 
+        existingItems, 
+        window.innerWidth, 
+        window.innerHeight, 
+        appId
+      );
+      
+      updateDesktopPosition(appId, spot.x, spot.y);
     }
   };
 

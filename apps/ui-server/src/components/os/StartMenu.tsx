@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { useWindowStore } from '../../store/useWindowStore';
 import { User, LogOut, Image, LayoutGrid } from 'lucide-react';
+import { findNearestFreeSpot, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
 import './StartMenu.css';
 
 interface StartMenuProps {
@@ -16,15 +18,85 @@ const WALLPAPERS = [
 
 export default function StartMenu({ onClose }: StartMenuProps) {
   const { addWidget, widgets } = useWidgetStore();
-  const { setWallpaper, wallpaper } = useWindowStore();
+  const { windows, setWallpaper, wallpaper } = useWindowStore();
+  const [hoveredWidget, setHoveredWidget] = useState<"clock" | "weather" | "kpi" | null>(null);
 
   const isWidgetAdded = (type: "clock" | "weather" | "kpi") => widgets.some(w => w.type === type);
 
   const handleAddWidget = (type: "clock" | "weather" | "kpi") => {
     if (!isWidgetAdded(type)) {
-      addWidget(type, window.innerWidth / 2 - 150, window.innerHeight / 2 - 100);
+      const existingItems: Rect[] = [];
+      Object.values(windows).forEach(win => {
+        if (!win.isPinned) {
+          existingItems.push({
+            id: win.id,
+            x: win.desktopX ?? 30,
+            y: win.desktopY ?? 30,
+            ...getIconDimensions(),
+            type: 'icon'
+          });
+        }
+      });
+      widgets.forEach(w => {
+        existingItems.push({
+          id: w.id,
+          x: w.x,
+          y: w.y,
+          ...getWidgetDimensions(w.type),
+          type: 'widget'
+        });
+      });
+
+      const dim = getWidgetDimensions(type);
+      const target = { x: window.innerWidth / 2 - dim.width / 2, y: window.innerHeight / 2 - dim.height / 2, width: dim.width, height: dim.height };
+      
+      const spot = findNearestFreeSpot(target, existingItems, window.innerWidth, window.innerHeight);
+      
+      addWidget(type, spot.x, spot.y);
       onClose();
     }
+  };
+
+  const renderWidgetPreview = () => {
+    if (!hoveredWidget) return null;
+    let content = null;
+    switch (hoveredWidget) {
+      case 'clock':
+        content = (
+          <div className="widget clock-widget" style={{ transform: 'scale(0.6)', transformOrigin: 'top left', pointerEvents: 'none', margin: 0 }}>
+            <h1 style={{ fontSize: '4rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>12:00</h1>
+            <p style={{ fontSize: '1.25rem', fontWeight: 500, margin: 0, opacity: 0.8 }}>Lunedì</p>
+          </div>
+        );
+        break;
+      case 'weather':
+        content = (
+          <div className="widget weather-widget" style={{ transform: 'scale(0.6)', transformOrigin: 'top left', minWidth: '200px', pointerEvents: 'none', margin: 0 }}>
+            <h2 style={{ margin: 0, fontSize: '1.5rem' }}>🌤 Roma, IT</h2>
+            <h1 style={{ fontSize: '3rem', margin: '10px 0', fontWeight: 300 }}>24°C</h1>
+            <p style={{ margin: 0, opacity: 0.8 }}>Soleggiato</p>
+          </div>
+        );
+        break;
+      case 'kpi':
+        content = (
+          <div className="widget kpi-widget" style={{ transform: 'scale(0.6)', transformOrigin: 'top left', minWidth: '200px', pointerEvents: 'none', margin: 0 }}>
+            <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Ordini Oggi</p>
+            <h1 style={{ fontSize: '2.5rem', margin: '5px 0' }}>124</h1>
+            <p style={{ margin: 0, color: '#32B351', fontWeight: 600 }}>+12%</p>
+          </div>
+        );
+        break;
+    }
+    
+    return (
+      <div className="start-menu-preview-box">
+        <div style={{ fontSize: '11px', color: '#6e6e73', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>Anteprima</div>
+        <div style={{ width: getWidgetDimensions(hoveredWidget).width * 0.6, height: getWidgetDimensions(hoveredWidget).height * 0.6 }}>
+          {content}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -74,18 +146,24 @@ export default function StartMenu({ onClose }: StartMenuProps) {
               <div 
                 className={`start-menu-widget-btn ${isWidgetAdded('clock') ? 'disabled' : ''}`}
                 onClick={() => handleAddWidget('clock')}
+                onMouseEnter={() => setHoveredWidget('clock')}
+                onMouseLeave={() => setHoveredWidget(null)}
               >
                 Orologio
               </div>
               <div 
                 className={`start-menu-widget-btn ${isWidgetAdded('weather') ? 'disabled' : ''}`}
                 onClick={() => handleAddWidget('weather')}
+                onMouseEnter={() => setHoveredWidget('weather')}
+                onMouseLeave={() => setHoveredWidget(null)}
               >
                 Meteo
               </div>
               <div 
                 className={`start-menu-widget-btn ${isWidgetAdded('kpi') ? 'disabled' : ''}`}
                 onClick={() => handleAddWidget('kpi')}
+                onMouseEnter={() => setHoveredWidget('kpi')}
+                onMouseLeave={() => setHoveredWidget(null)}
               >
                 Statistiche
               </div>
@@ -94,6 +172,9 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
         </div>
       </div>
+      
+      {/* Live Preview Box */}
+      {hoveredWidget && renderWidgetPreview()}
     </div>
   );
 }

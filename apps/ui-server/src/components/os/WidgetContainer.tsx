@@ -1,9 +1,42 @@
 import { Rnd } from 'react-rnd';
 import { useWidgetStore, type DesktopWidget } from '../../store/useWidgetStore';
+import { useWindowStore } from '../../store/useWindowStore';
+import { findNearestFreeSpot, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const updatePosition = useWidgetStore(s => s.updateWidgetPosition);
+  const widgets = useWidgetStore(s => s.widgets);
+  const removeWidget = useWidgetStore(s => s.removeWidget);
+  const windows = useWindowStore(s => s.windows);
   
+  const handleDragStop = (d: { x: number, y: number }) => {
+    const existingItems: Rect[] = [];
+    Object.values(windows).forEach(win => {
+      if (!win.isPinned) {
+        existingItems.push({
+          id: win.id,
+          x: win.desktopX ?? 30,
+          y: win.desktopY ?? 30,
+          ...getIconDimensions(),
+          type: 'icon'
+        });
+      }
+    });
+    widgets.forEach(w => {
+      existingItems.push({
+        id: w.id,
+        x: w.x,
+        y: w.y,
+        ...getWidgetDimensions(w.type),
+        type: 'widget'
+      });
+    });
+
+    const targetDim = getWidgetDimensions(widget.type);
+    const spot = findNearestFreeSpot({ x: d.x, y: d.y, ...targetDim }, existingItems, window.innerWidth, window.innerHeight, widget.id);
+    updatePosition(widget.id, spot.x, spot.y);
+  };
+
   const renderContent = () => {
     switch (widget.type) {
       case 'clock':
@@ -36,12 +69,10 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     }
   };
 
-  const removeWidget = useWidgetStore(s => s.removeWidget);
-
   return (
     <Rnd
       position={{ x: widget.x, y: widget.y }}
-      onDragStop={(_e, d) => updatePosition(widget.id, d.x, d.y)}
+      onDragStop={(_e, d) => handleDragStop(d)}
       enableResizing={false}
       bounds="parent"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
