@@ -61,13 +61,13 @@ export function findNearestFreeSpot(
   return { x: target.x, y: target.y };
 }
 
-// Helper per ottenere l'ingombro stimato
+// Helper per ottenere l'ingombro esatto (Grid Unit: 160x160)
 export function getWidgetDimensions(type: string) {
   switch (type) {
-    case 'clock': return { width: 300, height: 160 };
-    case 'weather': return { width: 220, height: 160 };
-    case 'kpi': return { width: 220, height: 140 };
-    default: return { width: 250, height: 150 };
+    case 'clock': return { width: 320, height: 160 }; // 2 L x 1 H
+    case 'weather': return { width: 160, height: 160 }; // 1 L x 1 H
+    case 'kpi': return { width: 160, height: 160 }; // 1 L x 1 H
+    default: return { width: 160, height: 160 };
   }
 }
 

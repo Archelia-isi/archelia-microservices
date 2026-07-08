@@ -55,8 +55,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     switch (widget.type) {
       case 'clock':
         return (
-          <div className="widget clock-widget">
-            <h1 style={{ fontSize: '4rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
+          <div className="widget clock-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <h1 style={{ fontSize: '3.5rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
               {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </h1>
             <p style={{ fontSize: '1.25rem', fontWeight: 500, margin: 0, opacity: 0.8 }}>
@@ -66,15 +66,15 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
         );
       case 'weather':
         return (
-          <div className="widget weather-widget" style={{ minWidth: '200px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.5rem' }}>🌤 Roma, IT</h2>
-            <h1 style={{ fontSize: '3rem', margin: '10px 0', fontWeight: 300 }}>24°C</h1>
-            <p style={{ margin: 0, opacity: 0.8 }}>Soleggiato</p>
+          <div className="widget weather-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: '1.2rem' }}>Roma, IT</h2>
+            <h1 style={{ fontSize: '2.5rem', margin: '5px 0', fontWeight: 300 }}>24°C</h1>
+            <p style={{ margin: 0, opacity: 0.8, fontSize: '0.9rem' }}>Soleggiato</p>
           </div>
         );
       case 'kpi':
         return (
-          <div className="widget kpi-widget" style={{ minWidth: '200px' }}>
+          <div className="widget kpi-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
              <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Ordini Oggi</p>
              <h1 style={{ fontSize: '2.5rem', margin: '5px 0' }}>124</h1>
              <p style={{ margin: 0, color: '#32B351', fontWeight: 600 }}>+12%</p>
@@ -82,6 +82,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
         );
     }
   };
+
+  const dim = getWidgetDimensions(widget.type);
 
   return (
     <Rnd
@@ -91,7 +93,7 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       bounds="parent"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
     >
-      <div className="widget-wrapper" style={{ position: 'relative' }}>
+      <div className="widget-wrapper" style={{ position: 'relative', width: dim.width, height: dim.height, boxSizing: 'border-box' }}>
         <button 
           className="widget-close-btn" 
           onClick={(e) => { e.stopPropagation(); removeWidget(widget.id); }}
