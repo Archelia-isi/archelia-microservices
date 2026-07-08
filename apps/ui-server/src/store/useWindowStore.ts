@@ -14,6 +14,7 @@ export interface WindowApp {
   width: number | string;
   height: number | string;
   zIndex: number;
+  color: string;
 }
 
 interface WindowState {
@@ -45,7 +46,7 @@ export const useWindowStore = create<WindowState>((set) => ({
         ...app,
         isOpen: false,
         isMinimized: false,
-        isMaximized: false,
+        isMaximized: true,
         zIndex: 0,
       }
     }

@@ -26,7 +26,7 @@ export default function Dock() {
               className="dock-item"
               onClick={() => handleDockClick(app.id, app.isOpen, app.isMinimized, isActive)}
             >
-              <div className="dock-icon flex-center" style={{ background: 'var(--color-primary)' }}>
+              <div className="dock-icon flex-center" style={{ background: app.color }}>
                  {app.icon}
               </div>
               {app.isOpen && <div className={`dock-dot ${isActive ? 'active' : ''}`} />}

@@ -15,10 +15,10 @@ export default function DesktopOS() {
   useEffect(() => {
     // Registra le app all'avvio se non presenti
     if (Object.keys(windows).length === 0) {
-      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: <LayoutDashboard size={24} color="white" />, component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650 });
-      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, component: <Orders />, x: 150, y: 100, width: 900, height: 600 });
-      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, component: <Products />, x: 200, y: 150, width: 900, height: 600 });
-      registerApp({ id: 'settings', title: 'Impostazioni di Sistema', icon: <Settings size={24} color="white" />, component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400 });
+      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: <LayoutDashboard size={24} color="white" />, color: 'linear-gradient(135deg, #FF9500, #FF5E3A)', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650 });
+      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: <ShoppingCart size={24} color="white" />, color: 'linear-gradient(135deg, #34C759, #32B351)', component: <Orders />, x: 150, y: 100, width: 900, height: 600 });
+      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: <Package size={24} color="white" />, color: 'linear-gradient(135deg, #5E5CE6, #5856D6)', component: <Products />, x: 200, y: 150, width: 900, height: 600 });
+      registerApp({ id: 'settings', title: 'Impostazioni', icon: <Settings size={24} color="white" />, color: 'linear-gradient(135deg, #8E8E93, #AEAEB2)', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400 });
     }
   }, []);
 
@@ -39,8 +39,20 @@ export default function DesktopOS() {
         </div>
       </div>
 
-      {/* Area Finestre */}
+      {/* Area Finestre e Widget */}
       <div className="desktop-workspace">
+        {/* Livello Widget Desktop */}
+        <div className="desktop-widgets">
+          <div className="widget clock-widget">
+            <h1 style={{ fontSize: '4rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </h1>
+            <p style={{ fontSize: '1.25rem', fontWeight: 500 }}>
+              {new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+        </div>
+
         {Object.values(windows).map(win => (
           <WindowComponent key={win.id} id={win.id} />
         ))}
