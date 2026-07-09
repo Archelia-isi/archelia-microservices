@@ -1,0 +1,27 @@
+{
+  "name": "worker-equalizzatore",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "test:trigger": "tsx src/test.ts"
+  },
+  "dependencies": {
+    "@archelia/core": "*",
+    "@archelia/database": "*",
+    "@archelia/ai": "*",
+    "@archelia/typesense": "*",
+    "@google/genai": "^1.46.0",
+    "@anthropic-ai/sdk": "^0.32.0",
+    "bullmq": "^5.1.1",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.16"
+  }
+}

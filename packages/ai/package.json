@@ -1,0 +1,25 @@
+{
+  "name": "@archelia/ai",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@archelia/core": "*",
+    "@archelia/typesense": "*",
+    "@google/generative-ai": "^0.24.1",
+    "google-auth-library": "^9.6.3",
+    "sharp": "^0.33.2",
+    "form-data": "^4.0.0",
+    "axios": "^1.6.7",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.16",
+    "@types/sharp": "^0.32.0"
+  }
+}

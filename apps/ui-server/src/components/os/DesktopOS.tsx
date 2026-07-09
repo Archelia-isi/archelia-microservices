@@ -8,6 +8,7 @@ import Taskbar from './Taskbar';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
+import EqualizzatoreApp from '../../pages/EqualizzatoreApp';
 import './DesktopOS.css';
 
 export default function DesktopOS() {
@@ -115,6 +116,9 @@ export default function DesktopOS() {
     }
     if (!windows['settings']) {
       registerApp({ id: 'settings', title: 'Impostazioni', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
+    }
+    if (!windows['equalizzatore']) {
+      registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
     }
   }, []);
 

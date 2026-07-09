@@ -1,0 +1,138 @@
+.equalizzatore-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.eq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.eq-header-info h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.eq-header-info p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #86868b;
+}
+
+.eq-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.eq-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.eq-btn.primary {
+  background: #ffffff;
+  color: #0066cc;
+  border: 1px solid rgba(0, 102, 204, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.eq-btn.primary:hover {
+  background: #f5f5f7;
+}
+
+.eq-btn.secondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+}
+
+.eq-btn.secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.eq-btn.danger {
+  background: #ff3b30;
+  color: white;
+}
+
+.eq-btn.danger:hover {
+  background: #d73127;
+}
+
+.eq-btn.accent {
+  background: #5e5ce6;
+  color: white;
+}
+
+.eq-btn.accent:hover {
+  background: #4b49b8;
+}
+
+.eq-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.eq-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 4px;
+  border-radius: 10px;
+  width: max-content;
+}
+
+.eq-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #86868b;
+  cursor: pointer;
+}
+
+.eq-tab.active {
+  background: white;
+  color: #0066cc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.eq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eq-empty, .eq-loading {
+  text-align: center;
+  padding: 40px;
+  color: #86868b;
+  font-size: 16px;
+}
