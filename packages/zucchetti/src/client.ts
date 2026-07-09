@@ -92,7 +92,53 @@ export class ZucchettiClientService {
     }
   }
 
-  // Aggiungeremo gli altri metodi (queryData, getArticoli, ecc.) man mano che servono.
+  async query(queryName: string, params: Record<string, string> = {}, company?: string, options?: { silent?: boolean }): Promise<unknown> {
+    const { zucchettiAuth } = await import('./auth.js');
+    const rawUrl = `${env.ZUCCHETTI_BASE_URL}/servlet/api/SPVQRProducer/${queryName}`;
+    let url: URL;
+    try {
+      url = new URL(rawUrl);
+    } catch (e) {
+      logger.error(`Invalid URL: "${rawUrl}"`);
+      throw new Error(`Invalid URL: ${rawUrl}`);
+    }
+
+    url.searchParams.set('sp_company', company || env.ZUCCHETTI_SP_COMPANY_ISI || env.ZUCCHETTI_SP_COMPANY);
+
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+
+    if (!options?.silent) {
+      logger.debug({ queryName, params }, `Query Zucchetti: ${queryName}`);
+    }
+
+    const response = await zFetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        authorization: zucchettiAuth.getBasicAuthHeader(),
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      logger.error({ status: response.status, body, queryName }, 'Errore query Zucchetti');
+      throw new Error(`Query Zucchetti ${queryName} fallita: HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    const body = await response.text();
+
+    if (contentType.includes('xml') || body.trim().startsWith('<')) {
+      return xmlParser.parse(body);
+    }
+
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
+    }
+  }
 }
 
 export const zucchettiClient = new ZucchettiClientService();
