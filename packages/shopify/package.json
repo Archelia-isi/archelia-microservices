@@ -1,0 +1,16 @@
+{
+  "name": "@archelia/shopify",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@archelia/core": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2"
+  }
+}
