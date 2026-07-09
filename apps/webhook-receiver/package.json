@@ -1,20 +1,18 @@
 {
-  "name": "@archelia/core",
+  "name": "@archelia/webhook-receiver",
   "version": "1.0.0",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc -w"
+    "dev": "tsc -w & node --watch dist/index.js",
+    "start": "node dist/index.js"
   },
   "dependencies": {
+    "@archelia/core": "*",
     "@archelia/database": "*",
-    "bullmq": "^5.79.3",
-    "dotenv": "^16.4.5",
-    "ioredis": "^5.11.1",
-    "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0",
-    "zod": "^3.23.8"
+    "fastify": "^4.26.2",
+    "fastify-raw-body": "^4.3.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

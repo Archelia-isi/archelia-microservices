@@ -16,6 +16,7 @@ import { adminCustomersRoutes } from './routes/admin/customers.js';
 import { adminSchedulerRoutes } from './routes/admin/scheduler.js';
 import { adminSearchRoutes } from './routes/admin/search.js';
 import { adminDatabaseRoutes } from './routes/admin/database.js';
+import adminPromoRoutes from './routes/admin/promo.js';
 
 async function buildApp() {
   const app = Fastify({
@@ -50,6 +51,7 @@ async function buildApp() {
   await app.register(adminSchedulerRoutes);
   await app.register(adminSearchRoutes);
   await app.register(adminDatabaseRoutes);
+  await app.register(adminPromoRoutes);
 
   return app;
 }
