@@ -24,6 +24,22 @@ export default function Products() {
   const fetchProducts = async (search = '') => {
     setLoading(true);
     try {
+      let token = localStorage.getItem('token');
+      
+      // Auto-login if token is missing (temporaneo per sviluppo)
+      if (!token) {
+        const loginRes = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'Salvatore', password: 'Salvatore' })
+        });
+        if (loginRes.ok) {
+          const loginData = await loginRes.json();
+          token = loginData.token;
+          localStorage.setItem('token', token!);
+        }
+      }
+
       const url = new URL(`${API_URL}/api/admin/products`);
       url.searchParams.set('page', '1');
       url.searchParams.set('limit', '50');
@@ -31,12 +47,14 @@ export default function Products() {
 
       const res = await fetch(url.toString(), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+          'Authorization': `Bearer ${token || ''}`
         }
       });
       if (res.ok) {
         const data = await res.json();
         setProducts(data.data || []);
+      } else {
+        console.error('Fetch failed with status:', res.status);
       }
     } catch (err) {
       console.error('Error fetching products:', err);
