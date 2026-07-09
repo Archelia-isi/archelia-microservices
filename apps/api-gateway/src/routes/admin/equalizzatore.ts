@@ -3,11 +3,11 @@ import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { prisma } from '@archelia/database';
 import { Queue } from 'bullmq';
-import { env, log } from '@archelia/core';
+import { env, log, createRedisConnection } from '@archelia/core';
 
 // Set up BullMQ queue for manual triggers
 const equalizzatoreQueue = new Queue('equalizzatore-commands', {
-  connection: { url: env.REDIS_URL },
+  connection: createRedisConnection() as any,
 });
 
 export async function adminEqualizzatoreRoutes(app: FastifyInstance) {

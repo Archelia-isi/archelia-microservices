@@ -1,8 +1,8 @@
 import { Queue } from 'bullmq';
-import { env, logger } from '@archelia/core';
+import { env, logger, createRedisConnection } from '@archelia/core';
 
 const queue = new Queue('equalizzatore-commands', {
-  connection: { url: env.REDIS_URL || 'redis://localhost:6379' }
+  connection: createRedisConnection() as any
 });
 
 async function run() {

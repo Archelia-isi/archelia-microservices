@@ -1,10 +1,8 @@
 import { Worker, Job } from 'bullmq';
-import { logger, env } from '@archelia/core';
+import { logger, env, createRedisConnection } from '@archelia/core';
 import { PipelineEngine } from './services/PipelineEngine.js';
 
 logger.info('🚀 Avvio worker-equalizzatore in corso...');
-
-const REDIS_URL = env.REDIS_URL || 'redis://localhost:6379';
 
 // Mappa dei comandi supportati dall'Equalizzatore
 const worker = new Worker(
@@ -39,7 +37,7 @@ const worker = new Worker(
     }
   },
   {
-    connection: { url: REDIS_URL } as any,
+    connection: createRedisConnection() as any,
     concurrency: 1, // L'equalizzatore esegue task pesanti, meglio tenere concorrenza 1 o gestirla internamente
   }
 );
