@@ -102,12 +102,18 @@ export default function DesktopOS() {
   };
 
   useEffect(() => {
-    // Registra le app all'avvio se non presenti
-    if (Object.keys(windows).length === 0) {
-      const getImg = (src: string) => <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Icon" />;
+    // Registra le app all'avvio se non presenti (check per singola app invece che globalmente vuoto)
+    const getImg = (src: string) => <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Icon" />;
+    if (!windows['dashboard']) {
       registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
+    }
+    if (!windows['orders']) {
       registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('/icons/orders.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
+    }
+    if (!windows['products']) {
       registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('/icons/products.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
+    }
+    if (!windows['settings']) {
       registerApp({ id: 'settings', title: 'Impostazioni', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <div style={{padding: '2rem'}}>Impostazioni di sistema</div>, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
     }
   }, []);
