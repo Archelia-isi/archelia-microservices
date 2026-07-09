@@ -2,7 +2,10 @@ import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { authenticate, requireAdmin } from '../auth.js';
-import { log } from '@archelia/core';
+import { log, redis } from '@archelia/core';
+import { Queue } from 'bullmq';
+
+const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 
 export async function adminSyncRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
@@ -49,12 +52,15 @@ export async function adminSyncRoutes(app: FastifyInstance) {
 
     log.info(`🚀 [Admin] Richiesta trigger sync: ${type}`, { payload: body, module: 'api-gateway:sync' });
 
-    // TODO: In V2 Architecture, this should enqueue a job to Redis (BullMQ) instead of executing locally.
-    // Example: await syncQueue.add(type, { opts: body });
+    if (type === 'import-products') {
+      await zucchettiQueue.add('zucchetti-pull', { command: 'IMPORT_PRODUCTS' });
+    } else {
+      log.warn(`Trigger per ${type} non ancora implementato su BullMQ. Coda simulata.`);
+    }
 
     return reply.status(200).send({ 
       success: true, 
-      message: `Sync ${type} in coda. Verrà processato dai worker in background.` 
+      message: `Sync ${type} inserito in coda. Verrà processato dai worker in background.` 
     });
   });
 }
