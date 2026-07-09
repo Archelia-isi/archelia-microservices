@@ -1,4 +1,4 @@
-import { Package, SearchX, RefreshCw } from 'lucide-react';
+import { SearchX, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Products() {
