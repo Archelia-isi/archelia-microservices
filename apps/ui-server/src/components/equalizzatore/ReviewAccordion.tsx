@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
-import { StagingItem } from '../../pages/EqualizzatoreApp';
+import type { StagingItem } from '../../pages/EqualizzatoreApp';
 import CompareRow from './CompareRow';
 import './ReviewAccordion.css';
 

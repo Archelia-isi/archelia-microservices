@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshCcw, CheckCircle, Zap, Ban, Play, Edit3 } from 'lucide-react';
 import ReviewAccordion from '../components/equalizzatore/ReviewAccordion';
 import './EqualizzatoreApp.css';

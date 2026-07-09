@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Eye, CheckCircle2, RotateCcw, Edit2 } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, CheckCircle2, RotateCcw } from 'lucide-react';
 import './CompareRow.css';
 
 interface Props {
