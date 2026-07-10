@@ -28,7 +28,7 @@ export default function EqualizzatoreApp() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/equalizzatore/staging`);
+      const res = await fetch(`${API_URL}/api/admin/equalizzatore/staging?tab=${activeTab}`);
       const data = await res.json();
       if (data.success) {
         setItems(data.data);
@@ -42,7 +42,7 @@ export default function EqualizzatoreApp() {
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [activeTab]);
 
   const triggerBatch = async () => {
     try {

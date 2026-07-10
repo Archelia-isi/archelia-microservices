@@ -16,14 +16,23 @@ export async function adminEqualizzatoreRoutes(app: FastifyInstance) {
   fastify.get(
     '/api/admin/equalizzatore/staging',
     {
-      // TODO: Add auth middleware when available
-      // preHandler: [fastify.authenticate],
+      schema: {
+        querystring: z.object({
+          tab: z.string().optional(),
+        }),
+      },
     },
     async (request, reply) => {
       try {
+        const { tab } = request.query as { tab?: string };
+        let statusFilter = 'PENDING_TEXT'; // default tab 1
+        if (tab === '2') statusFilter = 'PENDING_NOMENCLATURE';
+        if (tab === '3') statusFilter = 'PENDING_DUPLICATE';
+        if (tab === '4') statusFilter = 'READY_FOR_SYNC';
+
         const stagingItems = await prisma.equalizzatoreStaging.findMany({
           orderBy: { createdAt: 'desc' },
-          where: { reviewStatus: { in: ['PENDING_TEXT', 'PENDING_NOMENCLATURE', 'PENDING'] } },
+          where: { reviewStatus: statusFilter },
           take: 50,
         });
 
