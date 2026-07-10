@@ -23,7 +23,7 @@ export async function adminEqualizzatoreRoutes(app: FastifyInstance) {
       try {
         const stagingItems = await prisma.equalizzatoreStaging.findMany({
           orderBy: { createdAt: 'desc' },
-          where: { reviewStatus: 'PENDING' },
+          where: { reviewStatus: { in: ['PENDING_TEXT', 'PENDING_NOMENCLATURE', 'PENDING'] } },
           take: 50,
         });
 
