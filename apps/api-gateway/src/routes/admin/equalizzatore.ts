@@ -21,26 +21,37 @@ export async function adminEqualizzatoreRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       try {
-        const stagingItems = await prisma.equalizzatoreStaging.findMany({
+        const stagingItems = await prisma.elmarkProcessedProduct.findMany({
           orderBy: { createdAt: 'desc' },
-          where: { reviewStatus: 'PENDING' },
+          where: { reviewStatus: { in: ['PENDING_HUMAN_REVIEW', 'AUTO_APPROVED'] } },
           take: 50,
         });
 
         const enhancedItems = await Promise.all(
           stagingItems.map(async (item) => {
             const raw = await prisma.elmarkRawProduct.findUnique({
-              where: { elmarkId: item.sourceId },
+              where: { elmarkId: item.elmarkCode },
             });
 
-            let imageUrl = null;
-            if (raw && raw.rawData) {
+            let imageUrl = item.imageUrl || null;
+            if (!imageUrl && raw && raw.rawData) {
               const parsedRaw = typeof raw.rawData === 'string' ? JSON.parse(raw.rawData) : raw.rawData;
               imageUrl = parsedRaw?.picture_url || null;
             }
 
             return {
-              ...item,
+              id: item.id,
+              sourceId: item.elmarkCode,
+              sku: item.sku,
+              pipelineStatus: item.processingPhase,
+              reviewStatus: item.reviewStatus,
+              phase1Payload: item.semanticTags,
+              phase2Payload: {}, // Old system didn't save phase2 explicit JSON payload
+              phase3Payload: {
+                seo_title: item.seoTitle,
+                seo_description: item.seoDescription,
+                copy_html: item.commercialDescHtml,
+              },
               originalRawData: raw ? (typeof raw.rawData === 'string' ? JSON.parse(raw.rawData) : raw.rawData) : null,
               imageUrl,
             };
