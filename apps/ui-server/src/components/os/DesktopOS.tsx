@@ -9,10 +9,13 @@ import ContextMenu from '../ui/ContextMenu';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
-import EqualizzatoreApp from '../../pages/EqualizzatoreApp';
+import { EqualizzatoreApp } from '../../pages/EqualizzatoreApp';
+import { SyncDashboardApp } from '../../pages/SyncDashboardApp';
+import { StoreConfigApp } from '../../pages/StoreConfigApp';
+import { MarketingApp } from '../../pages/MarketingApp';
+import { EmailBuilderApp } from '../../pages/EmailBuilderApp';
 import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
-import { MarketingApp } from '../../pages/MarketingApp';
 import './DesktopOS.css';
 
 export default function DesktopOS() {
@@ -133,6 +136,9 @@ export default function DesktopOS() {
     }
     if (!windows['marketing']) {
       registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 250, y: 250, width: 1000, height: 700, desktopX: 130, desktopY: 330 });
+    }
+    if (!windows['email_builder']) {
+      registerApp({ id: 'email_builder', title: 'Email AI Builder', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 300, y: 150, width: 1100, height: 750, desktopX: 230, desktopY: 30 });
     }
   }, []);
 

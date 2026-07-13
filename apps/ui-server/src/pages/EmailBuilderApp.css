@@ -1,0 +1,135 @@
+.email-builder-app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.eb-sidebar {
+  width: 400px;
+  min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px;
+  gap: 24px;
+  overflow-y: auto;
+}
+
+.eb-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.eb-header p {
+  margin: 8px 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.eb-prompt-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eb-prompt-area textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.eb-prompt-area textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.generate-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-code-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.eb-code-area h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.code-view {
+  width: 100%;
+  flex: 1;
+  min-height: 200px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  resize: none;
+}
+
+.eb-preview {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f1f5f9; /* Sfondo chiaro per vedere bene l'email */
+  padding: 32px;
+  overflow: hidden;
+}
+
+.preview-iframe {
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.preview-empty, .preview-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.preview-empty h3 {
+  margin: 0 0 8px 0;
+  color: #334155;
+}

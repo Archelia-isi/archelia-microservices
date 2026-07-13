@@ -1,0 +1,31 @@
+.queue-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.queue-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.queue-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-danger {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+}
