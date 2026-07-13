@@ -35,4 +35,18 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
     }
   });
 
+  // Endpoint per la coda dei carrelli
+  fastify.get('/api/v1/admin/marketing/carts', async (request, reply) => {
+    try {
+      const carts = await prisma.cartSyncQueue.findMany({
+        take: 100,
+        orderBy: { updatedAt: 'desc' }
+      });
+      return { success: true, data: carts };
+    } catch (error: any) {
+      request.log.error(`[Admin] Errore recupero CartSyncQueue: ${error.message}`);
+      return reply.status(500).send({ success: false, error: 'Errore interno del server' });
+    }
+  });
+
 }
