@@ -46,7 +46,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
             <h1 style={{ fontSize: '3rem', margin: '0', fontWeight: 300 }}>{weatherData.current.temp}°</h1>
             <p style={{ margin: 0, opacity: 0.8, fontSize: '0.9rem' }}>{weatherData.current.condition}</p>
           </div>
-          <div style={{ width: '1px', height: '80%', background: 'rgba(255,255,255,0.2)', margin: '0 16px' }} />
+          <div style={{ width: '1px', height: '80%', background: 'var(--color-border-glass)', margin: '0 16px' }} />
           <div style={{ flex: 1.5, display: 'flex', justifyContent: 'space-between' }}>
             {weatherData.forecast.map((f: any, i: number) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -73,7 +73,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
               <div><div style={{fontSize:'0.7rem', opacity:0.7}}>Percepita</div><div style={{fontWeight:600}}>{weatherData.details.feels}</div></div>
             </div>
           </div>
-          <div style={{ height: '1px', width: '100%', background: 'rgba(255,255,255,0.2)', margin: '16px 0' }} />
+          <div style={{ height: '1px', width: '100%', background: 'var(--color-border-glass)', margin: '16px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             {weatherData.forecast.map((f: any, i: number) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

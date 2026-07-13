@@ -90,7 +90,7 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
                 e.currentTarget.blur();
               }
             }}
-            style={{ width: '80%', padding: '4px 8px', borderRadius: '8px', border: 'none', outline: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', textAlign: 'center', fontSize: '12px' }}
+            style={{ width: '80%', padding: '4px 8px', borderRadius: '8px', border: 'none', outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text-main)', textAlign: 'center', fontSize: '12px' }}
           />
         </div>
       );
@@ -110,7 +110,7 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
                 e.currentTarget.blur();
               }
             }}
-            style={{ width: '80%', padding: '2px 6px', borderRadius: '6px', border: 'none', outline: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', textAlign: 'center', fontSize: '10px' }}
+            style={{ width: '80%', padding: '2px 6px', borderRadius: '6px', border: 'none', outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text-main)', textAlign: 'center', fontSize: '10px' }}
           />
         </div>
       );

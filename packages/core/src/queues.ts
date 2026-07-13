@@ -25,3 +25,7 @@ export const shopifyOrdersQueue = new Queue('shopify-orders', queueOptions);
 export const shopifyCustomersQueue = new Queue('shopify-customers', queueOptions);
 export const shopifyTrackingQueue = new Queue('shopify-tracking', queueOptions);
 export const shopifyPromoQueue = new Queue('shopify-promo', queueOptions);
+
+// Marketing Queues
+export const marketingQueue = new Queue('marketing-queue', queueOptions);
+export const marketingJobsQueue = new Queue('marketing-jobs', queueOptions);

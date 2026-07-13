@@ -1,15 +1,35 @@
 .equalizzatore-app {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   width: 100%;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 12px;
+  background: rgba(245, 245, 247, 0.7);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* App Entry Animation */
+.eq-app-entry {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  background: transparent !important; /* Transparent initially to show desktop */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.eq-app-entry.ready {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  background: rgba(245, 245, 247, 0.7) !important; /* Restores background when ready */
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
 }
 
 /* Top Navbar (Menu) */
@@ -17,207 +37,149 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 16px 32px;
+  background: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 13px;
-  font-weight: 600;
-  color: #555;
+  font-weight: 500;
+  color: #515154;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 .eq-nav-left {
   display: flex;
-  gap: 24px;
+  gap: 32px;
 }
 
 .eq-nav-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.3s ease;
 }
 
 .eq-nav-item:hover {
-  color: #0066cc;
+  color: #000000;
 }
 
 .eq-nav-item.active {
-  color: #0066cc;
+  color: #000000;
+  font-weight: 600;
 }
 
 .eq-nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   color: #1d1d1f;
 }
 
 .eq-nav-icon {
-  color: #ff3b30;
+  color: #86868b;
   cursor: pointer;
+  transition: color 0.2s;
+}
+.eq-nav-icon:hover {
+  color: #ff3b30;
 }
 
 /* Main Container */
 .eq-main-container {
   display: flex;
   flex-direction: column;
-  padding: 24px 32px;
+  padding: 0 40px 24px 40px; /* removed top padding to let wrapper touch the top */
   flex: 1;
   overflow-y: auto;
 }
 
-/* Header & Buttons */
-.eq-header {
+/* Modern Header Left */
+.eq-header-modern-left {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 24px;
+  align-items: center;
+  gap: 32px;
+  flex: 1;
 }
 
-.eq-header-info h2 {
+.eq-header-modern-left h2 {
   margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: #111;
-}
-
-.eq-header-info p {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.eq-header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.eq-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 700;
-  cursor: pointer;
+  color: #1d1d1f;
+  white-space: nowrap;
+}
+
+/* Sync Banner */
+.eq-sync-banner {
+  background: #f5f5f7;
   border: none;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  padding: 32px;
+  border-radius: 24px;
+  text-align: center;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 24px var(--color-border-light);
 }
-
-.eq-btn.ghost {
-  background: rgba(0, 0, 0, 0.04);
-  color: #333;
-}
-.eq-btn.ghost:hover {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.eq-btn.warning {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeeba;
-}
-.eq-btn.warning:hover {
-  background: #ffe8a1;
-}
-
-.eq-btn.secondary {
-  background: #ffffff;
-  color: #0066cc;
-  border: 1px solid rgba(0, 102, 204, 0.2);
-}
-.eq-btn.secondary:hover {
-  background: #f0f7ff;
-}
-
-.eq-btn.danger {
-  background: #ff0000;
-  color: white;
-}
-.eq-btn.danger:hover {
-  background: #cc0000;
-}
-
-.eq-btn.accent {
-  background: #5046e5;
-  color: white;
-}
-.eq-btn.accent:hover {
-  background: #4036c5;
-}
-
-/* Progress Area */
-.eq-progress-area {
-  margin-bottom: 24px;
-}
-.eq-progress-area p {
-  font-size: 12px;
-  font-weight: 600;
-  color: #888;
-  margin: 0 0 8px 4px;
-}
-.eq-progress-bar-bg {
-  width: 100%;
-  height: 12px;
-  background: rgba(0,0,0,0.06);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.eq-progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #5046e5, #0066cc);
-  border-radius: 10px;
-  transition: width 0.3s ease;
-}
-
-/* Tabs */
-.eq-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  background: rgba(0, 0, 0, 0.04);
-  padding: 4px;
-  border-radius: 8px;
-  width: max-content;
-}
-
-.eq-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 13px;
+.eq-sync-banner h3 {
+  margin: 0 0 12px 0;
+  color: #1d1d1f;
+  font-size: 24px;
   font-weight: 700;
-  color: #777;
+}
+.eq-sync-banner p {
+  margin: 0 0 24px 0;
+  color: #86868b;
+  font-size: 15px;
+}
+.sync-btn {
+  margin: 0 auto;
+  background: #34c759;
+  color: white;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 980px;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
-
-.eq-tab.active {
-  background: white;
-  color: #0066cc;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-.eq-tab:hover:not(.active) {
-  background: rgba(255,255,255,0.5);
+.sync-btn:hover {
+  background: #28a745;
+  transform: scale(1.02);
 }
 
 /* Content List */
 .eq-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
 }
 
 .eq-empty, .eq-loading {
-  text-align: center;
-  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px;
   color: #86868b;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 500;
+  background: rgba(255,255,255,0.5);
+  border-radius: 24px;
+  border: 1px dashed var(--color-border-dark);
+}
+
+.empty-icon {
+  color: #34c759;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  color: #0066cc;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

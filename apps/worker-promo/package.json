@@ -1,0 +1,22 @@
+{
+  "name": "@archelia/worker-promo",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@archelia/core": "*",
+    "@archelia/database": "*",
+    "@archelia/shopify": "*",
+    "@archelia/ai": "*",
+    "bullmq": "^5.34.4",
+    "ioredis": "^5.4.2",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "@types/node": "^22.10.2"
+  }
+}

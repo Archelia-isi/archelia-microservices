@@ -18,7 +18,7 @@ export default function WindowComponent({ id }: Props) {
 
   const handleDragStop = (_e: any, d: any) => {
     const screenW = window.innerWidth;
-    const screenH = window.innerHeight - 52; // altezza taskbar
+    const screenH = window.innerHeight - 60; // altezza taskbar
     
     // Snap Left
     if (d.x <= 0) {
@@ -47,7 +47,7 @@ export default function WindowComponent({ id }: Props) {
 
   return (
     <Rnd
-      size={windowApp.isMaximized ? { width: window.innerWidth, height: window.innerHeight - 52 } : { width: windowApp.width, height: windowApp.height }}
+      size={windowApp.isMaximized ? { width: '100%', height: '100%' } : { width: windowApp.width, height: windowApp.height }}
       position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: windowApp.x, y: windowApp.y }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}

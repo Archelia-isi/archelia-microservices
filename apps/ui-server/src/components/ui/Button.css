@@ -1,0 +1,99 @@
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Sizing */
+.ui-btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 999px;
+}
+
+.ui-btn-md {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 999px;
+}
+
+.ui-btn-lg {
+  padding: 14px 32px;
+  font-size: 15px;
+  border-radius: 999px;
+}
+
+/* Variants */
+.ui-btn-modern {
+  background: #fbfbfd;
+  color: #1d1d1f;
+  border: 1px solid var(--color-border-light);
+}
+.ui-btn-modern:hover {
+  background: #f5f5f7;
+  border-color: var(--color-border-dark);
+}
+.ui-btn-modern:active {
+  transform: scale(0.97);
+}
+
+.ui-btn-primary {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(0, 102, 204, 0.3);
+}
+.ui-btn-primary:hover {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+.ui-btn-primary:active {
+  transform: scale(0.95);
+}
+
+.ui-btn-success {
+  background: var(--color-success);
+  color: white;
+}
+.ui-btn-success:hover {
+  background: #0ea876;
+  transform: scale(1.02);
+}
+
+.ui-btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+.ui-btn-danger:hover {
+  opacity: 0.9;
+}
+
+.ui-btn-secondary {
+  background: transparent;
+  color: #1d1d1f;
+}
+.ui-btn-secondary:hover {
+  background: var(--color-hover-light);
+}
+
+.ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.ui-btn-icon {
+  display: flex;
+}
+
+.ui-btn-icon-right {
+  display: flex;
+  transition: transform 0.2s ease;
+}

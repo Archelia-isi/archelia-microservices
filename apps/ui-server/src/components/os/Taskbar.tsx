@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import StartMenu from './StartMenu';
+import ContextMenu from '../ui/ContextMenu';
 import './Taskbar.css';
 
 export default function Taskbar() {
-  const { windows, openWindow, activeWindowId, minimizeWindow, togglePinApp } = useWindowStore();
+  const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp } = useWindowStore();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function Taskbar() {
 
   const handleContextMenu = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    togglePinApp(id);
+    setContextMenu({ x: e.clientX, y: e.clientY, appId: id });
   };
 
   return (
@@ -74,7 +76,7 @@ export default function Taskbar() {
                 onContextMenu={(e) => handleContextMenu(e, app.id)}
                 draggable={true}
                 onDragStart={(e) => handleDragStartTaskbarIcon(e, app.id)}
-                title={app.title + (app.isPinned ? " (Pinnata - Tasto destro per rimuovere)" : " (Tasto destro per fissare)")}
+                title={app.title + " (Tasto destro per opzioni)"}
               >
                 <div className="taskbar-icon flex-center" style={{ background: app.color }}>
                    {app.icon}
@@ -93,6 +95,37 @@ export default function Taskbar() {
           </div>
         </div>
       </div>
+
+      {contextMenu && windows[contextMenu.appId] && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              id: 'open',
+              label: windows[contextMenu.appId].isOpen ? (windows[contextMenu.appId].isMinimized ? 'Ripristina' : 'Riduci a icona') : 'Apri',
+              onClick: () => {
+                const app = windows[contextMenu.appId];
+                handleAppClick(app.id, app.isOpen, app.isMinimized, activeWindowId === app.id);
+              }
+            },
+            {
+              id: 'pin',
+              label: windows[contextMenu.appId].isPinned ? 'Rimuovi dalla barra' : 'Fissa sulla barra',
+              onClick: () => togglePinApp(contextMenu.appId)
+            },
+            {
+              id: 'close',
+              label: 'Chiudi',
+              variant: 'danger',
+              disabled: !windows[contextMenu.appId].isOpen,
+              dividerBefore: true,
+              onClick: () => closeWindow(contextMenu.appId)
+            }
+          ]}
+        />
+      )}
     </>
   );
 }

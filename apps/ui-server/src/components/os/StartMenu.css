@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 52px; /* Lascia scoperta la taskbar */
+  bottom: 60px; /* Lascia scoperta la nuova taskbar */
   z-index: 9999;
 }
 
@@ -12,16 +12,16 @@
   bottom: 12px;
   left: 12px;
   width: 320px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-app-blur) saturate(200%);
+  -webkit-backdrop-filter: var(--glass-app-blur) saturate(200%);
+  border: 1px solid var(--color-border-glass);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: startMenuSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: startMenuSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes startMenuSlideUp {
@@ -34,8 +34,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(0,0,0,0.03);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  background: var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .start-menu-user {
@@ -48,7 +48,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #007AFF, #00C6FF);
+  background: linear-gradient(135deg, var(--color-primary), #00C6FF);
   color: white;
 }
 
@@ -60,21 +60,21 @@
 .start-menu-name {
   font-weight: 600;
   font-size: 14px;
-  color: #1d1d1f;
+  color: var(--color-text-main);
 }
 
 .start-menu-role {
   font-size: 11px;
-  color: #6e6e73;
+  color: var(--color-text-muted);
 }
 
 .start-menu-logout {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: #1d1d1f;
+  color: var(--color-text-main);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,7 +84,7 @@
 
 .start-menu-logout:hover {
   background: rgba(255,59,48,0.1);
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 
 .start-menu-content {
@@ -97,7 +97,7 @@
 .start-menu-section-title {
   font-size: 12px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -114,7 +114,7 @@
 
 .start-menu-wallpaper {
   height: 60px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background-size: cover;
   background-position: center;
   cursor: pointer;
@@ -127,7 +127,7 @@
 }
 
 .start-menu-wallpaper.active {
-  border-color: #007AFF;
+  border-color: var(--color-primary);
 }
 
 .start-menu-widgets {
@@ -138,17 +138,17 @@
 
 .start-menu-widget-btn {
   padding: 10px 12px;
-  background: rgba(0,0,0,0.03);
-  border-radius: 8px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: var(--color-text-main);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .start-menu-widget-btn:hover:not(.disabled) {
-  background: rgba(0,0,0,0.08);
+  background: var(--color-hover-dark);
 }
 
 .start-menu-widget-btn.disabled {
@@ -160,12 +160,12 @@
   position: absolute;
   bottom: 12px;
   left: 340px; /* di fianco al menu start */
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(40px) saturate(200%);
-  -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-app-blur) saturate(200%);
+  -webkit-backdrop-filter: var(--glass-app-blur) saturate(200%);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glass);
   padding: 16px;
   animation: previewFadeIn 0.2s ease-out;
   pointer-events: none;

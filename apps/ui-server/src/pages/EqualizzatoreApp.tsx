@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Zap, Ban, Play, Edit3, RotateCcw, Menu, Book, Users, LogOut, AlertTriangle, CloudUpload } from 'lucide-react';
+import { Edit3, CheckCircle, AlertTriangle, CloudUpload, Zap, Play, RotateCcw, Ban, Settings2 } from 'lucide-react';
 import ReviewAccordion from '../components/equalizzatore/ReviewAccordion';
+import AppSplashScreen from '../components/os/AppSplashScreen';
+import Button from '../components/ui/Button';
+import GlassPanel from '../components/ui/GlassPanel';
+import StickyHeader from '../components/ui/StickyHeader';
+import ProgressBar from '../components/ui/ProgressBar';
+import Tabs from '../components/ui/Tabs';
+import DropdownMenu from '../components/ui/DropdownMenu';
 import './EqualizzatoreApp.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
-// Fallback local per test: 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export interface StagingItem {
   id: string;
   sourceId: string;
   sku: string;
+  displaySku?: string;
   pipelineStatus: string;
   reviewStatus: string;
   phase1Payload: any;
@@ -18,33 +25,79 @@ export interface StagingItem {
   approvedPayload: any;
   originalRawData: any;
   imageUrl: string | null;
+  lockedBy?: string;
+  lockedAt?: string;
 }
 
 export default function EqualizzatoreApp() {
   const [items, setItems] = useState<StagingItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState(1);
+  const [progress, setProgress] = useState({ isActive: false, progress: 0, total: 0, message: '' });
+  
+  const [taxonomy, setTaxonomy] = useState<{groups: any[], families: any[], categories: any[]}>({ groups: [], families: [], categories: [] });
 
-  const fetchItems = async () => {
-    setLoading(true);
+  const fetchItems = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/equalizzatore/staging?tab=${activeTab}`);
       const data = await res.json();
-      if (data.success) {
-        setItems(data.data);
-      }
+      if (data.success) setItems(data.data);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+      setTimeout(() => setIsAppReady(true), 300); // slight delay to ensure smooth transition
+    }
+  };
+
+  const fetchTaxonomy = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/equalizzatore/taxonomy`);
+      const data = await res.json();
+      if (data.success) setTaxonomy(data);
+    } catch (e) {
+      console.error(e);
     }
   };
 
   useEffect(() => {
-    fetchItems();
+    fetchTaxonomy();
+    // Fetch initial progress
+    fetch(`${API_URL}/api/admin/equalizzatore/progress`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data?.payload) setProgress(d.data.payload); })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    fetchItems(true);
+
+    const sse = new EventSource(`${API_URL}/api/admin/equalizzatore/sse`);
+    sse.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'LOCK_CHANGED') {
+          fetchItems(false);
+        } else if (data.type === 'PROGRESS_UPDATE' && data.payload) {
+          setProgress(data.payload);
+        }
+      } catch (e) {}
+    };
+
+    const pollInterval = setInterval(() => {
+      fetchItems(false);
+    }, 5000);
+
+    return () => {
+      sse.close();
+      clearInterval(pollInterval);
+    };
   }, [activeTab]);
 
   const triggerBatch = async () => {
+    if (!confirm("Avviare generazione massiva testi?")) return;
     try {
       await fetch(`${API_URL}/api/admin/equalizzatore/trigger`, {
         method: 'POST',
@@ -54,86 +107,129 @@ export default function EqualizzatoreApp() {
       alert('Batch avviato con successo!');
     } catch (e) {
       console.error(e);
-      alert('Errore innesco batch');
     }
   };
 
+  const startNomenclature = async () => {
+    if (!confirm("Vuoi avviare la generazione Nomenclatura?")) return;
+    try {
+      await fetch(`${API_URL}/api/admin/equalizzatore/generate-nomenclature-batch`, { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const syncApproved = async () => {
+    if (!confirm(`Sincronizzare massivamente ${items.length} prodotti?`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/equalizzatore/sync-approved`, { method: 'POST' });
+      const json = await res.json();
+      alert(json.message);
+      fetchItems(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const resetProgress = async () => {
+    await fetch(`${API_URL}/api/admin/equalizzatore/reset-progress`, { method: 'POST' });
+    setProgress({ isActive: false, progress: 0, total: 0, message: '' });
+  };
+
+  const getTabStatus = (tabNum: number) => {
+    if (tabNum === 1) return 'PENDING_TEXT';
+    if (tabNum === 2) return 'PENDING_NOMENCLATURE';
+    if (tabNum === 3) return 'PENDING_DUPLICATE_CHECK';
+    if (tabNum === 4) return 'READY_FOR_SYNC';
+    return '';
+  };
+
   return (
-    <div className="equalizzatore-app">
-      {/* Navbar in stile App Nativa / Vecchio Layout */}
-      <div className="eq-top-navbar">
-        <div className="eq-nav-left">
-          <div className="eq-nav-item active"><Menu size={16}/> Review Station</div>
-          <div className="eq-nav-item"><Book size={16}/> Dizionario Nomenclatura</div>
-          <div className="eq-nav-item"><Users size={16}/> Gestione Utenti</div>
-        </div>
-        <div className="eq-nav-right">
-          <span>Ciao, Salvatore</span>
-          <LogOut size={16} className="eq-nav-icon" />
-        </div>
-      </div>
-
-      <div className="eq-main-container">
-        <div className="eq-header">
-          <div className="eq-header-info">
+    <>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Equalizzatore" 
+        icon={<Settings2 size={56} />} 
+      />
+      
+      {/* Main App Container */}
+      <div className={`equalizzatore-app eq-app-entry ${isAppReady ? 'ready' : ''}`}>
+        <div className="eq-main-container">
+        
+        {/* Dynamic Header & Progress bar & Tabs merged */}
+        <StickyHeader paddingY="md">
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="eq-header-modern-left">
             <h2>Review Station Pipeline</h2>
-            <p>Controllo Qualità a 3 Step: Testi &rarr; Nomenclatura &rarr; Sincronizzazione</p>
-          </div>
-          <div className="eq-header-actions">
-            <button className="eq-btn ghost" onClick={fetchItems}>
-              Sblocca Barra
-            </button>
-            <button className="eq-btn warning">
-              <RotateCcw size={14} /> Riavvia Errori
-            </button>
-            <button className="eq-btn secondary" onClick={triggerBatch}>
-              <Zap size={14} /> Avvia Generazione Massiva Testi
-            </button>
-            <button className="eq-btn danger">
-              <Ban size={14} /> Ferma
-            </button>
-            <button className="eq-btn accent">
-              <Play size={14} /> Genera Nomenclatura Globale
-            </button>
-          </div>
-        </div>
+            
+            <ProgressBar 
+              progress={progress.progress} 
+              total={Math.max(progress.total, 1)} 
+              isActive={progress.isActive} 
+              message={progress.message || 'Nessun processo IA attivo'} 
+            />
 
-        <div className="eq-progress-area">
-          <p>Nessun processo IA in background attivo</p>
-          <div className="eq-progress-bar-bg">
-            <div className="eq-progress-bar-fill" style={{width: '0%'}}></div>
+            <Tabs 
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id as number)}
+              tabs={[
+                { id: 1, label: '1. Revisione Testi', icon: <Edit3 size={14}/> },
+                { id: 2, label: '2. Revisione Nomenclatura', icon: <CheckCircle size={14}/> },
+                { id: 3, label: '3. Risoluzione Codici', icon: <AlertTriangle size={14}/> },
+                { id: 4, label: `4. Da Sincronizzare (${activeTab === 4 ? items.length : '...'})`, icon: <CloudUpload size={14}/> },
+              ]}
+            />
           </div>
-        </div>
 
-        <div className="eq-tabs">
-          <div className={`eq-tab ${activeTab === 1 ? 'active' : ''}`} onClick={() => setActiveTab(1)}>
-            <Edit3 size={14}/> 1. Revisione Testi
+          <div className="eq-header-modern-right">
+            <DropdownMenu
+              label="Azioni Pipeline"
+              icon={<Settings2 size={16} />}
+              items={[
+                { id: 'batch', label: 'Avvia Generazione Massiva Testi', icon: <Zap size={14} />, variant: 'primary', disabled: progress.isActive, onClick: triggerBatch },
+                { id: 'nom', label: 'Genera Nomenclatura Globale', icon: <Play size={14} />, variant: 'primary', disabled: progress.isActive, onClick: startNomenclature },
+                { id: 'reset', label: 'Sblocca Barra / Riavvia Errori', icon: <RotateCcw size={14} />, variant: 'warning', dividerBefore: true, onClick: resetProgress },
+                { id: 'stop', label: 'Ferma Processi Correnti', icon: <Ban size={14} />, variant: 'danger', onClick: () => {} }
+              ]}
+            />
           </div>
-          <div className={`eq-tab ${activeTab === 2 ? 'active' : ''}`} onClick={() => setActiveTab(2)}>
-            <CheckCircle size={14}/> 2. Revisione Nomenclatura
-          </div>
-          <div className={`eq-tab ${activeTab === 3 ? 'active' : ''}`} onClick={() => setActiveTab(3)}>
-            <AlertTriangle size={14}/> 3. Risoluzione Codici
-          </div>
-          <div className={`eq-tab ${activeTab === 4 ? 'active' : ''}`} onClick={() => setActiveTab(4)}>
-            <CloudUpload size={14}/> 4. Da Sincronizzare (200)
-          </div>
-        </div>
+          </GlassPanel>
+        </StickyHeader>
+
+        {activeTab === 4 && items.length > 0 && (
+          <GlassPanel padding="lg" radius="lg" style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h3 style={{ margin: '0 0 12px 0', color: '#1d1d1f', fontSize: '24px', fontWeight: 700 }}>Prodotti pronti per la produzione</h3>
+            <p style={{ margin: '0 0 24px 0', color: '#86868b', fontSize: '15px' }}>Questi prodotti hanno completato tutti gli step di approvazione.</p>
+            <Button variant="success" size="lg" icon={<CloudUpload size={16} />} onClick={syncApproved}>
+              Sincronizza Tutti ({items.length}) nel Database Neon
+            </Button>
+          </GlassPanel>
+        )}
 
         <div className="eq-content">
           {loading ? (
-            <div className="eq-loading">Caricamento in corso...</div>
+            <div className="eq-loading"><RotateCcw className="spin" size={24}/> Caricamento...</div>
           ) : items.length === 0 ? (
-            <div className="eq-empty">Nessun prodotto in revisione.</div>
+            <div className="eq-empty">
+              <CheckCircle size={48} className="empty-icon" />
+              <p>Nessun prodotto in questa fase.</p>
+            </div>
           ) : (
             <div className="eq-list">
               {items.map(item => (
-                <ReviewAccordion key={item.id} item={item} onRefresh={fetchItems} />
+                <ReviewAccordion 
+                  key={item.id} 
+                  item={item} 
+                  onRefresh={() => fetchItems(false)} 
+                  taxonomy={taxonomy}
+                  currentTab={getTabStatus(activeTab)}
+                />
               ))}
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

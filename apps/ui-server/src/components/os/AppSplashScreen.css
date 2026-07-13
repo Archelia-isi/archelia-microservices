@@ -1,0 +1,94 @@
+/* Splash Screen overlay over the desktop */
+.os-app-splash-screen {
+  position: fixed; /* Fixed so it centers on the whole screen */
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+}
+
+.os-app-splash-screen.fade-out {
+  opacity: 0;
+  transform: scale(1.2);
+}
+
+/* GLOBAL HACK: Hide the window frame when splash screen is active */
+.os-window:has(.os-app-splash-active) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.os-window:has(.os-app-splash-active) .window-inner {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.os-window:has(.os-app-splash-active) .window-content {
+  background: transparent !important;
+}
+
+.os-window:has(.os-app-splash-active) .window-titlebar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Logo container with spinner */
+.os-app-icon-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* Spinner rotating around the logo */
+.os-app-icon-spinner {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%; /* Perfect circle */
+  border: 3px solid rgba(0, 102, 204, 0.05); /* Subtle track */
+  border-top-color: #0066cc; /* Active spinning part */
+  animation: osSpinAround 1s linear infinite;
+}
+
+.os-app-icon {
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px var(--color-hover-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.os-app-icon svg, .os-app-icon img {
+  color: #1d1d1f;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.os-app-splash-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.02em;
+}
+
+@keyframes osSpinAround {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

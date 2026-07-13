@@ -5,16 +5,20 @@ import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from 
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
+import ContextMenu from '../ui/ContextMenu';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
 import EqualizzatoreApp from '../../pages/EqualizzatoreApp';
+import PromoManualApp from '../../pages/PromoManualApp';
+import PromoAutoApp from '../../pages/PromoAutoApp';
 import './DesktopOS.css';
 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition } = useWindowStore();
   const { widgets } = useWidgetStore();
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
@@ -120,6 +124,12 @@ export default function DesktopOS() {
     if (!windows['equalizzatore']) {
       registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
     }
+    if (!windows['promo_manual']) {
+      registerApp({ id: 'promo_manual', title: 'Promo Manuali', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoManualApp />, x: 150, y: 150, width: 850, height: 600, desktopX: 130, desktopY: 130 });
+    }
+    if (!windows['promo_auto']) {
+      registerApp({ id: 'promo_auto', title: 'Promo Automazioni', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 200, y: 200, width: 950, height: 650, desktopX: 130, desktopY: 230 });
+    }
   }, []);
 
   return (
@@ -137,6 +147,10 @@ export default function DesktopOS() {
               key={`shortcut-${app.id}`} 
               className="desktop-icon-wrapper"
               onClick={() => openWindow(app.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, appId: app.id });
+              }}
               draggable={true}
               onDragStart={(e) => handleDragStartDesktopIcon(e, app.id)}
               onDragEnd={handleDragEndDesktopIcon}
@@ -151,7 +165,7 @@ export default function DesktopOS() {
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
                 {app.icon}
               </div>
-              <span className="desktop-icon-label">{app.title.split(' ')[0]}</span>
+              <span className="desktop-icon-label">{app.title}</span>
             </div>
           ))}
         </div>
@@ -170,6 +184,33 @@ export default function DesktopOS() {
 
       {/* Nuova Taskbar */}
       <Taskbar />
+
+      {/* Context Menu Desktop */}
+      {contextMenu && windows[contextMenu.appId] && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              id: 'open',
+              label: 'Apri',
+              onClick: () => openWindow(contextMenu.appId)
+            },
+            {
+              id: 'change-icon',
+              label: 'Cambia immagine icona',
+              onClick: () => { /* Placeholder per futuro sviluppo */ }
+            },
+            {
+              id: 'pin',
+              label: windows[contextMenu.appId].isPinned ? 'Rimuovi dalla taskbar' : 'Fissa sulla taskbar',
+              dividerBefore: true,
+              onClick: () => togglePinApp(contextMenu.appId)
+            }
+          ]}
+        />
+      )}
     </div>
   );
 }

@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@archelia/core": "*",
+    "@archelia/database": "*",
+    "@archelia/shopify": "*",
     "@archelia/typesense": "*",
     "@google/generative-ai": "^0.24.1",
     "google-auth-library": "^9.6.3",

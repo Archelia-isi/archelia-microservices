@@ -19,6 +19,10 @@ async function buildApp() {
 
   // Registrazione rotte webhooks
   await app.register(shopifyWebhooksRoutes);
+  
+  // Registrazione rotte app proxy (cart sync in tempo reale)
+  const { cartSyncRoutes } = await import('./routes/cartSync.js');
+  await app.register(cartSyncRoutes);
 
   // Health check endpoint
   app.get('/health', async () => {

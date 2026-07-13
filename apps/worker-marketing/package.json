@@ -1,0 +1,25 @@
+{
+  "name": "@archelia/worker-marketing",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@archelia/core": "*",
+    "@archelia/database": "*",
+    "@types/mjml": "^5.0.0",
+    "@types/web-push": "^3.6.4",
+    "bullmq": "^5.34.4",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "mjml": "^5.4.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "~5.7.2"
+  }
+}

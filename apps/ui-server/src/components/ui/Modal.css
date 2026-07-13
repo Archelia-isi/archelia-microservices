@@ -1,0 +1,115 @@
+.ui-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  transition: opacity 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  padding: 20px;
+}
+
+.ui-modal-overlay.open {
+  opacity: 1;
+}
+
+.ui-modal-overlay.closed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-modal-content {
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-app-blur) saturate(200%);
+  -webkit-backdrop-filter: var(--glass-app-blur) saturate(200%);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-modal-content.open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+.ui-modal-content.closed {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+
+.ui-modal-content.size-sm { width: 100%; max-width: 400px; }
+.ui-modal-content.size-md { width: 100%; max-width: 600px; }
+.ui-modal-content.size-lg { width: 100%; max-width: 800px; }
+.ui-modal-content.size-full { width: 100%; max-width: 95%; height: 95%; }
+
+.ui-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ui-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text-main);
+}
+
+.ui-modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.ui-modal-close:hover {
+  background: var(--color-border-light);
+  color: var(--color-text-main);
+}
+
+.ui-modal-close.floating {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+}
+
+.ui-modal-close.floating:hover {
+  background: rgba(255,255,255,0.8);
+}
+
+.ui-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ui-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

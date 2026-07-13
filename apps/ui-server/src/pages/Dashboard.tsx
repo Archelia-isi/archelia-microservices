@@ -10,7 +10,7 @@ export default function Dashboard() {
       
       {/* Metric Cards - High Density */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid var(--color-border-light)' }}>
           <div className="flex-between" style={{ marginBottom: '1rem' }}>
             <span className="text-small" style={{ fontWeight: 500 }}>Ordini Oggi</span>
             <ShoppingCart size={16} color="var(--color-text-muted)" />
@@ -23,7 +23,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid var(--color-border-light)' }}>
           <div className="flex-between" style={{ marginBottom: '1rem' }}>
             <span className="text-small" style={{ fontWeight: 500 }}>Fatturato</span>
             <Activity size={16} color="var(--color-text-muted)" />
@@ -36,7 +36,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid var(--color-border-light)' }}>
           <div className="flex-between" style={{ marginBottom: '1rem' }}>
             <span className="text-small" style={{ fontWeight: 500 }}>Nuovi Clienti</span>
             <Users size={16} color="var(--color-text-muted)" />
@@ -46,7 +46,7 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(0,0,0,0.05)' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid var(--color-border-light)' }}>
           <div className="flex-between" style={{ marginBottom: '1rem' }}>
             <span className="text-small" style={{ fontWeight: 500 }}>Prodotti Attivi</span>
             <Package size={16} color="var(--color-text-muted)" />

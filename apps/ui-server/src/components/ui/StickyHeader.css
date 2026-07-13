@@ -1,0 +1,14 @@
+.ui-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  margin: 0;
+}
+
+/* Padding Y */
+.ui-sticky-py-none { padding-top: 0; padding-bottom: 0; }
+.ui-sticky-py-sm { padding-top: 12px; padding-bottom: 12px; }
+.ui-sticky-py-md { padding-top: 24px; padding-bottom: 24px; }
+.ui-sticky-py-lg { padding-top: 32px; padding-bottom: 32px; }

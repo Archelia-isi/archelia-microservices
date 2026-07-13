@@ -107,7 +107,7 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
       {widget.size === 'medium' && (
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
           {renderClock(tz1)}
-          <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '0 16px' }} />
+          <div style={{ width: '1px', background: 'var(--color-border-glass)', margin: '0 16px' }} />
           {renderClock(tz2)}
         </div>
       )}

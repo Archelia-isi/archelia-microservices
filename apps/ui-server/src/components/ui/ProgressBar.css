@@ -1,0 +1,38 @@
+.ui-progress-slim {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.ui-progress-slim-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.ui-progress-slim-text .active {
+  color: var(--color-primary);
+}
+
+.ui-progress-slim-bg {
+  width: 100%;
+  height: 6px;
+  background: var(--color-hover-light);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ui-progress-slim-fill {
+  height: 100%;
+  background: #e5e5ea;
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.ui-progress-slim-fill.active {
+  background: var(--color-primary);
+}

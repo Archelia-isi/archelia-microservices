@@ -23,6 +23,11 @@ const envSchema = z.object({
   SHOPIFY_API_VERSION: z.string().default('2026-01'),
   SHOPIFY_WEBHOOK_SECRET: z.string().default(''),
   SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
+  SHOPIFY_SHOP_DOMAIN: z.string().optional(),
+  APP_CART_SYNC_SECRET: z.string().optional(),
+
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
 
   DATABASE_URL: z.string().default(''),
   DATABASE_WORKER_URL: z.string().default(''),
@@ -41,6 +46,8 @@ const envSchema = z.object({
 
   ANTHROPIC_API_KEY: z.string().default(''),
   GEMINI_API_KEY: z.string().default(''),
+
+  ENABLE_GLOBAL_WRITES: z.coerce.boolean().default(false),
 });
 
 function loadEnv() {
@@ -68,3 +75,14 @@ function loadEnv() {
 
 export const env = loadEnv();
 export type Env = z.infer<typeof envSchema>;
+
+export function isDatabaseSafeToWrite(): boolean {
+  if (env.ENABLE_GLOBAL_WRITES) return true;
+  // If the DB URL contains the V2-developmt branch endpoint
+  if (env.DATABASE_URL.includes('V2-developmt') || env.DATABASE_URL.includes('ag6lwn81')) {
+    // Note: ep-mute-dew-ag6lwn81 is currently the developmt endpoint, so we allow it.
+    // In production we should use the prod branch.
+    return true; 
+  }
+  return false;
+}
