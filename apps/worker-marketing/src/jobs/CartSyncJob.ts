@@ -84,13 +84,19 @@ export class CartSyncJob {
       };
 
       try {
-        const result = await shopifyGraphQL.query(mutation, variables);
-        const errors = (result as any)?.metafieldsSet?.userErrors;
-        if (errors && errors.length > 0) {
-          log.warn(`[CartSyncJob] Shopify Metafield warning: ${JSON.stringify(errors)}`, { module: 'worker-marketing' });
-        } else {
-          log.info(`[CartSyncJob] Carrello sincronizzato con successo su Shopify Metafields (custom.cart_sync)`, { module: 'worker-marketing' });
-        }
+        // [READ-ONLY BLOCK] 
+        // Blocco di sicurezza temporaneo: non scriviamo nulla su Shopify in Produzione
+        // durante la fase di sviluppo V2.
+        
+        // const result = await shopifyGraphQL.query(mutation, variables);
+        // const errors = (result as any)?.metafieldsSet?.userErrors;
+        // if (errors && errors.length > 0) {
+        //   log.warn(`[CartSyncJob] Shopify Metafield warning: ${JSON.stringify(errors)}`, { module: 'worker-marketing' });
+        // } else {
+        //   log.info(`[CartSyncJob] Carrello sincronizzato con successo su Shopify Metafields (custom.cart_sync)`, { module: 'worker-marketing' });
+        // }
+        
+        log.info(`[CartSyncJob] 🛡️ [BLOCCO SICUREZZA] Sincronizzazione carrello verso Shopify intercettata e bloccata (READ-ONLY mode).`, { module: 'worker-marketing' });
       } catch (gqlErr: any) {
         log.error(`[CartSyncJob] Errore sincronizzazione Shopify Metafields: ${gqlErr.message}`, { error: gqlErr, module: 'worker-marketing' });
         // Non blocchiamo il job se Shopify fallisce temporaneamente
