@@ -4,7 +4,7 @@ import { prisma } from '@archelia/database';
 export const marketingRoutes = async (fastify: FastifyInstance) => {
   
   // Endpoint per le Email (MarketingJob)
-  fastify.get('/jobs', async (request, reply) => {
+  fastify.get('/api/v1/admin/marketing/jobs', async (request, reply) => {
     try {
       const jobs = await prisma.marketingJob.findMany({
         take: 100,
@@ -22,7 +22,7 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
   });
 
   // Endpoint per le Notifiche Push (PushJob)
-  fastify.get('/pushes', async (request, reply) => {
+  fastify.get('/api/v1/admin/marketing/pushes', async (request, reply) => {
     try {
       const pushes = await prisma.pushJob.findMany({
         take: 100,
