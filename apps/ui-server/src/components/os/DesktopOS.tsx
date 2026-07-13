@@ -12,6 +12,7 @@ import Products from '../../pages/Products';
 import EqualizzatoreApp from '../../pages/EqualizzatoreApp';
 import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
+import { MarketingApp } from '../../pages/MarketingApp';
 import './DesktopOS.css';
 
 export default function DesktopOS() {
@@ -129,6 +130,9 @@ export default function DesktopOS() {
     }
     if (!windows['promo_auto']) {
       registerApp({ id: 'promo_auto', title: 'Promo Automazioni', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 200, y: 200, width: 950, height: 650, desktopX: 130, desktopY: 230 });
+    }
+    if (!windows['marketing']) {
+      registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 250, y: 250, width: 1000, height: 700, desktopX: 130, desktopY: 330 });
     }
   }, []);
 

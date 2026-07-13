@@ -1,0 +1,109 @@
+.marketing-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-bottom: 2rem;
+}
+
+.marketing-header {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.marketing-title h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.marketing-title p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.marketing-tabs {
+  margin-bottom: -1.5rem; /* Per unire le tab al bordo inferiore dell'header sticky */
+}
+
+.marketing-content {
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.marketing-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
+
+.marketing-table-container {
+  overflow: hidden;
+  padding: 0;
+}
+
+.marketing-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.marketing-table th {
+  padding: 1rem 1.5rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--border-light);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.marketing-table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  vertical-align: middle;
+}
+
+.marketing-table tr:last-child td {
+  border-bottom: none;
+}
+
+.marketing-table tr:hover td {
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-secondary) !important;
+  font-style: italic;
+}
+
+.error-text {
+  color: var(--danger-color);
+  font-size: 0.85rem;
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-id {
+  font-family: monospace;
+  background: rgba(0,0,0,0.05);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
