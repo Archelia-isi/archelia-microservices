@@ -1,6 +1,7 @@
 import { Job } from 'bullmq';
 import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
+import { shopifyGraphQL } from '@archelia/shopify';
 
 export class CartSyncJob {
   static async process(job: Job) {
@@ -49,7 +50,51 @@ export class CartSyncJob {
 
       log.info(`[CartSyncJob] Carrello salvato su DB. customerId=${customerId}, status=${status}`, { module: 'worker-marketing' });
 
-      // TODO: Push to Shopify Metafields (via worker-shopify-push o qui direttamente)
+      // Sincronizzazione con Shopify tramite Metafield (App <-> Sito)
+      const customerGid = customerId.toString().includes('gid://')
+        ? customerId.toString()
+        : `gid://shopify/Customer/${customerId}`;
+
+      const mutation = `
+        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields {
+              id
+              key
+              value
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      const variables = {
+        metafields: [
+          {
+            ownerId: customerGid,
+            namespace: 'custom',
+            key: 'cart_sync',
+            type: 'json',
+            value: JSON.stringify(cartData),
+          },
+        ],
+      };
+
+      try {
+        const result = await shopifyGraphQL.query(mutation, variables);
+        const errors = (result as any)?.metafieldsSet?.userErrors;
+        if (errors && errors.length > 0) {
+          log.warn(`[CartSyncJob] Shopify Metafield warning: ${JSON.stringify(errors)}`, { module: 'worker-marketing' });
+        } else {
+          log.info(`[CartSyncJob] Carrello sincronizzato con successo su Shopify Metafields (custom.cart_sync)`, { module: 'worker-marketing' });
+        }
+      } catch (gqlErr: any) {
+        log.error(`[CartSyncJob] Errore sincronizzazione Shopify Metafields: ${gqlErr.message}`, { error: gqlErr, module: 'worker-marketing' });
+        // Non blocchiamo il job se Shopify fallisce temporaneamente
+      }
       
       return { success: true, status };
     } catch (error: any) {
