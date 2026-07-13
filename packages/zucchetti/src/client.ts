@@ -51,6 +51,10 @@ export const xmlBuilder = new XMLBuilder({
 
 export class ZucchettiClientService {
   async importData(token: string, xmlPayload: string, instance: string = 'SERVLET'): Promise<string> {
+    if (!env.ENABLE_GLOBAL_WRITES) {
+      logger.warn(`🛡️ [ZUCCHETTI SDK] importData bloccato da regola di sicurezza globale.`);
+      return `<out><result>ok</result><log>BLOCKED BY ENABLE_GLOBAL_WRITES</log></out>`;
+    }
     const url = `${env.ZUCCHETTI_BASE_URL}/api/importData`;
     const formData = new URLSearchParams();
     formData.set('instance', instance);

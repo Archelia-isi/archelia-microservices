@@ -108,6 +108,10 @@ export class ShopifyAuthService {
   }
 
   async post<T = unknown>(path: string, data: unknown): Promise<T> {
+    if (!env.ENABLE_GLOBAL_WRITES) {
+      log.warn(`🛡️ [SHOPIFY SDK] POST ${path} bloccata da regola di sicurezza globale.`, { module: 'shopify-sdk' });
+      return {} as T;
+    }
     const response = await this.fetch(path, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -120,6 +124,10 @@ export class ShopifyAuthService {
   }
 
   async put<T = unknown>(path: string, data: unknown): Promise<T> {
+    if (!env.ENABLE_GLOBAL_WRITES) {
+      log.warn(`🛡️ [SHOPIFY SDK] PUT ${path} bloccata da regola di sicurezza globale.`, { module: 'shopify-sdk' });
+      return {} as T;
+    }
     const response = await this.fetch(path, {
       method: 'PUT',
       body: JSON.stringify(data),
