@@ -50,6 +50,33 @@ REGOLE FERREE PER LA GENERAZIONE DEL MESSAGGIO:
 SUPPORTO TECNICO INTERNO:
 Se ti chiedono info sul sistema: Archelia OS sincronizza l'ERP Zucchetti con Shopify tramite worker automatizzati su code Redis.`;
 
+async function extractSearchQueries(message: string): Promise<string[]> {
+  try {
+    const prompt = `Sei un Query Expander per l'e-commerce Archelia. 
+Analizza la richiesta dell'utente ed estrai i prodotti richiesti esplicitamente E deduci gli accessori/strumenti impliciti necessari per completare il lavoro.
+Cerca di estrarre termini secchi (es. "lampadario design", "tasselli", "trapano").
+Ritorna SOLO un array JSON di stringhe.
+Esempio Utente: "Devo fissare un lampadario al soffitto"
+Esempio Output: ["lampadario", "trapano", "tasselli", "viti", "morsetti"]
+
+Richiesta Utente: "${message}"`;
+    
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    
+    const text = result.response.text();
+    const queries = JSON.parse(text);
+    if (Array.isArray(queries) && queries.length > 0) {
+      return queries;
+    }
+  } catch (err) {
+    log.error(`Errore Query Expansion: ${err}`, { module: 'ai-chatbot' });
+  }
+  return [message]; // Fallback to original message
+}
+
 app.post('/api/chat/stream', async (request, reply) => {
   const { message, history = [] } = request.body as { 
     message: string, 
@@ -60,17 +87,31 @@ app.post('/api/chat/stream', async (request, reply) => {
     return reply.status(400).send({ error: 'Message is required' });
   }
 
-  // 1. Cerca su Typesense (Multi-Search: Prodotti e Guide)
+  // 1. Cerca su Typesense (Multi-Search: Prodotti e Guide con Query Expansion)
   let searchContext = '';
   let hits: any[] = [];
   try {
-    const [productsResults, guidesResults] = await Promise.all([
-      searchProducts(message),
-      searchGuides(message)
-    ]);
-    
-    hits = productsResults.hits || [];
+    const searchQueries = await extractSearchQueries(message);
+    log.info(`[RAG] Query espanse: ${searchQueries.join(', ')}`, { module: 'ai-chatbot' });
+
+    // Cerca le guide usando solo il messaggio originale (più semantico)
+    const guidesResults = await searchGuides(message);
     const guideHits = guidesResults.hits || [];
+
+    // Cerca i prodotti usando tutte le query espanse in parallelo
+    const productPromises = searchQueries.map(q => searchProducts(q));
+    const productsResultsArray = await Promise.all(productPromises);
+    
+    // Unisci e deduplica i prodotti trovati
+    const uniqueHitsMap = new Map();
+    productsResultsArray.forEach(res => {
+      (res.hits || []).forEach((hit: any) => {
+        if (!uniqueHitsMap.has(hit.document.sku)) {
+          uniqueHitsMap.set(hit.document.sku, hit);
+        }
+      });
+    });
+    hits = Array.from(uniqueHitsMap.values());
     
     if (guideHits.length > 0) {
       searchContext += "MANUALI E GUIDE (Usa queste info per consigliare il cliente):\n";
@@ -82,8 +123,8 @@ app.post('/api/chat/stream', async (request, reply) => {
 
     if (hits.length > 0) {
       searchContext += "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
-      // Prendiamo i primi 5-10 risultati per non sforare il context window
-      hits.slice(0, 10).forEach((hit: any, index: number) => {
+      // Prendiamo i primi 15 risultati per coprire più prodotti
+      hits.slice(0, 15).forEach((hit: any, index: number) => {
         const doc = hit.document;
         searchContext += `${index + 1}. Nome: ${doc.title} (SKU: ${doc.sku})\n- Prezzo: €${doc.price}\n- Giacenza: ${doc.stock > 0 ? doc.stock + ' pezzi disponibili' : 'Esaurito'}\n- Brand: ${doc.brand}\n- Categoria: ${doc.family}\n- Promo: ${doc.is_in_promo ? doc.promo_slogan + ' (-' + doc.promo_discount + '%)' : 'Nessuna promo attiva'}\n\n`;
       });
