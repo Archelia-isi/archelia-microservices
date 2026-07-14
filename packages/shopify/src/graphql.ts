@@ -21,6 +21,12 @@ export async function shopifyGraphQL<T>(query: string, variables?: Record<string
   const json = (await response.json()) as GraphQLResponse<T>;
 
   if (json.errors && json.errors.length > 0) {
+    const isThrottled = json.errors.some(e => e.message === 'Throttled' || e.extensions?.code === 'THROTTLED');
+    if (isThrottled) {
+      log.warn('Shopify GraphQL Rate Limit superato (Throttled). Attesa di 2000ms e retry...', { module: 'shopify-sdk' });
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return shopifyGraphQL<T>(query, variables);
+    }
     throw new Error(`Shopify GraphQL Error: ${json.errors.map(e => e.message).join(', ')}`);
   }
 

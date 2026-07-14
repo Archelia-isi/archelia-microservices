@@ -1,6 +1,6 @@
 import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
-import { shopifyClient } from '@archelia/shopify';
+import { shopifyClient, shopifyGraphQL } from '@archelia/shopify';
 
 const SHOPIFY_LOCATION_PR = 117697904904;
 const SHOPIFY_LOCATION_EK = 119021371656;
@@ -161,6 +161,218 @@ export class ProductSyncService {
       return result;
     } catch (error: any) {
       log.error(`❌ Errore fatale sync stock: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async syncDifferentialStock(): Promise<SyncResult> {
+    const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
+    try {
+      log.info('📦 Inizio DIFFERENTIAL STOCK sync Database -> Shopify (GraphQL)', { module: 'worker-shopify-push' });
+      
+      const products = await prisma.product.findMany({
+        where: { publishedOnWeb: true, shopifyId: { not: null } },
+        select: { id: true, sku: true, stock: true, stockEk: true }
+      });
+      
+      const mappings = await prisma.productMapping.findMany({
+        where: { zucchettiSku: { in: products.map(p => p.sku) } },
+        select: { zucchettiSku: true, lastSyncedStock: true, shopifyProductId: true }
+      });
+      
+      const mappingDict = new Map<string, any>(mappings.map(m => [m.zucchettiSku, m]));
+      
+      // Filtriamo solo i prodotti con giacenza variata
+      const diffProducts = products.filter(p => {
+        const map = mappingDict.get(p.sku);
+        if (!map) return false;
+        const totalStock = p.stock + p.stockEk;
+        return totalStock !== map.lastSyncedStock;
+      });
+
+      result.total = diffProducts.length;
+
+      if (diffProducts.length === 0) {
+        log.info('✅ Nessuna variazione di stock da sincronizzare verso Shopify.', { module: 'worker-shopify-push' });
+        return result;
+      }
+
+      log.info(`📦 Trovate ${diffProducts.length} variazioni di stock. Fetching InventoryItem IDs...`, { module: 'worker-shopify-push' });
+
+      // Build SKU to InventoryItemID map. We need Shopify's inventory_item_id.
+      const existingShopifyData = await this.fetchShopifyProducts(); // In production, we'd only fetch what's needed or rely on ProductMapping storing inventoryItemId.
+      const skuToShopifyData = this.buildSkuMap(existingShopifyData);
+
+      const maxBatchSize = 100;
+      
+      for (let i = 0; i < diffProducts.length; i += maxBatchSize) {
+        const batch = diffProducts.slice(i, i + maxBatchSize);
+        const mutationInputs: string[] = [];
+        const batchUpdates: any[] = [];
+        
+        for (const p of batch) {
+           const sData = skuToShopifyData.get(p.sku);
+           if (!sData || !sData.inventoryItemId) {
+              result.skipped++;
+              continue;
+           }
+
+           const invId = `gid://shopify/InventoryItem/${sData.inventoryItemId}`;
+           const prLoc = `gid://shopify/Location/${SHOPIFY_LOCATION_PR}`;
+           const ekLoc = `gid://shopify/Location/${SHOPIFY_LOCATION_EK}`;
+
+           mutationInputs.push(`
+             pr_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${prLoc}", quantity: ${p.stock} }] }) {
+               userErrors { field message }
+             }
+             ek_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${ekLoc}", quantity: ${p.stockEk} }] }) {
+               userErrors { field message }
+             }
+           `);
+           batchUpdates.push({ sku: p.sku, totalStock: p.stock + p.stockEk });
+        }
+
+        if (mutationInputs.length > 0) {
+           const query = `mutation { ${mutationInputs.join('\n')} }`;
+           try {
+             const gqlRes = await shopifyGraphQL<any>(query);
+             // Verifica userErrors
+             let batchHasErrors = false;
+             for (const key of Object.keys(gqlRes)) {
+               if (gqlRes[key]?.userErrors?.length > 0) {
+                 batchHasErrors = true;
+                 log.error(`Errore GraphQL stock per ${key}: ${gqlRes[key].userErrors[0].message}`);
+               }
+             }
+
+             if (!batchHasErrors) {
+                // Aggiorniamo i mapping per segnare il successo
+                const upserts = batchUpdates.map(u => prisma.productMapping.update({
+                  where: { zucchettiSku: u.sku },
+                  data: { lastSyncedStock: u.totalStock }
+                }));
+                await prisma.$transaction(upserts);
+                result.updated += batchUpdates.length;
+             } else {
+                result.errors += batchUpdates.length;
+             }
+           } catch(e: any) {
+             log.error(`Errore batch GraphQL stock: ${e.message}`);
+             result.errors += batchUpdates.length;
+           }
+        }
+      }
+
+      log.info(`✅ Differential Stock Sync completata: ${result.updated} aggiornati, ${result.skipped} saltati, ${result.errors} errori`, { module: 'worker-shopify-push' });
+      return result;
+
+    } catch (error: any) {
+      log.error(`❌ Errore fatale differential stock sync: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async syncDifferentialPrices(): Promise<SyncResult> {
+    const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
+    try {
+      log.info('💰 Inizio DIFFERENTIAL PRICE sync Database -> Shopify (GraphQL)', { module: 'worker-shopify-push' });
+      
+      const products = await prisma.product.findMany({
+        where: { publishedOnWeb: true, shopifyId: { not: null } },
+        select: { id: true, sku: true, price: true }
+      });
+      
+      const mappings = await prisma.productMapping.findMany({
+        where: { zucchettiSku: { in: products.map(p => p.sku) } },
+        select: { zucchettiSku: true, lastSyncedPrice: true, shopifyProductId: true }
+      });
+      
+      const mappingDict = new Map<string, any>(mappings.map(m => [m.zucchettiSku, m]));
+      
+      const diffProducts = products.filter(p => {
+        const map = mappingDict.get(p.sku);
+        if (!map) return false;
+        return p.price !== map.lastSyncedPrice;
+      });
+
+      result.total = diffProducts.length;
+
+      if (diffProducts.length === 0) {
+        log.info('✅ Nessuna variazione di prezzo da sincronizzare verso Shopify.', { module: 'worker-shopify-push' });
+        return result;
+      }
+
+      log.info(`💰 Trovate ${diffProducts.length} variazioni di prezzo. Fetching Variant IDs...`, { module: 'worker-shopify-push' });
+
+      const existingShopifyData = await this.fetchShopifyProducts();
+      // We need variant IDs for productVariantUpdate. Let's adjust buildSkuMap or just find it.
+      // fetchShopifyProducts returns an array of products, each with a variants array.
+      const skuToVariantId = new Map<string, number>();
+      for (const prod of existingShopifyData) {
+         for (const v of prod.variants) {
+            if (v.sku) skuToVariantId.set(v.sku, v.id);
+         }
+      }
+
+      const maxBatchSize = 100;
+      
+      for (let i = 0; i < diffProducts.length; i += maxBatchSize) {
+        const batch = diffProducts.slice(i, i + maxBatchSize);
+        const mutationInputs: string[] = [];
+        const batchUpdates: any[] = [];
+        
+        for (const p of batch) {
+           const variantId = skuToVariantId.get(p.sku);
+           if (!variantId) {
+              result.skipped++;
+              continue;
+           }
+
+           const vGid = `gid://shopify/ProductVariant/${variantId}`;
+           const priceStr = p.price.toFixed(2);
+
+           mutationInputs.push(`
+             prc_${p.sku.replace(/\W/g, '_')}: productVariantUpdate(input: { id: "${vGid}", price: "${priceStr}" }) {
+               userErrors { field message }
+             }
+           `);
+           batchUpdates.push({ sku: p.sku, price: p.price });
+        }
+
+        if (mutationInputs.length > 0) {
+           const query = `mutation { ${mutationInputs.join('\n')} }`;
+           try {
+             const gqlRes = await shopifyGraphQL<any>(query);
+             let batchHasErrors = false;
+             for (const key of Object.keys(gqlRes)) {
+               if (gqlRes[key]?.userErrors?.length > 0) {
+                 batchHasErrors = true;
+                 log.error(`Errore GraphQL price per ${key}: ${gqlRes[key].userErrors[0].message}`);
+               }
+             }
+
+             if (!batchHasErrors) {
+                const upserts = batchUpdates.map(u => prisma.productMapping.update({
+                  where: { zucchettiSku: u.sku },
+                  data: { lastSyncedPrice: u.price }
+                }));
+                await prisma.$transaction(upserts);
+                result.updated += batchUpdates.length;
+             } else {
+                result.errors += batchUpdates.length;
+             }
+           } catch(e: any) {
+             log.error(`Errore batch GraphQL price: ${e.message}`);
+             result.errors += batchUpdates.length;
+           }
+        }
+      }
+
+      log.info(`✅ Differential Price Sync completata: ${result.updated} aggiornati, ${result.skipped} saltati, ${result.errors} errori`, { module: 'worker-shopify-push' });
+      return result;
+
+    } catch (error: any) {
+      log.error(`❌ Errore fatale differential price sync: ${error.message}`);
       throw error;
     }
   }

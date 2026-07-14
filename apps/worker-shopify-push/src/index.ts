@@ -23,6 +23,12 @@ const worker = new Worker(
       case 'SYNC_STOCK_ONLY':
         await productSyncService.syncStockOnly();
         break;
+      case 'SYNC_DIFFERENTIAL_STOCK':
+        await productSyncService.syncDifferentialStock();
+        break;
+      case 'SYNC_DIFFERENTIAL_PRICES':
+        await productSyncService.syncDifferentialPrices();
+        break;
 
       default:
         log.warn(`Job name non supportato: ${job.name}`, { module: 'worker-shopify-push' });
