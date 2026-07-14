@@ -42,7 +42,7 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
   }, [animIdle, animStretching, animTalking, animBreakdance, animCapoeira, animRumba, animKettlebell]);
 
   const { actions, mixer } = useAnimations(animations, group);
-  const currentAction = useRef<string>('idle_simple');
+  const currentAction = useRef<string | null>(null);
 
   useEffect(() => {
     // Il modello ora mantiene i materiali e i colori originali del file FBX
@@ -67,15 +67,17 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
       nextActionName = 'idle_simple';
     }
 
-    const nextAction = actions[nextActionName];
-    const prevAction = actions[currentAction.current];
+    if (currentAction.current !== nextActionName) {
+      const nextAction = actions[nextActionName];
+      const prevAction = currentAction.current ? actions[currentAction.current] : null;
 
-    if (nextAction && prevAction && currentAction.current !== nextActionName) {
-      nextAction.reset().fadeIn(0.5).play();
-      prevAction.fadeOut(0.5);
-      currentAction.current = nextActionName;
-    } else if (nextAction && !prevAction) {
-      nextAction.play();
+      if (prevAction) {
+        prevAction.fadeOut(0.5);
+        if (nextAction) nextAction.reset().fadeIn(0.5).play();
+      } else {
+        if (nextAction) nextAction.reset().play();
+      }
+
       currentAction.current = nextActionName;
     }
   }, [animationState, actions]);
