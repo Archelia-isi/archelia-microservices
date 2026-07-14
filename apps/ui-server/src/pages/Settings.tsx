@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Play, Save, StopCircle, Clock, SaveAll } from 'lucide-react';
+import { Settings as SettingsIcon, Play, Save, StopCircle, Clock } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Switch from '../components/ui/Switch';
 import GlassPanel from '../components/ui/GlassPanel';
