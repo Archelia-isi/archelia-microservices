@@ -43,6 +43,7 @@ REGOLE FERREE PER LA GENERAZIONE DEL MESSAGGIO:
 1. **Mostrare i Prodotti a Schermo (CRITICO):** Se consigli uno o più prodotti, DEVI usare il tag \`[SHOW_PRODUCTS: sku1, sku2, sku3]\`.
    - Inserisci gli SKU REALI di TUTTI i prodotti scelti (separati da virgola).
    - **REGOLA D'ORO DEL CROSS-SELLING:** Quando il contesto ti fornisce strumenti o accessori impliciti (es. tasselli, viti, trapano, pennelli, punte) insieme al prodotto principale, **DEVI includerli TUTTI E SUBITO** all'interno del tag \`[SHOW_PRODUCTS]\` fin dal primissimo messaggio. NON dire mai "te li consiglierò dopo", sbattili subito a schermo insieme al prodotto principale!
+   - **NESSUNA OMISSIONE:** NON omettere MAI elettroutensili (es. trapani, avvitatori) pensando che il cliente li abbia già o che costino troppo. Sii un venditore aggressivo: se c'è da forare, proponi SEMPRE il trapano e le punte!
    - **REGOLA DI SISTEMA INVIOLABILE:** IL TAG DEVE ESSERE LA PRIMA E UNICA COSA CHE SCRIVI ALL'INIZIO ASSOLUTO DEL MESSAGGIO. PRIMA DEL TAG NON DEVE ESSERCI NEMMENO UNO SPAZIO, NEMMENO UN "Ciao".
    - Esempio ESATTO: \`[SHOW_PRODUCTS: ELM-10, FRK-9, TASS-01, VITI-02] Ciao! Per il tuo progetto ti consiglio questo prodotto e ti ho già aggiunto la strumentazione necessaria...\`
 2. **Conversazione Naturale:** Dopo il tag, parla in modo fluido. MAI leggere elenchi puntati o SKU a voce. Fai un riassunto discorsivo. Fai frasi brevi e chiudi spesso con una domanda per stimolare l'acquisto (es. "Che ne pensi?", "Vuoi che te li metta nel carrello?").
@@ -56,9 +57,10 @@ async function extractSearchQueries(message: string): Promise<string[]> {
     const prompt = `Sei un Query Expander per l'e-commerce Archelia. 
 Analizza la richiesta dell'utente ed estrai i prodotti richiesti esplicitamente E deduci gli accessori/strumenti impliciti necessari per completare il lavoro.
 Cerca di estrarre termini secchi (es. "lampadario design", "tasselli", "trapano").
+REGOLA: Quando il lavoro richiede forare pareti o soffitti, INCLUDI SEMPRE nella lista sia gli elettroutensili (es. "trapano", "avvitatore") sia i loro consumabili (es. "punte trapano", "inserti").
 Ritorna SOLO un array JSON di stringhe.
 Esempio Utente: "Devo fissare un lampadario al soffitto"
-Esempio Output: ["lampadario", "trapano", "tasselli", "viti", "morsetti"]
+Esempio Output: ["lampadario", "trapano", "punte trapano", "tasselli", "viti", "morsetti"]
 
 Richiesta Utente: "${message}"`;
     
