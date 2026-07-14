@@ -15,6 +15,7 @@ import Settings from '../../pages/Settings';
 import { EmailBuilderApp } from '../../pages/EmailBuilderApp';
 import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
+import AiChatbotApp from '../ai/AiChatbotApp';
 import './DesktopOS.css';
 
 export default function DesktopOS() {
@@ -138,6 +139,16 @@ export default function DesktopOS() {
     }
     if (!windows['email_builder']) {
       registerApp({ id: 'email_builder', title: 'Email AI Builder', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 300, y: 150, width: 1100, height: 750, desktopX: 230, desktopY: 30 });
+    }
+    if (!windows['ai_chatbot']) {
+      registerApp({ id: 'ai_chatbot', title: 'Archelia AI', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AiChatbotApp />, x: window.innerWidth - 450, y: window.innerHeight - 700, width: 400, height: 600, desktopX: 230, desktopY: 130 });
+      // Pin by default by toggling it right after registration
+      setTimeout(() => {
+        const winStore = useWindowStore.getState();
+        if (winStore.windows['ai_chatbot'] && !winStore.windows['ai_chatbot'].isPinned) {
+          winStore.togglePinApp('ai_chatbot');
+        }
+      }, 100);
     }
   }, []);
 

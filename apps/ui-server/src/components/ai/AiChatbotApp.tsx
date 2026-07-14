@@ -1,0 +1,172 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { HologramAvatar } from './HologramAvatar';
+import { Send, Bot, User, AlertCircle } from 'lucide-react';
+import './AiChatbotApp.css';
+
+interface Message {
+  role: 'user' | 'model';
+  text: string;
+}
+
+export default function AiChatbotApp() {
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'model', text: 'Ciao! Sono l\'ologramma IA di Archelia. Come posso aiutarti oggi?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      // Usiamo l'endpoint del nostro microservizio. 
+      // Idealmente andrebbe letta l'URL da una env var, per ora usiamo il dominio Railway o localhost
+      const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || 'https://ai-chatbot-service-production-XXXX.up.railway.app';
+      
+      const response = await fetch(`${backendUrl}/api/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          history: messages.map(m => ({
+            role: m.role,
+            parts: [{ text: m.text }]
+          }))
+        })
+      });
+
+      if (!response.body) throw new Error("Nessuno stream ricevuto");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      
+      setMessages(prev => [...prev, { role: 'model', text: '' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.replace('data: ', '');
+            if (dataStr === '[DONE]') {
+              setIsLoading(false);
+              break;
+            }
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.text) {
+                setMessages(prev => {
+                  const newMsgs = [...prev];
+                  newMsgs[newMsgs.length - 1].text += data.text;
+                  return newMsgs;
+                });
+              } else if (data.error) {
+                setMessages(prev => {
+                  const newMsgs = [...prev];
+                  newMsgs[newMsgs.length - 1].text = `[Errore]: ${data.error}`;
+                  return newMsgs;
+                });
+              }
+            } catch (err) {
+              console.error("Errore parse SSE JSON:", err);
+            }
+          }
+        }
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Errore chiamata bot:", error);
+      setMessages(prev => [...prev, { role: 'model', text: 'Scusa, i miei circuiti sono offline al momento. Riprova più tardi.' }]);
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="ai-chatbot-container">
+      {/* SEZIONE 3D: L'ologramma in alto */}
+      <div className="ai-hologram-viewport">
+        <Canvas camera={{ position: [0, 0.5, 4], fov: 45 }}>
+          <ambientLight intensity={0.5} />
+          <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
+          <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
+          <Environment preset="city" />
+          
+          <HologramAvatar />
+          
+          <OrbitControls 
+            enableZoom={false} 
+            enablePan={false}
+            minPolarAngle={Math.PI / 2.5}
+            maxPolarAngle={Math.PI / 2.1}
+          />
+          
+          {/* Post Processing per l'effetto Neon/Bloom */}
+          <EffectComposer>
+            <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} intensity={1.5} />
+          </EffectComposer>
+        </Canvas>
+        <div className="hologram-base-glow"></div>
+      </div>
+
+      {/* SEZIONE CHAT: I messaggi in basso */}
+      <div className="ai-chat-interface">
+        <div className="ai-chat-messages">
+          {messages.map((msg, i) => (
+            <div key={i} className={`chat-message ${msg.role}`}>
+              <div className="chat-avatar">
+                {msg.role === 'model' ? <Bot size={18} /> : <User size={18} />}
+              </div>
+              <div className="chat-bubble">
+                {msg.text}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="chat-message model loading">
+              <div className="chat-avatar"><Bot size={18} /></div>
+              <div className="chat-bubble typing-indicator">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <form onSubmit={handleSubmit} className="ai-chat-input-area">
+          <input 
+            type="text" 
+            placeholder="Chiedi informazioni su prodotti, giacenze o promozioni..." 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isLoading}
+          />
+          <button type="submit" disabled={isLoading || !input.trim()}>
+            <Send size={18} />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

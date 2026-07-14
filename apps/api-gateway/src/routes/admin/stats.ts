@@ -139,4 +139,43 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       timestamp: new Date()
     });
   });
+
+  // Report PDF
+  fastify.get('/api/admin/stats/report-pdf', {
+    preHandler: [requireAdmin],
+    schema: {
+      response: {
+        200: z.object({
+          success: z.boolean(),
+          pdfBase64: z.string().optional(),
+          filename: z.string().optional(),
+          message: z.string().optional()
+        })
+      }
+    }
+  }, async (request, reply) => {
+    const { QueueEvents, Queue } = await import('bullmq');
+    const { env } = await import('@archelia/core');
+    
+    const analyticsQueue = new Queue('analytics-queue', { connection: { url: env.REDIS_URL || 'redis://localhost:6379' } as any });
+    const queueEvents = new QueueEvents('analytics-queue', { connection: { url: env.REDIS_URL || 'redis://localhost:6379' } as any });
+
+    try {
+      const job = await analyticsQueue.add('GENERATE_REPORT_PDF', {});
+      const result = await job.waitUntilFinished(queueEvents, 10000); // Aspettiamo max 10 secondi
+      
+      return reply.status(200).send({
+        success: true,
+        pdfBase64: result.pdfBase64,
+        filename: result.filename
+      });
+    } catch (e: any) {
+      return reply.status(500).send({
+        success: false,
+        message: 'Timeout o errore durante la generazione del report PDF.'
+      });
+    } finally {
+      await queueEvents.close();
+    }
+  });
 }
