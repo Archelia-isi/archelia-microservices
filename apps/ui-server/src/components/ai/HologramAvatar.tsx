@@ -11,23 +11,24 @@ export function HologramAvatar(props: any) {
   const { actions } = useAnimations(fbx.animations, group);
 
   useEffect(() => {
-    // Shader Wireframe elegante (Stile Scansione Olografica Sci-Fi)
-    // Questo evita l'effetto "blob luminoso" e rende la donna molto più tecnologica.
+    // Manteniamo i materiali originali (pelle, vestiti) ma li rendiamo
+    // leggermente trasparenti e luminosi per l'effetto ologramma
     fbx.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         
-        const holoMaterial = new THREE.MeshBasicMaterial({
-          color: new THREE.Color(0x00d2ff),
-          transparent: true,
-          opacity: 0.25,
-          wireframe: true,
-          side: THREE.DoubleSide,
-          blending: THREE.AdditiveBlending,
-          depthWrite: false
+        // Se il materiale è un array (multi-material), iteriamo
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        
+        materials.forEach(mat => {
+          if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhongMaterial) {
+            mat.transparent = true;
+            mat.opacity = 0.85; // Abbastanza solido da vedere i dettagli
+            mat.emissive = new THREE.Color(0x0055ff);
+            mat.emissiveIntensity = 0.3; // Leggero bagliore azzurro
+            mat.depthWrite = true;
+          }
         });
-
-        mesh.material = holoMaterial;
       }
     });
   }, [fbx]);
