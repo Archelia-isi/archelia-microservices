@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useGLTF, useAnimations, Text } from '@react-three/drei';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
 export function HologramAvatar(props: any) {
@@ -65,31 +65,7 @@ export function HologramAvatar(props: any) {
         <meshBasicMaterial color={0x00d2ff} transparent opacity={0.6} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
       </mesh>
 
-      {/* Pannelli Dati Fluttuanti (Come nella reference) */}
-      <group position={[-1.2, 0.5, 0]}>
-        <Text fontSize={0.1} color="#00d2ff" anchorX="left" position={[0, 0, 0]}>
-          PROJECT AURA - STAGE 4
-        </Text>
-        <Text fontSize={0.05} color="#88ccff" anchorX="left" position={[0, -0.15, 0]}>
-          SYSTEM STATUS: STABLE
-        </Text>
-        <Text fontSize={0.03} color="#00d2ff" anchorX="left" position={[0, -0.3, 0]} maxWidth={1}>
-          Neural link active. 
-          Quantum processing at 99.8%. 
-          Waiting for command...
-        </Text>
-      </group>
-      
-      <group position={[1.5, 0.8, -0.5]}>
-        <Text fontSize={0.08} color="#00d2ff" anchorX="right" position={[0, 0, 0]}>
-          DIAGNOSTICS
-        </Text>
-        <Text fontSize={0.04} color="#88ccff" anchorX="right" position={[0, -0.15, 0]}>
-          CORE: OPTIMAL
-          TEMP: 24C
-          MEM: ALLOCATED
-        </Text>
-      </group>
+      {/* Testi rimossi come richiesto */}
     </group>
   );
 }

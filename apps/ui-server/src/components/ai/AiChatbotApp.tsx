@@ -121,7 +121,7 @@ export default function AiChatbotApp() {
       {/* SEZIONE 3D: L'ologramma in alto */}
       <div className="ai-hologram-viewport">
         <ErrorBoundary>
-          <Canvas camera={{ position: [0, 0.5, 4], fov: 45 }}>
+          <Canvas camera={{ position: [0, -0.5, 5.5], fov: 50 }}>
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
             <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
