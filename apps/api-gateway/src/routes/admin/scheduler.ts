@@ -8,11 +8,21 @@ import { Queue } from 'bullmq';
 
 const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 const shopifyQueue = new Queue('shopify-commands', { connection: redis as any });
+const marketingQueue = new Queue('marketing-queue', { connection: redis as any });
+const promoQueue = new Queue('promo-commands', { connection: redis as any });
+const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
 
 const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string }> = {
   'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti' },
+  'sync-images': { queue: shopifyQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini' },
+  'sync-banners': { queue: promoQueue, command: 'SYNC_BANNERS', label: '🖼️ Sync Banners' },
+  'pulizia-promozioni': { queue: promoQueue, command: 'PULIZIA_PROMOZIONI', label: '🧹 Pulizia Promozioni' },
+  'sync-giacenze': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze' },
+  'sync-prezzi': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi' },
   'sync-shopify': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)' },
   'sync-stock-shopify': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify' },
+  'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB' },
+  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense' },
 };
 
 function toCronExpression(value: number, unit: string): string {

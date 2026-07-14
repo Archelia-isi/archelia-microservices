@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Play, Power } from 'lucide-react';
+import { Settings as SettingsIcon, Play, Save, StopCircle, Clock, SaveAll } from 'lucide-react';
 import Button from '../components/ui/Button';
+import Switch from '../components/ui/Switch';
+import GlassPanel from '../components/ui/GlassPanel';
+import StickyHeader from '../components/ui/StickyHeader';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 interface SchedulerJob {
   id: string;
@@ -16,6 +20,10 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 export default function Settings() {
   const [jobs, setJobs] = useState<SchedulerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
+
+  // Manteniamo lo stato locale degli input prima del salvataggio
+  const [localValues, setLocalValues] = useState<Record<string, { val: number, unit: string }>>({});
 
   const getAuthHeaders = () => ({
     'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
@@ -27,14 +35,16 @@ export default function Settings() {
       const res = await fetch(`${API_URL}/api/v1/admin/scheduler`, {
         headers: getAuthHeaders()
       });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setJobs(data);
+        const newLocalVals: any = {};
+        data.forEach(j => {
+          newLocalVals[j.id] = { val: j.intervalValue, unit: j.intervalUnit };
+        });
+        setLocalValues(newLocalVals);
       } else {
-        console.error("API returned non-array data:", data);
         setJobs([]);
       }
     } catch (e) {
@@ -42,6 +52,7 @@ export default function Settings() {
       setJobs([]);
     } finally {
       setLoading(false);
+      setTimeout(() => setIsAppReady(true), 300);
     }
   };
 
@@ -62,12 +73,14 @@ export default function Settings() {
     }
   };
 
-  const handleUpdateInterval = async (id: string, value: number, unit: string) => {
+  const handleSaveInterval = async (id: string) => {
+    const vals = localValues[id];
+    if (!vals) return;
     try {
       await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ id, intervalValue: value, intervalUnit: unit })
+        body: JSON.stringify({ id, intervalValue: vals.val, intervalUnit: vals.unit })
       });
       fetchJobs();
     } catch (e) {
@@ -82,80 +95,145 @@ export default function Settings() {
         headers: getAuthHeaders(),
         body: JSON.stringify({ id })
       });
-      alert(`Job ${id} avviato in background.`);
     } catch (e) {
       console.error(e);
     }
   };
 
   return (
-    <div className="glass-panel animate-fade-in" style={{ padding: '2rem' }}>
-      <div className="flex-between" style={{ marginBottom: '2rem' }}>
-        <h2 className="text-h1">Centro Sincronizzazione</h2>
-        <SettingsIcon size={24} color="var(--color-text-muted)" />
-      </div>
+    <>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Centro Sincronizzazione" 
+        icon={<SettingsIcon size={56} />} 
+      />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div className="glass-panel" style={{ padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.03)' }}>
-          <h3 className="text-h2" style={{ marginBottom: '1rem' }}>Sync Control Center</h3>
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`}>
+        <div className="eq-main-container">
           
-          {loading ? (
-            <p>Caricamento...</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {jobs.map(job => (
-                <div key={job.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: job.enabled ? 'var(--color-success)' : 'var(--color-text-muted)' }} />
-                      {job.label}
-                    </h4>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                      Esegue automaticamente ogni {job.intervalValue} {job.intervalUnit}
-                    </p>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <input 
-                      type="number" 
-                      value={job.intervalValue} 
-                      onChange={(e) => handleUpdateInterval(job.id, parseInt(e.target.value) || 1, job.intervalUnit)}
-                      style={{ width: '60px', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)' }}
-                    />
-                    <select 
-                      value={job.intervalUnit} 
-                      onChange={(e) => handleUpdateInterval(job.id, job.intervalValue, e.target.value)}
-                      style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
-                    >
-                      <option value="minutes">Minuti</option>
-                      <option value="hours">Ore</option>
-                      <option value="days">Giorni</option>
-                    </select>
-
-                    <Button 
-                      variant={job.enabled ? "secondary" : "primary"} 
-                      onClick={() => handleToggle(job.id, job.enabled)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: '110px', justifyContent: 'center' }}
-                    >
-                      <Power size={16} />
-                      {job.enabled ? 'Disattiva' : 'Attiva'}
-                    </Button>
-                    
-                    <Button 
-                      variant="primary" 
-                      onClick={() => handleRunNow(job.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <Play size={16} />
-                      Run Now
-                    </Button>
-                  </div>
+          <StickyHeader paddingY="md">
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="eq-header-modern-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Clock size={24} style={{ color: '#1d1d1f' }} />
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>Scheduler Automatico</h2>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#86868b' }}>Flusso: Zucchetti → Middleware DB → Shopify. Configura intervalli e abilita i job.</p>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+              <div className="eq-header-modern-right">
+                <Button variant="danger" icon={<StopCircle size={16} />}>
+                  Kill All
+                </Button>
+              </div>
+            </GlassPanel>
+          </StickyHeader>
+
+          <div className="eq-content" style={{ padding: '0 2rem 2rem 2rem' }}>
+            <GlassPanel padding="none" radius="lg">
+              {loading ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#86868b' }}>Caricamento...</div>
+              ) : jobs.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#86868b' }}>Nessun job trovato.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {jobs.map((job, idx) => (
+                    <div 
+                      key={job.id} 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        padding: '1.25rem 1.5rem', 
+                        borderBottom: idx < jobs.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none'
+                      }}
+                    >
+                      {/* Left: Title */}
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 600, color: '#1d1d1f' }}>
+                          {job.label}
+                        </span>
+                      </div>
+                      
+                      {/* Right: Controls */}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <input 
+                          type="number" 
+                          value={localValues[job.id]?.val || job.intervalValue} 
+                          onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], val: parseInt(e.target.value) || 1 }}))}
+                          style={{ 
+                            width: '60px', 
+                            padding: '0.4rem', 
+                            borderRadius: '8px', 
+                            border: '1px solid rgba(0,0,0,0.1)', 
+                            background: '#f5f5f7', 
+                            color: '#1d1d1f',
+                            textAlign: 'center',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <select 
+                          value={localValues[job.id]?.unit || job.intervalUnit} 
+                          onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], unit: e.target.value }}))}
+                          style={{ 
+                            padding: '0.4rem', 
+                            borderRadius: '8px', 
+                            border: '1px solid rgba(0,0,0,0.1)', 
+                            background: '#f5f5f7', 
+                            color: '#1d1d1f',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <option value="minutes">Minuti</option>
+                          <option value="hours">Ore</option>
+                          <option value="days">Giorni</option>
+                        </select>
+
+                        <div style={{ 
+                          padding: '0.4rem 0.8rem', 
+                          borderRadius: '8px', 
+                          background: '#f5f5f7', 
+                          color: '#86868b',
+                          fontSize: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          -- : -- <Clock size={12} />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
+                          <button 
+                            onClick={() => handleSaveInterval(job.id)}
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e8e8ed', color: '#4f4f5c', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}
+                            title="Salva Intervallo"
+                          >
+                            <Save size={16} />
+                          </button>
+                          
+                          <button 
+                            onClick={() => handleRunNow(job.id)}
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e8e8ed', color: '#4f4f5c', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.2s' }}
+                            title="Esegui Subito"
+                          >
+                            <Play size={16} />
+                          </button>
+                        </div>
+
+                        <div style={{ marginLeft: '12px' }}>
+                          <Switch 
+                            checked={job.enabled} 
+                            onChange={(val) => handleToggle(job.id, !val)} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassPanel>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
