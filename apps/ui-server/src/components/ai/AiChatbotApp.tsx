@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+
 import { HologramAvatar } from './HologramAvatar';
 import { Send, Bot, User } from 'lucide-react';
 import './AiChatbotApp.css';
@@ -137,11 +137,6 @@ export default function AiChatbotApp() {
               minPolarAngle={Math.PI / 2.5}
               maxPolarAngle={Math.PI / 2.1}
             />
-            
-            {/* Post Processing per l'effetto Neon/Bloom */}
-            <EffectComposer>
-              <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} intensity={1.5} />
-            </EffectComposer>
           </Canvas>
         </ErrorBoundary>
         <div className="hologram-base-glow"></div>

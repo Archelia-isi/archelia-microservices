@@ -14,20 +14,17 @@ export function HologramAvatar(props: any) {
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
-    // Shader Avanzato Fotorealistico Sci-Fi (Bordi Luminosi e Trasparenza)
+    // Shader Wireframe elegante (Stile Scansione Olografica Sci-Fi)
+    // Questo evita l'effetto "blob luminoso" e rende il manichino molto più tecnologico.
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         
-        const holoMaterial = new THREE.MeshPhysicalMaterial({
-          color: new THREE.Color(0x88ccff),
-          emissive: new THREE.Color(0x00d2ff),
-          emissiveIntensity: 0.8,
+        const holoMaterial = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(0x00d2ff),
           transparent: true,
-          opacity: 0.8,
-          transmission: 0.5,
-          roughness: 0.1,
-          metalness: 0.8,
+          opacity: 0.25,
+          wireframe: true,
           side: THREE.DoubleSide,
           blending: THREE.AdditiveBlending,
           depthWrite: false
