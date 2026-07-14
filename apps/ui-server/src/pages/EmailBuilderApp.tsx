@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import AppSplashScreen from '../components/os/AppSplashScreen';
-import GlassPanel from '../components/ui/GlassPanel';
 import Loader from '../components/ui/Loader';
 import './EmailBuilderApp.css';
 
@@ -11,7 +10,7 @@ export function EmailBuilderApp() {
   const [loading, setLoading] = useState(false);
   const [mjml, setMjml] = useState('');
   const [html, setHtml] = useState('');
-  const [isAppReady, setIsAppReady] = useState(true);
+  const isAppReady = true;
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;

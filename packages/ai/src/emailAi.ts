@@ -49,15 +49,15 @@ Ricorda: rispondi SOLO ed ESCLUSIVAMENTE con il codice MJML.`;
     mjmlCode = mjmlCode.trim();
 
     // Compila MJML in HTML per l'anteprima e per l'invio
-    const htmlOutput = mjml2html(mjmlCode, { validationLevel: 'soft' });
+    const htmlOutput: any = await mjml2html(mjmlCode, { validationLevel: 'soft' });
     
-    if (htmlOutput.errors.length > 0) {
+    if (htmlOutput.errors && htmlOutput.errors.length > 0) {
       logger.warn(`L'IA ha generato MJML con piccoli errori di validazione:`, htmlOutput.errors);
     }
 
     return { 
       mjml: mjmlCode, 
-      html: htmlOutput.html 
+      html: htmlOutput.html || ''
     };
 
   } catch (err: any) {

@@ -65,6 +65,8 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
       request.log.error(`[Admin] Errore recupero CartSyncQueue: ${error.message}`);
       return reply.status(500).send({ success: false, error: 'Errore interno del server' });
     }
+  });
+
   // Endpoint per la configurazione Marketing (Settings)
   fastify.get('/api/v1/admin/marketing/config', async (request, reply) => {
     try {
@@ -88,8 +90,8 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
       const updates = request.body;
       const config = await prisma.marketingSettings.upsert({
         where: { id: 'marketing_config' },
-        update: updates,
-        create: { id: 'marketing_config', ...updates }
+        update: updates as any,
+        create: { id: 'marketing_config', ...(updates as any) }
       });
       return { success: true, data: config };
     } catch (error: any) {
