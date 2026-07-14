@@ -104,7 +104,7 @@ export default function AiChatbotApp() {
   };
 
   return (
-    <div className="ai-chatbot-container">
+    <div className="ai-chatbot-panel">
       {/* SEZIONE 3D: L'ologramma in alto */}
       <div className="ai-hologram-viewport">
         <Canvas camera={{ position: [0, 0.5, 4], fov: 45 }}>
@@ -113,7 +113,9 @@ export default function AiChatbotApp() {
           <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
           <Environment preset="city" />
           
-          <HologramAvatar />
+          <React.Suspense fallback={null}>
+            <HologramAvatar />
+          </React.Suspense>
           
           <OrbitControls 
             enableZoom={false} 
@@ -157,7 +159,7 @@ export default function AiChatbotApp() {
         <form onSubmit={handleSubmit} className="ai-chat-input-area">
           <input 
             type="text" 
-            placeholder="Chiedi informazioni su prodotti, giacenze o promozioni..." 
+            placeholder="Chiedi informazioni..." 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}

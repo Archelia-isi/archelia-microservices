@@ -35,6 +35,8 @@ interface WindowState {
   updateDesktopPosition: (id: string, x: number, y: number) => void;
   updateSize: (id: string, width: number | string, height: number | string) => void;
   setWallpaper: (url: string) => void;
+  isChatbotOpen: boolean;
+  toggleChatbot: () => void;
 }
 
 let highestZIndex = 100;
@@ -42,6 +44,8 @@ let highestZIndex = 100;
 export const useWindowStore = create<WindowState>((set) => ({
   windows: {},
   activeWindowId: null,
+  isChatbotOpen: false,
+  toggleChatbot: () => set((state) => ({ isChatbotOpen: !state.isChatbotOpen })),
   wallpaper: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2940&auto=format&fit=crop', // Apple style abstract default
   
   registerApp: (app) => set((state) => ({

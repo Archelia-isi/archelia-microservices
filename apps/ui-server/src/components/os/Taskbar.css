@@ -185,3 +185,31 @@
   color: var(--color-text-muted);
   line-height: 1;
 }
+
+/* Chatbot Button */
+.taskbar-chatbot-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  margin-right: 16px;
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border-glass);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.taskbar-chatbot-btn:hover {
+  background: rgba(0, 210, 255, 0.1);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 210, 255, 0.2);
+  border-color: rgba(0, 210, 255, 0.4);
+}
+
+.taskbar-chatbot-btn.active {
+  background: rgba(0, 210, 255, 0.15);
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+  border-color: #00d2ff;
+}
