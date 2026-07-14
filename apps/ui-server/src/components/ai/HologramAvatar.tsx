@@ -24,8 +24,8 @@ export function HologramAvatar(props: any) {
           if (mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhongMaterial) {
             mat.transparent = false;
             mat.opacity = 1.0; 
-            mat.emissive = new THREE.Color(0x0055ff);
-            mat.emissiveIntensity = 0.15; // Bagliore azzurro leggerissimo, ma corpo solido
+            mat.emissive = new THREE.Color(0x00aaff); // Azzurro più chiaro e brillante
+            mat.emissiveIntensity = 0.35; // Più luminoso
             mat.depthWrite = true;
           }
         });
@@ -45,7 +45,7 @@ export function HologramAvatar(props: any) {
   return (
     <group ref={group} {...props} dispose={null}>
       {/* I modelli FBX di Mixamo sono solitamente molto grandi, usiamo uno scale ridotto */}
-      <primitive object={fbx} scale={0.021} position={[0, -2.4, 0]} />
+      <primitive object={fbx} scale={0.026} position={[0, -2.4, 0]} />
       
       {/* Piedistallo Sci-Fi */}
       <mesh position={[0, -2.45, 0]}>

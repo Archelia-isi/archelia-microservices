@@ -59,10 +59,13 @@ export default function AiChatbotApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage,
-          history: messages.map(m => ({
-            role: m.role,
-            parts: [{ text: m.text }]
-          }))
+          history: messages
+            // Gemini richiede che la history inizi con un messaggio "user" o sia vuota se c'è solo un saluto del bot
+            .filter((m, index) => !(index === 0 && m.role === 'model'))
+            .map(m => ({
+              role: m.role,
+              parts: [{ text: m.text }]
+            }))
         })
       });
 
