@@ -1,22 +1,19 @@
 import { useRef, useEffect } from 'react';
-import { useGLTF, useAnimations } from '@react-three/drei';
+import { useFBX, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
 export function HologramAvatar(props: any) {
   const group = useRef<THREE.Group>(null);
   
-  // Il server di Ready Player Me purtroppo sta bloccando le richieste o è down,
-  // quindi il browser va in crash (schermo bianco/Scansione Ologramma).
-  // Ripristiniamo temporaneamente il manichino Xbot che è ospitato su un server GitHub
-  // ultra-stabile. Con i nuovi shader fotorealistici, sembrerà comunque un ologramma sci-fi pazzesco!
-  const avatarUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb';
-  const { scene, animations } = useGLTF(avatarUrl);
-  const { actions } = useAnimations(animations, group);
+  // Carichiamo il modello realistico FBX dalla cartella public
+  const avatarUrl = '/character.fbx';
+  const fbx = useFBX(avatarUrl);
+  const { actions } = useAnimations(fbx.animations, group);
 
   useEffect(() => {
     // Shader Wireframe elegante (Stile Scansione Olografica Sci-Fi)
-    // Questo evita l'effetto "blob luminoso" e rende il manichino molto più tecnologico.
-    scene.traverse((child) => {
+    // Questo evita l'effetto "blob luminoso" e rende la donna molto più tecnologica.
+    fbx.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         
@@ -33,7 +30,7 @@ export function HologramAvatar(props: any) {
         mesh.material = holoMaterial;
       }
     });
-  }, [scene]);
+  }, [fbx]);
 
   useEffect(() => {
     if (actions && Object.keys(actions).length > 0) {
@@ -46,7 +43,8 @@ export function HologramAvatar(props: any) {
 
   return (
     <group ref={group} {...props} dispose={null}>
-      <primitive object={scene} scale={1.9} position={[0, -2.4, 0]} />
+      {/* I modelli FBX di Mixamo sono solitamente molto grandi, usiamo uno scale ridotto */}
+      <primitive object={fbx} scale={0.015} position={[0, -2.4, 0]} />
       
       {/* Piedistallo Sci-Fi */}
       <mesh position={[0, -2.45, 0]}>
@@ -64,10 +62,6 @@ export function HologramAvatar(props: any) {
         <ringGeometry args={[0.5, 1.4, 32]} />
         <meshBasicMaterial color={0x00d2ff} transparent opacity={0.6} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
       </mesh>
-
-      {/* Testi rimossi come richiesto */}
     </group>
   );
 }
-
-useGLTF.preload('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb');
