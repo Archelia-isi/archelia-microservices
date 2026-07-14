@@ -5,6 +5,66 @@ import './FlowBuilder.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
+type Step = { id: string, delay: number, template: string };
+
+function SequenceEditor({ 
+  sequence, 
+  onChange, 
+  delayLabel 
+}: { 
+  sequence: Step[], 
+  onChange: (s: Step[]) => void, 
+  delayLabel: string 
+}) {
+  const addStep = () => {
+    onChange([...sequence, { id: Math.random().toString(36).substring(7), delay: 1, template: '' }]);
+  };
+
+  const updateStep = (index: number, field: keyof Step, value: any) => {
+    const newSeq = [...sequence];
+    newSeq[index] = { ...newSeq[index], [field]: value };
+    onChange(newSeq);
+  };
+
+  const removeStep = (index: number) => {
+    const newSeq = [...sequence];
+    newSeq.splice(index, 1);
+    onChange(newSeq);
+  };
+
+  return (
+    <div className="sequence-editor">
+      {sequence.map((step, idx) => (
+        <div key={step.id} className="sequence-step">
+          <div className="input-group" style={{ flex: '0 0 100px' }}>
+            <label>{delayLabel}</label>
+            <input 
+              type="number" 
+              value={step.delay} 
+              onChange={e => updateStep(idx, 'delay', parseInt(e.target.value) || 0)} 
+            />
+          </div>
+          <div className="input-group" style={{ flex: 1 }}>
+            <label>Template Email</label>
+            <input 
+              type="text" 
+              value={step.template} 
+              onChange={e => updateStep(idx, 'template', e.target.value)} 
+              placeholder="Prompt o nome del template..."
+            />
+          </div>
+          <button className="btn btn-icon delete-btn" onClick={() => removeStep(idx)}>
+            ❌
+          </button>
+        </div>
+      ))}
+      <button className="btn btn-secondary add-step-btn" onClick={addStep}>
+        + Aggiungi Step
+      </button>
+    </div>
+  );
+}
+
 export default function FlowBuilder() {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +129,11 @@ export default function FlowBuilder() {
         </div>
         {config.cartEnabled && (
           <div className="flow-body">
-            <p className="flow-info">Le email partiranno in automatico dopo 24 ore dall'abbandono.</p>
+            <SequenceEditor 
+              sequence={Array.isArray(config.cartSequence) ? config.cartSequence : []} 
+              onChange={seq => updateConfig('cartSequence', seq)} 
+              delayLabel="Ritardo (Ore)"
+            />
           </div>
         )}
       </GlassPanel>
@@ -85,6 +149,15 @@ export default function FlowBuilder() {
             <span className="slider"></span>
           </label>
         </div>
+        {config.winbackEnabled && (
+          <div className="flow-body">
+            <SequenceEditor 
+              sequence={Array.isArray(config.winbackSequence) ? config.winbackSequence : []} 
+              onChange={seq => updateConfig('winbackSequence', seq)} 
+              delayLabel="Ritardo (Giorni)"
+            />
+          </div>
+        )}
       </GlassPanel>
 
       <GlassPanel className="flow-card">
@@ -100,7 +173,7 @@ export default function FlowBuilder() {
         </div>
         {config.browseEnabled && (
           <div className="flow-body">
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: '16px', maxWidth: '300px' }}>
               <label>Giorni di Cooldown:</label>
               <input 
                 type="number" 
@@ -108,6 +181,11 @@ export default function FlowBuilder() {
                 onChange={e => updateConfig('browseCooldownDays', parseInt(e.target.value) || 10)} 
               />
             </div>
+            <SequenceEditor 
+              sequence={Array.isArray(config.browseSequence) ? config.browseSequence : []} 
+              onChange={seq => updateConfig('browseSequence', seq)} 
+              delayLabel="Ritardo (Ore)"
+            />
           </div>
         )}
       </GlassPanel>
@@ -132,6 +210,10 @@ export default function FlowBuilder() {
             <div className="input-group">
               <label>Ritardo Ciclico (Giorni):</label>
               <input type="number" value={config.loopIntervalDays} onChange={e => updateConfig('loopIntervalDays', parseInt(e.target.value) || 20)} />
+            </div>
+            <div className="input-group">
+              <label>Template Email:</label>
+              <input type="text" value={config.loopTemplateId || ''} onChange={e => updateConfig('loopTemplateId', e.target.value)} placeholder="Template ID" />
             </div>
           </div>
         )}
