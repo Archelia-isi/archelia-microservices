@@ -20,9 +20,18 @@ export async function adminSearchRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    // TODO: In V2 queries the Typesense Client (via Worker or local Client)
-    log.info('Richiesto stato Typesense', { module: 'api-gateway:search' });
-    return reply.status(200).send({ ok: true, collection: null, stats: null });
+    try {
+      const { getTypesenseStatus } = await import('@archelia/typesense');
+      const status = await getTypesenseStatus();
+      return reply.status(200).send({ 
+        ok: status.status === 'online', 
+        collection: { name: 'products', num_documents: status.documentCount }, 
+        stats: status 
+      });
+    } catch(e: any) {
+      log.error(`Errore recupero stato Typesense: ${e.message}`, { module: 'api-gateway:search' });
+      return reply.status(200).send({ ok: false, collection: null, stats: null });
+    }
   });
 
   // Trigger Sincronizzazione Typesense
@@ -33,7 +42,10 @@ export async function adminSearchRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     log.info('🔄 [Admin] Richiesto trigger Typesense Sync', { module: 'api-gateway:search' });
-    // TODO: In V2 enqueues a job for the Equalizzatore Worker
+    const { Queue } = await import('bullmq');
+    const { redis } = await import('@archelia/core');
+    const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
+    await typesenseQueue.add('SYNC_TYPESENSE', { source: 'admin-ui' });
     return reply.status(200).send({ success: true, message: 'Sync Typesense accodato.' });
   });
 

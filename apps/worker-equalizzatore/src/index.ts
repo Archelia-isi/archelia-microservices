@@ -1,14 +1,15 @@
 import { Worker, Job } from 'bullmq';
-import { logger, env, createRedisConnection } from '@archelia/core';
+import { logger, createRedisConnection } from '@archelia/core';
 import { PipelineEngine } from './services/PipelineEngine.js';
+import { runBulkSync } from '@archelia/typesense';
 
 logger.info('🚀 Avvio worker-equalizzatore in corso...');
 
 // Mappa dei comandi supportati dall'Equalizzatore
-const worker = new Worker(
+const equalizzatoreWorker = new Worker(
   'equalizzatore-commands',
   async (job: Job) => {
-    logger.info(`Ricevuto job [${job.name}] (ID: ${job.id})`);
+    logger.info(`Ricevuto job [${job.name}] (ID: ${job.id}) sulla coda equalizzatore-commands`);
     try {
       switch (job.name) {
         case 'RUN_BATCH':
@@ -42,16 +43,53 @@ const worker = new Worker(
   }
 );
 
-worker.on('completed', (job: Job) => {
-  logger.info(`✅ Job ${job.id} [${job.name}] completato con successo`);
+equalizzatoreWorker.on('completed', (job: Job) => {
+  logger.info(`✅ Job ${job.id} [${job.name}] completato con successo (equalizzatore-commands)`);
 });
 
-worker.on('failed', (job: Job | undefined, err: Error) => {
-  logger.error(`❌ Job ${job?.id} [${job?.name}] fallito con errore: ${err.message}`);
+equalizzatoreWorker.on('failed', (job: Job | undefined, err: Error) => {
+  logger.error(`❌ Job ${job?.id} [${job?.name}] fallito con errore: ${err.message} (equalizzatore-commands)`);
+});
+
+// Worker per la sincronizzazione del catalogo su Typesense
+const typesenseWorker = new Worker(
+  'typesense-commands',
+  async (job: Job) => {
+    logger.info(`Ricevuto job [${job.name}] (ID: ${job.id}) sulla coda typesense-commands`);
+    try {
+      switch (job.name) {
+        case 'SYNC_TYPESENSE':
+          logger.info('Avvio Bulk Sync su Typesense...');
+          await runBulkSync();
+          logger.info('Bulk Sync Typesense completato.');
+          break;
+        default:
+          logger.warn(`Job name sconosciuto per Typesense: ${job.name}`);
+      }
+    } catch (error: any) {
+      logger.error(`Fallimento esecuzione job Typesense [${job.name}]: ${error.message}`);
+      throw error;
+    }
+  },
+  {
+    connection: createRedisConnection() as any,
+    concurrency: 1,
+  }
+);
+
+typesenseWorker.on('completed', (job: Job) => {
+  logger.info(`✅ Job ${job.id} [${job.name}] completato con successo (typesense-commands)`);
+});
+
+typesenseWorker.on('failed', (job: Job | undefined, err: Error) => {
+  logger.error(`❌ Job ${job?.id} [${job?.name}] fallito con errore: ${err.message} (typesense-commands)`);
 });
 
 process.on('SIGINT', async () => {
-  logger.info('Chiusura worker in corso...');
-  await worker.close();
+  logger.info('Chiusura workers in corso...');
+  await Promise.all([
+    equalizzatoreWorker.close(),
+    typesenseWorker.close()
+  ]);
   process.exit(0);
 });
