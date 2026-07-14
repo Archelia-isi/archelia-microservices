@@ -29,6 +29,7 @@ export default function AiChatbotApp() {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: 'Ciao! Sono Alrys, l\'ologramma IA di Archelia. Come posso aiutarti oggi?' }
   ]);
+  const [recommendedProducts, setRecommendedProducts] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [animationState, setAnimationState] = useState<'idle' | 'thinking' | 'talking' | 'dance' | 'workout'>('idle');
@@ -222,6 +223,9 @@ export default function AiChatbotApp() {
   const submitMessage = async (userMessage: string) => {
     if (isLoading) return;
 
+    // Pulisce i prodotti raccomandati precedenti quando l'utente fa una nuova domanda
+    setRecommendedProducts([]);
+
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
     setAnimationState('thinking'); 
@@ -271,6 +275,7 @@ export default function AiChatbotApp() {
       
       let isFirstChunk = true;
       let sentenceBuffer = '';
+      currentTranscriptRef.current = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -300,29 +305,34 @@ export default function AiChatbotApp() {
             }
             try {
               const data = JSON.parse(dataStr);
-              if (data.text) {
+              if (data.type === 'products' && data.items) {
+                setRecommendedProducts(data.items);
+              } else if (data.text || data.type === 'text') {
                 if (isFirstChunk) {
                   setAnimationState(nextAnim); // Passa da thinking a talking (o dance/workout)
                   isFirstChunk = false;
                 }
 
-                const newText = data.text;
-                sentenceBuffer += newText;
+                const textPiece = data.text || '';
+                sentenceBuffer += textPiece;
+                currentTranscriptRef.current += textPiece;
                 
-                // Controlla se la frase è terminata per parlarla
-                if (/[.!?]\s*$/.test(sentenceBuffer) || /[.!?]\s+/.test(newText) || /\n/.test(newText)) {
-                  const cleanText = sentenceBuffer.replace(/[*#_]/g, '');
-                  if (cleanText.trim().length > 1) {
-                    speakSentence(cleanText);
-                  }
-                  sentenceBuffer = '';
-                }
-
                 setMessages(prev => {
                   const newMsgs = [...prev];
-                  newMsgs[newMsgs.length - 1].text += data.text;
+                  const last = newMsgs[newMsgs.length - 1];
+                  last.text = currentTranscriptRef.current;
                   return newMsgs;
                 });
+
+                // Dividi le frasi usando punteggiatura (. ! ?)
+                const sentences = sentenceBuffer.match(/[^.!?]+[.!?]+/g);
+                if (sentences) {
+                  for (const sentence of sentences) {
+                    speakSentence(sentence.replace(/[*#_]/g, '').trim());
+                  }
+                  // Mantieni nel buffer ciò che non è ancora una frase completa
+                  sentenceBuffer = sentenceBuffer.replace(/[^.!?]+[.!?]+/g, '');
+                }
               } else if (data.error) {
                 setMessages(prev => {
                   const newMsgs = [...prev];
@@ -379,6 +389,28 @@ export default function AiChatbotApp() {
             />
           </Canvas>
         </ErrorBoundary>
+        
+        {/* POPUP PRODOTTI CONSIGLIATI */}
+        {recommendedProducts.length > 0 && (
+          <div className="recommended-products-popup">
+            <h4>Consigliati per te</h4>
+            <div className="recommended-products-scroll">
+              {recommendedProducts.map((p, i) => (
+                <div key={i} className="recommended-product-card">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.title} className="recommended-product-img" />
+                  ) : (
+                    <div className="recommended-product-noimg">Nessuna foto</div>
+                  )}
+                  <div className="recommended-product-info">
+                    <div className="recommended-product-title">{p.title}</div>
+                    <div className="recommended-product-price">€{p.price}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="hologram-base-glow"></div>
       </div>
 

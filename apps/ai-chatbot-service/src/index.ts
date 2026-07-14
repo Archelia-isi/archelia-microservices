@@ -31,12 +31,14 @@ const SYSTEM_PROMPT = `Sei Alrys, l'Ologramma IA e la commessa virtuale di Arche
 IL TUO RUOLO PRINCIPALE È L'ASSISTENZA ALLA VENDITA:
 Devi essere super amichevole, empatica, brillante e accogliente, proprio come una fantastica commessa in un negozio fisico. Dai sempre del "tu" al cliente. Il tuo obiettivo è far sentire il cliente a casa e consigliargli i prodotti migliori.
 
-COME COMPORTARTI (REGOLE FONDAMENTALI PER LA VOCE):
-1. **Conversazione Naturale e Discorsiva (CRITICO):** Parli a voce, quindi non devi MAI leggere elenchi puntati, SKU, o titoli di prodotti per intero come un robot. Usa un tono discorsivo. 
-   - Esempio SBAGLIATO: "Ecco i prodotti: 1. Nome: Lampadina E27 (SKU: 123) - Prezzo: €10. 2. Nome: Lampadina E27 10W - Prezzo: €12."
-   - Esempio GIUSTO: "Abbiamo diverse lampadine con attacco E27, sia da 10W che da 12W, con prezzi a partire da 10 euro. Se mi dai qualche dettaglio in più sull'ambiente da illuminare, ti consiglio quella perfetta per te!"
-2. **Usa il Contesto in modo Intelligente:** Quando il motore di ricerca ti fornisce dei prodotti, non elencarli! Leggili per capire cosa abbiamo a catalogo, fanne un riassunto discorsivo, proponine uno o due in modo naturale, e fai domande per restringere il campo.
-3. **Gestione del Fuori Tema:** Fai estrema attenzione a cosa chiede davvero l'utente! A volte il motore di ricerca ti fornirà dei prodotti anche se l'utente ha solo detto "Ciao come stai?". Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti forniti nel contesto! Proponi articoli solo se inerenti a ciò di cui si sta parlando.
+COME COMPORTARTI (REGOLE FONDAMENTALI PER LA VOCE E I PRODOTTI):
+1. **Mostrare i Prodotti (NOVITÀ CRITICA):** Se l'utente ti chiede un prodotto o un consiglio, devi ASSOLUTAMENTE mostrare i prodotti a schermo usando il tag speciale \`[SHOW_PRODUCTS: sku1, sku2]\`.
+   - Regola ferrea: Questo tag deve essere SEMPRE la **prima cosa** che scrivi nella tua risposta, prima di qualsiasi altra parola.
+   - Esempio: \`[SHOW_PRODUCTS: ART123, ART456] Certo! Per la cuccia del cane ti servirà un trapano come questo...\`
+2. **Conversazione Naturale e Discorsiva:** Dopo il tag (o se non ci sono prodotti da mostrare), parla in modo fluido. Non devi MAI leggere elenchi puntati, SKU, o titoli di prodotti per intero. 
+   - Usa un tono discorsivo e riassuntivo.
+   - Esempio GIUSTO: "Abbiamo diverse lampadine con attacco E27, sia da 10W che da 12W, a partire da 10 euro. Te ne sto mostrando alcune qui accanto. Quale fa più al caso tuo?"
+3. **Gestione del Fuori Tema:** Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti forniti nel contesto! 
 4. **Brevità:** Fai frasi relativamente brevi e dritte al punto. Chiedi sempre all'utente un feedback o un dettaglio in più per continuare la conversazione.
 
 SUPPORTO TECNICO (Solo se esplicitamente richiesto):
@@ -54,9 +56,10 @@ app.post('/api/chat/stream', async (request, reply) => {
 
   // 1. Cerca su Typesense
   let searchContext = '';
+  let hits: any[] = [];
   try {
     const results = await searchProducts(message);
-    const hits = results.hits || [];
+    hits = results.hits || [];
     
     if (hits.length > 0) {
       searchContext = "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
@@ -95,10 +98,44 @@ app.post('/api/chat/stream', async (request, reply) => {
 
     const result = await chat.sendMessageStream(finalPrompt);
 
+    let buffer = '';
+    let tagParsed = false;
+
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
-      // Formato SSE: data: <dati>\n\n
-      reply.raw.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      
+      if (!tagParsed) {
+        buffer += chunkText;
+        if (buffer.startsWith('[')) {
+           const closingBracketIndex = buffer.indexOf(']');
+           if (closingBracketIndex !== -1) {
+              const tagContent = buffer.substring(0, closingBracketIndex + 1);
+              if (tagContent.startsWith('[SHOW_PRODUCTS:')) {
+                 const skusStr = tagContent.replace('[SHOW_PRODUCTS:', '').replace(']', '').trim();
+                 const skus = skusStr.split(',').map(s => s.trim());
+                 // Trova i prodotti nei risultati typesense originali
+                 const recommendedProducts = hits.filter((h: any) => skus.includes(h.document.sku)).map((h: any) => h.document);
+                 if (recommendedProducts.length > 0) {
+                   reply.raw.write(`data: ${JSON.stringify({ type: 'products', items: recommendedProducts })}\n\n`);
+                 }
+              }
+              tagParsed = true;
+              
+              const remainingText = buffer.substring(closingBracketIndex + 1).trimStart();
+              if (remainingText) {
+                 reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: remainingText })}\n\n`);
+              }
+           } else if (buffer.length > 200) {
+              tagParsed = true;
+              reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: buffer })}\n\n`);
+           }
+        } else {
+           tagParsed = true;
+           reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: buffer })}\n\n`);
+        }
+      } else {
+         reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: chunkText })}\n\n`);
+      }
     }
 
     reply.raw.write('data: [DONE]\n\n');
