@@ -122,7 +122,7 @@ export default function DesktopOS() {
       registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('/icons/products.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
     }
     if (!windows['settings']) {
-      registerApp({ id: 'settings', title: 'Impostazioni', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
+      registerApp({ id: 'settings', title: 'Centro Sincronizzazione', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
     }
     if (!windows['equalizzatore']) {
       registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });

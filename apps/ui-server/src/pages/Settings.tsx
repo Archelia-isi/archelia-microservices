@@ -11,13 +11,15 @@ interface SchedulerJob {
   status: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
 export default function Settings() {
   const [jobs, setJobs] = useState<SchedulerJob[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch('/api/v1/admin/scheduler');
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler`);
       const data = await res.json();
       setJobs(data);
     } catch (e) {
@@ -33,7 +35,7 @@ export default function Settings() {
 
   const handleToggle = async (id: string, currentEnabled: boolean) => {
     try {
-      await fetch('/api/v1/admin/scheduler/toggle', {
+      await fetch(`${API_URL}/api/v1/admin/scheduler/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, enabled: !currentEnabled })
@@ -46,7 +48,7 @@ export default function Settings() {
 
   const handleUpdateInterval = async (id: string, value: number, unit: string) => {
     try {
-      await fetch('/api/v1/admin/scheduler/update-interval', {
+      await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, intervalValue: value, intervalUnit: unit })
@@ -59,7 +61,7 @@ export default function Settings() {
 
   const handleRunNow = async (id: string) => {
     try {
-      await fetch('/api/v1/admin/scheduler/run-now', {
+      await fetch(`${API_URL}/api/v1/admin/scheduler/run-now`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
@@ -73,7 +75,7 @@ export default function Settings() {
   return (
     <div className="glass-panel animate-fade-in" style={{ padding: '2rem' }}>
       <div className="flex-between" style={{ marginBottom: '2rem' }}>
-        <h2 className="text-h1">Impostazioni e Sincronizzazione</h2>
+        <h2 className="text-h1">Centro Sincronizzazione</h2>
         <SettingsIcon size={24} color="var(--color-text-muted)" />
       </div>
 
