@@ -50,9 +50,9 @@ export default function AiChatbotApp() {
     setIsLoading(true);
 
     try {
-      // Usiamo l'endpoint del nostro microservizio. 
-      // Idealmente andrebbe letta l'URL da una env var, per ora usiamo il dominio Railway o localhost
-      const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || 'https://ai-chatbot-service-production-XXXX.up.railway.app';
+      // Usiamo l'endpoint del nostro microservizio proxyato tramite Vite in sviluppo,
+      // o l'URL assoluto in produzione se configurato.
+      const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || '';
       
       const response = await fetch(`${backendUrl}/api/chat/stream`, {
         method: 'POST',
