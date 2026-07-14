@@ -28,6 +28,8 @@ export const typesenseClient = new Client({
 
 export const PRODUCTS_COLLECTION_NAME = 'products';
 
+export const GUIDES_COLLECTION_NAME = 'guides';
+
 /**
  * Initializes the Typesense collection schema for products if it doesn't exist.
  * If forceRecreate is true, it will drop the collection first.
@@ -86,6 +88,36 @@ export async function initializeTypesenseSchema(forceRecreate: boolean = false) 
     }
   } catch (error) {
     console.error('Error initializing Typesense schema:', error);
+  }
+}
+
+export async function initializeGuidesSchema(forceRecreate: boolean = false) {
+  try {
+    const collections = await typesenseClient.collections().retrieve();
+    const exists = collections.some((c: any) => c.name === GUIDES_COLLECTION_NAME);
+
+    if (exists && forceRecreate) {
+      console.log('Dropping existing Typesense Guides Collection...');
+      await typesenseClient.collections(GUIDES_COLLECTION_NAME).delete();
+    }
+
+    if (!exists || forceRecreate) {
+      console.log('Creating Typesense Guides Collection...');
+      await typesenseClient.collections().create({
+        name: GUIDES_COLLECTION_NAME,
+        fields: [
+          { name: 'id', type: 'string' },
+          { name: 'title', type: 'string' },
+          { name: 'content', type: 'string' },
+          { name: 'category', type: 'string', facet: true }
+        ]
+      });
+      console.log('Typesense Guides Collection created successfully.');
+    } else {
+      console.log('Typesense Guides Collection already exists.');
+    }
+  } catch (error) {
+    console.error('Error initializing Typesense guides schema:', error);
   }
 }
 
@@ -385,5 +417,20 @@ export async function searchProducts(q: string) {
   } catch (error) {
     console.error('Typesense search error:', error);
     throw error;
+  }
+}
+
+export async function searchGuides(q: string) {
+  try {
+    const searchResults = await typesenseClient.collections(GUIDES_COLLECTION_NAME).documents().search({
+      q: q,
+      query_by: 'title,content,category',
+      query_by_weights: '100,50,20',
+      per_page: 3
+    });
+    return searchResults;
+  } catch (error) {
+    console.error('Typesense guides search error:', error);
+    throw error; // Or return empty results depending on error handling strategy
   }
 }

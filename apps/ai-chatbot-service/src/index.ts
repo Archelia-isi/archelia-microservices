@@ -1,7 +1,7 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { log, env } from '@archelia/core';
-import { searchProducts } from '@archelia/typesense';
+import { searchProducts, searchGuides } from '@archelia/typesense';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import textToSpeech from '@google-cloud/text-to-speech';
 
@@ -60,22 +60,35 @@ app.post('/api/chat/stream', async (request, reply) => {
     return reply.status(400).send({ error: 'Message is required' });
   }
 
-  // 1. Cerca su Typesense
+  // 1. Cerca su Typesense (Multi-Search: Prodotti e Guide)
   let searchContext = '';
   let hits: any[] = [];
   try {
-    const results = await searchProducts(message);
-    hits = results.hits || [];
+    const [productsResults, guidesResults] = await Promise.all([
+      searchProducts(message),
+      searchGuides(message)
+    ]);
     
+    hits = productsResults.hits || [];
+    const guideHits = guidesResults.hits || [];
+    
+    if (guideHits.length > 0) {
+      searchContext += "MANUALI E GUIDE (Usa queste info per consigliare il cliente):\n";
+      guideHits.forEach((hit: any) => {
+        searchContext += `Titolo: ${hit.document.title}\nContenuto: ${hit.document.content}\n\n`;
+      });
+      searchContext += "---\n\n";
+    }
+
     if (hits.length > 0) {
-      searchContext = "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
+      searchContext += "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
       // Prendiamo i primi 5-10 risultati per non sforare il context window
       hits.slice(0, 10).forEach((hit: any, index: number) => {
         const doc = hit.document;
         searchContext += `${index + 1}. Nome: ${doc.title} (SKU: ${doc.sku})\n- Prezzo: €${doc.price}\n- Giacenza: ${doc.stock > 0 ? doc.stock + ' pezzi disponibili' : 'Esaurito'}\n- Brand: ${doc.brand}\n- Categoria: ${doc.family}\n- Promo: ${doc.is_in_promo ? doc.promo_slogan + ' (-' + doc.promo_discount + '%)' : 'Nessuna promo attiva'}\n\n`;
       });
     } else {
-      searchContext = "NESSUN PRODOTTO TROVATO. Rispondi in modo amichevole, senza dire all'utente che non hai trovato nulla nel catalogo (non rivelare mai i tuoi meccanismi interni di ricerca). Prosegui la conversazione o chiedi dettagli aggiuntivi.";
+      searchContext += "NESSUN PRODOTTO TROVATO. Rispondi in modo amichevole, senza dire all'utente che non hai trovato nulla nel catalogo (non rivelare mai i tuoi meccanismi interni di ricerca). Prosegui la conversazione o chiedi dettagli aggiuntivi.";
     }
   } catch (err: any) {
     log.error(`Errore Typesense RAG: ${err.message}`, { module: 'ai-chatbot' });
@@ -83,7 +96,7 @@ app.post('/api/chat/stream', async (request, reply) => {
   }
 
   // 2. Costruisci il prompt finale
-  const finalPrompt = `DOMANDA UTENTE: ${message}\n\nCONTESTO PRODOTTI (da Typesense):\n${searchContext}`;
+  const finalPrompt = `DOMANDA UTENTE: ${message}\n\nCONTESTO RECUPERATO DA TYPESENSE:\n${searchContext}`;
 
   // 3. Prepara lo stream SSE (Server-Sent Events)
   reply.raw.setHeader('Content-Type', 'text/event-stream');
