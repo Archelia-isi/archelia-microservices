@@ -277,16 +277,22 @@ export default function AiChatbotApp() {
       let sentenceBuffer = '';
       currentTranscriptRef.current = '';
 
+      let sseBuffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n\n');
+        sseBuffer += chunk;
 
-        for (const line of lines) {
+        const parts = sseBuffer.split('\n\n');
+        // L'ultimo elemento potrebbe essere un chunk incompleto
+        sseBuffer = parts.pop() || '';
+
+        for (const line of parts) {
           if (line.startsWith('data: ')) {
-            const dataStr = line.replace('data: ', '');
+            const dataStr = line.substring(6); // remove 'data: '
             if (dataStr === '[DONE]') {
               setIsLoading(false);
               
@@ -295,7 +301,6 @@ export default function AiChatbotApp() {
                 sentenceBuffer = '';
               }
 
-              // Se è un easter egg, continua a ballare/allenarsi per un po', altrimenti torna idle
               if (isEasterEgg) {
                 setTimeout(() => setAnimationState('idle'), 8000);
               } else {
@@ -310,7 +315,7 @@ export default function AiChatbotApp() {
                 setRecommendedProducts(data.items);
               } else if (data.text || data.type === 'text') {
                 if (isFirstChunk) {
-                  setAnimationState(nextAnim); // Passa da thinking a talking (o dance/workout)
+                  setAnimationState(nextAnim); 
                   isFirstChunk = false;
                 }
 
@@ -325,13 +330,11 @@ export default function AiChatbotApp() {
                   return newMsgs;
                 });
 
-                // Dividi le frasi usando punteggiatura (. ! ?)
                 const sentences = sentenceBuffer.match(/[^.!?]+[.!?]+/g);
                 if (sentences) {
                   for (const sentence of sentences) {
                     speakSentence(sentence.replace(/[*#_]/g, '').trim());
                   }
-                  // Mantieni nel buffer ciò che non è ancora una frase completa
                   sentenceBuffer = sentenceBuffer.replace(/[^.!?]+[.!?]+/g, '');
                 }
               } else if (data.error) {
@@ -343,7 +346,7 @@ export default function AiChatbotApp() {
                 setAnimationState('idle');
               }
             } catch (err) {
-              console.error("Errore parse SSE JSON:", err);
+              console.error("Errore parse SSE JSON (Ignorato):", err, dataStr);
             }
           }
         }
