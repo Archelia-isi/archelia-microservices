@@ -17,13 +17,29 @@ export default function Settings() {
   const [jobs, setJobs] = useState<SchedulerJob[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getAuthHeaders = () => ({
+    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+    'Content-Type': 'application/json'
+  });
+
   const fetchJobs = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/scheduler`);
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler`, {
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      setJobs(data);
+      if (Array.isArray(data)) {
+        setJobs(data);
+      } else {
+        console.error("API returned non-array data:", data);
+        setJobs([]);
+      }
     } catch (e) {
       console.error("Failed to fetch scheduler jobs", e);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -37,7 +53,7 @@ export default function Settings() {
     try {
       await fetch(`${API_URL}/api/v1/admin/scheduler/toggle`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, enabled: !currentEnabled })
       });
       fetchJobs();
@@ -50,7 +66,7 @@ export default function Settings() {
     try {
       await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, intervalValue: value, intervalUnit: unit })
       });
       fetchJobs();
@@ -63,7 +79,7 @@ export default function Settings() {
     try {
       await fetch(`${API_URL}/api/v1/admin/scheduler/run-now`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id })
       });
       alert(`Job ${id} avviato in background.`);
