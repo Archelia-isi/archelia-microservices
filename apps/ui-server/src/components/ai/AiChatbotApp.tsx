@@ -129,9 +129,10 @@ export default function AiChatbotApp() {
       <div className="ai-hologram-viewport">
         <ErrorBoundary>
           <Canvas camera={{ position: [0, 0, 7.0], fov: 50 }}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
-            <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
+            <ambientLight intensity={1.5} />
+            <directionalLight position={[0, 5, 10]} intensity={2.0} color="#ffffff" />
+            <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={0.5} />
+            <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={1} />
             <Environment preset="city" />
             
             <React.Suspense fallback={null}>
