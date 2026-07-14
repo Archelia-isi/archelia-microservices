@@ -13,6 +13,18 @@ const pullWorker = new Worker('zucchetti-commands', async job => {
     return result;
   }
   
+  if (command === 'SYNC_INVENTORY') {
+    logger.info(`Ricevuto comando ${command} (Job ID: ${job.id})`);
+    const result = await zucchettiPullService.syncInventory();
+    return result;
+  }
+
+  if (command === 'SYNC_PRICING') {
+    logger.info(`Ricevuto comando ${command} (Job ID: ${job.id})`);
+    const result = await zucchettiPullService.syncPricing();
+    return result;
+  }
+  
   logger.warn(`Comando sconosciuto ricevuto: ${command}`);
   return null;
 }, {

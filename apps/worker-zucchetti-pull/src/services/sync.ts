@@ -1,4 +1,4 @@
-import { logger } from '@archelia/core';
+import { logger, redis } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { zucchettiClient } from '@archelia/zucchetti';
 
@@ -299,6 +299,226 @@ export class ZucchettiPullService {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Errore sconosciuto';
       logger.error(`❌ Errore fatale import prodotti: ${message}`);
+      throw error;
+    }
+  }
+
+  async syncInventory(): Promise<{ updated: number; skipped: number; errors: number; total: number }> {
+    const result = { updated: 0, skipped: 0, errors: 0, total: 0 };
+    try {
+      logger.info('📦 Avvio SYNC GIACENZE DIFFERENZIALE ZUCCHETTI → DB');
+      
+      let pcpupdtms = '01-01-2000 00:00:00';
+      const lastSyncStr = await redis.get('zucchetti:last_inventory_sync');
+      
+      if (lastSyncStr) {
+        const d = new Date(parseInt(lastSyncStr, 10));
+        d.setHours(d.getHours() - 3); // 3 hours margin
+        
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        
+        pcpupdtms = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss}`;
+      }
+
+      logger.info(`📦 Fetch giacenze modificate dal: ${pcpupdtms}...`);
+      
+      const page = await zucchettiClient.query('zzna_art_sal', {
+        offset: '0', limit: '100000', pcpupdtms
+      }) as { data?: ZucchettiArticle[] } | ZucchettiArticle[];
+
+      let articles: ZucchettiArticle[] = [];
+      if (Array.isArray(page)) articles = page;
+      else if (page && Array.isArray(page.data)) articles = page.data;
+
+      result.total = articles.length;
+
+      if (articles.length === 0) {
+        logger.info('✅ Nessuna variazione di giacenza trovata.');
+        await redis.set('zucchetti:last_inventory_sync', Date.now().toString());
+        return result;
+      }
+
+      const filtered = articles.filter(a => MAGAZZINI_ABILITATI.includes(a.slcodmag));
+      
+      // Load current SKUs to ensure we only update existing ones
+      const skusSet = new Set(filtered.map(a => a.arcodar2));
+      const existingProducts = await prisma.product.findMany({
+        where: { sku: { in: Array.from(skusSet) } },
+        select: { sku: true }
+      });
+      const validSkus = new Set(existingProducts.map(p => p.sku));
+
+      const skuAggregated = new Map<string, any>();
+      for (const a of filtered) {
+        const sku = a.arcodar2;
+        if (!sku || !validSkus.has(sku)) {
+          result.skipped++;
+          continue;
+        }
+
+        const rawStock = parseFloat(a.slqtaper) || 0;
+        const reservedStock = parseFloat(a.slqtrper) || 0;
+        const committedStock = parseFloat(a.slqtiper) || 0;
+        const moltip = parseFloat(a.armoltip) || 1;
+        const hasUm2 = !!(a.arunmis2 && a.arunmis2.trim() !== '');
+
+        let stockNetto = Math.max(0, Math.floor(rawStock - reservedStock - committedStock));
+        if (hasUm2 && moltip > 0 && moltip !== 1) {
+          stockNetto = Math.floor(stockNetto / moltip);
+        }
+
+        const cacheKey = `${sku}_${a.slcodmag}`;
+        skuAggregated.set(cacheKey, { sku, mag: a.slcodmag, rawStock, reservedStock, committedStock, stockNetto });
+      }
+
+      const updates = Array.from(skuAggregated.values());
+      const CONCURRENCY = 10;
+      
+      for (let i = 0; i < updates.length; i += CONCURRENCY) {
+        const batch = updates.slice(i, i + CONCURRENCY);
+        const promises = batch.map(u => {
+          const data = u.mag === 'PR' 
+            ? { stock: u.stockNetto, rawStock: u.rawStock, reservedStock: u.reservedStock, committedStock: u.committedStock }
+            : { stockEk: u.stockNetto, rawStockEk: u.rawStock, reservedStockEk: u.reservedStock, committedStockEk: u.committedStock };
+          
+          return prisma.product.updateMany({ where: { sku: u.sku }, data });
+        });
+
+        const batchResults = await Promise.allSettled(promises);
+        for (const res of batchResults) {
+          if (res.status === 'fulfilled') result.updated++;
+          else result.errors++;
+        }
+      }
+
+      await redis.set('zucchetti:last_inventory_sync', Date.now().toString());
+      logger.info(`✅ Sync giacenze completato: ${result.updated} aggiornati, ${result.skipped} saltati, ${result.errors} errori.`);
+      return result;
+
+    } catch (error) {
+      logger.error(`❌ Errore fatale sync giacenze: ${(error as Error).message}`);
+      throw error;
+    }
+  }
+
+  async syncPricing(): Promise<{ updated: number; skipped: number; errors: number; total: number }> {
+    const result = { updated: 0, skipped: 0, errors: 0, total: 0 };
+    try {
+      logger.info('💰 Avvio SYNC PREZZI DIFFERENZIALE ZUCCHETTI → DB');
+      
+      let pcpupdtms = '01-01-2000 00:00:00';
+      const lastSyncStr = await redis.get('zucchetti:last_pricing_sync');
+      
+      if (lastSyncStr) {
+        const d = new Date(parseInt(lastSyncStr, 10));
+        d.setHours(d.getHours() - 3); 
+        
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        
+        pcpupdtms = `${dd}-${mm}-${yyyy} ${hh}:${min}:${ss}`;
+      }
+
+      logger.info(`💰 Fetch prezzi modificati dal: ${pcpupdtms}...`);
+      
+      const page = await zucchettiClient.query('zzna_art_sal', {
+        offset: '0', limit: '100000', pcpupdtms
+      }) as { data?: ZucchettiArticle[] } | ZucchettiArticle[];
+
+      let articles: ZucchettiArticle[] = [];
+      if (Array.isArray(page)) articles = page;
+      else if (page && Array.isArray(page.data)) articles = page.data;
+
+      result.total = articles.length;
+
+      if (articles.length === 0) {
+        logger.info('✅ Nessuna variazione di prezzo trovata.');
+        await redis.set('zucchetti:last_pricing_sync', Date.now().toString());
+        return result;
+      }
+
+      const filtered = articles.filter(a => LISTINI_ECOMMERCE.includes(a.licodlis));
+      
+      const skusSet = new Set(filtered.map(a => a.arcodar2));
+      const existingProducts = await prisma.product.findMany({
+        where: { sku: { in: Array.from(skusSet) } },
+        select: { id: true, sku: true, price: true }
+      });
+      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price }]));
+
+      const skuAggregated = new Map<string, any>();
+      for (const a of filtered) {
+        const sku = a.arcodar2;
+        if (!sku || !oldPriceMap.has(sku)) {
+          result.skipped++;
+          continue;
+        }
+
+        let newPrice = parseFloat(a.liprezzo) || 0;
+        const moltip = parseFloat(a.armoltip) || 1;
+        if (a.arunmis2 && moltip > 0 && moltip !== 1) {
+          newPrice = parseFloat((newPrice * moltip).toFixed(2));
+        }
+
+        const existing = skuAggregated.get(sku);
+        if (!existing || newPrice > existing.newPrice) {
+          skuAggregated.set(sku, { sku, newPrice, priceList: a.licodlis });
+        }
+      }
+
+      const updates = Array.from(skuAggregated.values());
+      const historyData: any[] = [];
+      const changelogData: any[] = [];
+      const CONCURRENCY = 15;
+      
+      for (let i = 0; i < updates.length; i += CONCURRENCY) {
+        const batch = updates.slice(i, i + CONCURRENCY);
+        const promises = batch.map(u => prisma.product.updateMany({
+           where: { sku: u.sku },
+           data: { price: u.newPrice, priceList: u.priceList }
+        }));
+
+        const batchResults = await Promise.allSettled(promises);
+        for (let j = 0; j < batchResults.length; j++) {
+          if (batchResults[j].status === 'fulfilled') {
+             result.updated++;
+             const old = oldPriceMap.get(batch[j].sku);
+             if (old && old.price !== batch[j].newPrice) {
+                historyData.push({ productId: old.id, oldPrice: old.price, newPrice: batch[j].newPrice });
+                changelogData.push({ productId: old.id, field: 'price', oldValue: String(old.price), newValue: String(batch[j].newPrice), source: 'PRICE_SYNC' });
+             }
+          } else {
+             result.errors++;
+          }
+        }
+      }
+
+      if (historyData.length > 0) {
+        try {
+           await prisma.$transaction([
+             prisma.priceHistory.createMany({ data: historyData, skipDuplicates: true }),
+             prisma.productChange.createMany({ data: changelogData, skipDuplicates: true })
+           ]);
+        } catch(e) {
+           logger.error(`⚠️ Errore salvataggio storico prezzi`);
+        }
+      }
+
+      await redis.set('zucchetti:last_pricing_sync', Date.now().toString());
+      logger.info(`✅ Sync prezzi completato: ${result.updated} aggiornati, ${result.skipped} saltati, ${result.errors} errori.`);
+      return result;
+
+    } catch (error) {
+      logger.error(`❌ Errore fatale sync prezzi: ${(error as Error).message}`);
       throw error;
     }
   }
