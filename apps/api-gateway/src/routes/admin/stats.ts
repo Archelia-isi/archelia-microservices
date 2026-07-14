@@ -150,6 +150,10 @@ export async function adminStatsRoutes(app: FastifyInstance) {
           pdfBase64: z.string().optional(),
           filename: z.string().optional(),
           message: z.string().optional()
+        }),
+        500: z.object({
+          success: z.boolean(),
+          message: z.string().optional()
         })
       }
     }
