@@ -366,6 +366,28 @@ export default function AiChatbotApp() {
 
   return (
     <div className="ai-chatbot-panel">
+      {/* POPUP PRODOTTI CONSIGLIATI SPUNTATO A SINISTRA */}
+      {recommendedProducts.length > 0 && (
+        <div className="recommended-products-popup">
+          <h4>Consigliati per te</h4>
+          <div className="recommended-products-scroll">
+            {recommendedProducts.map((p, i) => (
+              <div key={i} className="recommended-product-card">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.title} className="recommended-product-img" />
+                ) : (
+                  <div className="recommended-product-noimg">Nessuna foto</div>
+                )}
+                <div className="recommended-product-info">
+                  <div className="recommended-product-title">{p.title}</div>
+                  <div className="recommended-product-price">€{p.price}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* SEZIONE 3D: L'ologramma in alto */}
       <div className="ai-hologram-viewport">
         <ErrorBoundary>
@@ -380,37 +402,9 @@ export default function AiChatbotApp() {
               <HologramAvatar animationState={animationState} />
             </React.Suspense>
             
-            <OrbitControls 
-              enableZoom={false} 
-              enablePan={false}
-              minPolarAngle={Math.PI / 2.5}
-              maxPolarAngle={Math.PI / 2.1}
-              target={[0, 0, 0]}
-            />
+            <OrbitControls enableZoom={false} enablePan={false} maxPolarAngle={Math.PI / 1.8} minPolarAngle={Math.PI / 2.2} />
           </Canvas>
         </ErrorBoundary>
-        
-        {/* POPUP PRODOTTI CONSIGLIATI */}
-        {recommendedProducts.length > 0 && (
-          <div className="recommended-products-popup">
-            <h4>Consigliati per te</h4>
-            <div className="recommended-products-scroll">
-              {recommendedProducts.map((p, i) => (
-                <div key={i} className="recommended-product-card">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.title} className="recommended-product-img" />
-                  ) : (
-                    <div className="recommended-product-noimg">Nessuna foto</div>
-                  )}
-                  <div className="recommended-product-info">
-                    <div className="recommended-product-title">{p.title}</div>
-                    <div className="recommended-product-price">€{p.price}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
         <div className="hologram-base-glow"></div>
       </div>
 

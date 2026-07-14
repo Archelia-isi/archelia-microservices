@@ -262,8 +262,8 @@
 ------------------------------------------- */
 .recommended-products-popup {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 60px;
+  left: -320px;
   width: 300px;
   max-height: calc(100% - 150px);
   background: rgba(10, 20, 40, 0.6);
