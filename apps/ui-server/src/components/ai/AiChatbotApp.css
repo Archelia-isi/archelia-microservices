@@ -261,10 +261,9 @@
    POPUP PRODOTTI CONSIGLIATI (SIDEBAR SX)
 ------------------------------------------- */
 .recommended-products-popup {
-  position: absolute;
+  position: fixed;
   top: 60px;
-  right: 550px; /* La larghezza esatta del pannello padre */
-  margin-right: 20px; /* Distanza dal pannello */
+  right: 590px; /* 550px pannello + 20px margine dx + 20px gap */
   width: 320px;
   max-height: calc(100% - 150px);
   background: rgba(10, 20, 40, 0.6);
