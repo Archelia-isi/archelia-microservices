@@ -30,6 +30,7 @@ export default function AiChatbotApp() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [animationState, setAnimationState] = useState<'idle' | 'thinking' | 'talking' | 'dance' | 'workout'>('idle');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -48,10 +49,22 @@ export default function AiChatbotApp() {
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
+    setAnimationState('thinking'); // Inizia a pensare
+
+    // Easter egg check
+    const lowerInput = userMessage.toLowerCase();
+    let isEasterEgg = false;
+    let nextAnim: 'talking' | 'dance' | 'workout' = 'talking';
+    
+    if (lowerInput.includes('balla') || lowerInput.includes('dance') || lowerInput.includes('breakdance') || lowerInput.includes('rumba')) {
+      isEasterEgg = true;
+      nextAnim = 'dance';
+    } else if (lowerInput.includes('allena') || lowerInput.includes('workout') || lowerInput.includes('palestra')) {
+      isEasterEgg = true;
+      nextAnim = 'workout';
+    }
 
     try {
-      // Usiamo l'endpoint del nostro microservizio proxyato tramite Vite in sviluppo,
-      // o l'URL assoluto in produzione se configurato.
       const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || '';
       
       const response = await fetch(`${backendUrl}/api/chat/stream`, {
@@ -60,7 +73,6 @@ export default function AiChatbotApp() {
         body: JSON.stringify({
           message: userMessage,
           history: messages
-            // Gemini richiede che la history inizi con un messaggio "user" o sia vuota se c'è solo un saluto del bot
             .filter((m, index) => !(index === 0 && m.role === 'model'))
             .map(m => ({
               role: m.role,
@@ -79,6 +91,8 @@ export default function AiChatbotApp() {
       const decoder = new TextDecoder('utf-8');
       
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
+      
+      let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -92,11 +106,21 @@ export default function AiChatbotApp() {
             const dataStr = line.replace('data: ', '');
             if (dataStr === '[DONE]') {
               setIsLoading(false);
+              // Se è un easter egg, continua a ballare/allenarsi per un po', altrimenti torna idle
+              if (isEasterEgg) {
+                setTimeout(() => setAnimationState('idle'), 8000);
+              } else {
+                setAnimationState('idle');
+              }
               break;
             }
             try {
               const data = JSON.parse(dataStr);
               if (data.text) {
+                if (isFirstChunk) {
+                  setAnimationState(nextAnim); // Passa da thinking a talking (o dance/workout)
+                  isFirstChunk = false;
+                }
                 setMessages(prev => {
                   const newMsgs = [...prev];
                   newMsgs[newMsgs.length - 1].text += data.text;
@@ -108,6 +132,7 @@ export default function AiChatbotApp() {
                   newMsgs[newMsgs.length - 1].text = `[Errore]: ${data.error}`;
                   return newMsgs;
                 });
+                setAnimationState('idle');
               }
             } catch (err) {
               console.error("Errore parse SSE JSON:", err);
@@ -120,6 +145,7 @@ export default function AiChatbotApp() {
       console.error("Errore chiamata bot:", error);
       setMessages(prev => [...prev, { role: 'model', text: 'Scusa, i miei circuiti sono offline al momento. Riprova più tardi.' }]);
       setIsLoading(false);
+      setAnimationState('idle');
     }
   };
 
@@ -136,7 +162,7 @@ export default function AiChatbotApp() {
             <Environment preset="city" />
             
             <React.Suspense fallback={null}>
-              <HologramAvatar />
+              <HologramAvatar animationState={animationState} />
             </React.Suspense>
             
             <OrbitControls 
