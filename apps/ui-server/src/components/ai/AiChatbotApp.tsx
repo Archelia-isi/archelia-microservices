@@ -306,6 +306,7 @@ export default function AiChatbotApp() {
             try {
               const data = JSON.parse(dataStr);
               if (data.type === 'products' && data.items) {
+                console.log("[AI-CHATBOT-UI] Ricevuti prodotti da mostrare:", data.items);
                 setRecommendedProducts(data.items);
               } else if (data.text || data.type === 'text') {
                 if (isFirstChunk) {

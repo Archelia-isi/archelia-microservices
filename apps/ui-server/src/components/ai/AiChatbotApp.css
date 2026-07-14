@@ -263,7 +263,7 @@
 .recommended-products-popup {
   position: absolute;
   top: 60px;
-  right: calc(100% + 20px); /* Si ancora al lato sinistro del pannello 3D */
+  left: -340px; /* Offset esatto a sinistra (320px width + 20px gap) */
   width: 320px;
   max-height: calc(100% - 150px);
   background: rgba(10, 20, 40, 0.6);
