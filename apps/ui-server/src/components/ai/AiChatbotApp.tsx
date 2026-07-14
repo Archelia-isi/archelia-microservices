@@ -31,12 +31,12 @@ export default function AiChatbotApp() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [animationState, setAnimationState] = useState<'idle' | 'thinking' | 'talking' | 'dance' | 'workout'>('idle');
-  const [isListening, setIsListening] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const isLiveModeRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const isBotSpeakingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentTranscriptRef = useRef('');
@@ -47,10 +47,26 @@ export default function AiChatbotApp() {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'it-IT';
     
-    // Trova voce italiana femminile se possibile (es. Siri su macOS)
+    // Trova voce italiana femminile giovane (Alice, Paola, Bianca, Elsa, o Google italiano)
     const voices = window.speechSynthesis.getVoices();
-    const italianVoice = voices.find(v => v.lang.startsWith('it') && (v.name.includes('Elsa') || v.name.includes('Alice') || v.name.includes('Female')));
+    const italianVoice = voices.find(v => v.lang.startsWith('it') && (v.name.includes('Alice') || v.name.includes('Paola') || v.name.includes('Elsa') || v.name.includes('Bianca') || v.name.includes('Female'))) || voices.find(v => v.lang === 'it-IT');
     if (italianVoice) utterance.voice = italianVoice;
+
+    utterance.onstart = () => {
+      isBotSpeakingRef.current = true;
+      // Spegniamo il mic per evitare l'eco (che si ascolti da sola)
+      if (recognitionRef.current && isLiveModeRef.current) {
+        try { recognitionRef.current.abort(); } catch(e) {}
+      }
+    };
+
+    utterance.onend = () => {
+      isBotSpeakingRef.current = false;
+      // Riaccendiamo il mic dopo che ha finito di parlare
+      if (isLiveModeRef.current && recognitionRef.current) {
+        try { recognitionRef.current.start(); } catch(e) {}
+      }
+    };
 
     window.speechSynthesis.speak(utterance);
   };
@@ -62,7 +78,6 @@ export default function AiChatbotApp() {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
-      setIsListening(false);
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       return;
     }
@@ -83,11 +98,11 @@ export default function AiChatbotApp() {
     recognition.interimResults = true;
     recognitionRef.current = recognition;
     
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => {};
     
     recognition.onresult = (event: any) => {
-      // Barge-in: se l'utente parla, zittisce l'IA
-      window.speechSynthesis.cancel();
+      // Se sta parlando, ignora l'audio (anti-eco)
+      if (isBotSpeakingRef.current) return;
       
       // E se l'IA stava rispondendo dal server, abortisce la stream
       if (abortControllerRef.current) {
@@ -125,11 +140,9 @@ export default function AiChatbotApp() {
     };
 
     recognition.onend = () => {
-      // In continuous mode, it stops on timeout. Restart if still in live mode.
-      if (isLiveModeRef.current) {
-        recognition.start();
-      } else {
-        setIsListening(false);
+      // In continuous mode, it stops on timeout. Restart if still in live mode AND non sta parlando
+      if (isLiveModeRef.current && !isBotSpeakingRef.current) {
+        try { recognition.start(); } catch(e) {}
       }
     };
     
@@ -354,7 +367,7 @@ export default function AiChatbotApp() {
           <div ref={messagesEndRef} />
         </div>
         
-        <form onSubmit={handleSubmit} className={`ai-chat-input-area ${isLiveMode ? 'live-mode-active' : ''}`}>
+        <form onSubmit={handleSubmit} className="ai-chat-input-area">
           <button 
             type="button" 
             className={`live-mode-btn ${isLiveMode ? 'active' : ''}`}
@@ -364,28 +377,17 @@ export default function AiChatbotApp() {
             {isLiveMode ? <PhoneOff size={18} /> : <PhoneCall size={18} />}
           </button>
           
-          {!isLiveMode && (
-            <>
-              <input 
-                type="text" 
-                placeholder="Scrivi o attiva la modalità conversazione..." 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={isLoading}
-              />
-              <button type="submit" disabled={isLoading || !input.trim()}>
-                <Send size={18} />
-              </button>
-            </>
-          )}
-
-          {isLiveMode && (
-            <div className="live-mode-indicator">
-              <div className="pulsing-dot"></div>
-              <span>{isListening ? "Alrys ti sta ascoltando..." : "Modalità Live Attiva"}</span>
-              {input && <div className="live-transcript">"{input}"</div>}
-            </div>
-          )}
+          <input 
+            type="text" 
+            placeholder={isLiveMode ? "Alrys ti sta ascoltando..." : "Scrivi o attiva la cornetta..."}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={isLoading || isLiveMode}
+            style={isLiveMode ? { borderColor: '#ff3366', backgroundColor: 'rgba(255, 51, 102, 0.05)' } : {}}
+          />
+          <button type="submit" disabled={isLoading || !input.trim() || isLiveMode}>
+            <Send size={18} />
+          </button>
         </form>
       </div>
     </div>
