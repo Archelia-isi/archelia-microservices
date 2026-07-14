@@ -25,6 +25,7 @@ interface Message {
 }
 
 export default function AiChatbotApp() {
+  const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || '';
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: 'Ciao! Sono Alrys, l\'ologramma IA di Archelia. Come posso aiutarti oggi?' }
   ]);
@@ -41,37 +42,90 @@ export default function AiChatbotApp() {
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentTranscriptRef = useRef('');
 
-  // --- Funzioni Vocali ---
-  const speakSentence = (text: string) => {
-    if (isMuted) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'it-IT';
-    
-    // Trova voce italiana femminile giovane (Alice, Paola, Bianca, Elsa, o Google italiano)
-    const voices = window.speechSynthesis.getVoices();
-    const italianVoice = voices.find(v => v.lang.startsWith('it') && (v.name.includes('Alice') || v.name.includes('Paola') || v.name.includes('Elsa') || v.name.includes('Bianca') || v.name.includes('Female'))) || voices.find(v => v.lang === 'it-IT');
-    if (italianVoice) utterance.voice = italianVoice;
+  // Code per riproduzione audio Cloud
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingAudioRef = useRef(false);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
-    utterance.onstart = () => {
+  const stopAudio = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
+    audioQueueRef.current = [];
+    isPlayingAudioRef.current = false;
+    isBotSpeakingRef.current = false;
+  };
+
+  // --- Funzioni Vocali ---
+  const speakSentence = async (text: string) => {
+    if (isMuted) return;
+
+    try {
+      const response = await fetch(`${backendUrl}/api/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) throw new Error('Errore TTS Backend');
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      audioQueueRef.current.push(url);
+      
+      playNextAudio();
+    } catch (err) {
+      console.error('TTS Fetch Error:', err);
+    }
+  };
+
+  const playNextAudio = () => {
+    if (isPlayingAudioRef.current || audioQueueRef.current.length === 0) return;
+    
+    isPlayingAudioRef.current = true;
+    const url = audioQueueRef.current.shift()!;
+    const audio = new Audio(url);
+    currentAudioRef.current = audio;
+
+    audio.onplay = () => {
       isBotSpeakingRef.current = true;
-      // Spegniamo il mic per evitare l'eco (che si ascolti da sola)
       if (recognitionRef.current && isLiveModeRef.current) {
         try { recognitionRef.current.abort(); } catch(e) {}
       }
     };
 
-    utterance.onend = () => {
+    audio.onended = () => {
       isBotSpeakingRef.current = false;
-      // Riaccendiamo il mic dopo che ha finito di parlare
-      if (isLiveModeRef.current && recognitionRef.current) {
+      isPlayingAudioRef.current = false;
+      
+      // Riaccendiamo il mic solo se non ci sono altri audio in coda
+      if (isLiveModeRef.current && recognitionRef.current && audioQueueRef.current.length === 0) {
         try { recognitionRef.current.start(); } catch(e) {}
       }
+      playNextAudio();
     };
 
-    window.speechSynthesis.speak(utterance);
+    audio.play().catch(e => {
+       console.error("Audio play error", e);
+       isPlayingAudioRef.current = false;
+       playNextAudio();
+    });
+  };
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (newMuted) {
+      stopAudio();
+    }
   };
 
   const toggleLiveMode = () => {
+    if (!isMuted) {
+      stopAudio(); // Fermo audio precedente
+    }
     if (isLiveMode) {
       setIsLiveMode(false);
       isLiveModeRef.current = false;
@@ -189,8 +243,6 @@ export default function AiChatbotApp() {
     }
 
     try {
-      const backendUrl = import.meta.env.VITE_AI_CHATBOT_URL || '';
-      
       const response = await fetch(`${backendUrl}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -338,7 +390,7 @@ export default function AiChatbotApp() {
           <button 
             type="button" 
             style={{ background: 'transparent', border: 'none', color: isMuted ? '#666' : '#00d2ff', cursor: 'pointer' }}
-            onClick={() => setIsMuted(!isMuted)} 
+            onClick={toggleMute} 
             title="Attiva/Disattiva Voce IA"
           >
             {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}

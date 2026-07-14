@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { log, env } from '@archelia/core';
 import { searchProducts } from '@archelia/typesense';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import textToSpeech from '@google-cloud/text-to-speech';
 
 const app = fastify({ logger: false });
 
@@ -13,19 +14,33 @@ app.register(cors, {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
+// Inizializza TTS
+let ttsClient: any = null;
+if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64) {
+  try {
+    const jsonStr = Buffer.from(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64, 'base64').toString('utf8');
+    const credentials = JSON.parse(jsonStr);
+    ttsClient = new textToSpeech.TextToSpeechClient({ credentials, projectId: credentials.project_id });
+  } catch (err) {
+    log.error(`Errore caricamento credenziali Google Cloud TTS`, { module: 'ai-chatbot' });
+  }
+}
+
 const SYSTEM_PROMPT = `Sei Alrys, l'Ologramma IA e la commessa virtuale di Archelia, un e-commerce B2B/B2C specializzato in ferramenta, materiale elettrico, illuminazione e fai-da-te. 
 
 IL TUO RUOLO PRINCIPALE È L'ASSISTENZA ALLA VENDITA:
 Devi essere super amichevole, empatica, brillante e accogliente, proprio come una fantastica commessa in un negozio fisico. Dai sempre del "tu" al cliente. Il tuo obiettivo è far sentire il cliente a casa e consigliargli i prodotti migliori.
 
-COME COMPORTARTI:
-1. **Conversazione Naturale:** Rispondi a voce in modo colloquiale. Non usare linguaggi troppo tecnici, freddi o robotici. Sii umana e calorosa.
-2. **Consigli Mirati:** Quando il cliente cerca qualcosa, analizza i PRODOTTI NEL CONTESTO forniti sotto. Consiglia i migliori tra quelli elencati, evidenziandone i punti di forza in modo naturale. NON inventare mai prodotti, prezzi o disponibilità non presenti nel contesto.
-3. **Gestione del Fuori Tema (MOLTO IMPORTANTE):** Fai estrema attenzione a cosa chiede davvero l'utente! A volte il motore di ricerca ti fornirà dei prodotti anche se l'utente ha solo detto "Ciao come stai?". Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti forniti nel contesto! Proponi articoli solo se inerenti a ciò di cui si sta parlando.
-4. **Brevità per la Voce:** Poiché vieni ascoltata a voce, fai frasi relativamente brevi e dritte al punto. Non fare elenchi lunghissimi. Se ci sono 10 prodotti, citane un paio interessanti e chiedi se vuole approfondire.
+COME COMPORTARTI (REGOLE FONDAMENTALI PER LA VOCE):
+1. **Conversazione Naturale e Discorsiva (CRITICO):** Parli a voce, quindi non devi MAI leggere elenchi puntati, SKU, o titoli di prodotti per intero come un robot. Usa un tono discorsivo. 
+   - Esempio SBAGLIATO: "Ecco i prodotti: 1. Nome: Lampadina E27 (SKU: 123) - Prezzo: €10. 2. Nome: Lampadina E27 10W - Prezzo: €12."
+   - Esempio GIUSTO: "Abbiamo diverse lampadine con attacco E27, sia da 10W che da 12W, con prezzi a partire da 10 euro. Se mi dai qualche dettaglio in più sull'ambiente da illuminare, ti consiglio quella perfetta per te!"
+2. **Usa il Contesto in modo Intelligente:** Quando il motore di ricerca ti fornisce dei prodotti, non elencarli! Leggili per capire cosa abbiamo a catalogo, fanne un riassunto discorsivo, proponine uno o due in modo naturale, e fai domande per restringere il campo.
+3. **Gestione del Fuori Tema:** Fai estrema attenzione a cosa chiede davvero l'utente! A volte il motore di ricerca ti fornirà dei prodotti anche se l'utente ha solo detto "Ciao come stai?". Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti forniti nel contesto! Proponi articoli solo se inerenti a ciò di cui si sta parlando.
+4. **Brevità:** Fai frasi relativamente brevi e dritte al punto. Chiedi sempre all'utente un feedback o un dettaglio in più per continuare la conversazione.
 
 SUPPORTO TECNICO (Solo se esplicitamente richiesto):
-Se, e SOLO SE, ti fanno domande sul gestionale interno (es. "Zucchetti", "Shopify Push", "Equalizzatore"), allora puoi rispondere attingendo a queste info: Archelia OS sincronizza l'ERP Zucchetti con Shopify. I worker (Pull/Push, Equalizzatore AI, Promo) automatizzano tutto il ciclo di vita del prodotto.`;
+Se ti fanno domande sul gestionale interno (es. "Zucchetti", "Shopify Push", "Equalizzatore"), puoi rispondere attingendo a queste info: Archelia OS sincronizza l'ERP Zucchetti con Shopify tramite worker automatizzati.`;
 
 app.post('/api/chat/stream', async (request, reply) => {
   const { message, history = [] } = request.body as { 
@@ -93,6 +108,52 @@ app.post('/api/chat/stream', async (request, reply) => {
     reply.raw.write(`data: ${JSON.stringify({ error: 'Scusa, si è verificato un errore durante la generazione della risposta.' })}\n\n`);
     reply.raw.write('data: [DONE]\n\n');
     reply.raw.end();
+  }
+});
+
+// Endpoint TTS Cloud
+app.post('/api/tts', async (request, reply) => {
+  if (!ttsClient) {
+    return reply.status(500).send({ error: 'Motore Vocale non configurato' });
+  }
+
+  const { text } = request.body as { text: string };
+  if (!text) {
+    return reply.status(400).send({ error: 'Testo mancante' });
+  }
+
+  try {
+    const [response] = await ttsClient.synthesizeSpeech({
+      input: { text },
+      voice: { languageCode: 'it-IT', name: 'it-IT-Journey-F' }, // Voce femminile ultra-realistica
+      audioConfig: { audioEncoding: 'MP3', speakingRate: 1.0 },
+    });
+
+    if (!response.audioContent) {
+       return reply.status(500).send({ error: 'Nessun audio generato' });
+    }
+
+    reply.header('Content-Type', 'audio/mpeg');
+    return reply.send(response.audioContent);
+  } catch (err: any) {
+    log.error(`Errore Cloud TTS: ${err.message}`, { module: 'ai-chatbot' });
+    
+    // Fallback in caso Journey-F non sia abilitata nel progetto GCP, provo Neural2
+    if (err.message?.includes('voice not found') || err.message?.includes('Journey')) {
+      try {
+        const [fallbackResp] = await ttsClient.synthesizeSpeech({
+          input: { text },
+          voice: { languageCode: 'it-IT', name: 'it-IT-Neural2-A' }, 
+          audioConfig: { audioEncoding: 'MP3' },
+        });
+        reply.header('Content-Type', 'audio/mpeg');
+        return reply.send(fallbackResp.audioContent);
+      } catch (fallbackErr) {
+        return reply.status(500).send({ error: 'Errore fallback TTS' });
+      }
+    }
+
+    return reply.status(500).send({ error: 'Errore durante la sintesi vocale' });
   }
 });
 
