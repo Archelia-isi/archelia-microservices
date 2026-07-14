@@ -2,8 +2,8 @@
   position: fixed;
   bottom: 60px; /* Sopra la taskbar */
   right: 20px;
-  width: 450px;
-  height: 650px;
+  width: 500px;
+  height: 850px;
   display: flex;
   flex-direction: column;
   background-color: transparent; /* NESSUN SFONDO, DEVE FLUTTUARE */
