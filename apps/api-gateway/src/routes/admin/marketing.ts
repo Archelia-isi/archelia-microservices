@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '@archelia/database';
 import { generateMjmlEmail } from '@archelia/ai';
+import { z } from 'zod';
 
 export const marketingRoutes = async (fastify: FastifyInstance) => {
   
@@ -114,6 +115,64 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
     } catch (error: any) {
       request.log.error(`[Admin] Errore eliminazione jobs: ${error.message}`);
       return reply.status(500).send({ success: false, error: 'Errore interno del server' });
+    }
+  });
+
+  // Salva nuovo template generato
+  fastify.post('/api/v1/admin/marketing/templates', {
+    schema: {
+      tags: ['Admin Marketing'],
+      summary: 'Salva un template email',
+      body: z.object({
+        name: z.string(),
+        subject: z.string().optional(),
+        htmlContent: z.string(),
+        mjml: z.string().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    try {
+      const { name, subject, htmlContent, mjml } = request.body as any;
+      const template = await prisma.marketingTemplate.create({
+        data: {
+          name,
+          subject,
+          htmlContent,
+          designState: mjml ? { type: 'ai-mjml', code: mjml } : undefined
+        }
+      });
+      return { success: true, data: template };
+    } catch (error: any) {
+      request.log.error(`[Admin] Errore salvataggio template: ${error.message}`);
+      // Handle unique constraint error gracefully if needed
+      if (error.code === 'P2002') {
+         return reply.status(400).send({ success: false, error: 'Esiste già un template con questo nome' });
+      }
+      return reply.status(500).send({ success: false, error: 'Errore durante il salvataggio' });
+    }
+  });
+
+  // Recupera tutti i template salvati
+  fastify.get('/api/v1/admin/marketing/templates', {
+    schema: {
+      tags: ['Admin Marketing'],
+      summary: 'Recupera i template email salvati'
+    }
+  }, async (request, reply) => {
+    try {
+      const templates = await prisma.marketingTemplate.findMany({
+        select: {
+          id: true,
+          name: true,
+          subject: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      return { success: true, data: templates };
+    } catch (error: any) {
+      request.log.error(`[Admin] Errore recupero template: ${error.message}`);
+      return reply.status(500).send({ success: false, error: 'Errore durante il recupero dei template' });
     }
   });
 

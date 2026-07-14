@@ -10,6 +10,9 @@ export function EmailBuilderApp() {
   const [loading, setLoading] = useState(false);
   const [mjml, setMjml] = useState('');
   const [html, setHtml] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [templateSubject, setTemplateSubject] = useState('');
+  const [saving, setSaving] = useState(false);
   const isAppReady = true;
 
   const handleGenerate = async () => {
@@ -36,6 +39,37 @@ export function EmailBuilderApp() {
       alert('Errore di connessione al server AI');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim() || !mjml) return;
+    setSaving(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/marketing/templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: templateName, 
+          subject: templateSubject, 
+          htmlContent: html,
+          mjml 
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert('Template salvato con successo nella libreria!');
+        setTemplateName('');
+        setTemplateSubject('');
+      } else {
+        alert('Errore salvataggio: ' + json.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Errore di connessione al server per il salvataggio');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -70,7 +104,32 @@ export function EmailBuilderApp() {
 
         {mjml && (
           <div className="eb-code-area">
-            <h4>Codice Sorgente MJML</h4>
+            <h4>Salvataggio Template</h4>
+            <div className="save-form">
+              <input 
+                type="text" 
+                placeholder="Nome Template (es. Winback v1)" 
+                value={templateName}
+                onChange={e => setTemplateName(e.target.value)}
+                className="template-input"
+              />
+              <input 
+                type="text" 
+                placeholder="Oggetto Email (opzionale)" 
+                value={templateSubject}
+                onChange={e => setTemplateSubject(e.target.value)}
+                className="template-input"
+              />
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSaveTemplate}
+                disabled={saving || !templateName.trim()}
+              >
+                {saving ? 'Salvataggio...' : '💾 Salva nella Libreria'}
+              </button>
+            </div>
+            
+            <h4 style={{marginTop: '20px'}}>Codice Sorgente MJML</h4>
             <textarea value={mjml} readOnly className="code-view" />
           </div>
         )}

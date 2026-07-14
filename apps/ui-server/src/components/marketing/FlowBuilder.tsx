@@ -10,11 +10,13 @@ type Step = { id: string, delay: number, template: string };
 function SequenceEditor({ 
   sequence, 
   onChange, 
-  delayLabel 
+  delayLabel,
+  templates
 }: { 
   sequence: Step[], 
   onChange: (s: Step[]) => void, 
-  delayLabel: string 
+  delayLabel: string,
+  templates: any[]
 }) {
   const addStep = () => {
     onChange([...sequence, { id: Math.random().toString(36).substring(7), delay: 1, template: '' }]);
@@ -46,12 +48,16 @@ function SequenceEditor({
           </div>
           <div className="input-group" style={{ flex: 1 }}>
             <label>Template Email</label>
-            <input 
-              type="text" 
+            <select 
               value={step.template} 
               onChange={e => updateStep(idx, 'template', e.target.value)} 
-              placeholder="Prompt o nome del template..."
-            />
+              className="template-select"
+            >
+              <option value="">-- Seleziona un Template --</option>
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
           </div>
           <button className="btn btn-icon delete-btn" onClick={() => removeStep(idx)}>
             ❌
@@ -67,6 +73,7 @@ function SequenceEditor({
 
 export default function FlowBuilder() {
   const [config, setConfig] = useState<any>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -74,7 +81,20 @@ export default function FlowBuilder() {
 
   useEffect(() => {
     fetchConfig();
+    fetchTemplates();
   }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/marketing/templates`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTemplates(json.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchConfig = async () => {
     setLoading(true);
@@ -135,6 +155,7 @@ export default function FlowBuilder() {
               sequence={Array.isArray(config.cartSequence) ? config.cartSequence : []} 
               onChange={seq => updateConfig('cartSequence', seq)} 
               delayLabel="Ritardo (Ore)"
+              templates={templates}
             />
           </div>
         )}
@@ -157,6 +178,7 @@ export default function FlowBuilder() {
               sequence={Array.isArray(config.winbackSequence) ? config.winbackSequence : []} 
               onChange={seq => updateConfig('winbackSequence', seq)} 
               delayLabel="Ritardo (Giorni)"
+              templates={templates}
             />
           </div>
         )}
@@ -187,6 +209,7 @@ export default function FlowBuilder() {
               sequence={Array.isArray(config.browseSequence) ? config.browseSequence : []} 
               onChange={seq => updateConfig('browseSequence', seq)} 
               delayLabel="Ritardo (Ore)"
+              templates={templates}
             />
           </div>
         )}
@@ -214,8 +237,17 @@ export default function FlowBuilder() {
               <input type="number" value={config.loopIntervalDays} onChange={e => updateConfig('loopIntervalDays', parseInt(e.target.value) || 20)} />
             </div>
             <div className="input-group">
-              <label>Template Email:</label>
-              <input type="text" value={config.loopTemplateId || ''} onChange={e => updateConfig('loopTemplateId', e.target.value)} placeholder="Template ID" />
+              <label>Template Email per Loop</label>
+              <select 
+                value={config.loopTemplateId || ''} 
+                onChange={e => updateConfig('loopTemplateId', e.target.value)} 
+                className="template-select"
+              >
+                <option value="">-- Seleziona un Template --</option>
+                {templates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         )}

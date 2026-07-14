@@ -80,6 +80,37 @@
   color: var(--text-secondary);
 }
 
+.preview-loader p {
+  margin-top: 16px;
+  color: var(--color-text-secondary);
+}
+
+.save-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.template-input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.template-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
 .code-view {
   width: 100%;
   flex: 1;
