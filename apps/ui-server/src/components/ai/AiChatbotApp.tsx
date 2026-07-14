@@ -143,6 +143,7 @@ export default function AiChatbotApp() {
               enablePan={false}
               minPolarAngle={Math.PI / 2.5}
               maxPolarAngle={Math.PI / 2.1}
+              target={[0, 1.0, 0]}
             />
           </Canvas>
         </ErrorBoundary>
