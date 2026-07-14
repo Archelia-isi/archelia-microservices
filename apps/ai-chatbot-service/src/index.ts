@@ -103,10 +103,12 @@ app.post('/api/chat/stream', async (request, reply) => {
     const productPromises = searchQueries.map(q => searchProducts(q));
     const productsResultsArray = await Promise.all(productPromises);
     
-    // Unisci e deduplica i prodotti trovati
+    // Unisci e deduplica i prodotti trovati (prendendo i top 3 per ogni query per non esaurire lo spazio con una singola categoria)
     const uniqueHitsMap = new Map();
     productsResultsArray.forEach(res => {
-      (res.hits || []).forEach((hit: any) => {
+      // Prendiamo solo i primi 4 risultati per ogni query
+      const topHitsForQuery = (res.hits || []).slice(0, 4);
+      topHitsForQuery.forEach((hit: any) => {
         if (!uniqueHitsMap.has(hit.document.sku)) {
           uniqueHitsMap.set(hit.document.sku, hit);
         }
@@ -124,8 +126,8 @@ app.post('/api/chat/stream', async (request, reply) => {
 
     if (hits.length > 0) {
       searchContext += "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
-      // Prendiamo i primi 15 risultati per coprire più prodotti
-      hits.slice(0, 15).forEach((hit: any, index: number) => {
+      // Prendiamo i primi 20 risultati totali (diversificati grazie al raggruppamento precedente)
+      hits.slice(0, 20).forEach((hit: any, index: number) => {
         const doc = hit.document;
         searchContext += `${index + 1}. Nome: ${doc.title} (SKU: ${doc.sku})\n- Prezzo: €${doc.price}\n- Giacenza: ${doc.stock > 0 ? doc.stock + ' pezzi disponibili' : 'Esaurito'}\n- Brand: ${doc.brand}\n- Categoria: ${doc.family}\n- Promo: ${doc.is_in_promo ? doc.promo_slogan + ' (-' + doc.promo_discount + '%)' : 'Nessuna promo attiva'}\n\n`;
       });
