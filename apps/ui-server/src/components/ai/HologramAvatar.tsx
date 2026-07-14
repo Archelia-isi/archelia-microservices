@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFBX, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -41,7 +41,7 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
     return clips;
   }, [animIdle, animStretching, animTalking, animBreakdance, animCapoeira, animRumba, animKettlebell]);
 
-  const { actions, mixer } = useAnimations(animations, group);
+  const { actions } = useAnimations(animations, group);
   const currentAction = useRef<string | null>(null);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
   }, [animationState, actions]);
 
   return (
-    <group ref={group} {...props} dispose={null}>
+    <group ref={group} dispose={null}>
       {/* I modelli FBX di Mixamo sono solitamente molto grandi, usiamo uno scale ridotto */}
       <primitive object={fbx} scale={0.033} position={[0, -2.4, 0]} />
       
