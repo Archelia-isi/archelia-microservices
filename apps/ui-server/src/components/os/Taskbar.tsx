@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
-import { Bot } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
 import './Taskbar.css';
 
 export default function Taskbar() {
@@ -95,7 +95,7 @@ export default function Taskbar() {
             onClick={() => toggleChatbot()}
             title="Archelia AI Chatbot"
           >
-            <Bot size={20} color={isChatbotOpen ? '#00d2ff' : 'var(--color-text)'} />
+            <BrainCircuit size={20} color={isChatbotOpen ? '#00d2ff' : 'var(--color-text)'} />
           </div>
           <div className="taskbar-clock">
             <div className="taskbar-time">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>

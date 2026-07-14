@@ -5,8 +5,8 @@ import * as THREE from 'three';
 export function HologramAvatar(props: any) {
   const group = useRef<THREE.Group>(null);
   
-  // Utilizziamo un URL remoto di un avatar femminile Ready Player Me
-  const avatarUrl = 'https://models.readyplayer.me/646399ba64e43f11e3b5e40e.glb';
+  // Usiamo un URL remoto stabile di un manichino (Xbot) da trasformare in ologramma
+  const avatarUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb';
   const { scene, animations } = useGLTF(avatarUrl);
   const { actions } = useAnimations(animations, group);
 
@@ -51,4 +51,4 @@ export function HologramAvatar(props: any) {
   );
 }
 
-useGLTF.preload('https://models.readyplayer.me/646399ba64e43f11e3b5e40e.glb');
+useGLTF.preload('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb');

@@ -6,6 +6,19 @@ import { HologramAvatar } from './HologramAvatar';
 import { Send, Bot, User } from 'lucide-react';
 import './AiChatbotApp.css';
 
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any) { console.error("Hologram Error:", error); }
+  render() {
+    if (this.state.hasError) return <div style={{color: '#00d2ff', display: 'flex', alignItems:'center', justifyContent:'center', height:'100%'}}>Scansione Ologramma in corso... (Rete lenta)</div>;
+    return this.props.children;
+  }
+}
+
 interface Message {
   role: 'user' | 'model';
   text: string;
@@ -107,28 +120,30 @@ export default function AiChatbotApp() {
     <div className="ai-chatbot-panel">
       {/* SEZIONE 3D: L'ologramma in alto */}
       <div className="ai-hologram-viewport">
-        <Canvas camera={{ position: [0, 0.5, 4], fov: 45 }}>
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
-          <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
-          <Environment preset="city" />
-          
-          <React.Suspense fallback={null}>
-            <HologramAvatar />
-          </React.Suspense>
-          
-          <OrbitControls 
-            enableZoom={false} 
-            enablePan={false}
-            minPolarAngle={Math.PI / 2.5}
-            maxPolarAngle={Math.PI / 2.1}
-          />
-          
-          {/* Post Processing per l'effetto Neon/Bloom */}
-          <EffectComposer>
-            <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} intensity={1.5} />
-          </EffectComposer>
-        </Canvas>
+        <ErrorBoundary>
+          <Canvas camera={{ position: [0, 0.5, 4], fov: 45 }}>
+            <ambientLight intensity={0.5} />
+            <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
+            <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
+            <Environment preset="city" />
+            
+            <React.Suspense fallback={null}>
+              <HologramAvatar />
+            </React.Suspense>
+            
+            <OrbitControls 
+              enableZoom={false} 
+              enablePan={false}
+              minPolarAngle={Math.PI / 2.5}
+              maxPolarAngle={Math.PI / 2.1}
+            />
+            
+            {/* Post Processing per l'effetto Neon/Bloom */}
+            <EffectComposer>
+              <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} intensity={1.5} />
+            </EffectComposer>
+          </Canvas>
+        </ErrorBoundary>
         <div className="hologram-base-glow"></div>
       </div>
 
