@@ -126,7 +126,7 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.body;
     const mapping = JOB_MAPPINGS[id];
-    if (!mapping) return reply.status(400).send({ success: false, message: 'Job ID non valido' } as any);
+    if (!mapping) return reply.status(200).send({ success: false, message: 'Job ID non valido' });
 
     log.info(`Running job immediately ${id}`, { module: 'api-gateway:scheduler' });
     await mapping.queue.add(mapping.command, { command: mapping.command, source: 'manual' });

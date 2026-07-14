@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Play, RefreshCw, Power } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { Settings as SettingsIcon, Play, Power } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 interface SchedulerJob {
   id: string;
