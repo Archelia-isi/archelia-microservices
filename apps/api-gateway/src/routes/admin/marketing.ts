@@ -17,7 +17,7 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
 
     } catch (error: any) {
       request.log.error(`[Admin] Errore generazione MJML: ${error.message}`);
-      return reply.status(500).send({ success: false, error: 'Errore durante la generazione AI' });
+      return reply.status(500).send({ success: false, error: `Errore durante la generazione AI: ${error.message}` });
     }
   });
 

@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '@archelia/core';
-import mjml2html from 'mjml';
+const mjml2html = require('mjml');
 
 let genAI: GoogleGenerativeAI | null = null;
 if (process.env.GEMINI_API_KEY) {
