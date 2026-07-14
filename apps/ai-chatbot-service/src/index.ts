@@ -2,7 +2,7 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { log, env } from '@archelia/core';
 import { searchProducts } from '@archelia/typesense';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const app = fastify({ logger: false });
 
@@ -10,9 +10,8 @@ app.register(cors, {
   origin: '*',
 });
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 const SYSTEM_PROMPT = `Sei l'Ologramma IA e l'Assistente Virtuale Ufficiale di Archelia (un e-commerce B2B/B2C specializzato in ferramenta, materiale elettrico, illuminazione e fai-da-te) e del suo sistema operativo interno "Archelia OS".
 
@@ -74,32 +73,27 @@ app.post('/api/chat/stream', async (request, reply) => {
   reply.raw.flushHeaders();
 
   try {
-    // Mappa la history per Anthropic
-    const anthropicMessages: Anthropic.MessageParam[] = history.map(h => ({
-      role: h.role === 'model' ? 'assistant' : 'user',
-      content: h.parts.map(p => p.text).join('')
-    }));
-
-    anthropicMessages.push({ role: 'user', content: finalPrompt });
-
-    const stream = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: anthropicMessages,
-      stream: true,
+    // Inizializza la chat con history e system prompt
+    const chat = model.startChat({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }], role: 'system' },
+      history: history.map(h => ({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: h.parts
+      }))
     });
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-        reply.raw.write(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`);
-      }
+    const result = await chat.sendMessageStream(finalPrompt);
+
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      // Formato SSE: data: <dati>\n\n
+      reply.raw.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
     }
 
     reply.raw.write('data: [DONE]\n\n');
     reply.raw.end();
   } catch (err: any) {
-    log.error(`Errore Anthropic Chatbot: ${err.message}`, { module: 'ai-chatbot' });
+    log.error(`Errore Gemini Chatbot: ${err.message}`, { module: 'ai-chatbot' });
     reply.raw.write(`data: ${JSON.stringify({ error: 'Scusa, si è verificato un errore durante la generazione della risposta.' })}\n\n`);
     reply.raw.write('data: [DONE]\n\n');
     reply.raw.end();
