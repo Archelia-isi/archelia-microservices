@@ -128,7 +128,7 @@ export default function AiChatbotApp() {
       {/* SEZIONE 3D: L'ologramma in alto */}
       <div className="ai-hologram-viewport">
         <ErrorBoundary>
-          <Canvas camera={{ position: [0, 0.6, 6.6], fov: 50 }}>
+          <Canvas camera={{ position: [0, 0, 7.0], fov: 50 }}>
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} color="#00d2ff" intensity={1} />
             <spotLight position={[-10, 10, -10]} color="#0055ff" intensity={2} />
@@ -143,7 +143,7 @@ export default function AiChatbotApp() {
               enablePan={false}
               minPolarAngle={Math.PI / 2.5}
               maxPolarAngle={Math.PI / 2.1}
-              target={[0, 1.0, 0]}
+              target={[0, 0, 0]}
             />
           </Canvas>
         </ErrorBoundary>
