@@ -20,6 +20,9 @@ const worker = new Worker(
       case 'SYNC_ALL_PRODUCTS':
         await productSyncService.syncProducts();
         break;
+      case 'SYNC_STOCK_ONLY':
+        await productSyncService.syncStockOnly();
+        break;
 
       default:
         log.warn(`Job name non supportato: ${job.name}`, { module: 'worker-shopify-push' });

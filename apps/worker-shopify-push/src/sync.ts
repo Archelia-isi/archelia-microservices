@@ -124,6 +124,47 @@ export class ProductSyncService {
     }
   }
 
+  async syncStockOnly(): Promise<SyncResult> {
+    const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
+    try {
+      log.info('📦 Inizio sync STOCK ONLY Database -> Shopify', { module: 'worker-shopify-push' });
+      const products = await prisma.product.findMany({ where: { publishedOnWeb: true } });
+      const existingProducts = await this.fetchShopifyProducts();
+      const skuToShopifyData = this.buildSkuMap(existingProducts);
+
+      result.total = products.length;
+
+      for (const product of products) {
+        const existingProductData = skuToShopifyData.get(product.sku);
+        if (existingProductData && existingProductData.inventoryItemId) {
+          try {
+            await shopifyClient.post('/inventory_levels/set.json', {
+              location_id: SHOPIFY_LOCATION_PR,
+              inventory_item_id: existingProductData.inventoryItemId,
+              available: product.stock
+            });
+            await shopifyClient.post('/inventory_levels/set.json', {
+              location_id: SHOPIFY_LOCATION_EK,
+              inventory_item_id: existingProductData.inventoryItemId,
+              available: product.stockEk
+            });
+            result.updated++;
+          } catch(e: any) {
+            log.error(`Errore stock sync ${product.sku}: ${e.message}`);
+            result.errors++;
+          }
+        } else {
+          result.skipped++;
+        }
+      }
+      log.info(`✅ Sync Stock Shopify completata: ${result.updated} aggiornati, ${result.skipped} saltati, ${result.errors} errori`);
+      return result;
+    } catch (error: any) {
+      log.error(`❌ Errore fatale sync stock: ${error.message}`);
+      throw error;
+    }
+  }
+
   private async fetchShopifyProducts(): Promise<any[]> {
     const allProducts: any[] = [];
     let pageInfo: string | null = null;
@@ -146,12 +187,12 @@ export class ProductSyncService {
     return allProducts;
   }
 
-  private buildSkuMap(products: any[]): Map<string, { id: number; status: string }> {
-    const map = new Map<string, { id: number; status: string }>();
+  private buildSkuMap(products: any[]): Map<string, { id: number; status: string; inventoryItemId?: number }> {
+    const map = new Map<string, { id: number; status: string; inventoryItemId?: number }>();
     for (const product of products) {
       for (const variant of product.variants) {
         if (variant.sku) {
-          map.set(variant.sku, { id: product.id, status: product.status });
+          map.set(variant.sku, { id: product.id, status: product.status, inventoryItemId: variant.inventory_item_id });
         }
       }
     }
