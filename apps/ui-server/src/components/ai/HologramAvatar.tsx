@@ -5,9 +5,11 @@ import * as THREE from 'three';
 export function HologramAvatar(props: any) {
   const group = useRef<THREE.Group>(null);
   
-  // Ripristiniamo l'URL della donna (Ready Player Me femminile generico)
-  // Questo modello ora caricherà senza crashare grazie a Suspense
-  const avatarUrl = 'https://models.readyplayer.me/646399ba64e43f11e3b5e40e.glb';
+  // Il server di Ready Player Me purtroppo sta bloccando le richieste o è down,
+  // quindi il browser va in crash (schermo bianco/Scansione Ologramma).
+  // Ripristiniamo temporaneamente il manichino Xbot che è ospitato su un server GitHub
+  // ultra-stabile. Con i nuovi shader fotorealistici, sembrerà comunque un ologramma sci-fi pazzesco!
+  const avatarUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb';
   const { scene, animations } = useGLTF(avatarUrl);
   const { actions } = useAnimations(animations, group);
 
