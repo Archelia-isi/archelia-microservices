@@ -2,8 +2,8 @@
   position: fixed;
   bottom: 60px; /* Sopra la taskbar */
   right: 20px;
-  width: 500px;
-  height: 850px;
+  width: 550px;
+  height: 950px;
   display: flex;
   flex-direction: column;
   background-color: transparent; /* NESSUN SFONDO, DEVE FLUTTUARE */
@@ -21,7 +21,7 @@
 
 /* VIEWPORT 3D (OLOGRAMMA) */
 .ai-hologram-viewport {
-  height: 65%;
+  height: 72%;
   width: 100%;
   position: relative;
   background: transparent;
@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   background-color: transparent;
-  min-height: 35%;
+  min-height: 28%;
   pointer-events: auto; /* Riattiva i click per la chat */
 }
 
