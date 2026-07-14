@@ -105,11 +105,11 @@ app.post('/api/chat/stream', async (request, reply) => {
     const productPromises = searchQueries.map(q => searchProducts(q));
     const productsResultsArray = await Promise.all(productPromises);
     
-    // Unisci e deduplica i prodotti trovati (prendendo i top 3 per ogni query per non esaurire lo spazio con una singola categoria)
+    // Unisci e deduplica i prodotti trovati in modo equo tra le varie categorie
     const uniqueHitsMap = new Map();
+    const hitsPerQuery = Math.max(1, Math.floor(25 / searchQueries.length));
     productsResultsArray.forEach(res => {
-      // Prendiamo solo i primi 4 risultati per ogni query
-      const topHitsForQuery = (res.hits || []).slice(0, 4);
+      const topHitsForQuery = (res.hits || []).slice(0, hitsPerQuery);
       topHitsForQuery.forEach((hit: any) => {
         if (!uniqueHitsMap.has(hit.document.sku)) {
           uniqueHitsMap.set(hit.document.sku, hit);
@@ -128,13 +128,19 @@ app.post('/api/chat/stream', async (request, reply) => {
 
     if (hits.length > 0) {
       searchContext += "RISULTATI RICERCA CATALOGO ARCHELIA:\n";
-      // Prendiamo i primi 20 risultati totali (diversificati grazie al raggruppamento precedente)
-      hits.slice(0, 20).forEach((hit: any, index: number) => {
+      let hasDrill = false;
+      hits.forEach((hit: any, index: number) => {
         const doc = hit.document;
+        if (doc.title.toLowerCase().includes('trapan') || doc.title.toLowerCase().includes('avvitatore')) {
+          hasDrill = true;
+        }
         searchContext += `${index + 1}. Nome: ${doc.title} (SKU: ${doc.sku})\n- Prezzo: €${doc.price}\n- Giacenza: ${doc.stock > 0 ? doc.stock + ' pezzi disponibili' : 'Esaurito'}\n- Brand: ${doc.brand}\n- Categoria: ${doc.family}\n- Promo: ${doc.is_in_promo ? doc.promo_slogan + ' (-' + doc.promo_discount + '%)' : 'Nessuna promo attiva'}\n\n`;
       });
+      if (hasDrill) {
+         searchContext += "\n[⚠️ ISTRUZIONE DI SISTEMA CRITICA ⚠️]: Ho rilevato che nel catalogo ci sono dei trapani/avvitatori. SEI TASSATIVAMENTE OBBLIGATA a includere l'SKU di un trapano nel tag [SHOW_PRODUCTS], insieme al resto della strumentazione. Non trovare scuse e fai upselling aggressivo!\n";
+      }
     } else {
-      searchContext += "NESSUN PRODOTTO TROVATO. Rispondi in modo amichevole, senza dire all'utente che non hai trovato nulla nel catalogo (non rivelare mai i tuoi meccanismi interni di ricerca). Prosegui la conversazione o chiedi dettagli aggiuntivi.";
+      searchContext += "NESSUN PRODOTTO TROVATO. Rispondi in modo amichevole, senza dire all'utente che non hai trovato nulla nel catalogo.";
     }
   } catch (err: any) {
     log.error(`Errore Typesense RAG: ${err.message}`, { module: 'ai-chatbot' });

@@ -1,9 +1,29 @@
-import { searchProducts, searchGuides } from '@archelia/typesense';
+import { Client } from 'typesense';
+
+async function searchProducts(q: string) {
+  const typesenseUrl = process.env.TYPESENSE_URL || process.env.TYPESENSE_PUBLIC_URL || 'http://localhost:8108';
+  let host = typesenseUrl.replace('https://', '').replace('http://', '');
+  let protocol = typesenseUrl.startsWith('https') ? 'https' : 'http';
+  let port = typesenseUrl.startsWith('https') ? 443 : 8108;
+  if (host.includes(':')) {
+    const parts = host.split(':');
+    host = parts[0];
+    port = parseInt(parts[1], 10);
+  }
+  const client = new Client({
+    nodes: [{ host, port, protocol }],
+    apiKey: process.env.TYPESENSE_ADMIN_KEY || 'default_key',
+    connectionTimeoutSeconds: 10,
+  });
+  return await client.collections('products').documents().search({
+    q: q,
+    query_by: 'title,description,technical_desc,family',
+    per_page: 50
+  });
+}
 
 async function main() {
-  const message = "devo illuminare la mia cucina ed ho bisogno di un lampadario di design e di tutta la strumentazione per fissarlo al soffitto.";
-  
-  const searchQueries = ["lampadario design", "trapano", "tasselli", "viti", "morsetti", "cavo elettrico"];
+  const searchQueries = ["lampadario design", "trapano", "punte trapano", "tasselli", "viti", "morsetti"];
   console.log("Queries:", searchQueries);
 
   const productPromises = searchQueries.map(q => searchProducts(q));
