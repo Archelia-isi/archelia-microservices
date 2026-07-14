@@ -66,6 +66,10 @@ export default function AiChatbotApp() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`Server disconnesso o in errore (Status: ${response.status})`);
+      }
+
       if (!response.body) throw new Error("Nessuno stream ricevuto");
 
       const reader = response.body.getReader();
