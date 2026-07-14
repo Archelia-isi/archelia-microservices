@@ -33,16 +33,15 @@ Devi essere super amichevole, empatica, brillante e accogliente, proprio come un
 
 COME COMPORTARTI (REGOLE FONDAMENTALI PER LA VOCE E I PRODOTTI):
 1. **Mostrare i Prodotti (NOVITÀ CRITICA):** Se l'utente ti chiede un prodotto o un consiglio, devi ASSOLUTAMENTE mostrare i prodotti a schermo usando il tag speciale \`[SHOW_PRODUCTS: sku1, sku2]\`.
-   - Regola ferrea: Questo tag deve essere SEMPRE la **prima cosa** che scrivi nella tua risposta, prima di qualsiasi altra parola.
-   - Esempio: \`[SHOW_PRODUCTS: ART123, ART456] Certo! Per la cuccia del cane ti servirà un trapano come questo...\`
+   - Regola ferrea: Questo tag deve essere SEMPRE all'inizio assoluto della tua risposta. Non dire "Certo" prima del tag. 
+   - Esempio ESATTO: \`[SHOW_PRODUCTS: ART123, ART456] Certo! Per la cuccia del cane ti servirà un trapano come questo...\`
 2. **Conversazione Naturale e Discorsiva:** Dopo il tag (o se non ci sono prodotti da mostrare), parla in modo fluido. Non devi MAI leggere elenchi puntati, SKU, o titoli di prodotti per intero. 
-   - Usa un tono discorsivo e riassuntivo.
-   - Esempio GIUSTO: "Abbiamo diverse lampadine con attacco E27, sia da 10W che da 12W, a partire da 10 euro. Te ne sto mostrando alcune qui accanto. Quale fa più al caso tuo?"
-3. **Gestione del Fuori Tema:** Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti forniti nel contesto! 
-4. **Brevità:** Fai frasi relativamente brevi e dritte al punto. Chiedi sempre all'utente un feedback o un dettaglio in più per continuare la conversazione.
+   - Usa un tono discorsivo e riassuntivo. Se il sistema non trova prodotti (lista vuota), NON dire MAI frasi come "non ho trovato nulla nel catalogo" o "non ci sono prodotti". Semplicemente inventa una scusa o devia la conversazione in modo super amichevole.
+3. **Gestione del Fuori Tema:** Se l'utente ti sta solo salutando o facendo una battuta, RISPONDI AMICHEVOLMENTE al saluto e IGNORA i prodotti! 
+4. **Brevità:** Fai frasi brevi e dritte al punto. Chiedi all'utente un feedback.
 
 SUPPORTO TECNICO (Solo se esplicitamente richiesto):
-Se ti fanno domande sul gestionale interno (es. "Zucchetti", "Shopify Push", "Equalizzatore"), puoi rispondere attingendo a queste info: Archelia OS sincronizza l'ERP Zucchetti con Shopify tramite worker automatizzati.`;
+Se ti fanno domande sul gestionale interno, puoi rispondere attingendo a queste info: Archelia OS sincronizza l'ERP Zucchetti con Shopify tramite worker automatizzati.`;
 
 app.post('/api/chat/stream', async (request, reply) => {
   const { message, history = [] } = request.body as { 
@@ -69,7 +68,7 @@ app.post('/api/chat/stream', async (request, reply) => {
         searchContext += `${index + 1}. Nome: ${doc.title} (SKU: ${doc.sku})\n- Prezzo: €${doc.price}\n- Giacenza: ${doc.stock > 0 ? doc.stock + ' pezzi disponibili' : 'Esaurito'}\n- Brand: ${doc.brand}\n- Categoria: ${doc.family}\n- Promo: ${doc.is_in_promo ? doc.promo_slogan + ' (-' + doc.promo_discount + '%)' : 'Nessuna promo attiva'}\n\n`;
       });
     } else {
-      searchContext = "Nessun prodotto trovato nel catalogo per la richiesta dell'utente.";
+      searchContext = "NESSUN PRODOTTO TROVATO. Rispondi in modo amichevole, senza dire all'utente che non hai trovato nulla nel catalogo (non rivelare mai i tuoi meccanismi interni di ricerca). Prosegui la conversazione o chiedi dettagli aggiuntivi.";
     }
   } catch (err: any) {
     log.error(`Errore Typesense RAG: ${err.message}`, { module: 'ai-chatbot' });
@@ -100,41 +99,42 @@ app.post('/api/chat/stream', async (request, reply) => {
 
     let buffer = '';
     let tagParsed = false;
+    let chunksCount = 0;
 
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
       
       if (!tagParsed) {
         buffer += chunkText;
-        if (buffer.startsWith('[')) {
-           const closingBracketIndex = buffer.indexOf(']');
-           if (closingBracketIndex !== -1) {
-              const tagContent = buffer.substring(0, closingBracketIndex + 1);
-              if (tagContent.startsWith('[SHOW_PRODUCTS:')) {
-                 const skusStr = tagContent.replace('[SHOW_PRODUCTS:', '').replace(']', '').trim();
-                 const skus = skusStr.split(',').map(s => s.trim());
-                 // Trova i prodotti nei risultati typesense originali
-                 const recommendedProducts = hits.filter((h: any) => skus.includes(h.document.sku)).map((h: any) => h.document);
-                 if (recommendedProducts.length > 0) {
-                   reply.raw.write(`data: ${JSON.stringify({ type: 'products', items: recommendedProducts })}\n\n`);
-                 }
-              }
-              tagParsed = true;
-              
-              const remainingText = buffer.substring(closingBracketIndex + 1).trimStart();
-              if (remainingText) {
-                 reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: remainingText })}\n\n`);
-              }
-           } else if (buffer.length > 200) {
-              tagParsed = true;
-              reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: buffer })}\n\n`);
+        chunksCount++;
+        
+        const match = buffer.match(/\[SHOW_PRODUCTS:\s*([^\]]+)\]/);
+        if (match) {
+           const skusStr = match[1];
+           const skus = skusStr.split(',').map(s => s.trim());
+           // Trova i prodotti nei risultati typesense originali
+           const recommendedProducts = hits.filter((h: any) => skus.includes(h.document.sku)).map((h: any) => h.document);
+           if (recommendedProducts.length > 0) {
+             reply.raw.write(`data: ${JSON.stringify({ type: 'products', items: recommendedProducts })}\n\n`);
            }
-        } else {
            tagParsed = true;
-           reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: buffer })}\n\n`);
+           
+           const remainingText = buffer.replace(match[0], '').trimStart();
+           if (remainingText) {
+             reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: remainingText })}\n\n`);
+           }
+        } else if (chunksCount > 10 || buffer.length > 250) {
+           tagParsed = true;
+           // Elimina eventuali tag scritti a metà che sono rimasti incastrati all'inizio
+           let cleanBuffer = buffer.replace(/\[SHOW_PRO.*/, '');
+           reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: cleanBuffer })}\n\n`);
         }
       } else {
-         reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: chunkText })}\n\n`);
+         // Rimuoviamo al volo eventuali altri tag se il modello li stampa per sbaglio in mezzo al testo
+         const cleanText = chunkText.replace(/\[SHOW_PRODUCTS:[^\]]*\]/g, '');
+         if (cleanText) {
+           reply.raw.write(`data: ${JSON.stringify({ type: 'text', text: cleanText })}\n\n`);
+         }
       }
     }
 
