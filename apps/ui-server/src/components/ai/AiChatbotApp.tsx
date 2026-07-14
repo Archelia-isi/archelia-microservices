@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { HologramAvatar } from './HologramAvatar';
-import { Send, Bot, User, AlertCircle } from 'lucide-react';
+import { Send, Bot, User } from 'lucide-react';
 import './AiChatbotApp.css';
 
 interface Message {
