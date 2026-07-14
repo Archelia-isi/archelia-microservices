@@ -70,6 +70,8 @@ export default function FlowBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  console.log("Rendering FlowBuilder v2.1 with SequenceEditor");
+
   useEffect(() => {
     fetchConfig();
   }, []);

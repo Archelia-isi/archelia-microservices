@@ -2,9 +2,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '@archelia/core';
 const mjml2html = require('mjml');
 
+// Fallback sicuro se Railway non ha l'env var
+const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyDfkbKWpKJ2MTOACDAJs0AYHacc9TAeXJ8';
 let genAI: GoogleGenerativeAI | null = null;
-if (process.env.GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+if (apiKey) {
+  genAI = new GoogleGenerativeAI(apiKey);
 } else {
   logger.warn('GEMINI_API_KEY non trovata. Il servizio AI testuale sarà disabilitato.');
 }
