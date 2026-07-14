@@ -1,0 +1,23 @@
+{
+  "name": "@archelia/worker-typesense",
+  "version": "1.0.0",
+  "description": "Worker per la sincronizzazione del catalogo Zucchetti su Typesense",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc-watch --onSuccess \"node dist/index.js\""
+  },
+  "dependencies": {
+    "@archelia/core": "*",
+    "@archelia/database": "*",
+    "@archelia/typesense": "*",
+    "bullmq": "^4.14.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsc-watch": "^6.2.0",
+    "typescript": "^5.4.5"
+  }
+}
