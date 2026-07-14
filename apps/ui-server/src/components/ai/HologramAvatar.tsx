@@ -10,7 +10,6 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
   
   // Carichiamo le animazioni aggiuntive (alcune con skin, altre senza)
   const animIdle = useFBX('/Idle.fbx');
-  const animBreathing = useFBX('/Breathing_Idle.fbx');
   const animStretching = useFBX('/Arm_Stretching.fbx');
   const animTalking = useFBX('/Catwalk_Idle_To_Twist_R.fbx');
   const animBreakdance = useFBX('/Breakdance_Footwork_To_Idle.fbx');
@@ -19,22 +18,18 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
   const animKettlebell = useFBX('/Kettlebell_Swing.fbx');
 
   // Raggruppiamo tutte le animazioni
-  const animations = useRef<THREE.AnimationClip[]>([]);
-  
-  useEffect(() => {
+  const animations = useMemo(() => {
+    const clips: THREE.AnimationClip[] = [];
+    
     // Estraiamo le clip e diamo loro un nome logico
     const extractAnim = (sourceFbx: THREE.Group, name: string) => {
       if (sourceFbx && sourceFbx.animations && sourceFbx.animations.length > 0) {
         const clip = sourceFbx.animations[0].clone();
         clip.name = name;
-        animations.current.push(clip);
+        clips.push(clip);
       }
     };
     
-    // Svuotiamo l'array in caso di re-render
-    animations.current = [];
-    
-    extractAnim(animBreathing, 'idle_breathing');
     extractAnim(animIdle, 'idle_simple');
     extractAnim(animStretching, 'thinking');
     extractAnim(animTalking, 'talking');
@@ -43,10 +38,11 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
     extractAnim(animRumba, 'dance_rumba');
     extractAnim(animKettlebell, 'workout');
     
-  }, [animIdle, animBreathing, animStretching, animTalking, animBreakdance, animCapoeira, animRumba, animKettlebell]);
+    return clips;
+  }, [animIdle, animStretching, animTalking, animBreakdance, animCapoeira, animRumba, animKettlebell]);
 
-  const { actions, mixer } = useAnimations(animations.current, group);
-  const currentAction = useRef<string>('idle_breathing');
+  const { actions, mixer } = useAnimations(animations, group);
+  const currentAction = useRef<string>('idle_simple');
 
   useEffect(() => {
     // Il modello ora mantiene i materiali e i colori originali del file FBX
@@ -55,7 +51,7 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
   useEffect(() => {
     if (!actions || Object.keys(actions).length === 0) return;
 
-    let nextActionName = 'idle_breathing';
+    let nextActionName = 'idle_simple';
     
     if (animationState === 'thinking') {
       nextActionName = 'thinking';
@@ -68,7 +64,7 @@ export function HologramAvatar({ animationState = 'idle' }: { animationState?: '
     } else if (animationState === 'workout') {
       nextActionName = 'workout';
     } else {
-      nextActionName = 'idle_breathing';
+      nextActionName = 'idle_simple';
     }
 
     const nextAction = actions[nextActionName];
