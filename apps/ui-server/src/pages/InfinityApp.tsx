@@ -5,149 +5,243 @@ import './InfinityApp.css';
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function InfinityApp() {
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null });
+  const [logs, setLogs] = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [totalData, setTotalData] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadScheduler = async () => {
+  const fetchStatus = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/scheduler`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setJobs(data);
-    } catch (err: any) {
-      toast.error('Errore caricamento scheduler: ' + err.message);
-    } finally {
-      setIsLoading(false);
+      const res = await fetch(`${API_URL}/api/admin/infinity/status`);
+      if (res.ok) {
+        const d = await res.json();
+        setStatus(d);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/logs?category=infinity_db&limit=50`);
+      if (res.ok) {
+        const d = await res.json();
+        setLogs(d.logs || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/infinity/data?page=${page}&limit=50&search=${encodeURIComponent(search)}`);
+      if (res.ok) {
+        const d = await res.json();
+        setData(d.data || []);
+        setTotalData(d.total || 0);
+        setTotalPages(d.totalPages || 1);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   useEffect(() => {
-    loadScheduler();
+    const init = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchStatus(), fetchLogs(), fetchData()]);
+      setIsLoading(false);
+    };
+    init();
+
+    const timer = setInterval(() => {
+      fetchLogs();
+    }, 5000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  const toggleJob = async (id: string, enabled: boolean) => {
-    try {
-      const res = await fetch(`${API_URL}/api/v1/admin/scheduler/toggle`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id, enabled })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      toast.success(enabled ? 'Job abilitato' : 'Job disabilitato');
-      loadScheduler();
-    } catch (err: any) {
-      toast.error('Errore modifica stato: ' + err.message);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [page]);
 
-  const updateInterval = async (id: string, intervalValue: number, intervalUnit: string) => {
+  const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.target.checked;
+    setStatus(prev => ({ ...prev, enabled }));
     try {
-      const res = await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
+      const res = await fetch(`${API_URL}/api/admin/infinity/toggle`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id, intervalValue, intervalUnit })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
       });
-      if (!res.ok) throw new Error(await res.text());
-      toast.success('Intervallo aggiornato');
-      loadScheduler();
-    } catch (err: any) {
-      toast.error('Errore aggiornamento intervallo: ' + err.message);
-    }
-  };
-
-  const runNow = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/v1/admin/scheduler/run-now`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id })
-      });
-      const res = await response.json();
-      if (res.success) {
-        toast.success(res.message || 'Avviato con successo');
+      if (res.ok) {
+        toast.success(enabled ? 'Sincronizzazione Automatica Attivata' : 'Sincronizzazione Automatica Disattivata');
+        fetchStatus();
       } else {
-        toast.error(res.message || 'Impossibile avviare il job');
+        throw new Error('Errore nel toggle');
       }
-    } catch (err: any) {
-      toast.error('Errore avvio job: ' + err.message);
+    } catch (e) {
+      toast.error('Errore nel salvataggio stato');
+      setStatus(prev => ({ ...prev, enabled: !enabled }));
     }
   };
+
+  const handleSyncNow = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/infinity/sync-now`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Sync accodato con successo!');
+      } else {
+        toast.error('Errore durante il sync');
+      }
+    } catch (e) {
+      toast.error('Errore di connessione');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="infinity-app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div className="loader-apple"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="infinity-app-container">
-      <div className="infinity-header">
-        <div>
-          <h1 className="infinity-title">Infinity & Scheduler</h1>
-          <p className="infinity-subtitle">Gestione Job Asincroni, BullMQ e Sincronizzazione Zucchetti FDW</p>
+      <div className="infinity-header glass-panel">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div>
+            <h1 className="infinity-title">Zucchetti DB Infinity (FDW)</h1>
+            <p className="infinity-subtitle">Ponte di esportazione dati per ERP Zucchetti</p>
+          </div>
+          <span className={`badge ${status.enabled ? 'badge-success' : 'badge-danger'}`}>
+            {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
+          </span>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+          <div className="infinity-stat">
+            <span className="infinity-stat-label">Totale Record Mappati</span>
+            <span className="infinity-stat-value">{status.records.toLocaleString()}</span>
+          </div>
+          <div className="infinity-stat">
+            <span className="infinity-stat-label">Ultimo Sync</span>
+            <span className="infinity-stat-value" style={{ fontSize: '16px' }}>
+              {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="infinity-content" style={{ flex: 1, overflowY: 'auto' }}>
-        {isLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-            <div className="loader-apple"></div>
+      <div className="infinity-controls-row">
+        <div className="infinity-control-card glass-panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3>Sincronizzazione Automatica</h3>
+            <label className="ios-switch">
+              <input type="checkbox" checked={status.enabled} onChange={handleToggle} />
+              <span className="ios-slider"></span>
+            </label>
           </div>
-        ) : (
-          <div className="scheduler-list">
-            {jobs.map(job => (
-              <div key={job.id} className="scheduler-item">
-                <div className="scheduler-info">
-                  <div className="scheduler-icon">
-                    <i className="fa-solid fa-clock"></i>
-                  </div>
-                  <div>
-                    <div className="scheduler-name">{job.label}</div>
-                    <span className={`scheduler-status ${job.status}`}>
-                      {job.enabled ? 'Attivo' : 'Sospeso'}
-                    </span>
-                  </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+            Quando attivo, il sistema allinea costantemente le mappe immagini e i dati verso il DB Foreign Wrapper utilizzato da Zucchetti.
+          </p>
+          <button className="btn btn-primary" onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
+            Forza Sync Immediato
+          </button>
+        </div>
+
+        <div className="infinity-logs-card glass-panel">
+          <h3 style={{ marginBottom: '12px' }}>Console Log (infinity_db)</h3>
+          <div className="infinity-terminal">
+            {logs.length === 0 ? (
+              <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>
+            ) : (
+              logs.map((log, i) => (
+                <div key={i} className={`log-line level-${log.level.toLowerCase()}`}>
+                  <span className="log-time">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                  <span className="log-msg">{log.message}</span>
                 </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
 
-                <div className="scheduler-actions">
-                  <div className="scheduler-interval">
-                    <input 
-                      type="number" 
-                      className="input" 
-                      defaultValue={job.intervalValue} 
-                      onBlur={(e) => updateInterval(job.id, parseInt(e.target.value, 10), job.intervalUnit)}
-                    />
-                    <select 
-                      className="input" 
-                      defaultValue={job.intervalUnit}
-                      onChange={(e) => updateInterval(job.id, job.intervalValue, e.target.value)}
-                    >
-                      <option value="minutes">Minuti</option>
-                      <option value="hours">Ore</option>
-                      <option value="days">Giorni</option>
-                    </select>
-                  </div>
+      <div className="infinity-data-section glass-panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h3>Dati Condivisi con Zucchetti</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Questa è la vista reale in live di ciò che il Foreign Data Wrapper sta servendo in sola lettura all'ERP.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input 
+              type="text" 
+              className="input" 
+              placeholder="Cerca codice ARCODART..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (setPage(1), fetchData())}
+              style={{ width: '250px' }}
+            />
+            <button className="btn btn-secondary" onClick={() => { setPage(1); fetchData(); }}>Cerca</button>
+          </div>
+        </div>
 
-                  <label className="switch">
-                    <input 
-                      type="checkbox" 
-                      checked={job.enabled} 
-                      onChange={(e) => toggleJob(job.id, e.target.checked)} 
-                    />
-                    <span className="slider"></span>
-                  </label>
+        <div className="table-responsive">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Codice Articolo (ARCODART)</th>
+                <th>URL Immagine (Cloudinary)</th>
+                <th>Timestamp Aggiornamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nessun dato trovato</td>
+                </tr>
+              ) : (
+                data.map((row) => (
+                  <tr key={row.ARCODART}>
+                    <td style={{ fontWeight: 600 }}>{row.ARCODART}</td>
+                    <td>
+                      <a href={row.URL_FOTO} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                        {row.URL_FOTO.substring(0, 50)}...
+                      </a>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {new Date(row.updatedAt).toLocaleString('it-IT')}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                  <button className="btn btn-secondary" onClick={() => runNow(job.id)}>
-                    <i className="fa-solid fa-play"></i> Run
-                  </button>
-                </div>
-              </div>
-            ))}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+            <button 
+              className={`btn btn-secondary ${page === 1 ? 'disabled' : ''}`} 
+              onClick={() => page > 1 && setPage(page - 1)}
+            >Precedente</button>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+              Pagina {page} di {totalPages} ({totalData} record)
+            </div>
+            <button 
+              className={`btn btn-secondary ${page === totalPages ? 'disabled' : ''}`} 
+              onClick={() => page < totalPages && setPage(page + 1)}
+            >Successivo</button>
           </div>
         )}
       </div>

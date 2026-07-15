@@ -5,13 +5,13 @@
   padding: var(--spacing-xl);
   height: 100%;
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
 }
 
 .infinity-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
 }
 
 .infinity-title {
@@ -25,124 +25,77 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   margin-top: var(--spacing-xs);
+  margin-bottom: 0;
 }
 
-.scheduler-list {
+.infinity-stat {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  align-items: flex-end;
 }
 
-.scheduler-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-}
-
-.scheduler-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.scheduler-icon {
-  font-size: 1.5rem;
-  color: var(--color-primary);
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-md);
-}
-
-.scheduler-name {
-  font-weight: 600;
-  font-size: var(--font-size-md);
-  margin-bottom: var(--spacing-xs);
-}
-
-.scheduler-status {
-  font-size: var(--font-size-xs);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-
-.scheduler-status.active {
-  background: var(--color-success-light, #e6f4ea);
-  color: var(--color-success, #1e8e3e);
-}
-
-.scheduler-status.idle {
-  background: var(--color-border);
+.infinity-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
   color: var(--color-text-muted);
+  letter-spacing: 0.5px;
 }
 
-.scheduler-actions {
+.infinity-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.infinity-controls-row {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--spacing-lg);
+}
+
+.infinity-control-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
+  flex-direction: column;
 }
 
-.scheduler-interval {
+.infinity-logs-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+  flex-direction: column;
+  height: 250px;
 }
 
-.scheduler-interval input {
-  width: 60px;
-  text-align: center;
+.infinity-terminal {
+  flex: 1;
+  background: #1e1e1e;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px;
+  overflow-y: auto;
+  color: #d4d4d4;
 }
 
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
+.log-line {
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-break: break-all;
 }
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+.log-time {
+  color: #858585;
+  margin-right: 8px;
 }
 
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--color-border);
-  transition: .4s;
-  border-radius: 24px;
+.log-line.level-error .log-msg { color: #f14c4c; }
+.log-line.level-warn .log-msg { color: #cca700; }
+.log-line.level-info .log-msg { color: #3794ff; }
+.log-line.level-debug .log-msg { color: #608b4e; }
+
+.infinity-data-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: var(--color-primary);
-}
-
-input:checked + .slider:before {
-  transform: translateX(20px);
-}
+.badge-success { background-color: var(--success); color: white; }
+.badge-danger { background-color: var(--danger); color: white; }

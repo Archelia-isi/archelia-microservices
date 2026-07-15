@@ -19,6 +19,7 @@ import { adminDatabaseRoutes } from './routes/admin/database.js';
 import adminPromoRoutes from './routes/admin/promo.js';
 import { adminEqualizzatoreRoutes } from './routes/admin/equalizzatore.js';
 import { marketingRoutes } from './routes/admin/marketing.js';
+import infinityRoutes from './routes/admin/infinity.js';
 
 async function buildApp() {
   const app = Fastify({
@@ -56,6 +57,7 @@ async function buildApp() {
   await app.register(adminPromoRoutes);
   await app.register(adminEqualizzatoreRoutes);
   await app.register(marketingRoutes);
+  await app.register(infinityRoutes, { prefix: '/api/admin/infinity' });
 
   return app;
 }
