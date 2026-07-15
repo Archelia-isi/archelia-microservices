@@ -31,6 +31,7 @@ export default function ImagesApp() {
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [page, setPage] = useState(1);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -342,21 +343,27 @@ export default function ImagesApp() {
           {activeTab === 'gallery' && (
             <GlassPanel>
               {isLoadingGallery ? (
-                <div style={{ padding: 'var(--spacing-3xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-lg)' }}>Caricamento galleria da Cloudinary...</div>
+                <div style={{ padding: 'var(--spacing-3xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-lg)' }}>Caricamento galleria da Cloudinary... (potrebbe richiedere qualche secondo)</div>
               ) : (
-                <div className="images-gallery-grid">
-                  {galleryImages.slice(0, 100).map((file, i) => (
-                    <div key={i} className="images-gallery-item">
-                      <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_300,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
-                      <div className="images-gallery-label">{file}</div>
+                <>
+                  <div className="images-gallery-grid">
+                    {galleryImages.slice((page - 1) * 100, page * 100).map((file, i) => (
+                      <div key={i} className="images-gallery-item">
+                        <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_300,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
+                        <div className="images-gallery-label" style={{ wordBreak: 'break-all' }}>{file}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {galleryImages.length > 100 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'var(--spacing-xl)', padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-lg)' }}>
+                      <Button variant="secondary" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>Precedente</Button>
+                      <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        Pagina {page} di {Math.ceil(galleryImages.length / 100)} ({galleryImages.length} foto)
+                      </span>
+                      <Button variant="primary" onClick={() => setPage(Math.min(Math.ceil(galleryImages.length / 100), page + 1))} disabled={page >= Math.ceil(galleryImages.length / 100)}>Successiva</Button>
                     </div>
-                  ))}
-                </div>
-              )}
-              {galleryImages.length > 100 && (
-                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                  Mostrati 100 di {galleryImages.length} file totali
-                </div>
+                  )}
+                </>
               )}
             </GlassPanel>
           )}
