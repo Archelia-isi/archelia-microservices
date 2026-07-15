@@ -208,8 +208,8 @@
 }
 
 .images-gallery-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
 .images-gallery-item img {
