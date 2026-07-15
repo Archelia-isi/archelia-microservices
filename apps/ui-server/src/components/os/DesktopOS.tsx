@@ -18,6 +18,9 @@ import PromoAutoApp from '../../pages/PromoAutoApp';
 import AiChatbotApp from '../ai/AiChatbotApp';
 import './DesktopOS.css';
 
+import InfinityApp from '../../pages/InfinityApp';
+import ImagesApp from '../../pages/ImagesApp';
+
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen } = useWindowStore();
   const { widgets } = useWidgetStore();
@@ -139,6 +142,12 @@ export default function DesktopOS() {
     }
     if (!windows['email_builder']) {
       registerApp({ id: 'email_builder', title: 'Email AI Builder', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 300, y: 150, width: 1100, height: 750, desktopX: 230, desktopY: 30 });
+    }
+    if (!windows['infinity']) {
+      registerApp({ id: 'infinity', title: 'Infinity Sync', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 100, width: 900, height: 600, desktopX: 230, desktopY: 130 });
+    }
+    if (!windows['images']) {
+      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 230 });
     }
   }, []);
 

@@ -25,6 +25,12 @@ const pullWorker = new Worker('zucchetti-commands', async job => {
     return result;
   }
   
+  if (command === 'ZUCCHETTI_INFINITY_DB') {
+    logger.info(`Ricevuto comando ${command} (Job ID: ${job.id})`);
+    const { processInfinityDbJob } = await import('./jobs/InfinityDbJob.js');
+    return processInfinityDbJob(job);
+  }
+  
   logger.warn(`Comando sconosciuto ricevuto: ${command}`);
   return null;
 }, {
