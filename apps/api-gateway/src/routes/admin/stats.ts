@@ -21,7 +21,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
             withoutPrice: z.number(),
             withoutStock: z.number(),
             customers: z.number(),
-            syncLogs: z.number()
+            syncLogs: z.number(),
+            ordersToday: z.number(),
+            revenueToday: z.number()
           }),
           server: z.object({
             uptime: z.number(),
@@ -35,6 +37,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const startTime = Date.now();
 
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
     const [
       totalProducts,
       publishedProducts,
@@ -42,7 +47,8 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       withoutPrice,
       withoutStock,
       customers,
-      syncLogs
+      syncLogs,
+      ordersTodayList
     ] = await Promise.all([
       prisma.product.count(),
       prisma.product.count({ where: { publishedOnWeb: true } }),
@@ -50,8 +56,21 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       prisma.product.count({ where: { OR: [{ price: 0 }, { price: null as any }] } }),
       prisma.product.count({ where: { OR: [{ stock: 0 }, { stock: null as any }] } }),
       prisma.zelShopifyCustomer.count(),
-      prisma.syncLog.count()
+      prisma.syncLog.count(),
+      prisma.orderQueue.findMany({
+        where: { createdAt: { gte: startOfDay } },
+        select: { payload: true }
+      })
     ]);
+
+    const ordersToday = ordersTodayList.length;
+    let revenueToday = 0;
+    ordersTodayList.forEach(order => {
+      const payload: any = order.payload;
+      if (payload && payload.total_price) {
+        revenueToday += parseFloat(payload.total_price);
+      }
+    });
 
     const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
     const loadAvg = os.loadavg()[0];
@@ -64,7 +83,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
         withoutPrice,
         withoutStock,
         customers,
-        syncLogs
+        syncLogs,
+        ordersToday,
+        revenueToday
       },
       server: {
         uptime: process.uptime(),
