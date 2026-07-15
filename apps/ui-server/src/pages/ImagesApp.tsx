@@ -9,8 +9,8 @@ import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
 import './ImagesApp.css';
 
-const API_BASE = '/api/admin';
-
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+const API_BASE = `${API_URL}/api/admin`;
 type TabType = 'upload' | 'report' | 'gallery';
 
 interface ImageReport {
