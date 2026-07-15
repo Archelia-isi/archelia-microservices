@@ -18,7 +18,6 @@ import PromoAutoApp from '../../pages/PromoAutoApp';
 import AiChatbotApp from '../ai/AiChatbotApp';
 import './DesktopOS.css';
 
-import SchedulerApp from '../../pages/SchedulerApp';
 import InfinityApp from '../../pages/InfinityApp';
 import ImagesApp from '../../pages/ImagesApp';
 
@@ -143,9 +142,6 @@ export default function DesktopOS() {
     }
     if (!windows['email_builder']) {
       registerApp({ id: 'email_builder', title: 'Email AI Builder', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 300, y: 150, width: 1100, height: 750, desktopX: 230, desktopY: 30 });
-    }
-    if (!windows['scheduler']) {
-      registerApp({ id: 'scheduler', title: 'Scheduler', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <SchedulerApp />, x: 200, y: 100, width: 900, height: 600, desktopX: 230, desktopY: 130 });
     }
     if (!windows['infinity']) {
       registerApp({ id: 'infinity', title: 'Infinity DB', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 250, y: 120, width: 1000, height: 700, desktopX: 330, desktopY: 30 });
