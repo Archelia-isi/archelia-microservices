@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { Database, RotateCcw } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Switch from '../components/ui/Switch';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import TextInput from '../components/ui/TextInput';
 import StickyHeader from '../components/ui/StickyHeader';
-import Loader from '../components/ui/Loader';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 import './InfinityApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -19,7 +20,8 @@ export default function InfinityApp() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [isAppReady, setIsAppReady] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -61,9 +63,8 @@ export default function InfinityApp() {
 
   useEffect(() => {
     const init = async () => {
-      setIsLoading(true);
       await Promise.all([fetchStatus(), fetchLogs(), fetchData()]);
-      setIsLoading(false);
+      setTimeout(() => setIsAppReady(true), 400);
     };
     init();
 
@@ -75,7 +76,9 @@ export default function InfinityApp() {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    if (isAppReady) {
+      fetchData();
+    }
   }, [page]);
 
   const handleToggle = async (checked: boolean) => {
@@ -111,151 +114,158 @@ export default function InfinityApp() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="infinity-app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <Loader />
-      </div>
-    );
-  }
-
   return (
-    <div className="infinity-app-container">
-      <StickyHeader paddingY="lg" className="infinity-sticky-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div>
-              <h1 className="infinity-title">Zucchetti DB Infinity (FDW)</h1>
-              <p className="infinity-subtitle">Ponte di esportazione dati per ERP Zucchetti</p>
-            </div>
-            <Badge variant={status.enabled ? 'success' : 'danger'}>
-              {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
-            </Badge>
-          </div>
+    <>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Infinity DB" 
+        icon={<Database size={56} />} 
+      />
+      
+      <div className={`infinity-app eq-app-entry ${isAppReady ? 'ready' : ''}`}>
+        <div className="infinity-main-container">
           
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <div className="infinity-stat">
-              <span className="infinity-stat-label">Totale Record Mappati</span>
-              <span className="infinity-stat-value">{status.records.toLocaleString()}</span>
-            </div>
-            <div className="infinity-stat">
-              <span className="infinity-stat-label">Ultimo Sync</span>
-              <span className="infinity-stat-value" style={{ fontSize: '16px' }}>
-                {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </StickyHeader>
-
-      <div className="infinity-controls-row">
-        <GlassPanel padding="lg" variant="heavy" className="infinity-control-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ margin: 0 }}>Sincronizzazione Automatica</h3>
-            <Switch checked={status.enabled} onChange={handleToggle} />
-          </div>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginBottom: '24px' }}>
-            Quando attivo, il sistema allinea costantemente le mappe immagini e i dati verso il DB Foreign Wrapper utilizzato da Zucchetti.
-          </p>
-          <Button variant="primary" onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
-            Forza Sync Immediato
-          </Button>
-        </GlassPanel>
-
-        <GlassPanel padding="lg" variant="heavy" className="infinity-logs-card">
-          <h3 style={{ margin: '0 0 16px 0' }}>Console Log (infinity_db)</h3>
-          <div className="infinity-terminal">
-            {logs.length === 0 ? (
-              <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>
-            ) : (
-              logs.map((log, i) => (
-                <div key={i} className={`log-line level-${log.level.toLowerCase()}`}>
-                  <span className="log-time">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-                  <span className="log-msg">{log.message}</span>
+          <StickyHeader paddingY="md">
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="infinity-header-left">
+                <Database size={24} style={{ color: 'var(--color-primary)' }} />
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)' }}>
+                    Zucchetti DB Infinity (FDW)
+                  </h2>
                 </div>
-              ))
-            )}
-          </div>
-        </GlassPanel>
-      </div>
+                <Badge variant={status.enabled ? 'success' : 'danger'} size="sm" style={{ marginLeft: '12px' }}>
+                  {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
+                </Badge>
+              </div>
+              
+              <div className="infinity-header-right" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Totale Mappati</div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)', lineHeight: 1.2 }}>{status.records.toLocaleString()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ultimo Sync</div>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', lineHeight: 1.2 }}>
+                    {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
+                  </div>
+                </div>
+              </div>
+            </GlassPanel>
+          </StickyHeader>
 
-      <GlassPanel padding="lg" variant="light" className="infinity-data-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Dati Condivisi con Zucchetti</h3>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px', marginBottom: 0 }}>
-              Questa è la vista reale in live di ciò che il Foreign Data Wrapper sta servendo in sola lettura all'ERP.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <TextInput 
-              placeholder="Cerca codice ARCODART..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (setPage(1), fetchData())}
-              style={{ width: '250px' }}
-            />
-            <Button variant="secondary" onClick={() => { setPage(1); fetchData(); }}>Cerca</Button>
-          </div>
-        </div>
+          <div className="infinity-content-grid">
+            <GlassPanel padding="lg" variant="light" className="infinity-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Sincronizzazione Automatica</h3>
+                <Switch checked={status.enabled} onChange={handleToggle} />
+              </div>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
+                Quando attivo, il sistema allinea costantemente le mappe immagini e i dati verso il DB Foreign Wrapper utilizzato da Zucchetti.
+              </p>
+              <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
+                Forza Sync Immediato
+              </Button>
+            </GlassPanel>
 
-        <div className="infinity-table-responsive">
-          <table className="infinity-table">
-            <thead>
-              <tr>
-                <th>Codice Articolo (ARCODART)</th>
-                <th>URL Immagine (Cloudinary)</th>
-                <th>Timestamp Aggiornamento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.length === 0 ? (
-                <tr>
-                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Nessun dato trovato</td>
-                </tr>
-              ) : (
-                data.map((row) => (
-                  <tr key={row.arcodart}>
-                    <td style={{ fontWeight: 600 }}>{row.arcodart}</td>
-                    <td>
-                      {row.arfulres ? (
-                        <a href={row.arfulres} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
-                          {row.arfulres.substring(0, 50)}...
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td style={{ color: 'var(--color-text-muted)' }}>
-                      {row.updatedAt ? new Date(row.updatedAt).toLocaleString('it-IT') : '-'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            <GlassPanel padding="none" variant="solid" className="infinity-logs-card">
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border-light)', background: 'var(--color-surface)' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Console Log (infinity_db)</h3>
+              </div>
+              <div className="infinity-terminal">
+                {logs.length === 0 ? (
+                  <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>
+                ) : (
+                  logs.map((log, i) => (
+                    <div key={i} className={`log-line level-${log.level.toLowerCase()}`}>
+                      <span className="log-time">[{new Date(log.timestamp).toLocaleTimeString('it-IT', { hour12: false })}]</span>
+                      <span className="log-msg">{log.message}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </GlassPanel>
+          </div>
 
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
-            <Button 
-              variant="secondary"
-              disabled={page === 1}
-              onClick={() => page > 1 && setPage(page - 1)}
-            >
-              Precedente
-            </Button>
-            <div style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-              Pagina {page} di {totalPages} ({totalData} record)
+          <GlassPanel padding="lg" variant="light" className="infinity-table-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Dati Condivisi con Zucchetti</h3>
+                <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginTop: '4px', marginBottom: 0 }}>
+                  Questa è la vista reale in live di ciò che il Foreign Data Wrapper sta servendo in sola lettura all'ERP.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <TextInput 
+                  placeholder="Cerca codice ARCODART..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (setPage(1), fetchData())}
+                  style={{ width: '250px' }}
+                />
+                <Button variant="secondary" onClick={() => { setPage(1); fetchData(); }}>Cerca</Button>
+              </div>
             </div>
-            <Button 
-              variant="secondary"
-              disabled={page === totalPages}
-              onClick={() => page < totalPages && setPage(page + 1)}
-            >
-              Successivo
-            </Button>
-          </div>
-        )}
-      </GlassPanel>
-    </div>
+
+            <div className="infinity-table-responsive">
+              <table className="infinity-table">
+                <thead>
+                  <tr>
+                    <th>Codice Articolo (ARCODART)</th>
+                    <th>URL Immagine (Cloudinary)</th>
+                    <th>Timestamp Aggiornamento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '40px' }}>Nessun dato trovato</td>
+                    </tr>
+                  ) : (
+                    data.map((row) => (
+                      <tr key={row.arcodart}>
+                        <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{row.arcodart}</td>
+                        <td>
+                          {row.arfulres ? (
+                            <a href={row.arfulres} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
+                              {row.arfulres.substring(0, 60)}...
+                            </a>
+                          ) : '-'}
+                        </td>
+                        <td style={{ color: 'var(--color-text-muted)' }}>
+                          {row.updatedAt ? new Date(row.updatedAt).toLocaleString('it-IT') : '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
+                <Button 
+                  variant="secondary"
+                  disabled={page === 1}
+                  onClick={() => page > 1 && setPage(page - 1)}
+                >
+                  Precedente
+                </Button>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 500 }}>
+                  Pagina {page} di {totalPages} ({totalData} record)
+                </div>
+                <Button 
+                  variant="secondary"
+                  disabled={page === totalPages}
+                  onClick={() => page < totalPages && setPage(page + 1)}
+                >
+                  Successivo
+                </Button>
+              </div>
+            )}
+          </GlassPanel>
+        </div>
+      </div>
+    </>
   );
 }
