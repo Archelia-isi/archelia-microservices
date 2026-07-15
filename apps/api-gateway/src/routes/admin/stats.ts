@@ -23,7 +23,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
             customers: z.number(),
             syncLogs: z.number(),
             ordersToday: z.number(),
-            revenueToday: z.number()
+            revenueToday: z.number(),
+            ordersTotal: z.number(),
+            revenueTotal: z.number()
           }),
           server: z.object({
             uptime: z.number(),
@@ -48,7 +50,8 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       withoutStock,
       customers,
       syncLogs,
-      ordersTodayList
+      ordersTodayList,
+      allOrdersList
     ] = await Promise.all([
       prisma.product.count(),
       prisma.product.count({ where: { publishedOnWeb: true } }),
@@ -60,6 +63,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       prisma.orderQueue.findMany({
         where: { createdAt: { gte: startOfDay } },
         select: { payload: true }
+      }),
+      prisma.orderQueue.findMany({
+        select: { payload: true }
       })
     ]);
 
@@ -69,6 +75,15 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       const payload: any = order.payload;
       if (payload && payload.total_price) {
         revenueToday += parseFloat(payload.total_price);
+      }
+    });
+
+    const ordersTotal = allOrdersList.length;
+    let revenueTotal = 0;
+    allOrdersList.forEach(order => {
+      const payload: any = order.payload;
+      if (payload && payload.total_price) {
+        revenueTotal += parseFloat(payload.total_price);
       }
     });
 
@@ -85,7 +100,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
         customers,
         syncLogs,
         ordersToday,
-        revenueToday
+        revenueToday,
+        ordersTotal,
+        revenueTotal
       },
       server: {
         uptime: process.uptime(),

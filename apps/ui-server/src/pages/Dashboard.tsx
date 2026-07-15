@@ -12,6 +12,8 @@ interface StatsResponse {
     syncLogs: number;
     ordersToday: number;
     revenueToday: number;
+    ordersTotal: number;
+    revenueTotal: number;
   };
   server: {
     uptime: number;
@@ -105,6 +107,9 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
             <span className="text-h1">{stats?.stats.ordersToday || 0}</span>
+            <span className="text-small" style={{ color: 'var(--color-text-muted)' }}>
+              ({stats?.stats.ordersTotal || 0} totali)
+            </span>
           </div>
         </div>
 
@@ -115,6 +120,9 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
             <span className="text-h1">{formatCurrency(stats?.stats.revenueToday || 0)}</span>
+            <span className="text-small" style={{ color: 'var(--color-text-muted)' }}>
+              ({formatCurrency(stats?.stats.revenueTotal || 0)} tot)
+            </span>
           </div>
         </div>
 
