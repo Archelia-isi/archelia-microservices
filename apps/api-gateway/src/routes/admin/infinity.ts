@@ -4,7 +4,7 @@ import { Queue } from 'bullmq';
 import { redis } from '@archelia/core';
 
 // Pass redis as connection to bullmq
-const zucchettiQueue = new Queue('zucchetti-queue', { connection: redis as any });
+const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 
 export default async function infinityRoutes(fastify: FastifyInstance) {
   // GET /api/admin/infinity/data (Paginato + Ricerca)
