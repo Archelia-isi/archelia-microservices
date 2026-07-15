@@ -212,15 +212,17 @@ export default function InfinityApp() {
                 </tr>
               ) : (
                 data.map((row) => (
-                  <tr key={row.ARCODART}>
-                    <td style={{ fontWeight: 600 }}>{row.ARCODART}</td>
+                  <tr key={row.arcodart}>
+                    <td style={{ fontWeight: 600 }}>{row.arcodart}</td>
                     <td>
-                      <a href={row.URL_FOTO} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
-                        {row.URL_FOTO.substring(0, 50)}...
-                      </a>
+                      {row.arfulres ? (
+                        <a href={row.arfulres} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                          {row.arfulres.substring(0, 50)}...
+                        </a>
+                      ) : '-'}
                     </td>
                     <td style={{ color: 'var(--text-muted)' }}>
-                      {new Date(row.updatedAt).toLocaleString('it-IT')}
+                      {row.updatedAt ? new Date(row.updatedAt).toLocaleString('it-IT') : '-'}
                     </td>
                   </tr>
                 ))
