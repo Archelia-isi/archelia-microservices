@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown } from 'lucide-react';
+import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown, Settings2 } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import AppSplashScreen from '../components/os/AppSplashScreen';
+import StickyHeader from '../components/ui/StickyHeader';
+import Tabs from '../components/ui/Tabs';
+import DropdownMenu from '../components/ui/DropdownMenu';
 import './ImagesApp.css';
 
 const API_BASE = '/api/admin';
@@ -156,38 +159,50 @@ export default function ImagesApp() {
 
   return (
     <div className={`images-app ${!isAppReady ? 'eq-splash-active' : ''}`}>
-      {!isAppReady && <AppSplashScreen appName="Immagini & Asset" icon={<ImageIcon size={32} />} isLoading={true} />}
-      
-      {isAppReady && (
-        <>
-          <div className="images-header-glass">
-            <div className="images-header-title">
-              <div className="images-header-icon">
-                <ImageIcon size={24} />
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Immagini & Asset" 
+        icon={<ImageIcon size={56} />} 
+      />
+      {/* Main App Container */}
+      <div className={`equalizzatore-app eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div className="eq-main-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        
+        {/* Dynamic Header & Tabs merged */}
+        <StickyHeader paddingY="md">
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="eq-header-modern-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                <ImageIcon size={20} color="var(--color-primary)" />
+                <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Immagini & Asset</h2>
               </div>
-              <h2>Immagini & Asset</h2>
+            
+              <Tabs 
+                activeTab={activeTab}
+                onChange={(id) => handleTabChange(id as TabType)}
+                tabs={[
+                  { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
+                  { id: 'map', label: 'Mappa JSON', icon: <RefreshCw size={14}/> },
+                  { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
+                  { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
+                ]}
+              />
             </div>
-            <div className="images-segmented-control">
-              <button className={`images-tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => handleTabChange('upload')}>
-                <UploadCloud size={18} />
-                Upload Cartella
-              </button>
-              <button className={`images-tab-btn ${activeTab === 'map' ? 'active' : ''}`} onClick={() => handleTabChange('map')}>
-                <RefreshCw size={18} />
-                Mappa JSON
-              </button>
-              <button className={`images-tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => handleTabChange('report')}>
-                <BarChart2 size={18} />
-                Report
-              </button>
-              <button className={`images-tab-btn ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleTabChange('gallery')}>
-                <ImageIcon size={18} />
-                Galleria
-              </button>
-            </div>
-          </div>
 
-          <div className="images-app-content">
+            <div className="eq-header-modern-right">
+              {/* Optional Actions Menu to mimic the Equalizzatore completely */}
+              <DropdownMenu
+                label="Azioni"
+                icon={<Settings2 size={16} />}
+                items={[
+                  { id: 'refresh', label: 'Forza Rigenerazione Mappa', icon: <RefreshCw size={14} />, variant: 'primary', onClick: handleRefreshMap }
+                ]}
+              />
+            </div>
+          </GlassPanel>
+        </StickyHeader>
+
+        <div className="images-app-content" style={{ flex: 1, overflowY: 'auto' }}>
 
           {activeTab === 'upload' && (
             <div className="images-upload-container">
@@ -366,8 +381,8 @@ export default function ImagesApp() {
           )}
 
         </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
