@@ -6,7 +6,6 @@ import Switch from '../components/ui/Switch';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import TextInput from '../components/ui/TextInput';
-import StickyHeader from '../components/ui/StickyHeader';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import './InfinityApp.css';
 
@@ -125,34 +124,40 @@ export default function InfinityApp() {
       <div className={`infinity-app eq-app-entry ${isAppReady ? 'ready' : ''}`}>
         <div className="infinity-main-container">
           
-          <StickyHeader paddingY="md">
-            <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="infinity-header-left">
-                <Database size={24} style={{ color: 'var(--color-primary)' }} />
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
+                <Database size={24} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: 'var(--color-text-main)' }}>
                     Zucchetti DB Infinity (FDW)
                   </h2>
+                  <Badge variant={status.enabled ? 'success' : 'danger'} size="sm">
+                    {status.enabled ? 'Attivo' : 'Sospeso'}
+                  </Badge>
                 </div>
-                <Badge variant={status.enabled ? 'success' : 'danger'} size="sm" style={{ marginLeft: '12px' }}>
-                  {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
-                </Badge>
+                <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                  Ponte di esportazione dati per ERP Zucchetti
+                </p>
               </div>
-              
-              <div className="infinity-header-right" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Totale Mappati</div>
-                  <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)', lineHeight: 1.2 }}>{status.records.toLocaleString()}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ultimo Sync</div>
-                  <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', lineHeight: 1.2 }}>
-                    {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
-                  </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '32px', alignItems: 'center', background: '#f5f5f7', padding: '12px 24px', borderRadius: '16px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Totale Mappati</div>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)', lineHeight: 1.2 }}>{status.records.toLocaleString()}</div>
+              </div>
+              <div style={{ width: '1px', height: '30px', background: 'var(--color-border-dark)' }}></div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ultimo Sync</div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', lineHeight: 1.2, marginTop: '2px' }}>
+                  {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
                 </div>
               </div>
-            </GlassPanel>
-          </StickyHeader>
+            </div>
+          </div>
 
           <div className="infinity-content-grid">
             <GlassPanel padding="lg" variant="light" className="infinity-card">
