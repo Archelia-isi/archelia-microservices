@@ -17,6 +17,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('manual');
   const [isAppReady, setIsAppReady] = useState(false);
+  const [localValues, setLocalValues] = useState<Record<string, { val: number, unit: string, time: string | null }>>({});
 
   const loadScheduler = async () => {
     try {
@@ -26,6 +27,11 @@ export default function Settings() {
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setJobs(data);
+      const newLocalVals: any = {};
+      data.forEach((j: any) => {
+        newLocalVals[j.id] = { val: j.intervalValue, unit: j.intervalUnit, time: j.startTime };
+      });
+      setLocalValues(newLocalVals);
     } catch (err: any) {
       toast.error('Errore caricamento scheduler: ' + err.message);
     } finally {
@@ -59,7 +65,7 @@ export default function Settings() {
     }
   };
 
-  const updateInterval = async (id: string, intervalValue: number, intervalUnit: string) => {
+  const updateInterval = async (id: string, intervalValue: number, intervalUnit: string, startTime: string | null) => {
     try {
       const res = await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
         method: 'POST',
@@ -67,7 +73,7 @@ export default function Settings() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ id, intervalValue, intervalUnit })
+        body: JSON.stringify({ id, intervalValue, intervalUnit, startTime })
       });
       if (!res.ok) throw new Error(await res.text());
       toast.success('Intervallo aggiornato');
@@ -204,19 +210,35 @@ export default function Settings() {
                             <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)' }}>Esegui ogni:</span>
                             <input 
                               type="number" 
-                              value={job.intervalValue}
-                              onChange={(e) => updateInterval(job.id, parseInt(e.target.value) || 1, job.intervalUnit)}
+                              value={localValues[job.id]?.val ?? job.intervalValue}
+                              onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], val: parseInt(e.target.value) || 1 }}))}
                               style={{ width: '60px', padding: '8px', borderRadius: '8px', border: '1px solid var(--color-border-light)', outline: 'none' }}
                             />
                             <select 
-                              value={job.intervalUnit}
-                              onChange={(e) => updateInterval(job.id, job.intervalValue, e.target.value)}
+                              value={localValues[job.id]?.unit ?? job.intervalUnit}
+                              onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], unit: e.target.value }}))}
                               style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
                             >
                               <option value="minutes">Minuti</option>
                               <option value="hours">Ore</option>
                               <option value="days">Giorni</option>
                             </select>
+
+                            <input 
+                              type="time" 
+                              value={localValues[job.id]?.time ?? job.startTime ?? ''}
+                              onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], time: e.target.value }}))}
+                              style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
+                              disabled={(localValues[job.id]?.unit ?? job.intervalUnit) !== 'days' && (localValues[job.id]?.unit ?? job.intervalUnit) !== 'hours'}
+                            />
+
+                            <button 
+                              onClick={() => updateInterval(job.id, localValues[job.id]?.val ?? job.intervalValue, localValues[job.id]?.unit ?? job.intervalUnit, localValues[job.id]?.time ?? job.startTime)}
+                              style={{ padding: '8px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              title="Salva impostazioni"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            </button>
                           </div>
                           
                           <div style={{ width: '1px', height: '30px', background: 'var(--color-border-dark)' }}></div>

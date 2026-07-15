@@ -27,11 +27,22 @@ const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: strin
   'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense' },
 };
 
-function toCronExpression(value: number, unit: string): string {
+function toCronExpression(value: number, unit: string, startTime?: string | null): string {
+  let minute = '0';
+  let hour = '0';
+
+  if (startTime) {
+    const parts = startTime.split(':');
+    if (parts.length === 2) {
+      hour = parseInt(parts[0], 10).toString();
+      minute = parseInt(parts[1], 10).toString();
+    }
+  }
+
   switch (unit) {
     case 'minutes': return `*/${value} * * * *`;
-    case 'hours':   return `0 */${value} * * *`;
-    case 'days':    return `0 0 */${value} * *`;
+    case 'hours':   return `${minute} */${value} * * *`;
+    case 'days':    return `${minute} ${hour} */${value} * *`;
     default:        return `*/${value} * * * *`;
   }
 }
@@ -51,7 +62,7 @@ async function applyJobSchedule(jobId: string, config: any) {
   // Se disabilitato, abbiamo già rimosso, quindi ok.
   if (!config.enabled) return;
 
-  const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit);
+  const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
   await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
     repeat: { pattern: cronPattern }
   });
@@ -90,6 +101,7 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
           enabled: c?.enabled || false,
           intervalValue: c?.intervalValue || 30,
           intervalUnit: c?.intervalUnit || 'minutes',
+          startTime: c?.startTime || null,
           status: c?.enabled ? 'active' : 'idle',
           isManualOnly: mapping.isManualOnly || false,
           cronExpression: activeRepeatableJob ? activeRepeatableJob.pattern : null,
@@ -125,17 +137,17 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
   fastify.post('/api/v1/admin/scheduler/update-interval', { 
     preHandler: [requireAdmin],
     schema: {
-      body: z.object({ id: z.string(), intervalValue: z.number(), intervalUnit: z.string() }),
+      body: z.object({ id: z.string(), intervalValue: z.number(), intervalUnit: z.string(), startTime: z.string().nullable().optional() }),
       response: { 200: z.object({ success: z.boolean() }) }
     }
   }, async (request, reply) => {
-    const { id, intervalValue, intervalUnit } = request.body;
-    log.info(`Updating interval for ${id} to ${intervalValue} ${intervalUnit}`, { module: 'api-gateway:scheduler' });
+    const { id, intervalValue, intervalUnit, startTime } = request.body;
+    log.info(`Updating interval for ${id} to ${intervalValue} ${intervalUnit} (startTime: ${startTime})`, { module: 'api-gateway:scheduler' });
 
     const config = await prisma.schedulerConfig.upsert({
       where: { jobId: id },
-      update: { intervalValue, intervalUnit },
-      create: { jobId: id, enabled: false, intervalValue, intervalUnit }
+      update: { intervalValue, intervalUnit, startTime: startTime || null },
+      create: { jobId: id, enabled: false, intervalValue, intervalUnit, startTime: startTime || null }
     });
 
     await applyJobSchedule(id, config);
