@@ -12,8 +12,10 @@ const marketingQueue = new Queue('marketing-queue', { connection: redis as any }
 const promoQueue = new Queue('promo-commands', { connection: redis as any });
 const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
 
-const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string }> = {
+const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean }> = {
   'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti' },
+  'mappatura-collezioni': { queue: shopifyQueue, command: 'MAPPATURA_COLLEZIONI', label: '🗂️ Mappatura Collezioni', isManualOnly: true },
+  'sync-collezioni-shopify': { queue: shopifyQueue, command: 'SYNC_COLLEZIONI_SHOPIFY', label: '☁️ Sync Collezioni Shopify', isManualOnly: true },
   'sync-images': { queue: shopifyQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini' },
   'sync-banners': { queue: promoQueue, command: 'SYNC_BANNERS', label: '🖼️ Sync Banners' },
   'pulizia-promozioni': { queue: promoQueue, command: 'PULIZIA_PROMOZIONI', label: '🧹 Pulizia Promozioni' },
@@ -69,17 +71,31 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
     const configs = await prisma.schedulerConfig.findMany();
     const configMap = new Map(configs.map(c => [c.jobId, c]));
 
-    const state = Object.keys(JOB_MAPPINGS).map(jobId => {
-      const c = configMap.get(jobId);
-      return {
-        id: jobId,
-        label: JOB_MAPPINGS[jobId].label,
-        enabled: c?.enabled || false,
-        intervalValue: c?.intervalValue || 30,
-        intervalUnit: c?.intervalUnit || 'minutes',
-        status: c?.enabled ? 'active' : 'idle'
-      };
-    });
+    // Fetch all repeatable jobs to find next run times
+    const queues = [zucchettiQueue, shopifyQueue, promoQueue, typesenseQueue];
+    const allRepeatableJobs = (await Promise.all(queues.map(q => q.getRepeatableJobs()))).flat();
+
+    const state = Object.keys(JOB_MAPPINGS)
+      .filter(jobId => jobId !== 'zucchetti-infinity-db' && jobId !== 'sync-typesense')
+      .map(jobId => {
+        const mapping = JOB_MAPPINGS[jobId];
+        const c = configMap.get(jobId);
+        
+        // Find if it has an active repeatable job
+        const activeRepeatableJob = allRepeatableJobs.find(rj => rj.name === mapping.command);
+
+        return {
+          id: jobId,
+          label: mapping.label,
+          enabled: c?.enabled || false,
+          intervalValue: c?.intervalValue || 30,
+          intervalUnit: c?.intervalUnit || 'minutes',
+          status: c?.enabled ? 'active' : 'idle',
+          isManualOnly: mapping.isManualOnly || false,
+          cronExpression: activeRepeatableJob ? activeRepeatableJob.cron : null,
+          nextRun: activeRepeatableJob ? activeRepeatableJob.next : null,
+        };
+      });
 
     return reply.status(200).send(state);
   });

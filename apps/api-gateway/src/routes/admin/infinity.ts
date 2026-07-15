@@ -60,7 +60,9 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
       return {
         enabled,
         records: recordsCount,
-        lastSync: schedulerRecord?.updatedAt || null
+        lastSync: schedulerRecord?.updatedAt || null,
+        intervalValue: schedulerRecord?.intervalValue || 30,
+        intervalUnit: schedulerRecord?.intervalUnit || 'minutes'
       };
     } catch (error) {
       request.log.error(error);
@@ -94,18 +96,57 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
         }
       } else {
         // Se riattivato, lo re-scheduliamo
-        let intervalMs = config.intervalValue * 60 * 1000;
-        if (config.intervalUnit === 'hours') intervalMs = config.intervalValue * 60 * 60 * 1000;
-        if (config.intervalUnit === 'days') intervalMs = config.intervalValue * 24 * 60 * 60 * 1000;
-        
-        await zucchettiQueue.add('ZUCCHETTI_INFINITY_DB', { source: 'scheduler' }, {
-          repeat: { every: intervalMs, jobId },
-          removeOnComplete: true,
-          removeOnFail: 10
+        let cronPattern = `*/${config.intervalValue} * * * *`;
+        if (config.intervalUnit === 'hours') cronPattern = `0 */${config.intervalValue} * * *`;
+        if (config.intervalUnit === 'days') cronPattern = `0 0 */${config.intervalValue} * *`;
+
+        await zucchettiQueue.add('ZUCCHETTI_INFINITY_DB', { command: 'ZUCCHETTI_INFINITY_DB', source: 'infinity-app' }, {
+          repeat: { pattern: cronPattern }
         });
       }
 
-      return { success: true, enabled };
+      return reply.send({ success: true, enabled });
+    } catch (error) {
+      request.log.error(error);
+      return reply.code(500).send({ error: 'Errore interno' });
+    }
+  });
+
+  // POST /api/admin/infinity/update-interval
+  fastify.post('/update-interval', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { intervalValue, intervalUnit } = request.body as { intervalValue: number, intervalUnit: string };
+      const jobId = 'zucchetti-infinity-db';
+      
+      const config = await prisma.schedulerConfig.upsert({
+        where: { jobId },
+        update: { intervalValue, intervalUnit },
+        create: {
+          jobId,
+          enabled: false,
+          intervalValue,
+          intervalUnit
+        }
+      });
+
+      // Se è attivo, dobbiamo ricreare il job
+      if (config.enabled) {
+        const repeatableJobs = await zucchettiQueue.getRepeatableJobs();
+        const jobToRemove = repeatableJobs.find(j => j.id === jobId || j.name === 'ZUCCHETTI_INFINITY_DB');
+        if (jobToRemove) {
+          await zucchettiQueue.removeRepeatableByKey(jobToRemove.key);
+        }
+
+        let cronPattern = `*/${config.intervalValue} * * * *`;
+        if (config.intervalUnit === 'hours') cronPattern = `0 */${config.intervalValue} * * *`;
+        if (config.intervalUnit === 'days') cronPattern = `0 0 */${config.intervalValue} * *`;
+
+        await zucchettiQueue.add('ZUCCHETTI_INFINITY_DB', { command: 'ZUCCHETTI_INFINITY_DB', source: 'infinity-app' }, {
+          repeat: { pattern: cronPattern }
+        });
+      }
+
+      return reply.send({ success: true, config });
     } catch (error) {
       request.log.error(error);
       return reply.code(500).send({ error: 'Errore interno' });

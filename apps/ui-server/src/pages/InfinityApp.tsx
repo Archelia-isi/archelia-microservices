@@ -12,7 +12,7 @@ import './InfinityApp.css';
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function InfinityApp() {
-  const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null });
+  const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null, intervalValue: 30, intervalUnit: 'minutes' });
   const [logs, setLogs] = useState<any[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [totalData, setTotalData] = useState(0);
@@ -100,6 +100,22 @@ export default function InfinityApp() {
     }
   };
 
+  const updateInterval = async (intervalValue: number, intervalUnit: string) => {
+    setStatus(prev => ({ ...prev, intervalValue, intervalUnit }));
+    try {
+      const res = await fetch(`${API_URL}/api/admin/infinity/update-interval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intervalValue, intervalUnit })
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Intervallo di sincronizzazione aggiornato');
+      fetchStatus();
+    } catch (e) {
+      toast.error('Errore aggiornamento intervallo');
+    }
+  };
+
   const handleSyncNow = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/infinity/sync-now`, { method: 'POST' });
@@ -165,9 +181,29 @@ export default function InfinityApp() {
                 <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Sincronizzazione Automatica</h3>
                 <Switch checked={status.enabled} onChange={handleToggle} />
               </div>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '20px', lineHeight: 1.5 }}>
                 Quando attivo, il sistema allinea costantemente le mappe immagini e i dati verso il DB Foreign Wrapper utilizzato da Zucchetti.
               </p>
+              
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', alignItems: 'center', background: 'var(--color-surface)', padding: '8px 12px', borderRadius: 'var(--radius-lg)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Esegui ogni:</span>
+                <input 
+                  type="number" 
+                  value={status.intervalValue}
+                  onChange={(e) => updateInterval(parseInt(e.target.value) || 1, status.intervalUnit)}
+                  style={{ width: '60px', padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none' }}
+                />
+                <select 
+                  value={status.intervalUnit}
+                  onChange={(e) => updateInterval(status.intervalValue, e.target.value)}
+                  style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
+                >
+                  <option value="minutes">Minuti</option>
+                  <option value="hours">Ore</option>
+                  <option value="days">Giorni</option>
+                </select>
+              </div>
+
               <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
                 Forza Sync Immediato
               </Button>
