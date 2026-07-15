@@ -87,20 +87,32 @@ export default async function imagesRoutes(fastify: FastifyInstance) {
             const isLarge = file.buffer.length > CHUNK_THRESHOLD;
 
             const uploadResult = await new Promise<any>((resolve, reject) => {
+              // Usa upload_stream con timeout esplicito o passa a data URI. 
+              // Convertiamo il buffer in stream in modo corretto per evitare hang.
+              const { Readable } = require('stream');
+              const stream = new Readable();
+              stream.push(file.buffer);
+              stream.push(null);
+
               const uploadStream = cloudinary.uploader.upload_stream(
                 {
                   folder: 'prodotti',
                   public_id: file.nameWithoutExt,
-                  resource_type: 'image',
+                  resource_type: 'auto', // Support any file safely
                   overwrite: false,
                   ...(isLarge && { chunk_size: 6_000_000 }),
+                  timeout: 60000 // 60 seconds timeout
                 },
                 (error: any, result: any) => {
                   if (error) reject(error);
                   else resolve(result);
                 }
               );
-              uploadStream.end(file.buffer);
+              
+              // Handle stream errors
+              uploadStream.on('error', (err) => reject(err));
+              
+              stream.pipe(uploadStream);
             });
 
             return { filename: file.filename, publicId: uploadResult.public_id };
