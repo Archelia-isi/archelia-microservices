@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import GlassPanel from '../components/ui/GlassPanel';
+import Switch from '../components/ui/Switch';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import TextInput from '../components/ui/TextInput';
+import StickyHeader from '../components/ui/StickyHeader';
+import Loader from '../components/ui/Loader';
 import './InfinityApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -71,24 +78,23 @@ export default function InfinityApp() {
     fetchData();
   }, [page]);
 
-  const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const enabled = e.target.checked;
-    setStatus(prev => ({ ...prev, enabled }));
+  const handleToggle = async (checked: boolean) => {
+    setStatus(prev => ({ ...prev, enabled: checked }));
     try {
       const res = await fetch(`${API_URL}/api/admin/infinity/toggle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled })
+        body: JSON.stringify({ enabled: checked })
       });
       if (res.ok) {
-        toast.success(enabled ? 'Sincronizzazione Automatica Attivata' : 'Sincronizzazione Automatica Disattivata');
+        toast.success(checked ? 'Sincronizzazione Automatica Attivata' : 'Sincronizzazione Automatica Disattivata');
         fetchStatus();
       } else {
         throw new Error('Errore nel toggle');
       }
     } catch (e) {
       toast.error('Errore nel salvataggio stato');
-      setStatus(prev => ({ ...prev, enabled: !enabled }));
+      setStatus(prev => ({ ...prev, enabled: !checked }));
     }
   };
 
@@ -108,57 +114,56 @@ export default function InfinityApp() {
   if (isLoading) {
     return (
       <div className="infinity-app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <div className="loader-apple"></div>
+        <Loader />
       </div>
     );
   }
 
   return (
     <div className="infinity-app-container">
-      <div className="infinity-header glass-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div>
-            <h1 className="infinity-title">Zucchetti DB Infinity (FDW)</h1>
-            <p className="infinity-subtitle">Ponte di esportazione dati per ERP Zucchetti</p>
+      <StickyHeader paddingY="lg" className="infinity-sticky-header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div>
+              <h1 className="infinity-title">Zucchetti DB Infinity (FDW)</h1>
+              <p className="infinity-subtitle">Ponte di esportazione dati per ERP Zucchetti</p>
+            </div>
+            <Badge variant={status.enabled ? 'success' : 'danger'}>
+              {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
+            </Badge>
           </div>
-          <span className={`badge ${status.enabled ? 'badge-success' : 'badge-danger'}`}>
-            {status.enabled ? 'Attivo (Auto)' : 'Sospeso'}
-          </span>
+          
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <div className="infinity-stat">
+              <span className="infinity-stat-label">Totale Record Mappati</span>
+              <span className="infinity-stat-value">{status.records.toLocaleString()}</span>
+            </div>
+            <div className="infinity-stat">
+              <span className="infinity-stat-label">Ultimo Sync</span>
+              <span className="infinity-stat-value" style={{ fontSize: '16px' }}>
+                {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
+              </span>
+            </div>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          <div className="infinity-stat">
-            <span className="infinity-stat-label">Totale Record Mappati</span>
-            <span className="infinity-stat-value">{status.records.toLocaleString()}</span>
-          </div>
-          <div className="infinity-stat">
-            <span className="infinity-stat-label">Ultimo Sync</span>
-            <span className="infinity-stat-value" style={{ fontSize: '16px' }}>
-              {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
-            </span>
-          </div>
-        </div>
-      </div>
+      </StickyHeader>
 
       <div className="infinity-controls-row">
-        <div className="infinity-control-card glass-panel">
+        <GlassPanel padding="lg" variant="heavy" className="infinity-control-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3>Sincronizzazione Automatica</h3>
-            <label className="ios-switch">
-              <input type="checkbox" checked={status.enabled} onChange={handleToggle} />
-              <span className="ios-slider"></span>
-            </label>
+            <h3 style={{ margin: 0 }}>Sincronizzazione Automatica</h3>
+            <Switch checked={status.enabled} onChange={handleToggle} />
           </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px' }}>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginBottom: '24px' }}>
             Quando attivo, il sistema allinea costantemente le mappe immagini e i dati verso il DB Foreign Wrapper utilizzato da Zucchetti.
           </p>
-          <button className="btn btn-primary" onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
+          <Button variant="primary" onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
             Forza Sync Immediato
-          </button>
-        </div>
+          </Button>
+        </GlassPanel>
 
-        <div className="infinity-logs-card glass-panel">
-          <h3 style={{ marginBottom: '12px' }}>Console Log (infinity_db)</h3>
+        <GlassPanel padding="lg" variant="heavy" className="infinity-logs-card">
+          <h3 style={{ margin: '0 0 16px 0' }}>Console Log (infinity_db)</h3>
           <div className="infinity-terminal">
             {logs.length === 0 ? (
               <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>
@@ -171,33 +176,31 @@ export default function InfinityApp() {
               ))
             )}
           </div>
-        </div>
+        </GlassPanel>
       </div>
 
-      <div className="infinity-data-section glass-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <GlassPanel padding="lg" variant="light" className="infinity-data-section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h3>Dati Condivisi con Zucchetti</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <h3 style={{ margin: 0 }}>Dati Condivisi con Zucchetti</h3>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px', marginBottom: 0 }}>
               Questa è la vista reale in live di ciò che il Foreign Data Wrapper sta servendo in sola lettura all'ERP.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input 
-              type="text" 
-              className="input" 
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <TextInput 
               placeholder="Cerca codice ARCODART..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (setPage(1), fetchData())}
               style={{ width: '250px' }}
             />
-            <button className="btn btn-secondary" onClick={() => { setPage(1); fetchData(); }}>Cerca</button>
+            <Button variant="secondary" onClick={() => { setPage(1); fetchData(); }}>Cerca</Button>
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table">
+        <div className="infinity-table-responsive">
+          <table className="infinity-table">
             <thead>
               <tr>
                 <th>Codice Articolo (ARCODART)</th>
@@ -208,7 +211,7 @@ export default function InfinityApp() {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Nessun dato trovato</td>
+                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px' }}>Nessun dato trovato</td>
                 </tr>
               ) : (
                 data.map((row) => (
@@ -216,12 +219,12 @@ export default function InfinityApp() {
                     <td style={{ fontWeight: 600 }}>{row.arcodart}</td>
                     <td>
                       {row.arfulres ? (
-                        <a href={row.arfulres} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+                        <a href={row.arfulres} target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
                           {row.arfulres.substring(0, 50)}...
                         </a>
                       ) : '-'}
                     </td>
-                    <td style={{ color: 'var(--text-muted)' }}>
+                    <td style={{ color: 'var(--color-text-muted)' }}>
                       {row.updatedAt ? new Date(row.updatedAt).toLocaleString('it-IT') : '-'}
                     </td>
                   </tr>
@@ -232,21 +235,27 @@ export default function InfinityApp() {
         </div>
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
-            <button 
-              className={`btn btn-secondary ${page === 1 ? 'disabled' : ''}`} 
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '24px' }}>
+            <Button 
+              variant="secondary"
+              disabled={page === 1}
               onClick={() => page > 1 && setPage(page - 1)}
-            >Precedente</button>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+            >
+              Precedente
+            </Button>
+            <div style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
               Pagina {page} di {totalPages} ({totalData} record)
             </div>
-            <button 
-              className={`btn btn-secondary ${page === totalPages ? 'disabled' : ''}`} 
+            <Button 
+              variant="secondary"
+              disabled={page === totalPages}
               onClick={() => page < totalPages && setPage(page + 1)}
-            >Successivo</button>
+            >
+              Successivo
+            </Button>
           </div>
         )}
-      </div>
+      </GlassPanel>
     </div>
   );
 }
