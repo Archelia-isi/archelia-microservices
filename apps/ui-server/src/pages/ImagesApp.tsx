@@ -159,28 +159,38 @@ export default function ImagesApp() {
       {!isAppReady && <AppSplashScreen appName="Immagini & Asset" icon={<ImageIcon size={32} />} isLoading={true} />}
       
       {isAppReady && (
-        <div className="images-app-content">
-          <div className="images-tabs">
-            <button className={`images-tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => handleTabChange('upload')}>
-              <UploadCloud size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Upload Cartella
-            </button>
-            <button className={`images-tab-btn ${activeTab === 'map' ? 'active' : ''}`} onClick={() => handleTabChange('map')}>
-              <RefreshCw size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Mappa JSON
-            </button>
-            <button className={`images-tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => handleTabChange('report')}>
-              <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Report
-            </button>
-            <button className={`images-tab-btn ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleTabChange('gallery')}>
-              <ImageIcon size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-              Galleria
-            </button>
+        <>
+          <div className="images-header-glass">
+            <div className="images-header-title">
+              <div className="images-header-icon">
+                <ImageIcon size={24} />
+              </div>
+              <h2>Immagini & Asset</h2>
+            </div>
+            <div className="images-segmented-control">
+              <button className={`images-tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => handleTabChange('upload')}>
+                <UploadCloud size={18} />
+                Upload Cartella
+              </button>
+              <button className={`images-tab-btn ${activeTab === 'map' ? 'active' : ''}`} onClick={() => handleTabChange('map')}>
+                <RefreshCw size={18} />
+                Mappa JSON
+              </button>
+              <button className={`images-tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => handleTabChange('report')}>
+                <BarChart2 size={18} />
+                Report
+              </button>
+              <button className={`images-tab-btn ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleTabChange('gallery')}>
+                <ImageIcon size={18} />
+                Galleria
+              </button>
+            </div>
           </div>
 
+          <div className="images-app-content">
+
           {activeTab === 'upload' && (
-            <GlassPanel>
+            <div className="images-upload-container">
               <div 
                 className={`images-upload-area ${dragActive ? 'drag-active' : ''}`}
                 onDragEnter={handleDrag}
@@ -189,16 +199,26 @@ export default function ImagesApp() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <FolderDown size={48} className="images-upload-icon" />
-                <p>Trascina qui le immagini o clicca per selezionarle</p>
+                <div className="images-upload-icon-wrapper">
+                  <FolderDown size={42} strokeWidth={2.5} />
+                </div>
+                <div className="images-upload-texts">
+                  <h3 className="images-upload-title">Trascina le immagini qui</h3>
+                  <p className="images-upload-subtitle">oppure clicca per selezionare dal tuo computer</p>
+                </div>
+                
                 {isUploading && (
-                  <div style={{ marginTop: '1rem', width: '100%', maxWidth: '300px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Caricamento in corso...</div>
-                    <div style={{ height: '4px', background: 'var(--color-border)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', background: 'var(--color-primary)', width: `${uploadProgress}%`, transition: 'width 0.3s' }}></div>
+                  <div className="images-progress-container">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                      <span>Caricamento in corso...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="images-progress-bar">
+                      <div className="images-progress-fill" style={{ width: `${uploadProgress}%` }}></div>
                     </div>
                   </div>
                 )}
+                
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -209,7 +229,7 @@ export default function ImagesApp() {
                   {...({ webkitdirectory: "true", directory: "true" } as any)}
                 />
               </div>
-            </GlassPanel>
+            </div>
           )}
 
           {activeTab === 'map' && (
@@ -326,26 +346,27 @@ export default function ImagesApp() {
           {activeTab === 'gallery' && (
             <GlassPanel>
               {isLoadingGallery ? (
-                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Caricamento galleria da Cloudinary...</div>
+                <div style={{ padding: 'var(--spacing-3xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-lg)' }}>Caricamento galleria da Cloudinary...</div>
               ) : (
                 <div className="images-gallery-grid">
-                  {galleryImages.slice(0, 50).map((file, i) => (
+                  {galleryImages.slice(0, 100).map((file, i) => (
                     <div key={i} className="images-gallery-item">
-                      <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_200,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
+                      <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_300,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
                       <div className="images-gallery-label">{file}</div>
                     </div>
                   ))}
                 </div>
               )}
-              {galleryImages.length > 50 && (
-                <div style={{ padding: 'var(--spacing-lg)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
-                  Mostrati 50 di {galleryImages.length} file totali
+              {galleryImages.length > 100 && (
+                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                  Mostrati 100 di {galleryImages.length} file totali
                 </div>
               )}
             </GlassPanel>
           )}
 
         </div>
+        </>
       )}
     </div>
   );
