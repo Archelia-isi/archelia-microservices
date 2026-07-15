@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
@@ -7,6 +7,9 @@ import Badge from '../components/ui/Badge';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
+import BackgroundBlobs from '../components/ui/BackgroundBlobs';
+import Dropzone from '../components/ui/Dropzone';
+import ActionCard from '../components/ui/ActionCard';
 import './ImagesApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -32,8 +35,6 @@ export default function ImagesApp() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [page, setPage] = useState(1);
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isMapping, setIsMapping] = useState(false);
   const [mapStats, setMapStats] = useState<{ articoli: number; immagini: number } | null>(null);
@@ -101,31 +102,6 @@ export default function ImagesApp() {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      await handleUpload(e.dataTransfer.files);
-    }
-  };
-
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      await handleUpload(e.target.files);
-    }
-  };
-
   const handleUpload = async (files: FileList) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -153,7 +129,6 @@ export default function ImagesApp() {
     } finally {
       setIsUploading(false);
       setUploadProgress(100);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -187,27 +162,20 @@ export default function ImagesApp() {
 
           {activeTab === 'upload' && (
             <div className="images-upload-container">
-              <div className="images-upload-blob images-upload-blob-1"></div>
-              <div className="images-upload-blob images-upload-blob-2"></div>
+              <BackgroundBlobs />
               
-              <div 
-                className={`images-upload-area ${dragActive ? 'drag-active' : ''}`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+              <Dropzone
+                icon={<FolderDown size={48} strokeWidth={2} />}
+                title="Trascina le immagini qui"
+                subtitle="oppure clicca per selezionare dal tuo computer"
+                onFilesSelected={handleUpload}
+                accept="image/*"
+                multiple
+                directoryMode
+                style={{ maxWidth: '800px', margin: '0 auto' }}
               >
-                <div className="images-upload-icon-wrapper">
-                  <FolderDown size={48} strokeWidth={2} />
-                </div>
-                <div className="images-upload-texts">
-                  <h3 className="images-upload-title">Trascina le immagini qui</h3>
-                  <p className="images-upload-subtitle">oppure clicca per selezionare dal tuo computer</p>
-                </div>
-                
                 {isUploading && (
-                  <div className="images-progress-container">
+                  <div className="images-progress-container" style={{ width: '100%', maxWidth: '400px', marginTop: 'var(--spacing-xl)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
                       <span>Caricamento in corso...</span>
                       <span>{Math.round(uploadProgress)}%</span>
@@ -217,31 +185,18 @@ export default function ImagesApp() {
                     </div>
                   </div>
                 )}
-                
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  multiple 
-                  accept="image/*" 
-                  style={{ display: 'none' }} 
-                  onChange={handleFileInput}
-                  {...({ webkitdirectory: "true", directory: "true" } as any)}
-                />
-              </div>
+              </Dropzone>
 
-              {/* Mappa JSON spostata in Upload Cartella */}
-              <div className="images-action-card">
-                <div className="images-action-text">
-                  <h3>Rigenerazione Mappa Immagini JSON</h3>
-                  <p>
-                    Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. 
-                    Viene eseguito in automatico ad ogni upload riuscito.
-                  </p>
-                </div>
-                <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
-                  <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
-                </Button>
-              </div>
+              <ActionCard
+                className="images-action-card-wrapper"
+                title="Rigenerazione Mappa Immagini JSON"
+                description="Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. Viene eseguito in automatico ad ogni upload riuscito."
+                action={
+                  <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
+                    <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
+                  </Button>
+                }
+              />
               
               {mapStats && (
                 <div className="images-stats" style={{ width: '100%', maxWidth: '800px', marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>
