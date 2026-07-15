@@ -187,6 +187,9 @@ export default function ImagesApp() {
 
           {activeTab === 'upload' && (
             <div className="images-upload-container">
+              <div className="images-upload-blob images-upload-blob-1"></div>
+              <div className="images-upload-blob images-upload-blob-2"></div>
+              
               <div 
                 className={`images-upload-area ${dragActive ? 'drag-active' : ''}`}
                 onDragEnter={handleDrag}
@@ -194,10 +197,9 @@ export default function ImagesApp() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                style={{ marginBottom: 'var(--spacing-2xl)' }}
               >
                 <div className="images-upload-icon-wrapper">
-                  <FolderDown size={42} strokeWidth={2.5} />
+                  <FolderDown size={48} strokeWidth={2} />
                 </div>
                 <div className="images-upload-texts">
                   <h3 className="images-upload-title">Trascina le immagini qui</h3>
@@ -206,7 +208,7 @@ export default function ImagesApp() {
                 
                 {isUploading && (
                   <div className="images-progress-container">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
                       <span>Caricamento in corso...</span>
                       <span>{Math.round(uploadProgress)}%</span>
                     </div>
@@ -228,32 +230,31 @@ export default function ImagesApp() {
               </div>
 
               {/* Mappa JSON spostata in Upload Cartella */}
-              <GlassPanel style={{ width: '100%', maxWidth: '800px' }}>
-                <div className="images-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 8px 0', fontSize: 'var(--font-size-lg)' }}>Rigenerazione Mappa Immagini JSON</h3>
-                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-                      Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. 
-                      Viene fatto in automatico ad ogni upload riuscito.
-                    </p>
-                  </div>
-                  <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
-                    <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
-                  </Button>
+              <div className="images-action-card">
+                <div className="images-action-text">
+                  <h3>Rigenerazione Mappa Immagini JSON</h3>
+                  <p>
+                    Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. 
+                    Viene eseguito in automatico ad ogni upload riuscito.
+                  </p>
                 </div>
-                {mapStats && (
-                  <div className="images-stats" style={{ marginTop: 'var(--spacing-xl)', display: 'flex', gap: 'var(--spacing-xl)' }}>
-                    <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-lg)' }}>
-                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
-                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-2xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
-                    </div>
-                    <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-lg)' }}>
+                <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
+                  <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
+                </Button>
+              </div>
+              
+              {mapStats && (
+                <div className="images-stats" style={{ width: '100%', maxWidth: '800px', marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>
+                  <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
+                    <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
+                    <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
+                  </div>
+                  <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
                       <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali su Cloudinary</span>
-                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-2xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
+                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
                     </div>
                   </div>
                 )}
-              </GlassPanel>
             </div>
           )}
 
