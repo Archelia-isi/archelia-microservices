@@ -4,6 +4,12 @@ import { logger, imageService } from '@archelia/core';
 import { v2 as cloudinary } from 'cloudinary';
 import sharp from 'sharp';
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: 'dikvomlhu',
+  api_key: '615533243888646',
+  api_secret: 'V0tOJU7LIspzCKChEkwatu2ZnmE',
+});
 export default async function imagesRoutes(fastify: FastifyInstance) {
   // GET /api/admin/cloudinary-images
   fastify.get('/cloudinary-images', async (request: FastifyRequest, reply: FastifyReply) => {
