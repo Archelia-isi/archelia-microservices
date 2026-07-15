@@ -56,8 +56,8 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       prisma.product.count(),
       prisma.product.count({ where: { publishedOnWeb: true } }),
       prisma.product.count({ where: { imageUrl: null } }),
-      prisma.product.count({ where: { OR: [{ price: 0 }, { price: null as any }] } }),
-      prisma.product.count({ where: { OR: [{ stock: 0 }, { stock: null as any }] } }),
+      prisma.product.count({ where: { price: 0 } }),
+      prisma.product.count({ where: { stock: 0 } }),
       prisma.zelShopifyCustomer.count(),
       prisma.syncLog.count(),
       prisma.orderQueue.findMany({
