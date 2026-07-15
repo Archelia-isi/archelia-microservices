@@ -117,19 +117,6 @@ export default function Settings() {
 
       <div className={`scheduler-app-container eq-app-entry ${isAppReady ? 'ready' : ''}`}>
         <StickyHeader>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: 'var(--spacing-md)' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Clock />
-            </div>
-            <div>
-              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--color-text-main)' }}>
-                Centro Sincronizzazione
-              </h2>
-              <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-muted)' }}>
-                Gestione dei job manuali e delle code asincrone in background
-              </p>
-            </div>
-          </div>
           <Tabs 
             tabs={[
               { id: 'manual', label: 'Sincronizzazioni Manuali' },
