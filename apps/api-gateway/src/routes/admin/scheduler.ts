@@ -92,7 +92,7 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
           intervalUnit: c?.intervalUnit || 'minutes',
           status: c?.enabled ? 'active' : 'idle',
           isManualOnly: mapping.isManualOnly || false,
-          cronExpression: activeRepeatableJob ? activeRepeatableJob.cron : null,
+          cronExpression: activeRepeatableJob ? activeRepeatableJob.pattern : null,
           nextRun: activeRepeatableJob ? activeRepeatableJob.next : null,
         };
       });
