@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown, Settings2 } from 'lucide-react';
+import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
-import DropdownMenu from '../components/ui/DropdownMenu';
 import './ImagesApp.css';
 
 const API_BASE = '/api/admin';
 
-type TabType = 'upload' | 'map' | 'report' | 'gallery';
+type TabType = 'upload' | 'report' | 'gallery';
 
 interface ImageReport {
   summary: {
@@ -169,36 +168,17 @@ export default function ImagesApp() {
         <div className="eq-main-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         
         {/* Dynamic Header & Tabs merged */}
-        <StickyHeader paddingY="md">
-          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="eq-header-modern-left" style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                <ImageIcon size={20} color="var(--color-primary)" />
-                <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Immagini & Asset</h2>
-              </div>
-            
-              <Tabs 
-                activeTab={activeTab}
-                onChange={(id) => handleTabChange(id as TabType)}
-                tabs={[
-                  { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
-                  { id: 'map', label: 'Mappa JSON', icon: <RefreshCw size={14}/> },
-                  { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
-                  { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
-                ]}
-              />
-            </div>
-
-            <div className="eq-header-modern-right">
-              {/* Optional Actions Menu to mimic the Equalizzatore completely */}
-              <DropdownMenu
-                label="Azioni"
-                icon={<Settings2 size={16} />}
-                items={[
-                  { id: 'refresh', label: 'Forza Rigenerazione Mappa', icon: <RefreshCw size={14} />, variant: 'primary', onClick: handleRefreshMap }
-                ]}
-              />
-            </div>
+        <StickyHeader paddingY="md" backgroundOpacity={0} style={{ borderBottom: 'none' }}>
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tabs 
+              activeTab={activeTab}
+              onChange={(id) => handleTabChange(id as TabType)}
+              tabs={[
+                { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
+                { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
+                { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
+              ]}
+            />
           </GlassPanel>
         </StickyHeader>
 
@@ -213,6 +193,7 @@ export default function ImagesApp() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
+                style={{ marginBottom: 'var(--spacing-2xl)' }}
               >
                 <div className="images-upload-icon-wrapper">
                   <FolderDown size={42} strokeWidth={2.5} />
@@ -244,35 +225,35 @@ export default function ImagesApp() {
                   {...({ webkitdirectory: "true", directory: "true" } as any)}
                 />
               </div>
-            </div>
-          )}
 
-          {activeTab === 'map' && (
-            <GlassPanel>
-              <div className="images-controls">
-                <div>
-                  <h3 style={{ margin: '0 0 8px 0' }}>Rigenerazione Mappa Immagini</h3>
-                  <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-                    Forza la ricostruzione del file JSON `mappa_immagini.json` leggendo direttamente i file presenti su Cloudinary.
-                  </p>
-                </div>
-                <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
-                  <RefreshCw size={16} /> {isMapping ? 'Rigenerazione...' : 'Rigenera Ora'}
-                </Button>
-              </div>
-              {mapStats && (
-                <div className="images-stats" style={{ marginTop: 'var(--spacing-xl)' }}>
-                  <div className="images-stat-item">
-                    <span className="images-stat-label">Articoli mappati</span>
-                    <span className="images-stat-value">{mapStats.articoli}</span>
+              {/* Mappa JSON spostata in Upload Cartella */}
+              <GlassPanel style={{ width: '100%', maxWidth: '800px' }}>
+                <div className="images-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: 'var(--font-size-lg)' }}>Rigenerazione Mappa Immagini JSON</h3>
+                    <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                      Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. 
+                      Viene fatto in automatico ad ogni upload riuscito.
+                    </p>
                   </div>
-                  <div className="images-stat-item">
-                    <span className="images-stat-label">Immagini totali</span>
-                    <span className="images-stat-value">{mapStats.immagini}</span>
-                  </div>
+                  <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
+                    <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
+                  </Button>
                 </div>
-              )}
-            </GlassPanel>
+                {mapStats && (
+                  <div className="images-stats" style={{ marginTop: 'var(--spacing-xl)', display: 'flex', gap: 'var(--spacing-xl)' }}>
+                    <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-lg)' }}>
+                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
+                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-2xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
+                    </div>
+                    <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.4)', borderRadius: 'var(--radius-lg)' }}>
+                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali su Cloudinary</span>
+                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-2xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
+                    </div>
+                  </div>
+                )}
+              </GlassPanel>
+            </div>
           )}
 
           {activeTab === 'report' && (
