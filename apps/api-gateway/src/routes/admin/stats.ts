@@ -64,8 +64,9 @@ export async function adminStatsRoutes(app: FastifyInstance) {
         where: { createdAt: { gte: startOfDay } },
         select: { payload: true }
       }),
-      prisma.orderQueue.findMany({
-        select: { payload: true }
+      prisma.zelShopifyOrder.aggregate({
+        _sum: { totalPrice: true },
+        _count: { id: true }
       })
     ]);
 
@@ -78,14 +79,8 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       }
     });
 
-    const ordersTotal = allOrdersList.length;
-    let revenueTotal = 0;
-    allOrdersList.forEach(order => {
-      const payload: any = order.payload;
-      if (payload && payload.total_price) {
-        revenueTotal += parseFloat(payload.total_price);
-      }
-    });
+    const ordersTotal = allOrdersList._count.id;
+    const revenueTotal = allOrdersList._sum.totalPrice || 0;
 
     const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
     const loadAvg = os.loadavg()[0];
