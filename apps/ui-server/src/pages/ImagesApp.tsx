@@ -1,206 +1,352 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
+import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown } from 'lucide-react';
+import GlassPanel from '../components/ui/GlassPanel';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 import './ImagesApp.css';
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+const API_BASE = '/api/admin';
+
+type TabType = 'upload' | 'map' | 'report' | 'gallery';
+
+interface ImageReport {
+  summary: {
+    totalProducts: number;
+    productsWithImages: number;
+    productsWithoutImages: number;
+    totalImageCodes: number;
+    imagesWithoutProduct: number;
+  };
+  productsWithoutImages: { sku: string; shortCode: string }[];
+  imagesWithoutProduct: { code: string; imageCount: number }[];
+}
 
 export default function ImagesApp() {
-  const [activeTab, setActiveTab] = useState<'upload' | 'report'>('upload');
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('upload');
+  
   const [isUploading, setIsUploading] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
-  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadReport = async () => {
+  const [isMapping, setIsMapping] = useState(false);
+  const [mapStats, setMapStats] = useState<{ articoli: number; immagini: number } | null>(null);
+
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [reportData, setReportData] = useState<ImageReport | null>(null);
+
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsAppReady(true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    if (tab === 'report' && !reportData) fetchReport();
+    if (tab === 'gallery' && galleryImages.length === 0) fetchGallery();
+  };
+
+  const fetchReport = async () => {
     setIsLoadingReport(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/image-report`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error(await res.text());
+      const res = await fetch(`${API_BASE}/image-report`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore fetch report');
       setReportData(data);
     } catch (err: any) {
-      toast.error('Errore caricamento report: ' + err.message);
+      toast.error(err.message);
     } finally {
       setIsLoadingReport(false);
     }
   };
 
-  useEffect(() => {
-    if (activeTab === 'report' && !reportData) {
-      loadReport();
-    }
-  }, [activeTab]);
-
-  const refreshMap = async () => {
+  const fetchGallery = async () => {
+    setIsLoadingGallery(true);
     try {
-      toast.loading('Rigenerazione mappa...', { id: 'refresh-map' });
-      const res = await fetch(`${API_URL}/api/admin/refresh-image-map`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error(await res.text());
+      const res = await fetch(`${API_BASE}/cloudinary-images`);
       const data = await res.json();
-      toast.success(`Mappa rigenerata! ${data.articoli} articoli, ${data.immagini} immagini.`, { id: 'refresh-map' });
-      if (activeTab === 'report') loadReport();
+      if (!res.ok) throw new Error(data.error || 'Errore fetch galleria');
+      setGalleryImages(data.existingFiles);
     } catch (err: any) {
-      toast.error('Errore refresh mappa: ' + err.message, { id: 'refresh-map' });
+      toast.error(err.message);
+    } finally {
+      setIsLoadingGallery(false);
     }
   };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
-    
-    setIsUploading(true);
-    
-    const formData = new FormData();
-    acceptedFiles.forEach(f => formData.append('files', f));
-    formData.append('regenerateMap', 'true');
-    
+  const handleRefreshMap = async () => {
+    setIsMapping(true);
+    const loadingToast = toast.loading('Rigenerazione mappa in corso...');
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/upload-images', {
+      const res = await fetch(`${API_BASE}/refresh-image-map`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore rigenerazione mappa');
+      setMapStats({ articoli: data.articoli, immagini: data.immagini });
+      toast.success(`Mappa aggiornata: ${data.articoli} articoli, ${data.immagini} immagini`, { id: loadingToast });
+    } catch (err: any) {
+      toast.error(err.message, { id: loadingToast });
+    } finally {
+      setIsMapping(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await handleUpload(e.target.files);
+    }
+  };
+
+  const handleUpload = async (files: FileList) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+    formData.append('regenerateMap', 'true');
+
+    const loadingToast = toast.loading(`Upload di ${files.length} file in corso...`);
+    try {
+      const res = await fetch(`${API_BASE}/upload-images`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+        body: formData,
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore upload');
       
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Errore di sistema');
-      
-      toast.success(`Caricate ${result.uploaded} foto con successo. Errori: ${result.errors}`);
-      if (result.mapRegenerated) {
-        toast.success(`Mappa auto-rigenerata: ${result.mapStats?.articoli} articoli`);
+      toast.success(`Caricamento completato: ${data.uploaded} file. Errori: ${data.errors}`, { id: loadingToast });
+      if (data.mapRegenerated) {
+        setMapStats(data.mapStats);
       }
     } catch (err: any) {
-      toast.error('Errore caricamento: ' + err.message);
+      toast.error(err.message, { id: loadingToast });
     } finally {
       setIsUploading(false);
+      setUploadProgress(100);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
+  };
 
   return (
-    <div className="images-app-container">
-      <div className="images-header">
-        <div>
-          <h1 className="images-title">Immagini & Asset</h1>
-          <p className="images-subtitle">Gestione Cloudinary, Upload Massivo e Rigenerazione Mappa</p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-secondary" onClick={refreshMap}>
-            <i className="fa-solid fa-rotate"></i> Rigenera Mappa Immagini
-          </button>
-        </div>
-      </div>
-
-      <div className="images-tabs">
-        <div className={`images-tab ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>
-          <i className="fa-solid fa-cloud-arrow-up"></i> Upload
-        </div>
-        <div className={`images-tab ${activeTab === 'report' ? 'active' : ''}`} onClick={() => setActiveTab('report')}>
-          <i className="fa-solid fa-chart-pie"></i> Report Discrepanze
-        </div>
-      </div>
-
-      <div className="images-content" style={{ flex: 1, overflowY: 'auto' }}>
-        {activeTab === 'upload' && (
-          <div className="upload-section">
-            <div 
-              {...getRootProps()} 
-              className={`upload-area ${isDragActive ? 'drag-active' : ''} ${isUploading ? 'uploading' : ''}`}
-            >
-              <input {...getInputProps()} disabled={isUploading} />
-              
-              {isUploading ? (
-                <>
-                  <div className="loader-apple" style={{ width: 40, height: 40 }}></div>
-                  <div className="upload-text">Caricamento in corso...</div>
-                  <div className="upload-subtext">Attendere prego, il processo con Sharp può richiedere tempo per i file di grandi dimensioni.</div>
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-cloud-arrow-up upload-icon"></i>
-                  <div className="upload-text">Trascina le immagini qui o clicca per selezionare</div>
-                  <div className="upload-subtext">I file &gt; 9MB verranno ridimensionati e ottimizzati automaticamente. Al termine la mappa immagini verrà rigenerata in automatico.</div>
-                </>
-              )}
-            </div>
+    <div className={`images-app ${!isAppReady ? 'eq-splash-active' : ''}`}>
+      {!isAppReady && <AppSplashScreen appName="Immagini & Asset" icon={<ImageIcon size={32} />} isLoading={true} />}
+      
+      {isAppReady && (
+        <div className="images-app-content">
+          <div className="images-tabs">
+            <button className={`images-tab-btn ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => handleTabChange('upload')}>
+              <UploadCloud size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Upload Cartella
+            </button>
+            <button className={`images-tab-btn ${activeTab === 'map' ? 'active' : ''}`} onClick={() => handleTabChange('map')}>
+              <RefreshCw size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Mappa JSON
+            </button>
+            <button className={`images-tab-btn ${activeTab === 'report' ? 'active' : ''}`} onClick={() => handleTabChange('report')}>
+              <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Report
+            </button>
+            <button className={`images-tab-btn ${activeTab === 'gallery' ? 'active' : ''}`} onClick={() => handleTabChange('gallery')}>
+              <ImageIcon size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Galleria
+            </button>
           </div>
-        )}
 
-        {activeTab === 'report' && (
-          <div className="report-section">
-            {isLoadingReport ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-                <div className="loader-apple"></div>
+          {activeTab === 'upload' && (
+            <GlassPanel>
+              <div 
+                className={`images-upload-area ${dragActive ? 'drag-active' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FolderDown size={48} className="images-upload-icon" />
+                <p>Trascina qui le immagini o clicca per selezionarle</p>
+                {isUploading && (
+                  <div style={{ marginTop: '1rem', width: '100%', maxWidth: '300px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Caricamento in corso...</div>
+                    <div style={{ height: '4px', background: 'var(--color-border)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', background: 'var(--color-primary)', width: `${uploadProgress}%`, transition: 'width 0.3s' }}></div>
+                    </div>
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  multiple 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={handleFileInput}
+                  {...({ webkitdirectory: "true", directory: "true" } as any)}
+                />
               </div>
-            ) : reportData ? (
-              <>
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <span className="stat-label">Prodotti Totali</span>
-                    <span className="stat-value">{reportData.summary.totalProducts}</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-label">Prodotti CON foto</span>
-                    <span className="stat-value" style={{ color: 'var(--color-success)' }}>{reportData.summary.productsWithImages}</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-label">Prodotti SENZA foto</span>
-                    <span className="stat-value" style={{ color: 'var(--color-danger)' }}>{reportData.summary.productsWithoutImages}</span>
-                  </div>
-                  <div className="stat-card">
-                    <span className="stat-label">Codici Immagine Orfani</span>
-                    <span className="stat-value" style={{ color: 'var(--color-warning)' }}>{reportData.summary.imagesWithoutProduct}</span>
-                  </div>
-                </div>
+            </GlassPanel>
+          )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)' }}>
-                  <div>
-                    <h3 style={{ marginBottom: '1rem' }}>Prodotti senza foto</h3>
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      <table className="data-table">
-                        <thead><tr><th>SKU</th><th>Short Code (Atteso)</th></tr></thead>
-                        <tbody>
-                          {reportData.productsWithoutImages.map((p: any) => (
-                            <tr key={p.sku}>
-                              <td>{p.sku}</td>
-                              <td>{p.shortCode}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+          {activeTab === 'map' && (
+            <GlassPanel>
+              <div className="images-controls">
+                <div>
+                  <h3 style={{ margin: '0 0 8px 0' }}>Rigenerazione Mappa Immagini</h3>
+                  <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+                    Forza la ricostruzione del file JSON `mappa_immagini.json` leggendo direttamente i file presenti su Cloudinary.
+                  </p>
+                </div>
+                <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
+                  <RefreshCw size={16} /> {isMapping ? 'Rigenerazione...' : 'Rigenera Ora'}
+                </Button>
+              </div>
+              {mapStats && (
+                <div className="images-stats" style={{ marginTop: 'var(--spacing-xl)' }}>
+                  <div className="images-stat-item">
+                    <span className="images-stat-label">Articoli mappati</span>
+                    <span className="images-stat-value">{mapStats.articoli}</span>
                   </div>
-                  <div>
-                    <h3 style={{ marginBottom: '1rem' }}>Foto orfane (Non associate a Prodotti)</h3>
-                    <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                      <table className="data-table">
-                        <thead><tr><th>Short Code Cloudinary</th><th>Numero Foto</th></tr></thead>
-                        <tbody>
-                          {reportData.imagesWithoutProduct.map((i: any) => (
-                            <tr key={i.code}>
-                              <td>{i.code}</td>
-                              <td>{i.imageCount}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="images-stat-item">
+                    <span className="images-stat-label">Immagini totali</span>
+                    <span className="images-stat-value">{mapStats.immagini}</span>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div>Nessun dato disponibile</div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </GlassPanel>
+          )}
+
+          {activeTab === 'report' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
+              {isLoadingReport ? (
+                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Caricamento report...</div>
+              ) : reportData ? (
+                <>
+                  <GlassPanel>
+                    <div className="images-stats">
+                      <div className="images-stat-item">
+                        <span className="images-stat-label">Prodotti Totali</span>
+                        <span className="images-stat-value">{reportData.summary.totalProducts}</span>
+                      </div>
+                      <div className="images-stat-item">
+                        <span className="images-stat-label">Prodotti Senza Foto</span>
+                        <span className="images-stat-value" style={{ color: 'var(--color-error)' }}>{reportData.summary.productsWithoutImages}</span>
+                      </div>
+                      <div className="images-stat-item">
+                        <span className="images-stat-label">Foto Senza Prodotto</span>
+                        <span className="images-stat-value" style={{ color: 'var(--color-warning)' }}>{reportData.summary.imagesWithoutProduct}</span>
+                      </div>
+                    </div>
+                  </GlassPanel>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-xl)' }}>
+                    <GlassPanel>
+                      <h3 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>Prodotti Senza Foto <Badge variant="danger">{reportData.productsWithoutImages.length}</Badge></h3>
+                      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <table className="images-table">
+                          <thead>
+                            <tr>
+                              <th>SKU</th>
+                              <th>Short Code</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportData.productsWithoutImages.slice(0, 100).map((p, i) => (
+                              <tr key={i}>
+                                <td>{p.sku}</td>
+                                <td>{p.shortCode}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {reportData.productsWithoutImages.length > 100 && (
+                          <div style={{ padding: 'var(--spacing-sm)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            ... e altri {reportData.productsWithoutImages.length - 100} risultati
+                          </div>
+                        )}
+                      </div>
+                    </GlassPanel>
+                    
+                    <GlassPanel>
+                      <h3 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>Foto Orfane <Badge variant="warning">{reportData.imagesWithoutProduct.length}</Badge></h3>
+                      <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <table className="images-table">
+                          <thead>
+                            <tr>
+                              <th>Cloudinary Code</th>
+                              <th>Num. Immagini</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {reportData.imagesWithoutProduct.slice(0, 100).map((img, i) => (
+                              <tr key={i}>
+                                <td>{img.code}</td>
+                                <td>{img.imageCount}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {reportData.imagesWithoutProduct.length > 100 && (
+                          <div style={{ padding: 'var(--spacing-sm)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                            ... e altri {reportData.imagesWithoutProduct.length - 100} risultati
+                          </div>
+                        )}
+                      </div>
+                    </GlassPanel>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {activeTab === 'gallery' && (
+            <GlassPanel>
+              {isLoadingGallery ? (
+                <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Caricamento galleria da Cloudinary...</div>
+              ) : (
+                <div className="images-gallery-grid">
+                  {galleryImages.slice(0, 50).map((file, i) => (
+                    <div key={i} className="images-gallery-item">
+                      <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_200,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
+                      <div className="images-gallery-label">{file}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {galleryImages.length > 50 && (
+                <div style={{ padding: 'var(--spacing-lg)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                  Mostrati 50 di {galleryImages.length} file totali
+                </div>
+              )}
+            </GlassPanel>
+          )}
+
+        </div>
+      )}
     </div>
   );
 }
