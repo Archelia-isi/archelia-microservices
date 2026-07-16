@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
