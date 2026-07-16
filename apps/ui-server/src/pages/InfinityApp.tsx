@@ -124,25 +124,8 @@ export default function InfinityApp() {
       <div className={`infinity-app eq-app-entry ${isAppReady ? 'ready' : ''}`}>
         <div className="infinity-main-container">
           
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: '24px', paddingTop: '16px' }}>
-
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px', paddingTop: '16px' }}>
             
-            <div style={{ display: 'flex', gap: '32px', alignItems: 'center', background: '#f5f5f7', padding: '12px 24px', borderRadius: '16px' }}>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Totale Mappati</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)', lineHeight: 1.2 }}>{status.records.toLocaleString()}</div>
-              </div>
-              <div style={{ width: '1px', height: '30px', background: 'var(--color-border-dark)' }}></div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ultimo Sync</div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', lineHeight: 1.2, marginTop: '2px' }}>
-                  {status.lastSync ? new Date(status.lastSync).toLocaleString('it-IT') : 'Mai'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '24px' }}>
             <GlassPanel padding="lg" variant="light" className="infinity-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Sincronizzazione Automatica</h3>
@@ -190,6 +173,29 @@ export default function InfinityApp() {
               <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
                 Forza Sync Immediato
               </Button>
+            </GlassPanel>
+
+            <GlassPanel padding="lg" variant="light" className="infinity-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <h3 style={{ margin: '0 0 24px 0', fontSize: '18px', color: 'var(--color-text-main)', textAlign: 'center' }}>Stato Database Infinity</h3>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '48px', alignItems: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '8px' }}>Totale Mappati</div>
+                  <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-primary)', lineHeight: 1.2 }}>{status.records.toLocaleString()}</div>
+                </div>
+                
+                <div style={{ width: '1px', height: '60px', background: 'var(--color-border-dark)' }}></div>
+                
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '8px' }}>Ultimo Sync</div>
+                  <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-main)', lineHeight: 1.2 }}>
+                    {status.lastSync ? new Date(status.lastSync).toLocaleDateString('it-IT') : 'Mai'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                    {status.lastSync ? new Date(status.lastSync).toLocaleTimeString('it-IT') : ''}
+                  </div>
+                </div>
+              </div>
             </GlassPanel>
           </div>
 
