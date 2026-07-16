@@ -134,8 +134,6 @@ export default function DesktopOS() {
   };
 
   // React-based auto-save mechanism
-  const widgets = useWidgetStore(state => state.widgets);
-  
   useEffect(() => {
     if (!isLoggedIn || !isReady) return;
 
