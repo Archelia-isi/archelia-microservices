@@ -157,7 +157,10 @@ export default async function imagesRoutes(fastify: FastifyInstance) {
             const publicId = res.public_id;
             const nomeFile = publicId.replace('prodotti/', '');
             const match = nomeFile.match(/^(.+?)\s*\(/);
-            const codiceBreve = match ? match[1].trim() : nomeFile.trim();
+            if (!match) continue; 
+            if (nomeFile.match(/\(1\)\s*$/)) continue;
+
+            const codiceBreve = match[1].trim();
             if (!mappa[codiceBreve]) mappa[codiceBreve] = [];
             mappa[codiceBreve].push(publicId);
           }
