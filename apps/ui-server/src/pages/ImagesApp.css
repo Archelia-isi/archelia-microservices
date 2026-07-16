@@ -105,15 +105,15 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-height: 500px;
   position: relative;
   z-index: 1;
+  padding: var(--spacing-xl) 0;
 }
 
 /* Specific Wrapper adjustments */
 .images-action-card-wrapper {
   max-width: 600px;
-  margin: var(--spacing-2xl) auto 0 auto;
+  margin: var(--spacing-xl) auto 0 auto;
 }
 
 /* Animations */
