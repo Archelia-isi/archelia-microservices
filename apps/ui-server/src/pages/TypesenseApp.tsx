@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Play, Save, Zap } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
+import Switch from '../components/ui/Switch';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import toast from 'react-hot-toast';
 import './TypesenseApp.css';
@@ -11,6 +12,8 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 export default function TypesenseApp() {
   const [status, setStatus] = useState<any>(null);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [schedulerJobs, setSchedulerJobs] = useState<any[]>([]);
+  const [localValues, setLocalValues] = useState<Record<string, { val: number, unit: string, time: string | null }>>({});
 
   const fetchStatus = async () => {
     try {
@@ -24,9 +27,30 @@ export default function TypesenseApp() {
     }
   };
 
+  const fetchScheduler = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const typesenseJobs = data.filter((j: any) => j.id === 'sync-typesense' || j.id === 'sync-typesense-promo');
+        setSchedulerJobs(typesenseJobs);
+        
+        const newLocalVals: any = {};
+        typesenseJobs.forEach((j: any) => {
+          newLocalVals[j.id] = { val: j.intervalValue, unit: j.intervalUnit, time: j.startTime };
+        });
+        setLocalValues(newLocalVals);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
-      await fetchStatus();
+      await Promise.all([fetchStatus(), fetchScheduler()]);
       setTimeout(() => setIsAppReady(true), 400);
     };
     init();
@@ -55,6 +79,63 @@ export default function TypesenseApp() {
       }
     } catch (e) {
       toast.error('Errore di connessione');
+    }
+  };
+
+  const toggleJob = async (id: string, enabled: boolean) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler/toggle`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id, enabled })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast.success(enabled ? 'Job abilitato' : 'Job disabilitato');
+      fetchScheduler();
+    } catch (err: any) {
+      toast.error('Errore modifica stato: ' + err.message);
+    }
+  };
+
+  const updateInterval = async (id: string, intervalValue: number, intervalUnit: string, startTime: string | null) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler/update-interval`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id, intervalValue, intervalUnit, startTime })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      toast.success('Intervallo aggiornato');
+      fetchScheduler();
+    } catch (err: any) {
+      toast.error('Errore aggiornamento: ' + err.message);
+    }
+  };
+
+  const runNow = async (id: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/admin/scheduler/run-now`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Avviato con successo');
+      } else {
+        toast.error(data.message || 'Errore avvio');
+      }
+    } catch (err: any) {
+      toast.error('Errore avvio job: ' + err.message);
     }
   };
 
@@ -114,6 +195,72 @@ export default function TypesenseApp() {
               </div>
             </GlassPanel>
           </div>
+
+          <GlassPanel padding="lg" variant="light" className="typesense-card">
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--color-text-main)' }}>Pianificazione Automatica</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {schedulerJobs.map(job => (
+                <div key={job.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#ffffff', borderRadius: '12px', border: '1px solid var(--color-border-light)', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: 'var(--color-text-main)', fontSize: '14px' }}>
+                    {job.id === 'sync-typesense' ? <Search size={16} /> : <Zap size={16} color="#f39c12" />}
+                    {job.label}
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input 
+                      type="number" 
+                      value={localValues[job.id]?.val ?? job.intervalValue}
+                      onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], val: parseInt(e.target.value) || 1 }}))}
+                      style={{ width: '50px', padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', fontSize: '13px' }}
+                    />
+                    <select 
+                      value={localValues[job.id]?.unit ?? job.intervalUnit}
+                      onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], unit: e.target.value }}))}
+                      style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white', fontSize: '13px' }}
+                    >
+                      <option value="minutes">Minuti</option>
+                      <option value="hours">Ore</option>
+                      <option value="days">Giorni</option>
+                    </select>
+
+                    <input 
+                      type="time" 
+                      value={localValues[job.id]?.time ?? job.startTime ?? ''}
+                      onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], time: e.target.value }}))}
+                      style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white', fontSize: '13px' }}
+                      disabled={(localValues[job.id]?.unit ?? job.intervalUnit) !== 'days' && (localValues[job.id]?.unit ?? job.intervalUnit) !== 'hours'}
+                    />
+
+                    <button 
+                      onClick={() => updateInterval(job.id, localValues[job.id]?.val ?? job.intervalValue, localValues[job.id]?.unit ?? job.intervalUnit, localValues[job.id]?.time ?? job.startTime)}
+                      style={{ width: '32px', height: '32px', borderRadius: '6px', border: 'none', background: 'var(--color-primary)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Salva impostazioni"
+                    >
+                      <Save size={16} />
+                    </button>
+                    
+                    <button 
+                      onClick={() => runNow(job.id)}
+                      style={{ width: '32px', height: '32px', borderRadius: '6px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Esegui ORA"
+                    >
+                      <Play size={16} />
+                    </button>
+
+                    <div style={{ width: '1px', height: '24px', background: 'var(--color-border-dark)', margin: '0 4px' }}></div>
+                    
+                    <Switch checked={job.enabled} onChange={(checked) => toggleJob(job.id, checked)} />
+                  </div>
+                </div>
+              ))}
+              
+              {schedulerJobs.length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+                  Caricamento configurazioni di sincronizzazione in corso...
+                </div>
+              )}
+            </div>
+          </GlassPanel>
 
         </div>
       </div>
