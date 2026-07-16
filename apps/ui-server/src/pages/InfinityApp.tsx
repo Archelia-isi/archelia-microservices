@@ -4,7 +4,6 @@ import { Database, RotateCcw } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Switch from '../components/ui/Switch';
 import Button from '../components/ui/Button';
-import Badge from '../components/ui/Badge';
 import TextInput from '../components/ui/TextInput';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import './InfinityApp.css';
@@ -14,7 +13,6 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 export default function InfinityApp() {
   const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null, intervalValue: 30, intervalUnit: 'minutes', startTime: '' as string | null });
   const [localSettings, setLocalSettings] = useState({ val: 30, unit: 'minutes', time: '' });
-  const [logs, setLogs] = useState<any[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [totalData, setTotalData] = useState(0);
   const [page, setPage] = useState(1);
@@ -36,17 +34,6 @@ export default function InfinityApp() {
     }
   };
 
-  const fetchLogs = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/logs?category=infinity_db&limit=50`);
-      if (res.ok) {
-        const d = await res.json();
-        setLogs(d.logs || []);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const fetchData = async () => {
     try {
@@ -64,16 +51,10 @@ export default function InfinityApp() {
 
   useEffect(() => {
     const init = async () => {
-      await Promise.all([fetchStatus(), fetchLogs(), fetchData()]);
+      await Promise.all([fetchStatus(), fetchData()]);
       setTimeout(() => setIsAppReady(true), 400);
     };
     init();
-
-    const timer = setInterval(() => {
-      fetchLogs();
-    }, 5000);
-
-    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -143,25 +124,8 @@ export default function InfinityApp() {
       <div className={`infinity-app eq-app-entry ${isAppReady ? 'ready' : ''}`}>
         <div className="infinity-main-container">
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', paddingTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--color-primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary)' }}>
-                <Database size={24} />
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: 'var(--color-text-main)' }}>
-                    Zucchetti DB Infinity (FDW)
-                  </h2>
-                  <Badge variant={status.enabled ? 'success' : 'danger'} size="sm">
-                    {status.enabled ? 'Attivo' : 'Sospeso'}
-                  </Badge>
-                </div>
-                <p style={{ margin: '4px 0 0 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                  Ponte di esportazione dati per ERP Zucchetti
-                </p>
-              </div>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: '24px', paddingTop: '16px' }}>
+
             
             <div style={{ display: 'flex', gap: '32px', alignItems: 'center', background: '#f5f5f7', padding: '12px 24px', borderRadius: '16px' }}>
               <div style={{ textAlign: 'right' }}>
@@ -178,7 +142,7 @@ export default function InfinityApp() {
             </div>
           </div>
 
-          <div className="infinity-content-grid">
+          <div style={{ marginBottom: '24px' }}>
             <GlassPanel padding="lg" variant="light" className="infinity-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Sincronizzazione Automatica</h3>
@@ -226,21 +190,6 @@ export default function InfinityApp() {
               <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
                 Forza Sync Immediato
               </Button>
-            </GlassPanel>
-
-            <GlassPanel padding="none" variant="solid" className="infinity-logs-card">
-              <div className="infinity-terminal">
-                {logs.length === 0 ? (
-                  <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>
-                ) : (
-                  logs.map((log, i) => (
-                    <div key={i} className={`log-line level-${log.level.toLowerCase()}`}>
-                      <span className="log-time">[{new Date(log.timestamp).toLocaleTimeString('it-IT', { hour12: false })}]</span>
-                      <span className="log-msg">{log.message}</span>
-                    </div>
-                  ))
-                )}
-              </div>
             </GlassPanel>
           </div>
 

@@ -43,58 +43,10 @@
   flex: 1;
 }
 
-/* Grid Layouts */
-.infinity-content-grid {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
 .infinity-card {
   display: flex;
   flex-direction: column;
 }
-
-.infinity-logs-card {
-  display: flex;
-  flex-direction: column;
-  height: 250px;
-  overflow: hidden;
-}
-
-.infinity-terminal {
-  flex: 1;
-  background: var(--color-surface);
-  padding: 16px;
-  font-family: 'SF Mono', Consolas, monospace;
-  font-size: 13px;
-  overflow-y: auto;
-  color: var(--color-text-main);
-}
-
-.log-line {
-  margin-bottom: 6px;
-  line-height: 1.5;
-  word-break: break-all;
-  border-bottom: 1px solid var(--color-border-light);
-  padding-bottom: 4px;
-}
-
-.log-line:last-child {
-  border-bottom: none;
-}
-
-.log-time {
-  color: var(--color-text-muted);
-  margin-right: 12px;
-  font-weight: 500;
-}
-
-.log-line.level-error .log-msg { color: var(--color-danger); font-weight: 600; }
-.log-line.level-warn .log-msg { color: var(--color-warning); font-weight: 600; }
-.log-line.level-info .log-msg { color: var(--color-primary); }
-.log-line.level-debug .log-msg { color: var(--color-text-secondary); }
 
 .infinity-table-card {
   display: flex;
