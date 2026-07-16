@@ -25,7 +25,9 @@ export default function Settings() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      let data = await res.json();
+      // Nascondiamo i job di Typesense da qui perché ora hanno la loro app dedicata (TypesenseApp.tsx)
+      data = data.filter((j: any) => j.id !== 'sync-typesense' && j.id !== 'sync-typesense-promo');
       setJobs(data);
       const newLocalVals: any = {};
       data.forEach((j: any) => {

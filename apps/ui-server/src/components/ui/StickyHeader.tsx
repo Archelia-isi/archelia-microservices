@@ -10,7 +10,7 @@ interface StickyHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 export default function StickyHeader({ 
   children, 
   paddingY = 'md',
-  backgroundOpacity = 0.95,
+  backgroundOpacity = 0.7,
   className = '', 
   ...props 
 }: StickyHeaderProps) {
