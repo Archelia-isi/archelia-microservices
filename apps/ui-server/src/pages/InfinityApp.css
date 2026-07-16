@@ -1,14 +1,13 @@
-/* App Entry & Main Container */
 .infinity-app {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100%;
+  background: transparent;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #1d1d1f;
   -webkit-font-smoothing: antialiased;
-  background: transparent;
 }
 
 .eq-app-entry {

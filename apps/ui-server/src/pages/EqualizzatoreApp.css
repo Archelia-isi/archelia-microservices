@@ -3,9 +3,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  background: rgba(245, 245, 247, 0.7);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
+  background: transparent;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #1d1d1f;
@@ -18,7 +16,7 @@
   transform: scale(0.95);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
-  background: transparent !important; /* Transparent initially to show desktop */
+  background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -27,9 +25,7 @@
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
-  background: rgba(245, 245, 247, 0.7) !important; /* Restores background when ready */
-  backdrop-filter: blur(40px) !important;
-  -webkit-backdrop-filter: blur(40px) !important;
+  background: transparent !important;
 }
 
 /* Top Navbar (Menu) */
