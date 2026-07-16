@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
@@ -16,6 +16,7 @@ import { EmailBuilderApp } from '../../pages/EmailBuilderApp';
 import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
 import AiChatbotApp from '../ai/AiChatbotApp';
+import LoginScreen from './LoginScreen';
 import './DesktopOS.css';
 
 import InfinityApp from '../../pages/InfinityApp';
@@ -23,10 +24,102 @@ import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen } = useWindowStore();
+  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper } = useWindowStore();
   const { widgets } = useWidgetStore();
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [isReady, setIsReady] = useState(false);
+  
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+  const [showIntro, setShowIntro] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadPreferences();
+    }
+  }, [isLoggedIn]);
+
+  const loadPreferences = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const res = await fetch(`${API_URL}/api/admin/preferences`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.theme) {
+          // Set wallpaper if we treat theme as wallpaper for now, or if it's stored in widgetConfig
+        }
+        if (data.widgetConfig) {
+          const config = data.widgetConfig;
+          if (config.wallpaper) setWallpaper(config.wallpaper);
+          
+          // Restore desktop positions and pinned state
+          if (config.desktopIcons) {
+            Object.entries(config.desktopIcons).forEach(([appId, pos]: [string, any]) => {
+              if (pos.x !== undefined && pos.y !== undefined) {
+                updateDesktopPosition(appId, pos.x, pos.y);
+              }
+              if (pos.isPinned && useWindowStore.getState().windows[appId] && !useWindowStore.getState().windows[appId].isPinned) {
+                togglePinApp(appId);
+              } else if (!pos.isPinned && useWindowStore.getState().windows[appId]?.isPinned) {
+                togglePinApp(appId); // unpin if it was pinned
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load preferences', e);
+    } finally {
+      setIsReady(true);
+    }
+  };
+
+  useEffect(() => {
+    // Save preferences when windows positions/pins or wallpaper change
+    if (!isLoggedIn || !isReady) return;
+    
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = window.setTimeout(async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean }> = {};
+      Object.values(windows).forEach(win => {
+        desktopIcons[win.id] = {
+          x: win.desktopX ?? 30,
+          y: win.desktopY ?? 30,
+          isPinned: win.isPinned
+        };
+      });
+
+      const configToSave = {
+        wallpaper,
+        desktopIcons,
+        // we can also save widgets layout here later
+      };
+
+      fetch(`${API_URL}/api/admin/preferences`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ widgetConfig: configToSave })
+      }).catch(err => console.error('Failed to save preferences', err));
+    }, 1500);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [windows, wallpaper, isLoggedIn, isReady]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
@@ -154,6 +247,36 @@ export default function DesktopOS() {
       registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 230 });
     }
   }, []);
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLoginSuccess={() => {
+      setIsLoggedIn(true);
+      setShowIntro(true);
+    }} wallpaper={wallpaper} />;
+  }
+
+  if (showIntro) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <video 
+          src="/videos/intro.mp4" 
+          autoPlay 
+          playsInline
+          onEnded={() => setShowIntro(false)}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      </div>
+    );
+  }
+
+  // Prevent showing the desktop until preferences are loaded to avoid flickering
+  if (!isReady) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'white' }}>Avvio Archelia OS...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>

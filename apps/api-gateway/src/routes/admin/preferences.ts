@@ -12,7 +12,7 @@ export async function adminPreferencesRoutes(app: FastifyInstance) {
     schema: {
       response: {
         200: z.object({
-          widgetConfig: z.record(z.string(), z.boolean()).nullable(),
+          widgetConfig: z.any().nullable(),
           theme: z.string()
         })
       }
@@ -36,7 +36,7 @@ export async function adminPreferencesRoutes(app: FastifyInstance) {
     preHandler: [authenticate],
     schema: {
       body: z.object({
-        widgetConfig: z.record(z.string(), z.boolean()).optional(),
+        widgetConfig: z.any().optional(),
         theme: z.string().optional()
       }),
       response: {
