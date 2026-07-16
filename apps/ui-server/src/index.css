@@ -40,11 +40,23 @@
   --glass-app-blur: blur(40px);
 
   /* ============================ */
+  /* SPACING                      */
+  /* ============================ */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ============================ */
   /* BORDER RADIUS                */
   /* ============================ */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --radius-full: 9999px;
 
   /* ============================ */
