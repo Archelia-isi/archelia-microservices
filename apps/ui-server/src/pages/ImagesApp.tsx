@@ -145,17 +145,19 @@ export default function ImagesApp() {
         
         {/* Dynamic Header & Tabs merged */}
         <StickyHeader paddingY="md" backgroundOpacity={0} style={{ borderBottom: 'none' }}>
-          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <Tabs 
-              activeTab={activeTab}
-              onChange={(id) => handleTabChange(id as TabType)}
-              tabs={[
-                { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
-                { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
-                { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
-              ]}
-            />
-          </GlassPanel>
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-flex' }}>
+              <Tabs 
+                activeTab={activeTab}
+                onChange={(id) => handleTabChange(id as TabType)}
+                tabs={[
+                  { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
+                  { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
+                  { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
+                ]}
+              />
+            </GlassPanel>
+          </div>
         </StickyHeader>
 
         <div className="images-app-content" style={{ flex: 1, overflowY: 'auto' }}>
@@ -172,7 +174,7 @@ export default function ImagesApp() {
                 accept="image/*"
                 multiple
                 directoryMode
-                style={{ maxWidth: '800px', margin: '0 auto' }}
+                style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}
               >
                 {isUploading && (
                   <div className="images-progress-container" style={{ width: '100%', maxWidth: '400px', marginTop: 'var(--spacing-xl)' }}>
@@ -199,13 +201,13 @@ export default function ImagesApp() {
               />
               
               {mapStats && (
-                <div className="images-stats" style={{ width: '100%', maxWidth: '800px', marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>
+                <div className="images-stats" style={{ width: '100%', maxWidth: '600px', margin: 'var(--spacing-md) auto 0 auto', display: 'flex', gap: 'var(--spacing-md)' }}>
                   <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
                     <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
                     <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
                   </div>
                   <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
-                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali su Cloudinary</span>
+                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali</span>
                       <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
                     </div>
                   </div>

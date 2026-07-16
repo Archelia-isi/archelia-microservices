@@ -112,8 +112,8 @@
 
 /* Specific Wrapper adjustments */
 .images-action-card-wrapper {
-  max-width: 800px;
-  margin-top: var(--spacing-2xl);
+  max-width: 600px;
+  margin: var(--spacing-2xl) auto 0 auto;
 }
 
 /* Animations */
