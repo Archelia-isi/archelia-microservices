@@ -33,6 +33,7 @@ async function buildApp() {
 
   await app.register(cors, {
     origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 
   await app.register(cookie);

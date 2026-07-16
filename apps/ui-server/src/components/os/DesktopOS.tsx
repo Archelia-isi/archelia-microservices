@@ -303,6 +303,7 @@ export default function DesktopOS() {
 
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>
+      <Toaster position="top-right" />
       {/* Area Finestre e Widget */}
       <div 
         className="desktop-workspace"
