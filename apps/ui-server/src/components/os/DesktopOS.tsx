@@ -97,13 +97,8 @@ export default function DesktopOS() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Retrieve latest state directly from stores to avoid closure stale data
-    const currentWindows = useWindowStore.getState().windows;
-    const currentWallpaper = useWindowStore.getState().wallpaper;
-    const currentWidgets = useWidgetStore.getState().widgets;
-
     const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean }> = {};
-    Object.values(currentWindows).forEach(win => {
+    Object.values(windows).forEach(win => {
       desktopIcons[win.id] = {
         x: win.desktopX ?? 30,
         y: win.desktopY ?? 30,
@@ -112,9 +107,9 @@ export default function DesktopOS() {
     });
 
     const configToSave = {
-      wallpaper: currentWallpaper,
+      wallpaper,
       desktopIcons,
-      widgets: currentWidgets
+      widgets: useWidgetStore.getState().widgets
     };
 
     try {
@@ -138,43 +133,18 @@ export default function DesktopOS() {
     }
   };
 
+  // React-based auto-save mechanism
+  const widgets = useWidgetStore(state => state.widgets);
+  
   useEffect(() => {
     if (!isLoggedIn || !isReady) return;
 
-    let saveTimeout: any;
-    
-    const triggerSave = () => {
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        savePreferences();
-      }, 500); // 500ms debounce
-    };
+    const saveTimeout = setTimeout(() => {
+      savePreferences();
+    }, 500);
 
-    let prevWindows = useWindowStore.getState().windows;
-    let prevWallpaper = useWindowStore.getState().wallpaper;
-
-    const unsubWindow = useWindowStore.subscribe((state) => {
-      if (state.windows !== prevWindows || state.wallpaper !== prevWallpaper) {
-        prevWindows = state.windows;
-        prevWallpaper = state.wallpaper;
-        triggerSave();
-      }
-    });
-
-    let prevWidgets = useWidgetStore.getState().widgets;
-    const unsubWidget = useWidgetStore.subscribe((state) => {
-      if (state.widgets !== prevWidgets) {
-        prevWidgets = state.widgets;
-        triggerSave();
-      }
-    });
-
-    return () => {
-      unsubWindow();
-      unsubWidget();
-      if (saveTimeout) clearTimeout(saveTimeout);
-    };
-  }, [isLoggedIn, isReady]);
+    return () => clearTimeout(saveTimeout);
+  }, [windows, wallpaper, widgets, isReady, isLoggedIn]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
