@@ -138,7 +138,7 @@ export default function Settings() {
                       title={job.label}
                       description="Lancio manuale istantaneo della coda di sincronizzazione. Il task verrà accodato su BullMQ e processato dai worker."
                       action={
-                        <button className="btn btn-primary" onClick={() => runNow(job.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', background: 'var(--color-primary)', color: 'white', border: 'none', cursor: 'pointer' }}>
+                        <button className="btn btn-primary" onClick={() => runNow(job.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                           <Play size={16} /> Avvia Sync
                         </button>
                       }
@@ -151,7 +151,7 @@ export default function Settings() {
                       title={job.label}
                       description="Forza l'esecuzione manuale immediata ignorando il timer cron impostato."
                       action={
-                        <button className="btn btn-secondary" onClick={() => runNow(job.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', background: 'var(--color-surface)', border: '1px solid var(--color-border-light)', cursor: 'pointer' }}>
+                        <button className="btn btn-primary" onClick={() => runNow(job.id)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                           <Play size={16} /> Forza Sync
                         </button>
                       }
