@@ -2,9 +2,9 @@ import React, { useRef, useState } from 'react';
 import './Dropzone.css';
 
 interface DropzoneProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
+  icon?: React.ReactNode;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
   onFilesSelected: (files: FileList) => void;
   accept?: string;
   multiple?: boolean;
@@ -67,13 +67,17 @@ export default function Dropzone({
       onClick={() => fileInputRef.current?.click()}
       style={style}
     >
-      <div className="ui-dropzone-icon-wrapper">
-        {icon}
-      </div>
-      <div className="ui-dropzone-texts">
-        <h3 className="ui-dropzone-title">{title}</h3>
-        <p className="ui-dropzone-subtitle">{subtitle}</p>
-      </div>
+      {icon && (
+        <div className="ui-dropzone-icon-wrapper">
+          {icon}
+        </div>
+      )}
+      {(title || subtitle) && (
+        <div className="ui-dropzone-texts">
+          {title && <h3 className="ui-dropzone-title">{title}</h3>}
+          {subtitle && <p className="ui-dropzone-subtitle">{subtitle}</p>}
+        </div>
+      )}
       
       {children}
       

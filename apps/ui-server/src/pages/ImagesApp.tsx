@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, FolderDown } from 'lucide-react';
+import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2 } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -30,6 +30,7 @@ interface ImageReport {
 export default function ImagesApp() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upload');
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -128,6 +129,7 @@ export default function ImagesApp() {
     } finally {
       setIsUploading(false);
       setUploadProgress(100);
+      setSelectedFiles(null);
     }
   };
 
@@ -165,18 +167,45 @@ export default function ImagesApp() {
             <div className="images-upload-container">
               
               <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', margin: '0', alignItems: 'stretch' }}>
-                <Dropzone
-                  icon={<FolderDown size={48} strokeWidth={2} />}
-                  title="Trascina le immagini qui"
-                  subtitle="oppure clicca per selezionare dal tuo computer"
-                  onFilesSelected={handleUpload}
-                  accept="image/*"
-                  multiple
-                  directoryMode
-                  style={{ flex: 1, margin: 0 }}
-                >
+                
+                <div style={{ flex: 1, margin: 0, background: 'var(--color-surface)', backdropFilter: 'var(--glass-blur)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--color-border-glass)', padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)' }}>📁 Upload Cartella</h2>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '15px' }}>
+                    Seleziona una cartella — verranno caricate solo le immagini non presenti su Cloudinary
+                  </p>
+
+                  <Dropzone
+                    onFilesSelected={(files) => setSelectedFiles(files)}
+                    accept="image/*"
+                    multiple
+                    directoryMode
+                    style={{ 
+                      flex: 1, 
+                      margin: 'var(--spacing-md) 0', 
+                      padding: 'var(--spacing-2xl)', 
+                      minHeight: '150px',
+                      border: '2px dashed var(--color-border)',
+                      background: 'transparent',
+                      boxShadow: 'none',
+                      borderRadius: 'var(--radius-xl)'
+                    }}
+                    subtitle={
+                      <span style={{ fontSize: '16px', color: 'var(--color-text-secondary)' }}>
+                        Clicca per <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>selezionare una cartella</span>
+                      </span>
+                    }
+                  />
+
+                  {selectedFiles && !isUploading && (
+                     <div style={{ fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                        {selectedFiles.length} immagini selezionate pronte per il caricamento.
+                     </div>
+                  )}
+
                   {isUploading && (
-                    <div className="images-progress-container" style={{ width: '100%', maxWidth: '400px', marginTop: 'var(--spacing-xl)' }}>
+                    <div className="images-progress-container" style={{ width: '100%', marginTop: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
                         <span>Caricamento in corso...</span>
                         <span>{Math.round(uploadProgress)}%</span>
@@ -186,7 +215,26 @@ export default function ImagesApp() {
                       </div>
                     </div>
                   )}
-                </Dropzone>
+                  
+                  <div style={{ marginTop: 'auto', paddingTop: 'var(--spacing-md)' }}>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => handleUpload(selectedFiles!)} 
+                      disabled={!selectedFiles || isUploading}
+                      style={{ 
+                        padding: '12px 24px', 
+                        fontSize: '15px', 
+                        fontWeight: 600, 
+                        background: '#a78bfa', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 'var(--radius-lg)' 
+                      }}
+                    >
+                      Carica su Cloudinary
+                    </Button>
+                  </div>
+                </div>
 
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                   <ActionCard
