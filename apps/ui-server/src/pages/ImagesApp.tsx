@@ -164,7 +164,7 @@ export default function ImagesApp() {
           {activeTab === 'upload' && (
             <div className="images-upload-container">
               
-              <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', maxWidth: '1200px', margin: '0 auto', alignItems: 'stretch' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', margin: '0', alignItems: 'stretch' }}>
                 <Dropzone
                   icon={<FolderDown size={48} strokeWidth={2} />}
                   title="Trascina le immagini qui"
