@@ -94,44 +94,74 @@ export default function DesktopOS() {
     }
   };
 
-  useEffect(() => {
-    // Save preferences when windows positions/pins or wallpaper change
-    if (!isLoggedIn || !isReady) return;
-    
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = window.setTimeout(async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+  const savePreferences = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-      const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean }> = {};
-      Object.values(windows).forEach(win => {
-        desktopIcons[win.id] = {
-          x: win.desktopX ?? 30,
-          y: win.desktopY ?? 30,
-          isPinned: win.isPinned
-        };
-      });
+    // Retrieve latest state directly from stores to avoid closure stale data
+    const currentWindows = useWindowStore.getState().windows;
+    const currentWallpaper = useWindowStore.getState().wallpaper;
+    const currentWidgets = useWidgetStore.getState().widgets;
 
-      const configToSave = {
-        wallpaper,
-        desktopIcons,
-        widgets
+    const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean }> = {};
+    Object.values(currentWindows).forEach(win => {
+      desktopIcons[win.id] = {
+        x: win.desktopX ?? 30,
+        y: win.desktopY ?? 30,
+        isPinned: win.isPinned
       };
+    });
 
-      fetch(`${API_URL}/api/admin/preferences`, {
+    const configToSave = {
+      wallpaper: currentWallpaper,
+      desktopIcons,
+      widgets: currentWidgets
+    };
+
+    try {
+      await fetch(`${API_URL}/api/admin/preferences`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ widgetConfig: configToSave })
-      }).catch(err => console.error('Failed to save preferences', err));
-    }, 300);
+      });
+    } catch (err) {
+      console.error('Failed to save preferences', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn || !isReady) return;
+
+    let saveTimeout: any;
+    
+    const triggerSave = () => {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        savePreferences();
+      }, 500); // 500ms debounce
+    };
+
+    const unsubWindow = useWindowStore.subscribe((state, prevState) => {
+      if (state.windows !== prevState.windows || state.wallpaper !== prevState.wallpaper) {
+        triggerSave();
+      }
+    });
+
+    const unsubWidget = useWidgetStore.subscribe((state, prevState) => {
+      if (state.widgets !== prevState.widgets) {
+        triggerSave();
+      }
+    });
 
     return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      unsubWindow();
+      unsubWidget();
+      if (saveTimeout) clearTimeout(saveTimeout);
     };
-  }, [windows, wallpaper, widgets, isLoggedIn, isReady]);
+  }, [isLoggedIn, isReady]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
