@@ -74,6 +74,13 @@ export default function DesktopOS() {
             });
           }
         }
+      } else {
+        // Se il token è invalido o scaduto, eseguiamo il logout
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsLoggedIn(false);
+        }
       }
     } catch (e) {
       console.error('Failed to load preferences', e);

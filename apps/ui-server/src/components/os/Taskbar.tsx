@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, LogOut } from 'lucide-react';
 import './Taskbar.css';
 
 export default function Taskbar() {
@@ -88,7 +88,7 @@ export default function Taskbar() {
           })}
         </div>
 
-        {/* Destra: Data, Ora e Chatbot */}
+        {/* Destra: Data, Ora, Logout e Chatbot */}
         <div className="taskbar-right">
           <div 
             className={`taskbar-chatbot-btn ${isChatbotOpen ? 'active' : ''}`}
@@ -96,6 +96,17 @@ export default function Taskbar() {
             title="Archelia AI Chatbot"
           >
             <BrainCircuit size={20} color={isChatbotOpen ? '#00d2ff' : 'var(--color-text)'} />
+          </div>
+          <div 
+            className="taskbar-chatbot-btn"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.reload();
+            }}
+            title="Esci da Archelia OS"
+          >
+            <LogOut size={18} color="var(--color-text)" />
           </div>
           <div className="taskbar-clock">
             <div className="taskbar-time">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
