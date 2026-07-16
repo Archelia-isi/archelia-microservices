@@ -17,7 +17,9 @@ export default function TypesenseApp() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/typesense/status`);
+      const res = await fetch(`${API_URL}/api/admin/typesense/status`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       if (res.ok) {
         const d = await res.json();
         setStatus(d);
@@ -58,7 +60,10 @@ export default function TypesenseApp() {
 
   const handleSyncNow = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/typesense/sync`, { method: 'POST' });
+      const res = await fetch(`${API_URL}/api/admin/typesense/sync`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       if (res.ok) {
         toast.success('Sync Typesense accodato con successo!');
       } else {
@@ -71,7 +76,10 @@ export default function TypesenseApp() {
 
   const handleFastSyncPromo = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/typesense/sync-promo`, { method: 'POST' });
+      const res = await fetch(`${API_URL}/api/admin/typesense/sync-promo`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       if (res.ok) {
         toast.success('Fast Sync Promozioni accodato!');
       } else {
