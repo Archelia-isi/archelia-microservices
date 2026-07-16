@@ -118,15 +118,19 @@ export default function Settings() {
       />
 
       <div className={`scheduler-app-container eq-app-entry ${isAppReady ? 'ready' : ''}`}>
-        <StickyHeader>
-          <Tabs 
-            tabs={[
-              { id: 'manual', label: 'Sincronizzazioni Manuali' },
-              { id: 'auto', label: 'Scheduler Automatico' }
-            ]}
-            activeTab={activeTab}
-            onChange={(val) => setActiveTab(val as string)}
-          />
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
+          <div style={{ padding: '0 var(--spacing-2xl)' }}>
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block' }}>
+              <Tabs 
+                tabs={[
+                  { id: 'manual', label: 'Sincronizzazioni Manuali' },
+                  { id: 'auto', label: 'Scheduler Automatico' }
+                ]}
+                activeTab={activeTab}
+                onChange={(val) => setActiveTab(val as string)}
+              />
+            </GlassPanel>
+          </div>
         </StickyHeader>
 
         <div className="scheduler-content" style={{ flex: 1, overflowY: 'auto', padding: '0 var(--spacing-2xl)' }}>
