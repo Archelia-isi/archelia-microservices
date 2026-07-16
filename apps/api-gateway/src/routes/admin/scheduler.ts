@@ -25,7 +25,6 @@ const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: strin
   'sync-stock-shopify': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify' },
   'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB' },
   'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense' },
-  'sync-typesense-promo': { queue: typesenseQueue, command: 'SYNC_TYPESENSE_PROMO', label: '⚡ Fast Sync Promozioni Typesense' },
 };
 
 function toCronExpression(value: number, unit: string, startTime?: string | null): string {
