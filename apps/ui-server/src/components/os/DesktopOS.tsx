@@ -19,6 +19,7 @@ import AiChatbotApp from '../ai/AiChatbotApp';
 import './DesktopOS.css';
 
 import InfinityApp from '../../pages/InfinityApp';
+import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 
 export default function DesktopOS() {
@@ -145,6 +146,9 @@ export default function DesktopOS() {
     }
     if (!windows['infinity']) {
       registerApp({ id: 'infinity', title: 'Infinity DB', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 250, y: 120, width: 1000, height: 700, desktopX: 330, desktopY: 30 });
+    }
+    if (!windows['typesense']) {
+      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 300, y: 150, width: 900, height: 600, desktopX: 330, desktopY: 130 });
     }
     if (!windows['images']) {
       registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 230 });

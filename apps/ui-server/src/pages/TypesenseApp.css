@@ -1,0 +1,25 @@
+/* App Entry & Main Container */
+.typesense-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+  background: transparent;
+}
+
+.typesense-main-container {
+  display: flex;
+  flex-direction: column;
+  padding: 0 40px 40px 40px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.typesense-card {
+  display: flex;
+  flex-direction: column;
+}
