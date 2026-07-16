@@ -12,7 +12,8 @@ import './InfinityApp.css';
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function InfinityApp() {
-  const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null, intervalValue: 30, intervalUnit: 'minutes' });
+  const [status, setStatus] = useState({ enabled: false, records: 0, lastSync: null, intervalValue: 30, intervalUnit: 'minutes', startTime: '' as string | null });
+  const [localSettings, setLocalSettings] = useState({ val: 30, unit: 'minutes', time: '' });
   const [logs, setLogs] = useState<any[]>([]);
   const [data, setData] = useState<any[]>([]);
   const [totalData, setTotalData] = useState(0);
@@ -28,6 +29,7 @@ export default function InfinityApp() {
       if (res.ok) {
         const d = await res.json();
         setStatus(d);
+        setLocalSettings({ val: d.intervalValue, unit: d.intervalUnit, time: d.startTime || '' });
       }
     } catch (e) {
       console.error(e);
@@ -100,13 +102,14 @@ export default function InfinityApp() {
     }
   };
 
-  const updateInterval = async (intervalValue: number, intervalUnit: string) => {
-    setStatus(prev => ({ ...prev, intervalValue, intervalUnit }));
+  const updateInterval = async () => {
+    const { val, unit, time } = localSettings;
+    setStatus(prev => ({ ...prev, intervalValue: val, intervalUnit: unit, startTime: time }));
     try {
       const res = await fetch(`${API_URL}/api/admin/infinity/update-interval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intervalValue, intervalUnit })
+        body: JSON.stringify({ intervalValue: val, intervalUnit: unit, startTime: time })
       });
       if (!res.ok) throw new Error();
       toast.success('Intervallo di sincronizzazione aggiornato');
@@ -189,19 +192,35 @@ export default function InfinityApp() {
                 <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Esegui ogni:</span>
                 <input 
                   type="number" 
-                  value={status.intervalValue}
-                  onChange={(e) => updateInterval(parseInt(e.target.value) || 1, status.intervalUnit)}
+                  value={localSettings.val}
+                  onChange={(e) => setLocalSettings(p => ({ ...p, val: parseInt(e.target.value) || 1 }))}
                   style={{ width: '60px', padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none' }}
                 />
                 <select 
-                  value={status.intervalUnit}
-                  onChange={(e) => updateInterval(status.intervalValue, e.target.value)}
+                  value={localSettings.unit}
+                  onChange={(e) => setLocalSettings(p => ({ ...p, unit: e.target.value }))}
                   style={{ flex: 1, padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
                 >
                   <option value="minutes">Minuti</option>
                   <option value="hours">Ore</option>
                   <option value="days">Giorni</option>
                 </select>
+
+                <input 
+                  type="time" 
+                  value={localSettings.time}
+                  onChange={(e) => setLocalSettings(p => ({ ...p, time: e.target.value }))}
+                  style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
+                  disabled={localSettings.unit !== 'days' && localSettings.unit !== 'hours'}
+                />
+
+                <button 
+                  onClick={updateInterval}
+                  style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'var(--color-primary)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Salva impostazioni"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                </button>
               </div>
 
               <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
@@ -210,9 +229,6 @@ export default function InfinityApp() {
             </GlassPanel>
 
             <GlassPanel padding="none" variant="solid" className="infinity-logs-card">
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border-light)', background: 'var(--color-surface)' }}>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Console Log (infinity_db)</h3>
-              </div>
               <div className="infinity-terminal">
                 {logs.length === 0 ? (
                   <div style={{ color: '#64748b', textAlign: 'center', marginTop: '20px' }}>Nessun log recente</div>

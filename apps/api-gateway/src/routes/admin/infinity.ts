@@ -6,6 +6,24 @@ import { redis } from '@archelia/core';
 // Pass redis as connection to bullmq
 const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 
+function toCronExpression(value: number, unit: string, startTime?: string | null): string {
+  let minute = '0';
+  let hour = '0';
+  if (startTime) {
+    const parts = startTime.split(':');
+    if (parts.length === 2) {
+      hour = parseInt(parts[0], 10).toString();
+      minute = parseInt(parts[1], 10).toString();
+    }
+  }
+  switch (unit) {
+    case 'minutes': return `*/${value} * * * *`;
+    case 'hours':   return `${minute} */${value} * * *`;
+    case 'days':    return `${minute} ${hour} */${value} * *`;
+    default:        return `*/${value} * * * *`;
+  }
+}
+
 export default async function infinityRoutes(fastify: FastifyInstance) {
   // GET /api/admin/infinity/data (Paginato + Ricerca)
   fastify.get('/data', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -62,7 +80,8 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
         records: recordsCount,
         lastSync: schedulerRecord?.updatedAt || null,
         intervalValue: schedulerRecord?.intervalValue || 30,
-        intervalUnit: schedulerRecord?.intervalUnit || 'minutes'
+        intervalUnit: schedulerRecord?.intervalUnit || 'minutes',
+        startTime: schedulerRecord?.startTime || null
       };
     } catch (error) {
       request.log.error(error);
@@ -83,7 +102,8 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
           jobId,
           enabled,
           intervalValue: 30,
-          intervalUnit: 'minutes'
+          intervalUnit: 'minutes',
+          startTime: null
         }
       });
 
@@ -96,9 +116,7 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
         }
       } else {
         // Se riattivato, lo re-scheduliamo
-        let cronPattern = `*/${config.intervalValue} * * * *`;
-        if (config.intervalUnit === 'hours') cronPattern = `0 */${config.intervalValue} * * *`;
-        if (config.intervalUnit === 'days') cronPattern = `0 0 */${config.intervalValue} * *`;
+        const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
 
         await zucchettiQueue.add('ZUCCHETTI_INFINITY_DB', { command: 'ZUCCHETTI_INFINITY_DB', source: 'infinity-app' }, {
           repeat: { pattern: cronPattern }
@@ -115,17 +133,18 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
   // POST /api/admin/infinity/update-interval
   fastify.post('/update-interval', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { intervalValue, intervalUnit } = request.body as { intervalValue: number, intervalUnit: string };
+      const { intervalValue, intervalUnit, startTime } = request.body as { intervalValue: number, intervalUnit: string, startTime?: string };
       const jobId = 'zucchetti-infinity-db';
       
       const config = await prisma.schedulerConfig.upsert({
         where: { jobId },
-        update: { intervalValue, intervalUnit },
+        update: { intervalValue, intervalUnit, startTime },
         create: {
           jobId,
           enabled: false,
           intervalValue,
-          intervalUnit
+          intervalUnit,
+          startTime
         }
       });
 
@@ -137,9 +156,7 @@ export default async function infinityRoutes(fastify: FastifyInstance) {
           await zucchettiQueue.removeRepeatableByKey(jobToRemove.key);
         }
 
-        let cronPattern = `*/${config.intervalValue} * * * *`;
-        if (config.intervalUnit === 'hours') cronPattern = `0 */${config.intervalValue} * * *`;
-        if (config.intervalUnit === 'days') cronPattern = `0 0 */${config.intervalValue} * *`;
+        const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
 
         await zucchettiQueue.add('ZUCCHETTI_INFINITY_DB', { command: 'ZUCCHETTI_INFINITY_DB', source: 'infinity-app' }, {
           repeat: { pattern: cronPattern }

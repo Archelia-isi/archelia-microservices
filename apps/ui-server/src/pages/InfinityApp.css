@@ -65,29 +65,36 @@
 
 .infinity-terminal {
   flex: 1;
-  background: #1e1e1e;
+  background: var(--color-surface);
   padding: 16px;
   font-family: 'SF Mono', Consolas, monospace;
-  font-size: 12px;
+  font-size: 13px;
   overflow-y: auto;
-  color: #d4d4d4;
+  color: var(--color-text-main);
 }
 
 .log-line {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   line-height: 1.5;
   word-break: break-all;
+  border-bottom: 1px solid var(--color-border-light);
+  padding-bottom: 4px;
+}
+
+.log-line:last-child {
+  border-bottom: none;
 }
 
 .log-time {
-  color: #858585;
-  margin-right: 8px;
+  color: var(--color-text-muted);
+  margin-right: 12px;
+  font-weight: 500;
 }
 
-.log-line.level-error .log-msg { color: #f14c4c; }
-.log-line.level-warn .log-msg { color: #cca700; }
-.log-line.level-info .log-msg { color: #3794ff; }
-.log-line.level-debug .log-msg { color: #608b4e; }
+.log-line.level-error .log-msg { color: var(--color-danger); font-weight: 600; }
+.log-line.level-warn .log-msg { color: var(--color-warning); font-weight: 600; }
+.log-line.level-info .log-msg { color: var(--color-primary); }
+.log-line.level-debug .log-msg { color: var(--color-text-secondary); }
 
 .infinity-table-card {
   display: flex;
