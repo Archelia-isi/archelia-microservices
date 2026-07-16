@@ -7,7 +7,6 @@ import Badge from '../components/ui/Badge';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
-import BackgroundBlobs from '../components/ui/BackgroundBlobs';
 import Dropzone from '../components/ui/Dropzone';
 import ActionCard from '../components/ui/ActionCard';
 import './ImagesApp.css';
@@ -164,54 +163,57 @@ export default function ImagesApp() {
 
           {activeTab === 'upload' && (
             <div className="images-upload-container">
-              <BackgroundBlobs />
               
-              <Dropzone
-                icon={<FolderDown size={48} strokeWidth={2} />}
-                title="Trascina le immagini qui"
-                subtitle="oppure clicca per selezionare dal tuo computer"
-                onFilesSelected={handleUpload}
-                accept="image/*"
-                multiple
-                directoryMode
-                style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}
-              >
-                {isUploading && (
-                  <div className="images-progress-container" style={{ width: '100%', maxWidth: '400px', marginTop: 'var(--spacing-xl)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
-                      <span>Caricamento in corso...</span>
-                      <span>{Math.round(uploadProgress)}%</span>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', maxWidth: '1200px', margin: '0 auto', alignItems: 'stretch' }}>
+                <Dropzone
+                  icon={<FolderDown size={48} strokeWidth={2} />}
+                  title="Trascina le immagini qui"
+                  subtitle="oppure clicca per selezionare dal tuo computer"
+                  onFilesSelected={handleUpload}
+                  accept="image/*"
+                  multiple
+                  directoryMode
+                  style={{ flex: 1, margin: 0 }}
+                >
+                  {isUploading && (
+                    <div className="images-progress-container" style={{ width: '100%', maxWidth: '400px', marginTop: 'var(--spacing-xl)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
+                        <span>Caricamento in corso...</span>
+                        <span>{Math.round(uploadProgress)}%</span>
+                      </div>
+                      <div className="images-progress-bar">
+                        <div className="images-progress-fill" style={{ width: `${uploadProgress}%` }}></div>
+                      </div>
                     </div>
-                    <div className="images-progress-bar">
-                      <div className="images-progress-fill" style={{ width: `${uploadProgress}%` }}></div>
-                    </div>
-                  </div>
-                )}
-              </Dropzone>
+                  )}
+                </Dropzone>
 
-              <ActionCard
-                className="images-action-card-wrapper"
-                title="Rigenerazione Mappa Immagini JSON"
-                description="Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. Viene eseguito in automatico ad ogni upload riuscito."
-                action={
-                  <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
-                    <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
-                  </Button>
-                }
-              />
-              
-              {mapStats && (
-                <div className="images-stats" style={{ width: '100%', maxWidth: '600px', margin: 'var(--spacing-md) auto 0 auto', display: 'flex', gap: 'var(--spacing-md)' }}>
-                  <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
-                    <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
-                    <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
-                  </div>
-                  <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
-                      <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali</span>
-                      <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                  <ActionCard
+                    className="images-action-card-wrapper"
+                    title="Rigenerazione Mappa Immagini JSON"
+                    description="Forza la ricostruzione della mappa leggendo direttamente i file da Cloudinary. Viene eseguito in automatico ad ogni upload riuscito."
+                    action={
+                      <Button variant="primary" onClick={handleRefreshMap} disabled={isMapping}>
+                        <RefreshCw size={16} className={isMapping ? 'spin' : ''} /> {isMapping ? 'Rigenerazione...' : 'Forza Mappa'}
+                      </Button>
+                    }
+                  />
+                  
+                  {mapStats && (
+                    <div className="images-stats" style={{ width: '100%', margin: '0', display: 'flex', gap: 'var(--spacing-md)' }}>
+                      <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
+                        <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
+                        <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
+                      </div>
+                      <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
+                        <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali</span>
+                        <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
