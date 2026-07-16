@@ -46,16 +46,16 @@ export default function DesktopOS() {
   const loadPreferences = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setIsReady(true);
+        return;
+      }
       
       const res = await fetch(`${API_URL}/api/admin/preferences`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.theme) {
-          // Set wallpaper if we treat theme as wallpaper for now, or if it's stored in widgetConfig
-        }
         if (data.widgetConfig) {
           const config = data.widgetConfig;
           if (config.wallpaper) setWallpaper(config.wallpaper);
@@ -72,6 +72,11 @@ export default function DesktopOS() {
                 togglePinApp(appId); // unpin if it was pinned
               }
             });
+          }
+
+          // Restore widgets
+          if (config.widgets && Array.isArray(config.widgets)) {
+             useWidgetStore.setState({ widgets: config.widgets });
           }
         }
       } else {
@@ -110,7 +115,7 @@ export default function DesktopOS() {
       const configToSave = {
         wallpaper,
         desktopIcons,
-        // we can also save widgets layout here later
+        widgets
       };
 
       fetch(`${API_URL}/api/admin/preferences`, {
@@ -121,12 +126,12 @@ export default function DesktopOS() {
         },
         body: JSON.stringify({ widgetConfig: configToSave })
       }).catch(err => console.error('Failed to save preferences', err));
-    }, 1500);
+    }, 300);
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [windows, wallpaper, isLoggedIn, isReady]);
+  }, [windows, wallpaper, widgets, isLoggedIn, isReady]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
