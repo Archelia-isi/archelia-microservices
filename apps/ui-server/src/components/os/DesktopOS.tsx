@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
+import { toast } from 'react-hot-toast';
 import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
@@ -117,7 +118,7 @@ export default function DesktopOS() {
     };
 
     try {
-      await fetch(`${API_URL}/api/admin/preferences`, {
+      const res = await fetch(`${API_URL}/api/admin/preferences`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -125,7 +126,14 @@ export default function DesktopOS() {
         },
         body: JSON.stringify({ widgetConfig: configToSave })
       });
-    } catch (err) {
+      
+      if (!res.ok) {
+        toast.error(`Errore salvataggio: ${res.status}`);
+      } else {
+        console.log('Salvataggio effettuato con successo');
+      }
+    } catch (err: any) {
+      toast.error(`Errore di rete salvataggio: ${err.message}`);
       console.error('Failed to save preferences', err);
     }
   };
