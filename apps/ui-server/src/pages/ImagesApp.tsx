@@ -144,9 +144,9 @@ export default function ImagesApp() {
         <div className="eq-main-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         
         {/* Dynamic Header & Tabs merged */}
-        <StickyHeader paddingY="md" backgroundOpacity={0} style={{ borderBottom: 'none' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-flex' }}>
+        <StickyHeader paddingY="sm" backgroundOpacity={0} style={{ borderBottom: 'none' }}>
+          <div style={{ padding: '0 var(--spacing-2xl)' }}>
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block' }}>
               <Tabs 
                 activeTab={activeTab}
                 onChange={(id) => handleTabChange(id as TabType)}

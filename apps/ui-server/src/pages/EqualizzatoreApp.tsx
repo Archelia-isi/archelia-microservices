@@ -157,43 +157,47 @@ export default function EqualizzatoreApp() {
         <div className="eq-main-container">
         
         {/* Dynamic Header & Progress bar & Tabs merged */}
-        <StickyHeader paddingY="md">
-          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="eq-header-modern-left">
-            <h2>Review Station Pipeline</h2>
-            
-            <ProgressBar 
-              progress={progress.progress} 
-              total={Math.max(progress.total, 1)} 
-              isActive={progress.isActive} 
-              message={progress.message || 'Nessun processo IA attivo'} 
-            />
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
+          <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="eq-header-modern-left">
+                <h2>Review Station Pipeline</h2>
+                
+                <ProgressBar 
+                  progress={progress.progress} 
+                  total={Math.max(progress.total, 1)} 
+                  isActive={progress.isActive} 
+                  message={progress.message || 'Nessun processo IA attivo'} 
+                />
+              </div>
 
-            <Tabs 
-              activeTab={activeTab}
-              onChange={(id) => setActiveTab(id as number)}
-              tabs={[
-                { id: 1, label: '1. Revisione Testi', icon: <Edit3 size={14}/> },
-                { id: 2, label: '2. Revisione Nomenclatura', icon: <CheckCircle size={14}/> },
-                { id: 3, label: '3. Risoluzione Codici', icon: <AlertTriangle size={14}/> },
-                { id: 4, label: `4. Da Sincronizzare (${activeTab === 4 ? items.length : '...'})`, icon: <CloudUpload size={14}/> },
-              ]}
-            />
-          </div>
+              <div className="eq-header-modern-right">
+                <DropdownMenu
+                  label="Azioni Pipeline"
+                  icon={<Settings2 size={16} />}
+                  items={[
+                    { id: 'batch', label: 'Avvia Generazione Massiva Testi', icon: <Zap size={14} />, variant: 'primary', disabled: progress.isActive, onClick: triggerBatch },
+                    { id: 'nom', label: 'Genera Nomenclatura Globale', icon: <Play size={14} />, variant: 'primary', disabled: progress.isActive, onClick: startNomenclature },
+                    { id: 'reset', label: 'Sblocca Barra / Riavvia Errori', icon: <RotateCcw size={14} />, variant: 'warning', dividerBefore: true, onClick: resetProgress },
+                    { id: 'stop', label: 'Ferma Processi Correnti', icon: <Ban size={14} />, variant: 'danger', onClick: () => {} }
+                  ]}
+                />
+              </div>
+            </GlassPanel>
 
-          <div className="eq-header-modern-right">
-            <DropdownMenu
-              label="Azioni Pipeline"
-              icon={<Settings2 size={16} />}
-              items={[
-                { id: 'batch', label: 'Avvia Generazione Massiva Testi', icon: <Zap size={14} />, variant: 'primary', disabled: progress.isActive, onClick: triggerBatch },
-                { id: 'nom', label: 'Genera Nomenclatura Globale', icon: <Play size={14} />, variant: 'primary', disabled: progress.isActive, onClick: startNomenclature },
-                { id: 'reset', label: 'Sblocca Barra / Riavvia Errori', icon: <RotateCcw size={14} />, variant: 'warning', dividerBefore: true, onClick: resetProgress },
-                { id: 'stop', label: 'Ferma Processi Correnti', icon: <Ban size={14} />, variant: 'danger', onClick: () => {} }
-              ]}
-            />
+            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
+              <Tabs 
+                activeTab={activeTab}
+                onChange={(id) => setActiveTab(id as number)}
+                tabs={[
+                  { id: 1, label: '1. Revisione Testi', icon: <Edit3 size={14}/> },
+                  { id: 2, label: '2. Revisione Nomenclatura', icon: <CheckCircle size={14}/> },
+                  { id: 3, label: '3. Risoluzione Codici', icon: <AlertTriangle size={14}/> },
+                  { id: 4, label: `4. Da Sincronizzare (${activeTab === 4 ? items.length : '...'})`, icon: <CloudUpload size={14}/> },
+                ]}
+              />
+            </GlassPanel>
           </div>
-          </GlassPanel>
         </StickyHeader>
 
         {activeTab === 4 && items.length > 0 && (

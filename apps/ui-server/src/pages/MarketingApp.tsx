@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import Tabs from '../components/ui/Tabs';
+import StickyHeader from '../components/ui/StickyHeader';
+import GlassPanel from '../components/ui/GlassPanel';
 import FlowBuilder from '../components/marketing/FlowBuilder';
 import QueueManager from '../components/marketing/QueueManager';
 import './MarketingApp.css';
@@ -20,22 +22,24 @@ export function MarketingApp() {
 
   return (
     <div className="marketing-app">
-      <div className="marketing-header sticky-header glass-effect">
-        <div className="marketing-title">
-          <h2>📣 Control Center Automazioni</h2>
-          <p>Configura i flussi in background e monitora le code di invio.</p>
+      <StickyHeader paddingY="sm" backgroundOpacity={0}>
+        <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+          <div className="marketing-title">
+            <h2>📣 Control Center Automazioni</h2>
+            <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>Configura i flussi in background e monitora le code di invio.</p>
+          </div>
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
+            <Tabs
+              tabs={[
+                { id: 'flows', label: 'Flussi & Automazioni' },
+                { id: 'queues', label: 'Gestione Code' }
+              ]}
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id as any)}
+            />
+          </GlassPanel>
         </div>
-        <div className="marketing-tabs">
-          <Tabs
-            tabs={[
-              { id: 'flows', label: 'Flussi & Automazioni' },
-              { id: 'queues', label: 'Gestione Code' }
-            ]}
-            activeTab={activeTab}
-            onChange={(id) => setActiveTab(id as any)}
-          />
-        </div>
-      </div>
+      </StickyHeader>
 
       <div className="marketing-content">
         {activeTab === 'flows' && <FlowBuilder />}
