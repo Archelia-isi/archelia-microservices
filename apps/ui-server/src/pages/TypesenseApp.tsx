@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, RotateCcw } from 'lucide-react';
+import { Search } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import AppSplashScreen from '../components/os/AppSplashScreen';
@@ -45,6 +45,19 @@ export default function TypesenseApp() {
     }
   };
 
+  const handleFastSyncPromo = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/typesense/sync-promo`, { method: 'POST' });
+      if (res.ok) {
+        toast.success('Fast Sync Promozioni accodato!');
+      } else {
+        toast.error('Errore durante il sync');
+      }
+    } catch (e) {
+      toast.error('Errore di connessione');
+    }
+  };
+
   return (
     <>
       <AppSplashScreen 
@@ -63,12 +76,17 @@ export default function TypesenseApp() {
                 <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--color-text-main)' }}>Sincronizzazione Dati</h3>
               </div>
               <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.5, flex: 1 }}>
-                Typesense è il motore di ricerca vettoriale che alimenta il sito. Puoi forzare la sincronizzazione manuale per ricostruire gli indici dai dati più recenti.
+                Typesense è il motore di ricerca vettoriale che alimenta il sito. Puoi lanciare un Fast Sync (solo prezzi e promo) o una Sincronizzazione Massiva.
               </p>
               
-              <Button variant="primary" icon={<RotateCcw size={16} />} onClick={handleSyncNow} style={{ width: '100%', justifyContent: 'center' }}>
-                Forza Sync Immediato
-              </Button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Button variant="primary" onClick={handleFastSyncPromo} style={{ flex: 1, justifyContent: 'center', background: '#f39c12', borderColor: '#e67e22' }}>
+                  Fast Sync Promozioni
+                </Button>
+                <Button variant="primary" onClick={handleSyncNow} style={{ flex: 1, justifyContent: 'center' }}>
+                  Avvia Sync Massiva
+                </Button>
+              </div>
             </GlassPanel>
 
             <GlassPanel padding="lg" variant="light" className="typesense-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

@@ -87,7 +87,7 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
     const allRepeatableJobs = (await Promise.all(queues.map(q => q.getRepeatableJobs()))).flat();
 
     const state = Object.keys(JOB_MAPPINGS)
-      .filter(jobId => jobId !== 'zucchetti-infinity-db' && jobId !== 'sync-typesense')
+      .filter(jobId => jobId !== 'zucchetti-infinity-db')
       .map(jobId => {
         const mapping = JOB_MAPPINGS[jobId];
         const c = configMap.get(jobId);
