@@ -113,6 +113,7 @@
 /* Specific Wrapper adjustments */
 .images-action-card-wrapper {
   max-width: 600px;
+  height: auto;
   margin: var(--spacing-xl) auto 0 auto;
 }
 
