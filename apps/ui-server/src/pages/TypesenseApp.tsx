@@ -15,6 +15,10 @@ export default function TypesenseApp() {
   const [schedulerJobs, setSchedulerJobs] = useState<any[]>([]);
   const [localValues, setLocalValues] = useState<Record<string, { val: number, unit: string, time: string | null }>>({});
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
   const fetchStatus = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/typesense/status`, {
@@ -147,6 +151,31 @@ export default function TypesenseApp() {
     }
   };
 
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) {
+      setSearchResults({ empty: true });
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/typesense/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data);
+      } else {
+        setSearchResults({ error: true });
+      }
+    } catch (err) {
+      setSearchResults({ error: true });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <>
       <AppSplashScreen 
@@ -266,6 +295,78 @@ export default function TypesenseApp() {
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '14px' }}>
                   Caricamento configurazioni di sincronizzazione in corso...
                 </div>
+              )}
+            </div>
+          </GlassPanel>
+
+          <GlassPanel padding="lg" variant="light" className="typesense-card" style={{ marginTop: '24px' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--color-text-main)' }}>🧪 Test Ricerca Typesense (con priorità)</h3>
+            
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca prodotto..." 
+                style={{ flex: 1, padding: '10px 14px', border: '1px solid var(--color-border-light)', borderRadius: '8px', background: 'white', color: 'var(--color-text-main)', fontSize: '14px', outline: 'none' }}
+              />
+              <Button variant="primary" type="submit" disabled={isSearching}>
+                {isSearching ? 'Ricerca...' : 'Cerca'}
+              </Button>
+            </form>
+
+            <div style={{ background: '#ffffff', border: '1px solid var(--color-border-light)', borderRadius: '12px', padding: '16px', minHeight: '100px', maxHeight: '400px', overflowY: 'auto', fontSize: '13px' }}>
+              {isSearching ? (
+                <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '20px' }}>Caricamento...</div>
+              ) : searchResults?.empty ? (
+                <div style={{ color: 'var(--color-text-muted)' }}>Inserisci un termine di ricerca.</div>
+              ) : searchResults?.error ? (
+                <div style={{ color: 'var(--color-danger)' }}>Errore durante la ricerca.</div>
+              ) : searchResults?.hits?.length === 0 ? (
+                <div style={{ color: 'var(--color-text-muted)' }}>Nessun risultato trovato.</div>
+              ) : searchResults?.hits ? (
+                <div>
+                  <div style={{ marginBottom: '12px', color: 'var(--color-text-main)' }}>
+                    <strong>Risultati: {searchResults.found}</strong> (tempo: {searchResults.search_time_ms}ms)
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                        <th style={{ padding: '8px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Prodotto</th>
+                        <th style={{ padding: '8px', color: 'var(--color-text-muted)', fontWeight: 600 }}>SKU</th>
+                        <th style={{ padding: '8px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Promo</th>
+                        <th style={{ padding: '8px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Stock</th>
+                        <th style={{ padding: '8px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {searchResults.hits.map((hit: any, i: number) => {
+                        const doc = hit.document;
+                        return (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                            <td style={{ padding: '8px' }}>
+                              <strong style={{ color: 'var(--color-text-main)' }}>{doc.title}</strong><br/>
+                              <small style={{ color: 'var(--color-text-muted)' }}>{doc.brand || ''} - {doc.family || ''}</small>
+                            </td>
+                            <td style={{ padding: '8px', color: 'var(--color-text-main)' }}>{doc.sku}</td>
+                            <td style={{ padding: '8px' }}>
+                              {doc.is_in_promo ? (
+                                <span style={{ background: doc.promo_badge_color || '#dc3545', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600 }}>
+                                  {doc.promo_badge || doc.promo_type} 
+                                  {doc.promo_discount ? ` (-${doc.promo_discount}%)` : ''}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td style={{ padding: '8px', color: 'var(--color-text-main)' }}>{doc.stock}</td>
+                            <td style={{ padding: '8px', color: 'var(--color-text-main)' }}>{hit.text_match}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--color-text-muted)' }}>I risultati appariranno qui...</div>
               )}
             </div>
           </GlassPanel>

@@ -76,8 +76,14 @@ export async function adminSearchRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { q } = request.query;
-    // TODO: In V2 execute search through Typesense Client
-    log.info(`Ricerca Typesense per query: ${q}`, { module: 'api-gateway:search' });
-    return reply.status(200).send({ hits: [] });
+    try {
+      log.info(`Ricerca Typesense per query: ${q}`, { module: 'api-gateway:search' });
+      const { searchProducts } = await import('@archelia/typesense');
+      const results = await searchProducts(q);
+      return reply.status(200).send(results);
+    } catch (e: any) {
+      log.error(`Errore ricerca Typesense: ${e.message}`, { module: 'api-gateway:search' });
+      return reply.status(400).send({ error: e.message });
+    }
   });
 }
