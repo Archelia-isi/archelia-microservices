@@ -39,7 +39,5 @@
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
-  background: rgba(245, 245, 247, 0.7) !important;
-  backdrop-filter: blur(40px) !important;
-  -webkit-backdrop-filter: blur(40px) !important;
+  background: transparent !important;
 }
