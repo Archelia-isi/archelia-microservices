@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Play, Save, Zap } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import Switch from '../components/ui/Switch';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import toast from 'react-hot-toast';
@@ -18,6 +19,7 @@ export default function TypesenseApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const fetchStatus = async () => {
     try {
@@ -343,7 +345,13 @@ export default function TypesenseApp() {
                       {searchResults.hits.map((hit: any, i: number) => {
                         const doc = hit.document;
                         return (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                          <tr 
+                            key={i} 
+                            style={{ borderBottom: '1px solid var(--color-border-light)', cursor: 'pointer' }}
+                            onClick={() => setSelectedProduct(doc)}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
                             <td style={{ padding: '8px' }}>
                               <strong style={{ color: 'var(--color-text-main)' }}>{doc.title}</strong><br/>
                               <small style={{ color: 'var(--color-text-muted)' }}>{doc.brand || ''} - {doc.family || ''}</small>
@@ -370,9 +378,58 @@ export default function TypesenseApp() {
               )}
             </div>
           </GlassPanel>
-
         </div>
       </div>
+
+      {/* MODAL DETTAGLIO PRODOTTO */}
+      <Modal
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        title={selectedProduct ? `Dettaglio Prodotto: ${selectedProduct.sku}` : ''}
+        size="lg"
+      >
+        {selectedProduct && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--color-bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Titolo</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{selectedProduct.title}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>SKU Naturale (Sort)</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{selectedProduct.natural_sku}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Brand / Famiglia</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{selectedProduct.brand || '-'} / {selectedProduct.family || '-'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Giacenza Totale (Sync)</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{selectedProduct.stock} {selectedProduct.unit || 'PZ'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Stato Pubblicazione</div>
+                <div style={{ fontWeight: 600, color: selectedProduct.publishedOnWeb ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  {selectedProduct.publishedOnWeb ? 'PUBBLICATO' : 'NASCOSTO'}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>ID Database</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)', fontSize: '12px' }}>{selectedProduct.id}</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-text-main)' }}>Payload Completo Indicizzato in Typesense:</h4>
+              <div style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '16px', borderRadius: '8px', overflowX: 'auto', fontSize: '12px', fontFamily: 'monospace', maxHeight: '400px', overflowY: 'auto' }}>
+                <pre style={{ margin: 0 }}>
+                  {JSON.stringify(selectedProduct, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
