@@ -31,7 +31,7 @@ export default function DesktopOS() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [isReady, setIsReady] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+  const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
   const [showIntro, setShowIntro] = useState(false);
 
@@ -142,14 +142,21 @@ export default function DesktopOS() {
       }, 500); // 500ms debounce
     };
 
-    const unsubWindow = useWindowStore.subscribe((state, prevState) => {
-      if (state.windows !== prevState.windows || state.wallpaper !== prevState.wallpaper) {
+    let prevWindows = useWindowStore.getState().windows;
+    let prevWallpaper = useWindowStore.getState().wallpaper;
+
+    const unsubWindow = useWindowStore.subscribe((state) => {
+      if (state.windows !== prevWindows || state.wallpaper !== prevWallpaper) {
+        prevWindows = state.windows;
+        prevWallpaper = state.wallpaper;
         triggerSave();
       }
     });
 
-    const unsubWidget = useWidgetStore.subscribe((state, prevState) => {
-      if (state.widgets !== prevState.widgets) {
+    let prevWidgets = useWidgetStore.getState().widgets;
+    const unsubWidget = useWidgetStore.subscribe((state) => {
+      if (state.widgets !== prevWidgets) {
+        prevWidgets = state.widgets;
         triggerSave();
       }
     });
