@@ -10,7 +10,7 @@
     "dev": "npm run dev --workspaces --if-present",
     "build": "if [ -n \"$RAILWAY_SERVICE_NAME\" ]; then npm run build --workspace=@archelia/$RAILWAY_SERVICE_NAME --if-present; else npm run build --workspaces --if-present; fi",
     "start": "npm run start --workspaces --if-present",
-    "postinstall": "npm run generate --workspace=@archelia/database && npm run build --workspace=@archelia/database && npm run build --workspace=@archelia/core && npm run build --workspace=@archelia/zucchetti && npm run build --workspace=@archelia/shopify && npm run build --workspace=@archelia/typesense && npm run build --workspace=@archelia/ai",
+    "postinstall": "npm run generate --workspace=@archelia/database && npm run build --workspace=@archelia/database && npm run build --workspace=@archelia/core && npm run build --workspace=@archelia/zucchetti && npm run build --workspace=@archelia/shopify && npm run build --workspace=@archelia/typesense && npm run build --workspace=@archelia/ai && npm run build --workspace=@archelia/worker-analytics",
     "dummy-deploy": "echo 'force deploy'"
   }
 }
