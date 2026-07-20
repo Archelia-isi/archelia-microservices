@@ -63,11 +63,11 @@ export class ZucchettiPullService {
       const fs = require('fs');
       if (fs.existsSync('/tmp/pdf_skus.json')) {
         const data = JSON.parse(fs.readFileSync('/tmp/pdf_skus.json', 'utf-8'));
-        logger.info(`📋 Caricati ${data.length} SKU dal PDF (/tmp/pdf_skus.json)`, { module: 'worker-zucchetti-pull' });
+        logger.info({ module: 'worker-zucchetti-pull' }, `📋 Caricati ${data.length} SKU dal PDF (/tmp/pdf_skus.json)`);
         return data;
       }
     } catch (e) {
-      logger.warn(`⚠️ Impossibile caricare SKU PDF da /tmp/pdf_skus.json`, { module: 'worker-zucchetti-pull' });
+      logger.warn({ module: 'worker-zucchetti-pull' }, `⚠️ Impossibile caricare SKU PDF da /tmp/pdf_skus.json`);
     }
     return [];
   }
@@ -372,7 +372,7 @@ export class ZucchettiPullService {
       try {
         const fs = require('fs');
         fs.writeFileSync('/tmp/import_diagnostics.json', JSON.stringify(diagnostics, null, 2));
-        logger.info('💾 Diagnostica salvata in /tmp/import_diagnostics.json', { module: 'worker-zucchetti-pull' });
+        logger.info({ module: 'worker-zucchetti-pull' }, '💾 Diagnostica salvata in /tmp/import_diagnostics.json');
       } catch { /* ignore */ }
 
       logger.info(`✅ Import completato: ${result.created} nuovi, ${result.updated} aggiornati, ${result.errors} errori.`);

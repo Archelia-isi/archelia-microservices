@@ -80,7 +80,7 @@ export class ProductSyncService {
         const existingData = skuToShopifyData.get(bp.sku);
         if (existingData && existingData.status === 'ACTIVE') {
           try {
-            await shopifyGraphQL.query(`mutation($input: ProductSetInput!) {
+            await shopifyGraphQL(`mutation($input: ProductSetInput!) {
               productSet(input: $input) {
                 userErrors { message }
               }
@@ -143,7 +143,7 @@ export class ProductSyncService {
         const existingProductData = skuToShopifyData.get(product.sku);
         if (existingProductData && existingProductData.inventoryItemId) {
           try {
-            await shopifyGraphQL.query(`mutation($input: InventorySetOnHandQuantitiesInput!) {
+            await shopifyGraphQL(`mutation($input: InventorySetOnHandQuantitiesInput!) {
               inventorySetOnHandQuantities(input: $input) {
                 userErrors { message }
               }
@@ -406,7 +406,7 @@ export class ProductSyncService {
           }
         }
       `;
-      const res = await shopifyGraphQL.query<any>(query, { cursor });
+      const res: any = await shopifyGraphQL<any>(query, { cursor });
       
       for (const node of res.products.nodes) {
         allProducts.push({
@@ -524,7 +524,7 @@ export class ProductSyncService {
       }
     }`;
 
-    const res = await shopifyGraphQL.query<any>(MUTATION, { input: productSetInput });
+    const res: any = await shopifyGraphQL<any>(MUTATION, { input: productSetInput });
     
     if (res.productSet.userErrors.length > 0) {
       throw new Error(res.productSet.userErrors.map((e: any) => `${e.field?.join('.')}: ${e.message}`).join(', '));
@@ -602,7 +602,7 @@ export class ProductSyncService {
         return fixedUrl;
       });
 
-      const existingRes = await shopifyGraphQL.query<any>(`query ProductMedia($productId: ID!) {
+      const existingRes = await shopifyGraphQL<any>(`query ProductMedia($productId: ID!) {
         product(id: $productId) {
           media(first: 50) {
             edges {
@@ -642,7 +642,7 @@ export class ProductSyncService {
 
       if (existingMedia.length > 0) {
         const mediaIdsToDelete = existingMedia.map((m: any) => m.id);
-        const delRes = await shopifyGraphQL.query<any>(`mutation productDeleteMedia($productId: ID!, $mediaIds: [ID!]!) {
+        const delRes = await shopifyGraphQL<any>(`mutation productDeleteMedia($productId: ID!, $mediaIds: [ID!]!) {
           productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
             mediaUserErrors { message }
           }
@@ -655,7 +655,7 @@ export class ProductSyncService {
         alt: url
       }));
 
-      const addRes = await shopifyGraphQL.query<any>(`mutation ProductCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+      const addRes = await shopifyGraphQL<any>(`mutation ProductCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
         productCreateMedia(productId: $productId, media: $media) {
           mediaUserErrors { message }
         }
