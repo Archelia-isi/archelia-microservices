@@ -212,6 +212,7 @@ export default function Settings() {
                               onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], unit: e.target.value }}))}
                               style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white' }}
                             >
+                              <option value="seconds">Secondi</option>
                               <option value="minutes">Minuti</option>
                               <option value="hours">Ore</option>
                               <option value="days">Giorni</option>

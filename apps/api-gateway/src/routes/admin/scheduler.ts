@@ -56,11 +56,18 @@ async function applyJobSchedule(jobId: string, config: any) {
   // Se disabilitato, abbiamo già rimosso, quindi ok.
   if (!config.enabled) return;
 
-  const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
-  await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
-    repeat: { pattern: cronPattern }
-  });
-  log.info(`⏰ Schedulato ${jobId} con cron "${cronPattern}"`, { module: 'api-gateway:scheduler' });
+  if (config.intervalUnit === 'seconds') {
+    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
+      repeat: { every: config.intervalValue * 1000 }
+    });
+    log.info(`⏰ Schedulato ${jobId} ogni ${config.intervalValue} secondi`, { module: 'api-gateway:scheduler' });
+  } else {
+    const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
+    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
+      repeat: { pattern: cronPattern }
+    });
+    log.info(`⏰ Schedulato ${jobId} con cron "${cronPattern}"`, { module: 'api-gateway:scheduler' });
+  }
 }
 
 export async function initScheduler() {
