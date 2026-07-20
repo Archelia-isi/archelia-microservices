@@ -13,14 +13,16 @@ const promoQueue = new Queue('shopify-promo', { connection: redis as any });
 const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
 
 const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean, defaultInterval?: number, defaultUnit?: string }> = {
-  'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti', defaultInterval: 6, defaultUnit: 'hours' },
-  'clean-promos': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
+  'sync-mid-zuc': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti', defaultInterval: 1, defaultUnit: 'days' },
+  'sync-mid-zuc-img': { queue: zucchettiQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini', defaultInterval: 1, defaultUnit: 'days' },
+  'sync-banners': { queue: promoQueue, command: 'SYNC_BANNERS', label: '🖼️ Sync Banners', defaultInterval: 24, defaultUnit: 'hours' },
+  'sync-promo': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
   'sync-mid-zuc-stock': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
-  'sync-mid-zuc-price': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 6, defaultUnit: 'hours' },
-  'sync-shopify': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'hours' },
+  'sync-mid-zuc-price': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 3, defaultUnit: 'days' },
+  'sync-shopify-push': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'days' },
   'sync-stock': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes' },
-  'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB', isManualOnly: true },
-  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense', defaultInterval: 24, defaultUnit: 'hours' },
+  'sync-db-zocc': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB', defaultInterval: 1, defaultUnit: 'days' },
+  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense', defaultInterval: 1, defaultUnit: 'days' },
 };
 
 function toCronExpression(value: number, unit: string, startTime?: string | null): string {
@@ -99,7 +101,6 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
     const allRepeatableJobs = (await Promise.all(queues.map(q => q.getRepeatableJobs()))).flat();
 
     const state = Object.keys(JOB_MAPPINGS)
-      .filter(jobId => jobId !== 'zucchetti-infinity-db')
       .map(jobId => {
         const mapping = JOB_MAPPINGS[jobId];
         const c = configMap.get(jobId);
