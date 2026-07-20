@@ -9,22 +9,18 @@ import { Queue } from 'bullmq';
 const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 const shopifyQueue = new Queue('shopify-commands', { connection: redis as any });
 const marketingQueue = new Queue('marketing-queue', { connection: redis as any });
-const promoQueue = new Queue('promo-commands', { connection: redis as any });
+const promoQueue = new Queue('shopify-promo', { connection: redis as any });
 const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
 
-const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean }> = {
-  'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti' },
-  'mappatura-collezioni': { queue: shopifyQueue, command: 'MAPPATURA_COLLEZIONI', label: '🗂️ Mappatura Collezioni', isManualOnly: true },
-  'sync-collezioni-shopify': { queue: shopifyQueue, command: 'SYNC_COLLEZIONI_SHOPIFY', label: '☁️ Sync Collezioni Shopify', isManualOnly: true },
-  'sync-images': { queue: shopifyQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini' },
-  'sync-banners': { queue: promoQueue, command: 'SYNC_BANNERS', label: '🖼️ Sync Banners' },
-  'pulizia-promozioni': { queue: promoQueue, command: 'PULIZIA_PROMOZIONI', label: '🧹 Pulizia Promozioni' },
-  'sync-giacenze': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze' },
-  'sync-prezzi': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi' },
-  'sync-shopify': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)' },
-  'sync-stock-shopify': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify' },
-  'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB' },
-  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense' },
+const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean, defaultInterval?: number, defaultUnit?: string }> = {
+  'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti', defaultInterval: 6, defaultUnit: 'hours' },
+  'pulizia-promozioni': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
+  'sync-giacenze': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
+  'sync-prezzi': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 6, defaultUnit: 'hours' },
+  'sync-shopify': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'hours' },
+  'sync-stock-shopify': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes' },
+  'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB', isManualOnly: true },
+  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔍 Sync Typesense', defaultInterval: 24, defaultUnit: 'hours' },
 };
 
 function toCronExpression(value: number, unit: string, startTime?: string | null): string {
@@ -69,6 +65,22 @@ async function applyJobSchedule(jobId: string, config: any) {
   log.info(`⏰ Schedulato ${jobId} con cron "${cronPattern}"`, { module: 'api-gateway:scheduler' });
 }
 
+export async function initScheduler() {
+  try {
+    const configs = await prisma.schedulerConfig.findMany();
+    log.info(`Sincronizzazione ${configs.length} job schedulati dal DB verso BullMQ (Redis)...`, { module: 'api-gateway:scheduler' });
+    
+    for (const config of configs) {
+      if (config.enabled) {
+        await applyJobSchedule(config.jobId, config);
+      }
+    }
+    log.info(`✅ Sincronizzazione scheduler completata.`, { module: 'api-gateway:scheduler' });
+  } catch (err: any) {
+    log.error(`Errore durante initScheduler: ${err.message}`, { module: 'api-gateway:scheduler' });
+  }
+}
+
 export async function adminSchedulerRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
 
@@ -99,8 +111,8 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
           id: jobId,
           label: mapping.label,
           enabled: c?.enabled || false,
-          intervalValue: c?.intervalValue || 30,
-          intervalUnit: c?.intervalUnit || 'minutes',
+          intervalValue: c?.intervalValue || mapping.defaultInterval || 30,
+          intervalUnit: c?.intervalUnit || mapping.defaultUnit || 'minutes',
           startTime: c?.startTime || null,
           status: c?.enabled ? 'active' : 'idle',
           isManualOnly: mapping.isManualOnly || false,

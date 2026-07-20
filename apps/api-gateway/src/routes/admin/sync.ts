@@ -7,6 +7,8 @@ import { Queue } from 'bullmq';
 
 const zucchettiQueue = new Queue('zucchetti-commands', { connection: redis as any });
 
+const shopifyQueue = new Queue('shopify-commands', { connection: redis as any });
+
 export async function adminSyncRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
 
@@ -31,31 +33,24 @@ export async function adminSyncRoutes(app: FastifyInstance) {
     const { type } = request.params;
     const body = request.body || {};
 
-    const syncTypeMap: Record<string, string> = {
-      'import-products': 'PRODUCTS',
-      'sync-stock': 'INVENTORY',
-      'sync-prices': 'PRICES',
-      'sync-images': 'IMAGES',
-      'sync-banners': 'BANNERS',
-      'clean-promos': 'PROMO_CLEAN',
-      'sync-shopify': 'PRODUCTS',
-      'sync-shopify-stock': 'INVENTORY',
-      'sync-elmark-mid-stock': 'ELMARK_SYNC',
-      'sync-elmark-mid-price': 'ELMARK_SYNC',
-      'sync-mid-zuc-stock': 'ZUCCHETTI_SYNC',
-      'sync-mid-zuc-price': 'ZUCCHETTI_SYNC',
-    };
-
-    if (!syncTypeMap[type]) {
-      return reply.status(400).send({ error: `Tipo sync "${type}" non supportato.` });
-    }
-
     log.info(`🚀 [Admin] Richiesta trigger sync: ${type}`, { payload: body, module: 'api-gateway:sync' });
 
     if (type === 'import-products') {
       await zucchettiQueue.add('zucchetti-pull', { command: 'IMPORT_PRODUCTS' });
+    } else if (type === 'sync-stock') {
+      await zucchettiQueue.add('zucchetti-pull', { command: 'SYNC_INVENTORY' });
+    } else if (type === 'sync-prices') {
+      await zucchettiQueue.add('zucchetti-pull', { command: 'SYNC_PRICING' });
+    } else if (type === 'sync-shopify') {
+      await shopifyQueue.add('SYNC_ALL_PRODUCTS', {});
+    } else if (type === 'sync-shopify-stock') {
+      await shopifyQueue.add('SYNC_STOCK_ONLY', {});
+    } else if (type === 'clean-promos') {
+      const promoQueue = new Queue('shopify-promo', { connection: redis as any });
+      await promoQueue.add('promo-commands', { command: 'CLEANUP_EXPIRED_PROMOS' });
     } else {
       log.warn(`Trigger per ${type} non ancora implementato su BullMQ. Coda simulata.`);
+      return reply.status(400).send({ error: `Tipo sync "${type}" non supportato.` });
     }
 
     return reply.status(200).send({ 

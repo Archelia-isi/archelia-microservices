@@ -1,9 +1,10 @@
-import { log } from '@archelia/core';
+import { log, env } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { shopifyClient, shopifyGraphQL } from '@archelia/shopify';
+import { parseTechnicalDesc } from './lookups.js';
 
-const SHOPIFY_LOCATION_PR = 117697904904;
-const SHOPIFY_LOCATION_EK = 119021371656;
+const SHOPIFY_LOCATION_PR = 'gid://shopify/Location/117697904904';
+const SHOPIFY_LOCATION_EK = 'gid://shopify/Location/119021371656';
 
 interface SyncResult {
   total: number;
@@ -28,15 +29,15 @@ export class ProductSyncService {
     try {
       log.info('📦 Inizio sync prodotti Database -> Shopify', { module: 'worker-shopify-push' });
 
-      // 1. Lettura prodotti dal DB (che il worker-zucchetti-pull ha già popolato)
-      // Prendiamo solo quelli con publishedOnWeb = true (o quelli che lo erano e sono stati tolti se vogliamo gestire i draft)
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        log.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass sync Shopify (Tutto) per sicurezza.', { module: 'worker-shopify-push' });
+        return result;
+      }
+
       const products = await prisma.product.findMany({
-        where: {
-          publishedOnWeb: true, // Se è pubblicato su web Zucchetti
-        },
+        where: { publishedOnWeb: true },
       });
 
-      // 2. Applicazione Blacklist (Esclusioni Selettive)
       const blacklistRule = await prisma.shopifyBlacklistRule.findUnique({ where: { id: 'singleton' } });
       const blacklistedProducts: typeof products = [];
       let activeProducts = products;
@@ -71,19 +72,19 @@ export class ProductSyncService {
 
       result.total = activeProducts.length;
 
-      // 3. Fetch prodotti esistenti da Shopify (per la mappatura)
       log.info('🔄 Recupero mapping Shopify...', { module: 'worker-shopify-push' });
       const existingProducts = await this.fetchShopifyProducts();
       const skuToShopifyData = this.buildSkuMap(existingProducts);
 
-      // 4. Ghosting (Draft Fallback) per i prodotti entrati in Blacklist ma già presenti su Shopify
       for (const bp of blacklistedProducts) {
         const existingData = skuToShopifyData.get(bp.sku);
-        if (existingData && existingData.status === 'active') {
+        if (existingData && existingData.status === 'ACTIVE') {
           try {
-            await shopifyClient.put<{ product: any }>(`/products/${existingData.id}.json`, {
-              product: { id: existingData.id, status: 'draft' }
-            });
+            await shopifyGraphQL.query(`mutation($input: ProductSetInput!) {
+              productSet(input: $input) {
+                userErrors { message }
+              }
+            }`, { input: { id: existingData.id, status: 'DRAFT' } });
             log.info(`👻 Articolo ${bp.sku} convertito in DRAFT Shopify (incluso in Blacklist)`, { module: 'worker-shopify-push' });
             
             await prisma.product.update({
@@ -97,7 +98,6 @@ export class ProductSyncService {
         }
       }
 
-      // 5. Sync sequenziale (per evitare 429 continui anche con retry)
       for (const product of activeProducts) {
         try {
           const itemResult = await this.syncSingleProduct(product, skuToShopifyData);
@@ -128,6 +128,11 @@ export class ProductSyncService {
     const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
     try {
       log.info('📦 Inizio sync STOCK ONLY Database -> Shopify', { module: 'worker-shopify-push' });
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        log.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass sync STOCK ONLY per sicurezza.', { module: 'worker-shopify-push' });
+        return result;
+      }
       const products = await prisma.product.findMany({ where: { publishedOnWeb: true } });
       const existingProducts = await this.fetchShopifyProducts();
       const skuToShopifyData = this.buildSkuMap(existingProducts);
@@ -138,15 +143,18 @@ export class ProductSyncService {
         const existingProductData = skuToShopifyData.get(product.sku);
         if (existingProductData && existingProductData.inventoryItemId) {
           try {
-            await shopifyClient.post('/inventory_levels/set.json', {
-              location_id: SHOPIFY_LOCATION_PR,
-              inventory_item_id: existingProductData.inventoryItemId,
-              available: product.stock
-            });
-            await shopifyClient.post('/inventory_levels/set.json', {
-              location_id: SHOPIFY_LOCATION_EK,
-              inventory_item_id: existingProductData.inventoryItemId,
-              available: product.stockEk
+            await shopifyGraphQL.query(`mutation($input: InventorySetOnHandQuantitiesInput!) {
+              inventorySetOnHandQuantities(input: $input) {
+                userErrors { message }
+              }
+            }`, {
+              input: {
+                reason: 'correction',
+                setQuantities: [
+                  { locationId: SHOPIFY_LOCATION_PR, inventoryItemId: existingProductData.inventoryItemId, quantity: product.stock },
+                  { locationId: SHOPIFY_LOCATION_EK, inventoryItemId: existingProductData.inventoryItemId, quantity: product.stockEk || 0 }
+                ]
+              }
             });
             result.updated++;
           } catch(e: any) {
@@ -169,6 +177,11 @@ export class ProductSyncService {
     const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
     try {
       log.info('📦 Inizio DIFFERENTIAL STOCK sync Database -> Shopify (GraphQL)', { module: 'worker-shopify-push' });
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        log.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass DIFFERENTIAL STOCK per sicurezza.', { module: 'worker-shopify-push' });
+        return result;
+      }
       
       const products = await prisma.product.findMany({
         where: { publishedOnWeb: true, shopifyId: { not: null } },
@@ -182,7 +195,6 @@ export class ProductSyncService {
       
       const mappingDict = new Map<string, any>(mappings.map(m => [m.zucchettiSku, m]));
       
-      // Filtriamo solo i prodotti con giacenza variata
       const diffProducts = products.filter(p => {
         const map = mappingDict.get(p.sku);
         if (!map) return false;
@@ -199,8 +211,7 @@ export class ProductSyncService {
 
       log.info(`📦 Trovate ${diffProducts.length} variazioni di stock. Fetching InventoryItem IDs...`, { module: 'worker-shopify-push' });
 
-      // Build SKU to InventoryItemID map. We need Shopify's inventory_item_id.
-      const existingShopifyData = await this.fetchShopifyProducts(); // In production, we'd only fetch what's needed or rely on ProductMapping storing inventoryItemId.
+      const existingShopifyData = await this.fetchShopifyProducts();
       const skuToShopifyData = this.buildSkuMap(existingShopifyData);
 
       const maxBatchSize = 100;
@@ -217,15 +228,13 @@ export class ProductSyncService {
               continue;
            }
 
-           const invId = `gid://shopify/InventoryItem/${sData.inventoryItemId}`;
-           const prLoc = `gid://shopify/Location/${SHOPIFY_LOCATION_PR}`;
-           const ekLoc = `gid://shopify/Location/${SHOPIFY_LOCATION_EK}`;
+           const invId = sData.inventoryItemId;
 
            mutationInputs.push(`
-             pr_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${prLoc}", quantity: ${p.stock} }] }) {
+             pr_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${SHOPIFY_LOCATION_PR}", quantity: ${p.stock} }] }) {
                userErrors { field message }
              }
-             ek_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${ekLoc}", quantity: ${p.stockEk} }] }) {
+             ek_${p.sku.replace(/\W/g, '_')}: inventorySetOnHandQuantities(input: { reason: "correction", setQuantities: [{ inventoryItemId: "${invId}", locationId: "${SHOPIFY_LOCATION_EK}", quantity: ${p.stockEk} }] }) {
                userErrors { field message }
              }
            `);
@@ -236,7 +245,6 @@ export class ProductSyncService {
            const query = `mutation { ${mutationInputs.join('\n')} }`;
            try {
              const gqlRes = await shopifyGraphQL<any>(query);
-             // Verifica userErrors
              let batchHasErrors = false;
              for (const key of Object.keys(gqlRes)) {
                if (gqlRes[key]?.userErrors?.length > 0) {
@@ -246,7 +254,6 @@ export class ProductSyncService {
              }
 
              if (!batchHasErrors) {
-                // Aggiorniamo i mapping per segnare il successo
                 const upserts = batchUpdates.map(u => prisma.productMapping.update({
                   where: { zucchettiSku: u.sku },
                   data: { lastSyncedStock: u.totalStock }
@@ -276,6 +283,11 @@ export class ProductSyncService {
     const result: SyncResult = { total: 0, created: 0, updated: 0, skipped: 0, errors: 0, details: [] };
     try {
       log.info('💰 Inizio DIFFERENTIAL PRICE sync Database -> Shopify (GraphQL)', { module: 'worker-shopify-push' });
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        log.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass DIFFERENTIAL PRICE per sicurezza.', { module: 'worker-shopify-push' });
+        return result;
+      }
       
       const products = await prisma.product.findMany({
         where: { publishedOnWeb: true, shopifyId: { not: null } },
@@ -305,9 +317,7 @@ export class ProductSyncService {
       log.info(`💰 Trovate ${diffProducts.length} variazioni di prezzo. Fetching Variant IDs...`, { module: 'worker-shopify-push' });
 
       const existingShopifyData = await this.fetchShopifyProducts();
-      // We need variant IDs for productVariantUpdate. Let's adjust buildSkuMap or just find it.
-      // fetchShopifyProducts returns an array of products, each with a variants array.
-      const skuToVariantId = new Map<string, number>();
+      const skuToVariantId = new Map<string, string>();
       for (const prod of existingShopifyData) {
          for (const v of prod.variants) {
             if (v.sku) skuToVariantId.set(v.sku, v.id);
@@ -328,11 +338,10 @@ export class ProductSyncService {
               continue;
            }
 
-           const vGid = `gid://shopify/ProductVariant/${variantId}`;
            const priceStr = p.price.toFixed(2);
 
            mutationInputs.push(`
-             prc_${p.sku.replace(/\W/g, '_')}: productVariantUpdate(input: { id: "${vGid}", price: "${priceStr}" }) {
+             prc_${p.sku.replace(/\W/g, '_')}: productVariantUpdate(input: { id: "${variantId}", price: "${priceStr}" }) {
                userErrors { field message }
              }
            `);
@@ -379,28 +388,47 @@ export class ProductSyncService {
 
   private async fetchShopifyProducts(): Promise<any[]> {
     const allProducts: any[] = [];
-    let pageInfo: string | null = null;
     let hasNextPage = true;
+    let cursor: string | null = null;
 
     while (hasNextPage) {
-      const query = pageInfo
-        ? `/products.json?limit=250&page_info=${pageInfo}`
-        : '/products.json?limit=250';
+      const query = `
+        query($cursor: String) {
+          products(first: 250, after: $cursor) {
+            pageInfo { hasNextPage endCursor }
+            nodes {
+              id
+              status
+              variants(first: 10) {
+                nodes { id sku inventoryItem { id } }
+              }
+            }
+          }
+        }
+      `;
+      const res = await shopifyGraphQL.query<any>(query, { cursor });
+      
+      for (const node of res.products.nodes) {
+        allProducts.push({
+          id: node.id,
+          status: node.status,
+          variants: node.variants.nodes.map((v: any) => ({
+            id: v.id,
+            sku: v.sku,
+            inventory_item_id: v.inventoryItem.id
+          }))
+        });
+      }
 
-      const response = await shopifyClient.get<{ products: any[] }>(query);
-      allProducts.push(...response.products);
-
-      // In the old system they just fetched one page because of cursor pagination limits.
-      // But we should try to get all if we implement proper Link parsing.
-      // For now, matching old system:
-      hasNextPage = false; 
+      hasNextPage = res.products.pageInfo.hasNextPage;
+      cursor = res.products.pageInfo.endCursor;
     }
 
     return allProducts;
   }
 
-  private buildSkuMap(products: any[]): Map<string, { id: number; status: string; inventoryItemId?: number }> {
-    const map = new Map<string, { id: number; status: string; inventoryItemId?: number }>();
+  private buildSkuMap(products: any[]): Map<string, { id: string; status: string; inventoryItemId?: string }> {
+    const map = new Map<string, { id: string; status: string; inventoryItemId?: string }>();
     for (const product of products) {
       for (const variant of product.variants) {
         if (variant.sku) {
@@ -413,80 +441,12 @@ export class ProductSyncService {
 
   private async syncSingleProduct(
     product: any,
-    skuToShopifyId: Map<string, { id: number; status: string }>
-  ): Promise<{ sku: string; action: 'created' | 'updated' | 'skipped' | 'error'; shopifyId?: number }> {
+    skuToShopifyId: Map<string, { id: string; status: string }>
+  ): Promise<{ sku: string; action: 'created' | 'updated' | 'skipped' | 'error'; shopifyId?: string }> {
     const sku = product.sku;
     const existingProductData = skuToShopifyId.get(sku);
     const existingId = existingProductData?.id;
 
-    const shopifyData = this.mapToShopifyProduct(product);
-
-    let productId: number;
-    let inventoryItemId: number | undefined;
-
-    if (existingId) {
-      // AGGIORNA
-      const response = await shopifyClient.put<{ product: any }>(`/products/${existingId}.json`, { product: shopifyData });
-      productId = response.product.id;
-      inventoryItemId = response.product.variants?.[0]?.inventory_item_id;
-      log.debug(`Prodotto ${sku} aggiornato su Shopify`, { module: 'worker-shopify-push' });
-    } else {
-      // CREA
-      const response = await shopifyClient.post<{ product: any }>('/products.json', { product: shopifyData });
-      productId = response.product.id;
-      inventoryItemId = response.product.variants?.[0]?.inventory_item_id;
-      log.info(`Prodotto ${sku} creato su Shopify`, { module: 'worker-shopify-push' });
-    }
-
-    // MULTI-LOCATION INVENTORY SYNC
-    if (inventoryItemId) {
-      // PR
-      await shopifyClient.post('/inventory_levels/set.json', {
-        location_id: SHOPIFY_LOCATION_PR,
-        inventory_item_id: inventoryItemId,
-        available: product.stock
-      });
-      // EK
-      await shopifyClient.post('/inventory_levels/set.json', {
-        location_id: SHOPIFY_LOCATION_EK,
-        inventory_item_id: inventoryItemId,
-        available: product.stockEk
-      });
-    }
-
-    // Aggiorniamo Product e Mapping
-    await prisma.product.update({
-      where: { id: product.id },
-      data: {
-        shopifyId: String(productId),
-        shopifyStatus: existingId ? existingProductData.status : 'active'
-      }
-    });
-
-    const dotIndex = sku.indexOf('.');
-    const manufacturerCode = dotIndex !== -1 ? sku.substring(dotIndex + 1) : sku;
-
-    await prisma.productMapping.upsert({
-      where: { zucchettiSku: sku },
-      update: {
-        shopifyProductId: String(productId),
-        lastSyncedPrice: product.price,
-        lastSyncedStock: product.stock + product.stockEk,
-        manufacturerCode,
-      },
-      create: {
-        shopifyProductId: String(productId),
-        zucchettiSku: sku,
-        lastSyncedPrice: product.price,
-        lastSyncedStock: product.stock + product.stockEk,
-        manufacturerCode,
-      },
-    });
-
-    return { sku, action: existingId ? 'updated' : 'created', shopifyId: productId };
-  }
-
-  private mapToShopifyProduct(product: any): any {
     const tags: string[] = [];
     if (product.brand) tags.push(`marca:${product.brand}`);
     if (product.productGroup) tags.push(`gruppo:${product.productGroup}`);
@@ -498,77 +458,216 @@ export class ProductSyncService {
       tags.push(...keywords);
     }
 
+    const { data: techData } = parseTechnicalDesc(product.technicalDesc);
+    for (const key of Object.keys(techData)) {
+       tags.push(techData[key]);
+    }
+
     const title = product.title || product.originalName || product.sku;
     const bodyHtml = product.description || product.technicalDesc || '';
 
-    const p: any = {
+    const metafields: any[] = [];
+    if (product.metaDescription) {
+      metafields.push({ namespace: 'global', key: 'description_tag', value: product.metaDescription, type: 'single_line_text_field' });
+    }
+    if (product.title) {
+      metafields.push({ namespace: 'global', key: 'title_tag', value: product.title, type: 'single_line_text_field' });
+    }
+    if (product.technicalDesc) {
+      metafields.push({ namespace: 'custom', key: 'descrizione_tecnica', value: product.technicalDesc, type: 'multi_line_text_field' });
+    }
+    metafields.push({ namespace: 'zucchetti', key: 'codice_articolo_guid', value: product.zucchettiCode || '', type: 'single_line_text_field' });
+    if (product.originalName) {
+      metafields.push({ namespace: 'custom', key: 'nome_breve', value: product.originalName, type: 'single_line_text_field' });
+    }
+    for (const [key, value] of Object.entries(techData)) {
+      metafields.push({ namespace: 'custom', key, value, type: 'single_line_text_field' });
+    }
+
+    const productSetInput: any = {
       title,
-      body_html: bodyHtml,
+      descriptionHtml: bodyHtml,
       vendor: product.brand || 'Archelia',
-      product_type: product.family || '',
+      productType: product.family || '',
       tags,
-      variants: [
-        {
+      metafields,
+      seo: {
+        title: product.title || product.originalName,
+        description: product.metaDescription || '',
+      },
+      status: 'ACTIVE',
+      productOptions: [{ name: 'Title', position: 1, values: [{ name: 'Default Title' }] }],
+      variants: [{
+        optionValues: [{ name: 'Default Title', optionName: 'Title' }],
+        price: parseFloat(String(product.price || 0)),
+        inventoryItem: {
           sku: product.sku,
-          price: product.price.toFixed(2),
-          inventory_management: 'shopify',
-          weight: product.grossWeight ? product.grossWeight : undefined,
-          weight_unit: product.grossWeight && product.grossWeight > 0 ? 'kg' : undefined,
-          requires_shipping: true,
+          tracked: true,
         },
-      ],
+        ...(!product.isFlashPromoLock ? {
+          inventoryQuantities: [
+            ...(product.stock >= 0 ? [{ locationId: SHOPIFY_LOCATION_PR, name: 'available', quantity: product.stock }] : []),
+            ...(product.stockEk >= 0 ? [{ locationId: SHOPIFY_LOCATION_EK, name: 'available', quantity: product.stockEk }] : []),
+          ],
+        } : {}),
+      }],
     };
 
-    const metafields: any[] = [];
-
-    if (product.metaDescription) {
-      metafields.push({
-        namespace: 'global',
-        key: 'description_tag',
-        value: product.metaDescription,
-        type: 'single_line_text_field',
-      });
+    if (existingId) {
+      productSetInput.id = existingId;
     }
 
-    if (product.title) {
-      metafields.push({
-        namespace: 'global',
-        key: 'title_tag',
-        value: product.title,
-        type: 'single_line_text_field',
-      });
+    const MUTATION = `mutation($input: ProductSetInput!) {
+      productSet(input: $input, synchronous: true) {
+        product { id handle }
+        userErrors { field message }
+      }
+    }`;
+
+    const res = await shopifyGraphQL.query<any>(MUTATION, { input: productSetInput });
+    
+    if (res.productSet.userErrors.length > 0) {
+      throw new Error(res.productSet.userErrors.map((e: any) => `${e.field?.join('.')}: ${e.message}`).join(', '));
     }
 
-    if (product.technicalDesc) {
-      metafields.push({
-        namespace: 'custom',
-        key: 'descrizione_tecnica',
-        value: product.technicalDesc,
-        type: 'multi_line_text_field',
-      });
-    }
+    const productId = res.productSet.product.id;
 
-    metafields.push({
-      namespace: 'zucchetti',
-      key: 'codice_articolo_guid',
-      value: product.zucchettiCode,
-      type: 'single_line_text_field',
+    await this.uploadImages(productId, product);
+
+    await prisma.product.update({
+      where: { id: product.id },
+      data: {
+        shopifyId: productId.replace('gid://shopify/Product/', ''),
+        shopifyStatus: 'active'
+      }
     });
 
-    if (product.originalName) {
-      metafields.push({
-        namespace: 'custom',
-        key: 'nome_breve',
-        value: product.originalName,
-        type: 'single_line_text_field',
+    const dotIndex = sku.indexOf('.');
+    const manufacturerCode = dotIndex !== -1 ? sku.substring(dotIndex + 1) : sku;
+
+    await prisma.productMapping.upsert({
+      where: { zucchettiSku: sku },
+      update: {
+        shopifyProductId: productId.replace('gid://shopify/Product/', ''),
+        lastSyncedPrice: product.price,
+        lastSyncedStock: product.stock + product.stockEk,
+        manufacturerCode,
+      },
+      create: {
+        shopifyProductId: productId.replace('gid://shopify/Product/', ''),
+        zucchettiSku: sku,
+        lastSyncedPrice: product.price,
+        lastSyncedStock: product.stock + product.stockEk,
+        manufacturerCode,
+      },
+    });
+
+    return { sku, action: existingId ? 'updated' : 'created', shopifyId: productId };
+  }
+
+  private async uploadImages(productId: string, product: any): Promise<void> {
+    const allUrls: string[] = [];
+
+    if (product.imageUrl) allUrls.push(product.imageUrl);
+
+    if (product.imageUrls && Array.isArray(product.imageUrls)) {
+      for (const url of product.imageUrls) {
+        if (typeof url === 'string' && !allUrls.includes(url)) {
+          allUrls.push(url);
+        }
+      }
+    }
+
+    if (allUrls.length > 1) {
+      allUrls.sort((a, b) => {
+        const da = decodeURIComponent(a);
+        const db = decodeURIComponent(b);
+        const ma = da.match(/\((\d+)\)/); 
+        const mb = db.match(/\((\d+)\)/); 
+        return (ma ? parseInt(ma[1],10) : 0) - (mb ? parseInt(mb[1],10) : 0);
       });
     }
 
-    if (metafields.length > 0) {
-      p.metafields = metafields;
-    }
+    if (allUrls.length === 0) return;
 
-    return p;
+    try {
+      const expectedOrderUrls = allUrls.map(url => {
+        let fixedUrl = url;
+        if (fixedUrl.includes('res.cloudinary.com') && !fixedUrl.includes('/f_webp')) {
+          fixedUrl = fixedUrl.replace('/image/upload/', '/image/upload/f_webp,q_auto/');
+        }
+        const hasExtension = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff)(\?.*)?$/i.test(fixedUrl);
+        if (!hasExtension) fixedUrl += '.webp';
+        fixedUrl = fixedUrl.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29');
+        return fixedUrl;
+      });
+
+      const existingRes = await shopifyGraphQL.query<any>(`query ProductMedia($productId: ID!) {
+        product(id: $productId) {
+          media(first: 50) {
+            edges {
+              node {
+                ... on MediaImage { id image { altText } }
+                ... on Video { id }
+                ... on Model3d { id }
+                ... on ExternalVideo { id }
+              }
+            }
+          }
+        }
+      }`, { productId });
+
+      const existingMedia = existingRes.product?.media?.edges?.map((e: any) => e.node) || [];
+
+      let isPerfectMatch = existingMedia.length === expectedOrderUrls.length;
+      if (isPerfectMatch) {
+        for (let i = 0; i < expectedOrderUrls.length; i++) {
+          const shopifyAlt = existingMedia[i].image?.altText || '';
+          const expectedUrl = expectedOrderUrls[i];
+          try {
+            if (decodeURIComponent(shopifyAlt) !== decodeURIComponent(expectedUrl)) {
+              isPerfectMatch = false;
+              break;
+            }
+          } catch {
+            if (shopifyAlt !== expectedUrl) {
+              isPerfectMatch = false;
+              break;
+            }
+          }
+        }
+      }
+
+      if (isPerfectMatch) return;
+
+      if (existingMedia.length > 0) {
+        const mediaIdsToDelete = existingMedia.map((m: any) => m.id);
+        const delRes = await shopifyGraphQL.query<any>(`mutation productDeleteMedia($productId: ID!, $mediaIds: [ID!]!) {
+          productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
+            mediaUserErrors { message }
+          }
+        }`, { productId, mediaIds: mediaIdsToDelete });
+      }
+
+      const mediaInputs = expectedOrderUrls.map(url => ({
+        originalSource: url,
+        mediaContentType: 'IMAGE',
+        alt: url
+      }));
+
+      const addRes = await shopifyGraphQL.query<any>(`mutation ProductCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+        productCreateMedia(productId: $productId, media: $media) {
+          mediaUserErrors { message }
+        }
+      }`, { productId, media: mediaInputs });
+
+      if (addRes.productCreateMedia.mediaUserErrors.length > 0) {
+        const errors = addRes.productCreateMedia.mediaUserErrors.map((e: any) => e.message).join('; ');
+        log.error(`❌ ${product.sku} immagini errore: ${errors}`, { module: 'worker-shopify-push' });
+      }
+    } catch (error: any) {
+      log.error(`❌ Errore upload immagini ${product.sku}: ${error.message}`, { module: 'worker-shopify-push' });
+    }
   }
 }
 

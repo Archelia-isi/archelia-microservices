@@ -13,7 +13,7 @@ import { adminSyncRoutes } from './routes/admin/sync.js';
 import { adminProductsRoutes } from './routes/admin/products.js';
 import { adminOrdersRoutes } from './routes/admin/orders.js';
 import { adminCustomersRoutes } from './routes/admin/customers.js';
-import { adminSchedulerRoutes } from './routes/admin/scheduler.js';
+import { adminSchedulerRoutes, initScheduler } from './routes/admin/scheduler.js';
 import { adminSearchRoutes } from './routes/admin/search.js';
 import { adminDatabaseRoutes } from './routes/admin/database.js';
 import adminPromoRoutes from './routes/admin/promo.js';
@@ -76,6 +76,9 @@ async function start() {
     });
 
     log.info(`🚀 API Gateway avviato su porta ${port}`, { module: 'api-gateway' });
+
+    // Sincronizza i cron jobs dal database a BullMQ (Redis) all'avvio
+    await initScheduler();
   } catch (error) {
     log.fatal('Errore fatale durante avvio API Gateway', { error, module: 'api-gateway' });
     process.exit(1);

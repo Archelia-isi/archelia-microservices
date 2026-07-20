@@ -1,4 +1,4 @@
-import { logger, redis } from '@archelia/core';
+import { logger, redis, env } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { zucchettiClient } from '@archelia/zucchetti';
 
@@ -58,16 +58,85 @@ export class ZucchettiPullService {
     return allArticles;
   }
 
-  async importProducts(): Promise<{ created: number; updated: number; errors: number }> {
-    const result = { created: 0, updated: 0, errors: 0 };
+  private loadPdfSkus(): string[] {
+    try {
+      const fs = require('fs');
+      if (fs.existsSync('/tmp/pdf_skus.json')) {
+        const data = JSON.parse(fs.readFileSync('/tmp/pdf_skus.json', 'utf-8'));
+        logger.info(`📋 Caricati ${data.length} SKU dal PDF (/tmp/pdf_skus.json)`, { module: 'worker-zucchetti-pull' });
+        return data;
+      }
+    } catch (e) {
+      logger.warn(`⚠️ Impossibile caricare SKU PDF da /tmp/pdf_skus.json`, { module: 'worker-zucchetti-pull' });
+    }
+    return [];
+  }
+
+  async importProducts(): Promise<{ created: number; updated: number; errors: number; diagnostics?: any }> {
+    const result = { created: 0, updated: 0, errors: 0, diagnostics: {} as any };
+
+    const diagnostics = {
+      pdfSkuCount: 0,
+      zucchettiTotalCount: 0,
+      zucchettiLveCount: 0,
+      dbUpsertedCount: 0,
+      pdfSkusFoundInZucchetti: 0,
+      pdfSkusMissingFromZucchetti: [] as string[],
+      pdfSkusFilteredOutNotLve: [] as string[],
+      pdfSkusWithDifferentListino: [] as any[],
+      uniqueListinos: {} as Record<string, number>,
+      upsertErrors: [] as any[],
+    };
 
     try {
-      logger.info('📥 Avvio IMPORT PRODOTTI ZUCCHETTI → DB');
+      logger.info('📥 Avvio IMPORT PRODOTTI ZUCCHETTI → DB (CON DIAGNOSTICA)');
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        logger.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass import prodotti su Neon per sicurezza.');
+        return result;
+      }
+
+      const pdfSkus = this.loadPdfSkus();
+      diagnostics.pdfSkuCount = pdfSkus.length;
 
       const allArticles = await this.fetchAllArticles();
+      diagnostics.zucchettiTotalCount = allArticles.length;
+
       if (allArticles.length === 0) {
         logger.warn('⚠️ Nessun articolo trovato da Zucchetti');
+        result.diagnostics = diagnostics;
         return result;
+      }
+
+      for (const a of allArticles) {
+        const lis = a.licodlis || '(vuoto)';
+        diagnostics.uniqueListinos[lis] = (diagnostics.uniqueListinos[lis] || 0) + 1;
+      }
+
+      if (pdfSkus.length > 0) {
+        const zucchettiSkuMap = new Map<string, ZucchettiArticle[]>();
+        for (const a of allArticles) {
+          const sku = a.arcodar2;
+          if (!zucchettiSkuMap.has(sku)) {
+            zucchettiSkuMap.set(sku, []);
+          }
+          zucchettiSkuMap.get(sku)!.push(a);
+        }
+
+        for (const pdfSku of pdfSkus) {
+          const found = zucchettiSkuMap.get(pdfSku);
+          if (found) {
+            diagnostics.pdfSkusFoundInZucchetti++;
+            const lveEntry = found.find(a => LISTINI_ECOMMERCE.includes(a.licodlis));
+            if (!lveEntry) {
+              const listini = found.map(a => a.licodlis).join(', ');
+              diagnostics.pdfSkusFilteredOutNotLve.push(pdfSku);
+              diagnostics.pdfSkusWithDifferentListino.push({ sku: pdfSku, listino: listini });
+            }
+          } else {
+            diagnostics.pdfSkusMissingFromZucchetti.push(pdfSku);
+          }
+        }
       }
 
       const rawFilteredArticles = allArticles.filter(
@@ -128,6 +197,7 @@ export class ZucchettiPullService {
       }
       
       const articles = Array.from(skuMap.values());
+      diagnostics.zucchettiLveCount = articles.length;
       logger.info(`📊 FILTRO E-COMMERCE+PR: ${articles.length} articoli unici da importare`);
 
       const BATCH_SIZE = 50; 
@@ -216,6 +286,7 @@ export class ZucchettiPullService {
            
            await prisma.$transaction(txs);
            
+           diagnostics.dbUpsertedCount += batch.length;
            progressCounter += batch.length;
            logger.info(`   💾 Progresso: ${progressCounter}/${articles.length} (creati: ${result.created}, aggiornati: ${result.updated})`);
            
@@ -285,14 +356,24 @@ export class ZucchettiPullService {
                   },
                 });
                 result.updated++;
+                diagnostics.dbUpsertedCount++;
               } catch(singleErr: any) {
                 result.errors++;
+                diagnostics.upsertErrors.push({ sku: article.arcodar2, error: singleErr.message });
                 logger.error(`❌ Errore isolato SKU ${article.arcodar2 || article.arcodart}: ${singleErr.message}`);
               }
             }
             progressCounter += batch.length;
          }
       }
+
+      result.diagnostics = diagnostics;
+
+      try {
+        const fs = require('fs');
+        fs.writeFileSync('/tmp/import_diagnostics.json', JSON.stringify(diagnostics, null, 2));
+        logger.info('💾 Diagnostica salvata in /tmp/import_diagnostics.json', { module: 'worker-zucchetti-pull' });
+      } catch { /* ignore */ }
 
       logger.info(`✅ Import completato: ${result.created} nuovi, ${result.updated} aggiornati, ${result.errors} errori.`);
       return result;
@@ -307,6 +388,11 @@ export class ZucchettiPullService {
     const result = { updated: 0, skipped: 0, errors: 0, total: 0 };
     try {
       logger.info('📦 Avvio SYNC GIACENZE DIFFERENZIALE ZUCCHETTI → DB');
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        logger.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass sync giacenze su Neon per sicurezza.');
+        return result;
+      }
       
       let pcpupdtms = '01-01-2000 00:00:00';
       const lastSyncStr = await redis.get('zucchetti:last_inventory_sync');
@@ -410,6 +496,11 @@ export class ZucchettiPullService {
     const result = { updated: 0, skipped: 0, errors: 0, total: 0 };
     try {
       logger.info('💰 Avvio SYNC PREZZI DIFFERENZIALE ZUCCHETTI → DB');
+
+      if (!env.ENABLE_GLOBAL_WRITES) {
+        logger.warn('⚠️ ENABLE_GLOBAL_WRITES è false. Bypass sync prezzi su Neon per sicurezza.');
+        return result;
+      }
       
       let pcpupdtms = '01-01-2000 00:00:00';
       const lastSyncStr = await redis.get('zucchetti:last_pricing_sync');
