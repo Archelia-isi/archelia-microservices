@@ -14,9 +14,9 @@ const typesenseQueue = new Queue('typesense-commands', { connection: redis as an
 
 const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean, defaultInterval?: number, defaultUnit?: string }> = {
   'import-products': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti', defaultInterval: 6, defaultUnit: 'hours' },
-  'pulizia-promozioni': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
-  'sync-giacenze': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
-  'sync-prezzi': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 6, defaultUnit: 'hours' },
+  'clean-promos': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
+  'sync-stock': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
+  'sync-prices': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 6, defaultUnit: 'hours' },
   'sync-shopify': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'hours' },
   'sync-stock-shopify': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes' },
   'zucchetti-infinity-db': { queue: zucchettiQueue, command: 'ZUCCHETTI_INFINITY_DB', label: '🔗 Zucchetti Infinity DB', isManualOnly: true },
