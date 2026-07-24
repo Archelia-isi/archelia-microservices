@@ -66,7 +66,6 @@ export async function adminSearchRoutes(app: FastifyInstance) {
 
   // Search Diretta su Typesense
   fastify.get('/api/admin/typesense/search', { 
-    preHandler: [requireAdmin],
     schema: {
       querystring: z.object({ q: z.string().min(1) }),
       response: { 
