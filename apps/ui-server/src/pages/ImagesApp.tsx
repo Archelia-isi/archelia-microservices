@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2 } from 'lucide-react';
+import { UploadCloud, RefreshCw, Image as ImageIcon, BarChart2, Search } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -13,7 +13,7 @@ import ProgressBar from '../components/ui/ProgressBar';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 const API_BASE = `${API_URL}/api/admin`;
-type TabType = 'upload' | 'report' | 'gallery';
+type TabType = 'upload' | 'search' | 'report' | 'gallery';
 
 interface ImageReport {
   summary: {
@@ -44,6 +44,30 @@ export default function ImagesApp() {
 
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'search' && searchQuery.trim().length > 0) {
+      const delayFn = setTimeout(async () => {
+        setIsSearching(true);
+        try {
+          const res = await fetch(`${API_BASE}/typesense/search?q=${encodeURIComponent(searchQuery)}`);
+          const data = await res.json();
+          setSearchResults(data.hits || []);
+        } catch (e) {
+          toast.error("Errore ricerca Typesense");
+        } finally {
+          setIsSearching(false);
+        }
+      }, 500);
+      return () => clearTimeout(delayFn);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, activeTab]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -153,6 +177,7 @@ export default function ImagesApp() {
                 onChange={(id) => handleTabChange(id as TabType)}
                 tabs={[
                   { id: 'upload', label: 'Upload Cartella', icon: <UploadCloud size={14}/> },
+                  { id: 'search', label: 'Ricerca', icon: <Search size={14}/> },
                   { id: 'report', label: 'Report', icon: <BarChart2 size={14}/> },
                   { id: 'gallery', label: 'Galleria', icon: <ImageIcon size={14}/> },
                 ]}
@@ -162,6 +187,74 @@ export default function ImagesApp() {
         </StickyHeader>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column' }}>
+
+          {activeTab === 'search' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2xl)', flex: 1, padding: 'var(--spacing-xl) var(--spacing-2xl)' }}>
+              <GlassPanel padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                  <Search size={20} /> Ricerca Immagini Typesense
+                </h2>
+                <input 
+                  type="text" 
+                  placeholder="Cerca per SKU o nome prodotto..." 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{
+                    padding: 'var(--spacing-lg) var(--spacing-xl)',
+                    borderRadius: 'var(--radius-xl)',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    fontSize: '16px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </GlassPanel>
+
+              {isSearching && <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Ricerca in corso...</div>}
+              
+              {!isSearching && searchResults.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
+                  {searchResults.map((hit: any, i: number) => {
+                    const doc = hit.document;
+                    const images = Array.isArray(doc.image_urls) && doc.image_urls.length > 0 
+                      ? doc.image_urls 
+                      : (doc.image_url ? [doc.image_url] : []);
+                      
+                    return (
+                      <GlassPanel key={i} padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{doc.title}</h3>
+                          <Badge variant="primary">{doc.sku}</Badge>
+                        </div>
+                        {images.length > 0 ? (
+                          <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>
+                            {images.map((img: string, idx: number) => (
+                              <div key={idx} style={{ 
+                                minWidth: '120px', 
+                                height: '120px', 
+                                borderRadius: 'var(--radius-md)', 
+                                overflow: 'hidden',
+                                border: '1px solid var(--color-border)',
+                                background: 'rgba(255,255,255,0.5)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                <img src={img.replace('f_webp,q_auto', 'w_200,f_webp,q_auto')} alt={`Vista ${idx+1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '14px' }}>Nessuna immagine associata.</div>
+                        )}
+                      </GlassPanel>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {activeTab === 'upload' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, padding: 'var(--spacing-3xl) var(--spacing-2xl)' }}>
