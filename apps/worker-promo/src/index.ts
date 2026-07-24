@@ -30,12 +30,35 @@ const worker = new Worker('shopify-promo', async (job) => {
 
   switch (job.name) {
     case 'CREATE_MANUAL_PROMO': {
-      const payload: ShopifyPromoPayload = job.data;
+      const incomingData = job.data;
+      
+      // Mapper per allineare l'interfaccia API (tipo_promozione, valore_sconto)
+      // all'interfaccia richiesta dal pacchetto Shopify (tipo, sconto_percentuale, ecc)
+      const payload: ShopifyPromoPayload = {
+        tipo: incomingData.tipo_promozione,
+        titolo: incomingData.titolo,
+        attivo: true,
+        badge_testo: incomingData.badge_testo,
+        badge_colore: incomingData.badge_colore,
+        descrizione: incomingData.descrizione,
+        codice_sconto: incomingData.codice_sconto,
+        collezione_target: incomingData.collezione_target || '',
+        prodotti_target_sku: incomingData.prodotti_target,
+        // prodotti_regalo_sku andrà popolato se c'è
+        link_cta: incomingData.link_cta,
+        testo_cta: incomingData.testo_cta,
+        sconto_percentuale: incomingData.valore_sconto,
+        mostra_in_strip: incomingData.mostra_strip ?? true,
+        mostra_in_banner: incomingData.mostra_banner ?? true,
+        data_inizio: incomingData.data_inizio,
+        data_fine: incomingData.data_fine,
+      };
+
       const result = await shopifyPromoService.createPromo(payload);
       
       // Dopo aver creato una promo manuale, bisogna inviare le notifiche
       // se l'utente l'ha richiesto.
-      if (job.data.inviaNotificaPush) {
+      if (incomingData.inviaNotificaPush) {
         log.info('Richiesta invio Web Push Promozionale - Accodo job per worker-marketing...', { module: 'worker-promo' });
         await marketingQueue.add('SEND_WEB_PUSH', {
           title: payload.titolo,

@@ -24,7 +24,6 @@ export default function PromoManualApp() {
     badge_colore: '#E53935',
     testo_cta: '',
     link_cta: '',
-    immagine_banner: '',
     
     titolo: '',
     descrizione: '',
@@ -59,7 +58,7 @@ export default function PromoManualApp() {
         setFormData({
           tipo_promozione: '', target_mode: 'collection', collezione_target: '', prodotti_target: '', data_inizio: '', data_fine: '',
           valore_sconto: '', codice_sconto: '', prodotti_regalo: '',
-          mostra_strip: true, mostra_banner: true, badge_testo: '', badge_colore: '#E53935', testo_cta: '', link_cta: '', immagine_banner: '',
+          mostra_strip: true, mostra_banner: true, badge_testo: '', badge_colore: '#E53935', testo_cta: '', link_cta: '',
           titolo: '', descrizione: '', regia_ai: ''
         });
       }, 3000);

@@ -63,6 +63,11 @@ export default async function adminPromoRoutes(fastify: FastifyInstance) {
         badge_colore: z.string().optional(),
         priorita: z.number().optional(),
         inviaNotificaPush: z.boolean().optional(),
+        mostra_strip: z.boolean().optional(),
+        mostra_banner: z.boolean().optional(),
+        link_cta: z.string().optional(),
+        testo_cta: z.string().optional(),
+        prodotti_regalo: z.array(z.string()).optional(),
       })
     }
   }, async (request, reply) => {
