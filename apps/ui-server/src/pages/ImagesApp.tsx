@@ -9,7 +9,7 @@ import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
 import Dropzone from '../components/ui/Dropzone';
 import ActionCard from '../components/ui/ActionCard';
-import './ImagesApp.css';
+import ProgressBar from '../components/ui/ProgressBar';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 const API_BASE = `${API_URL}/api/admin`;
@@ -134,7 +134,7 @@ export default function ImagesApp() {
   };
 
   return (
-    <div className={`images-app ${!isAppReady ? 'eq-splash-active' : ''}`}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Immagini & Asset" 
@@ -161,10 +161,10 @@ export default function ImagesApp() {
           </div>
         </StickyHeader>
 
-        <div className="images-app-content" style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column' }}>
 
           {activeTab === 'upload' && (
-            <div className="images-upload-container">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, padding: 'var(--spacing-3xl) var(--spacing-2xl)' }}>
               
               <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', margin: '0', alignItems: 'stretch' }}>
                 
@@ -205,14 +205,13 @@ export default function ImagesApp() {
                   )}
 
                   {isUploading && (
-                    <div className="images-progress-container" style={{ width: '100%', marginTop: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '8px' }}>
-                        <span>Caricamento in corso...</span>
-                        <span>{Math.round(uploadProgress)}%</span>
-                      </div>
-                      <div className="images-progress-bar">
-                        <div className="images-progress-fill" style={{ width: `${uploadProgress}%` }}></div>
-                      </div>
+                    <div style={{ width: '100%', marginTop: 'var(--spacing-xl)' }}>
+                      <ProgressBar 
+                        progress={uploadProgress} 
+                        isActive={true} 
+                        message="Caricamento in corso..." 
+                        maxWidth="100%" 
+                      />
                     </div>
                   )}
                   
@@ -249,14 +248,14 @@ export default function ImagesApp() {
                   />
                   
                   {mapStats && (
-                    <div className="images-stats" style={{ width: '100%', margin: '0', display: 'flex', gap: 'var(--spacing-md)' }}>
-                      <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
-                        <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
-                        <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
+                    <div style={{ width: '100%', display: 'flex', gap: 'var(--spacing-md)' }}>
+                      <div style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Articoli mappati</span>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.articoli}</span>
                       </div>
-                      <div className="images-stat-item" style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(20px)' }}>
-                        <span className="images-stat-label" style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali</span>
-                        <span className="images-stat-value" style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
+                      <div style={{ flex: 1, padding: 'var(--spacing-md)', background: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius-xl)' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Immagini totali</span>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{mapStats.immagini}</span>
                       </div>
                     </div>
                   )}
@@ -272,18 +271,18 @@ export default function ImagesApp() {
               ) : reportData ? (
                 <>
                   <GlassPanel>
-                    <div className="images-stats">
-                      <div className="images-stat-item">
-                        <span className="images-stat-label">Prodotti Totali</span>
-                        <span className="images-stat-value">{reportData.summary.totalProducts}</span>
+                    <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+                      <div style={{ flex: 1, padding: 'var(--spacing-md)' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Prodotti Totali</span>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold' }}>{reportData.summary.totalProducts}</span>
                       </div>
-                      <div className="images-stat-item">
-                        <span className="images-stat-label">Prodotti Senza Foto</span>
-                        <span className="images-stat-value" style={{ color: 'var(--color-error)' }}>{reportData.summary.productsWithoutImages}</span>
+                      <div style={{ flex: 1, padding: 'var(--spacing-md)' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Prodotti Senza Foto</span>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold', color: 'var(--color-error)' }}>{reportData.summary.productsWithoutImages}</span>
                       </div>
-                      <div className="images-stat-item">
-                        <span className="images-stat-label">Foto Senza Prodotto</span>
-                        <span className="images-stat-value" style={{ color: 'var(--color-warning)' }}>{reportData.summary.imagesWithoutProduct}</span>
+                      <div style={{ flex: 1, padding: 'var(--spacing-md)' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Foto Senza Prodotto</span>
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-xl)', fontWeight: 'bold', color: 'var(--color-warning)' }}>{reportData.summary.imagesWithoutProduct}</span>
                       </div>
                     </div>
                   </GlassPanel>
@@ -292,18 +291,18 @@ export default function ImagesApp() {
                     <GlassPanel>
                       <h3 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>Prodotti Senza Foto <Badge variant="danger">{reportData.productsWithoutImages.length}</Badge></h3>
                       <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        <table className="images-table">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
                             <tr>
-                              <th>SKU</th>
-                              <th>Short Code</th>
+                              <th style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid var(--color-border)' }}>SKU</th>
+                              <th style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid var(--color-border)' }}>Short Code</th>
                             </tr>
                           </thead>
                           <tbody>
                             {reportData.productsWithoutImages.slice(0, 100).map((p, i) => (
                               <tr key={i}>
-                                <td>{p.sku}</td>
-                                <td>{p.shortCode}</td>
+                                <td style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{p.sku}</td>
+                                <td style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{p.shortCode}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -319,18 +318,18 @@ export default function ImagesApp() {
                     <GlassPanel>
                       <h3 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>Foto Orfane <Badge variant="warning">{reportData.imagesWithoutProduct.length}</Badge></h3>
                       <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        <table className="images-table">
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                           <thead>
                             <tr>
-                              <th>Cloudinary Code</th>
-                              <th>Num. Immagini</th>
+                              <th style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid var(--color-border)' }}>Cloudinary Code</th>
+                              <th style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid var(--color-border)' }}>Num. Immagini</th>
                             </tr>
                           </thead>
                           <tbody>
                             {reportData.imagesWithoutProduct.slice(0, 100).map((img, i) => (
                               <tr key={i}>
-                                <td>{img.code}</td>
-                                <td>{img.imageCount}</td>
+                                <td style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{img.code}</td>
+                                <td style={{ padding: 'var(--spacing-sm)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>{img.imageCount}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -354,11 +353,11 @@ export default function ImagesApp() {
                 <div style={{ padding: 'var(--spacing-3xl)', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-lg)' }}>Caricamento galleria da Cloudinary... (potrebbe richiedere qualche secondo)</div>
               ) : (
                 <>
-                  <div className="images-gallery-grid">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--spacing-lg)', paddingTop: 'var(--spacing-md)' }}>
                     {galleryImages.slice((page - 1) * 100, page * 100).map((file, i) => (
-                      <div key={i} className="images-gallery-item">
-                        <img src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_300,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
-                        <div className="images-gallery-label" style={{ wordBreak: 'break-all' }}>{file}</div>
+                      <div key={i} style={{ position: 'relative', borderRadius: 'var(--radius-xl)', overflow: 'hidden', aspectRatio: '1', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255, 255, 255, 0.6)' }}>
+                        <img style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={`https://res.cloudinary.com/dikvomlhu/image/upload/w_300,f_webp,q_auto/prodotti/${encodeURIComponent(file)}`} alt={file} loading="lazy" />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', color: 'white', padding: 'var(--spacing-xl) var(--spacing-md) var(--spacing-md)', fontSize: 'var(--font-size-sm)', fontWeight: 500, textAlign: 'center', wordBreak: 'break-all' }}>{file}</div>
                       </div>
                     ))}
                   </div>
