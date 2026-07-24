@@ -252,7 +252,7 @@ export default function ImagesApp() {
                                     borderRadius: 'var(--radius-md)', 
                                     overflow: 'hidden',
                                     border: '1px solid var(--color-border)',
-                                    background: 'rgba(255,255,255,0.5)',
+                                    background: '#ffffff',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
