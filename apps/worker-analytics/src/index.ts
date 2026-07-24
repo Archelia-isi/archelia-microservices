@@ -7,7 +7,7 @@ import PDFDocument from 'pdfkit';
 const REDIS_URL = env.REDIS_URL || 'redis://localhost:6379';
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
 
-log.info('📊 Worker Analytics in avvio...', { module: 'worker-analytics' });
+log.info('📊 Worker Analytics in avvio (v2)...', { module: 'worker-analytics' });
 
 const worker = new Worker('analytics-queue', async (job) => {
   log.info(`Elaborazione job ${job.id} - ${job.name}`, { module: 'worker-analytics' });
