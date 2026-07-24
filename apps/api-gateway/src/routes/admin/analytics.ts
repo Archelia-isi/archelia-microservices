@@ -3,7 +3,6 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
-// import { shopifyGraphQL } from '@archelia/shopify'; // Shopify client per Analytics (opzionale/futuro)
 import { requireAdmin } from '../auth';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
@@ -15,6 +14,10 @@ export async function analyticsRoutes(app: FastifyInstance) {
   fastify.get('/api/admin/analytics/overview', {
     preHandler: [requireAdmin],
     schema: {
+      querystring: z.object({
+        startDate: z.string().optional(),
+        endDate: z.string().optional()
+      }),
       response: {
         200: z.any(),
         500: z.object({ error: z.string() })
@@ -22,68 +25,70 @@ export async function analyticsRoutes(app: FastifyInstance) {
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // 1. Dati dal DB: Carrelli (come proxy per il traffico / visite)
-      const abandonedCarts = await prisma.cartSyncQueue.count({ where: { status: 'PENDING' } });
-      const recoveredCarts = await prisma.cartSyncQueue.count({ where: { status: 'SYNCED' } });
-      const emptyCarts = await prisma.cartSyncQueue.count({ where: { status: 'EMPTY' } });
-      const totalCarts = abandonedCarts + recoveredCarts + emptyCarts;
-
-      // Usiamo i carrelli come base per le "Visite stimate" (non avendo accesso a Shopify Analytics API)
-      const visits = totalCarts > 0 ? totalCarts * 12 : 25430; // Stima 1 carrello ogni 12 visite
-
-      // 2. Dati Reali da Shopify (Ordini e Entrate degli ultimi 7 giorni)
-      // Costruiamo la query per Shopify per prendere gli ordini degli ultimi 7 giorni
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const queryStr = `created_at:>=${sevenDaysAgo.toISOString()}`;
-
-      let ordersData: any = { orders: { edges: [] } };
-      try {
-        const { shopifyGraphQL } = require('@archelia/shopify');
-        ordersData = await shopifyGraphQL(`
-          query getRecentOrders($query: String!) {
-            orders(first: 250, query: $query) {
-              edges {
-                node {
-                  createdAt
-                  totalPriceSet {
-                    shopMoney {
-                      amount
-                    }
-                  }
-                }
-              }
-            }
-          }
-        `, { query: queryStr });
-      } catch (err: any) {
-        log.error(`Errore recupero ordini Shopify per Analytics: ${err.message}`, { module: 'analytics' });
+      const { startDate, endDate } = request.query as { startDate?: string, endDate?: string };
+      
+      const dateFilter: any = {};
+      if (startDate) {
+        dateFilter.gte = new Date(startDate);
+      }
+      if (endDate) {
+        dateFilter.lte = new Date(endDate);
       }
 
-      const shopifyOrders = ordersData?.orders?.edges || [];
-      const totalOrders = shopifyOrders.length;
+      // 1. Visite Reali dal DB (TrackingSession)
+      const trackingFilter = Object.keys(dateFilter).length > 0 ? { startedAt: dateFilter } : {};
+      const visits = await prisma.trackingSession.count({ where: trackingFilter });
+
+      // 2. Ordini Reali dal DB (ZelZucchettiOrderQueue)
+      const orderFilter = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
       
-      let revenue = 0;
+      const [totalOrders, revenueAgg] = await Promise.all([
+        prisma.zelZucchettiOrderQueue.count({ where: orderFilter }),
+        prisma.zelZucchettiOrderQueue.aggregate({
+          where: orderFilter,
+          _sum: { totalPrice: true }
+        })
+      ]);
+
+      const revenue = revenueAgg._sum.totalPrice || 0;
+
+      // 3. Tasso di conversione reale
+      const conversionRate = visits > 0 ? ((totalOrders / visits) * 100).toFixed(1) : 0;
+
+      // 4. Trend (Grafico) - Dati raggruppati per gli ultimi 7 giorni rispetto alla endDate
+      const endD = endDate ? new Date(endDate) : new Date();
       const trendDataMap: Record<string, { visits: number, sales: number }> = {};
       
-      // Inizializza gli ultimi 7 giorni a 0
       for (let i = 6; i >= 0; i--) {
-        const d = new Date();
+        const d = new Date(endD);
         d.setDate(d.getDate() - i);
         const dayStr = d.toLocaleDateString('it-IT', { weekday: 'short' });
-        trendDataMap[dayStr] = { visits: Math.floor(visits / 7), sales: 0 };
+        trendDataMap[dayStr] = { visits: 0, sales: 0 };
       }
 
-      // Popola i dati reali
-      for (const edge of shopifyOrders) {
-        const order = edge.node;
-        const amount = parseFloat(order.totalPriceSet?.shopMoney?.amount || '0');
-        revenue += amount;
-        
-        const dateStr = new Date(order.createdAt).toLocaleDateString('it-IT', { weekday: 'short' });
-        if (trendDataMap[dateStr]) {
-          trendDataMap[dateStr].sales += amount;
-        }
+      // Prendi i dati solo degli ultimi 7 giorni dal target per il grafico
+      const sevenDaysAgo = new Date(endD);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const [trendVisits, trendOrders] = await Promise.all([
+        prisma.trackingSession.findMany({
+          where: { startedAt: { gte: sevenDaysAgo, lte: endD } },
+          select: { startedAt: true }
+        }),
+        prisma.zelZucchettiOrderQueue.findMany({
+          where: { createdAt: { gte: sevenDaysAgo, lte: endD } },
+          select: { createdAt: true, totalPrice: true }
+        })
+      ]);
+
+      for (const v of trendVisits) {
+        const dStr = v.startedAt.toLocaleDateString('it-IT', { weekday: 'short' });
+        if (trendDataMap[dStr]) trendDataMap[dStr].visits++;
+      }
+
+      for (const o of trendOrders) {
+        const dStr = o.createdAt.toLocaleDateString('it-IT', { weekday: 'short' });
+        if (trendDataMap[dStr]) trendDataMap[dStr].sales += o.totalPrice || 0;
       }
 
       const trendData = Object.keys(trendDataMap).map(key => ({
@@ -92,25 +97,29 @@ export async function analyticsRoutes(app: FastifyInstance) {
         sales: trendDataMap[key].sales
       }));
 
-      const conversionRate = visits > 0 ? ((totalOrders / visits) * 100).toFixed(1) : 0;
+      // 5. Ripristina Carrelli (per il Funnel)
+      const abandonedCarts = await prisma.cartSyncQueue.count({ where: { status: 'PENDING' } });
+      const recoveredCarts = await prisma.cartSyncQueue.count({ where: { status: 'SYNCED' } });
+      const emptyCarts = await prisma.cartSyncQueue.count({ where: { status: 'EMPTY' } });
+      const totalCarts = abandonedCarts + recoveredCarts + emptyCarts;
 
       const response = {
         overview: {
           visits: visits,
-          visitsTrend: 1.2,
-          conversionRate: conversionRate,
-          conversionTrend: 0.1,
+          visitsTrend: 1.0,
           revenue: revenue,
-          revenueTrend: 8.2,
-          orders: totalOrders > 0 ? totalOrders : 342,
-          ordersTrend: 5.1
+          revenueTrend: 1.0,
+          orders: totalOrders,
+          ordersTrend: 1.0,
+          conversionRate: parseFloat(conversionRate.toString()),
+          conversionTrend: 1.0
         },
         funnel: {
           totalVisits: visits,
-          totalCarts: totalCarts > 0 ? totalCarts : 1500,
-          abandonedCarts: abandonedCarts > 0 ? abandonedCarts : 450,
-          recoveredCarts: recoveredCarts > 0 ? recoveredCarts : 85,
-          purchases: totalOrders > 0 ? totalOrders : 342
+          totalCarts: totalCarts > 0 ? totalCarts : 0,
+          abandonedCarts: abandonedCarts > 0 ? abandonedCarts : 0,
+          recoveredCarts: recoveredCarts > 0 ? recoveredCarts : 0,
+          purchases: totalOrders > 0 ? totalOrders : 0
         },
         trends: trendData
       };

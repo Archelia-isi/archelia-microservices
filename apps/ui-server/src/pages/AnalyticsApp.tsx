@@ -13,11 +13,26 @@ export default function AnalyticsApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [period, setPeriod] = useState<string>('7d');
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(`${API_URL}/api/admin/analytics/overview`, {
+        let url = `${API_URL}/api/admin/analytics/overview`;
+        
+        if (period !== 'all') {
+          const endDate = new Date();
+          const startDate = new Date();
+          
+          if (period === '7d') startDate.setDate(endDate.getDate() - 7);
+          else if (period === '30d') startDate.setDate(endDate.getDate() - 30);
+          else if (period === 'this_year') startDate.setMonth(0, 1);
+          
+          url += `?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+        }
+
+        const response = await fetch(url, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         
@@ -35,7 +50,7 @@ export default function AnalyticsApp() {
     };
     
     fetchData();
-  }, []);
+  }, [period]);
 
   const handleGenerateReport = async () => {
     try {
@@ -80,6 +95,21 @@ export default function AnalyticsApp() {
 
   return (
     <div className="analytics-container">
+      
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--spacing-md)' }}>
+        <select 
+          value={period} 
+          onChange={(e) => setPeriod(e.target.value)}
+          className="ui-input"
+          style={{ width: '200px', cursor: 'pointer', background: 'var(--color-glass)' }}
+        >
+          <option value="7d">Ultimi 7 Giorni</option>
+          <option value="30d">Ultimi 30 Giorni</option>
+          <option value="this_year">Quest'Anno</option>
+          <option value="all">Sempre (Storico Completo)</option>
+        </select>
+      </div>
+
       <button 
         className="analytics-floating-btn" 
         onClick={handleGenerateReport}

@@ -479,6 +479,9 @@ model OrderQueue {
   /// Payload completo dell'ordine (JSON)
   payload Json
 
+  /// Totale ordine (estratto per calcoli veloci analytics)
+  totalPrice Float @default(0)
+
   /// Stato elaborazione
   status OrderQueueStatus @default(PENDING)
 
@@ -774,6 +777,10 @@ model ZelZucchettiOrderQueue {
 
   /// Payload completo JSON per Zucchetti
   payload          Json
+  
+  /// Totale ordine (estratto per calcoli veloci analytics)
+  totalPrice       Float @default(0)
+  
   status           ZucchettiOrderStatus @default(PENDING)
 
   attempts         Int      @default(0)
