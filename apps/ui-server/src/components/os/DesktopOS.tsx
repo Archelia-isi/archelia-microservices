@@ -256,13 +256,13 @@ export default function DesktopOS() {
       registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
     }
     if (!windows['promo_manual']) {
-      registerApp({ id: 'promo_manual', title: 'Generatore Sconti', icon: getImg('/icons/promo.jpg'), color: 'transparent', component: <PromoManualApp />, x: 160, y: 160, width: 1100, height: 800, desktopX: 230, desktopY: 30 });
+      registerApp({ id: 'promo_manual', title: 'Generatore Sconti', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoManualApp />, x: 160, y: 160, width: 1100, height: 800, desktopX: 230, desktopY: 30 });
     }
     if (!windows['promo_auto']) {
       registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
     }
     if (!windows['infinity']) {
-      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('/icons/infinity.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
+      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
     }
     if (!windows['images']) {
       registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 330 });
