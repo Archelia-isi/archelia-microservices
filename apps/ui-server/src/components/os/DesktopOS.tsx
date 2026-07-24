@@ -23,6 +23,7 @@ import './DesktopOS.css';
 import InfinityApp from '../../pages/InfinityApp';
 import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
+import AnalyticsApp from '../../pages/AnalyticsApp';
 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper } = useWindowStore();
@@ -248,28 +249,31 @@ export default function DesktopOS() {
     if (!windows['equalizzatore']) {
       registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
     }
-    if (!windows['promo_manual']) {
-      registerApp({ id: 'promo_manual', title: 'Promo Manuali', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoManualApp />, x: 150, y: 150, width: 850, height: 600, desktopX: 130, desktopY: 130 });
-    }
-    if (!windows['promo_auto']) {
-      registerApp({ id: 'promo_auto', title: 'Promo Automazioni', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 200, y: 200, width: 950, height: 650, desktopX: 130, desktopY: 230 });
-    }
     if (!windows['marketing']) {
-      registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 250, y: 250, width: 1000, height: 700, desktopX: 130, desktopY: 330 });
+      registerApp({ id: 'marketing', title: 'Centro Marketing', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 130, desktopY: 130 });
     }
     if (!windows['email_builder']) {
-      registerApp({ id: 'email_builder', title: 'Email AI Builder', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 300, y: 150, width: 1100, height: 750, desktopX: 230, desktopY: 30 });
+      registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
+    }
+    if (!windows['promo_manual']) {
+      registerApp({ id: 'promo_manual', title: 'Generatore Sconti', icon: getImg('/icons/promo.jpg'), color: 'transparent', component: <PromoManualApp />, x: 160, y: 160, width: 1100, height: 800, desktopX: 230, desktopY: 30 });
+    }
+    if (!windows['promo_auto']) {
+      registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
     }
     if (!windows['infinity']) {
-      registerApp({ id: 'infinity', title: 'Infinity DB', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 250, y: 120, width: 1000, height: 700, desktopX: 330, desktopY: 30 });
+      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('/icons/infinity.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
     }
     if (!windows['typesense']) {
-      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 300, y: 150, width: 900, height: 600, desktopX: 330, desktopY: 130 });
+      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 330, desktopY: 30 });
     }
     if (!windows['images']) {
       registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 230 });
     }
-  }, []);
+    if (!windows['analytics']) {
+      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 230 });
+    }
+  }, [registerApp, windows]);
 
   if (!isLoggedIn) {
     return <LoginScreen onLoginSuccess={() => {
