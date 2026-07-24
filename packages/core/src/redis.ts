@@ -9,6 +9,7 @@ if (!env.REDIS_URL) {
 const redisOptions = {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  lazyConnect: true,
 };
 
 // Create a singleton connection for standard operations

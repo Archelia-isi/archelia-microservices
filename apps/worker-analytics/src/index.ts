@@ -5,7 +5,7 @@ import { prisma } from '@archelia/database';
 import PDFDocument from 'pdfkit';
 
 const REDIS_URL = env.REDIS_URL || 'redis://localhost:6379';
-const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
 
 log.info('📊 Worker Analytics in avvio...', { module: 'worker-analytics' });
 
