@@ -10,6 +10,7 @@ import Tabs from '../components/ui/Tabs';
 import Dropzone from '../components/ui/Dropzone';
 import ActionCard from '../components/ui/ActionCard';
 import ProgressBar from '../components/ui/ProgressBar';
+import Lightbox from '../components/ui/Lightbox';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 const API_BASE = `${API_URL}/api/admin`;
@@ -48,6 +49,8 @@ export default function ImagesApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [lightboxState, setLightboxState] = useState<{isOpen: boolean, images: string[], index: number}>({ isOpen: false, images: [], index: 0 });
 
   useEffect(() => {
     if (activeTab === 'search' && searchQuery.trim().length > 0) {
@@ -164,6 +167,14 @@ export default function ImagesApp() {
         appName="Immagini & Asset" 
         icon={<ImageIcon size={56} />} 
       />
+      
+      <Lightbox 
+        isOpen={lightboxState.isOpen} 
+        images={lightboxState.images} 
+        initialIndex={lightboxState.index} 
+        onClose={() => setLightboxState({ ...lightboxState, isOpen: false })} 
+      />
+
       {/* Main App Container */}
       <div className={`equalizzatore-app eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="eq-main-container" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -225,25 +236,43 @@ export default function ImagesApp() {
                       <GlassPanel key={i} padding="lg" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>{doc.title}</h3>
-                          <Badge variant="primary">{doc.sku}</Badge>
+                          <Badge variant="primary" style={{ fontSize: '16px', padding: 'var(--spacing-sm) var(--spacing-md)' }}>{doc.sku}</Badge>
                         </div>
                         {images.length > 0 ? (
                           <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>
-                            {images.map((img: string, idx: number) => (
-                              <div key={idx} style={{ 
-                                minWidth: '120px', 
-                                height: '120px', 
-                                borderRadius: 'var(--radius-md)', 
-                                overflow: 'hidden',
-                                border: '1px solid var(--color-border)',
-                                background: 'rgba(255,255,255,0.5)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                <img src={img.replace('f_webp,q_auto', 'w_200,f_webp,q_auto')} alt={`Vista ${idx+1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                              </div>
-                            ))}
+                            {images.map((img: string, idx: number) => {
+                              const fullResImg = img.replace('f_webp,q_auto', 'f_webp,q_auto').replace('w_200,f_webp,q_auto', 'f_webp,q_auto');
+                              const fullImagesArray = images.map((i: string) => i.replace('f_webp,q_auto', 'f_webp,q_auto').replace('w_200,f_webp,q_auto', 'f_webp,q_auto'));
+                              
+                              return (
+                                <div key={idx} 
+                                  onClick={() => setLightboxState({ isOpen: true, images: fullImagesArray, index: idx })}
+                                  style={{ 
+                                    minWidth: '120px', 
+                                    height: '120px', 
+                                    borderRadius: 'var(--radius-md)', 
+                                    overflow: 'hidden',
+                                    border: '1px solid var(--color-border)',
+                                    background: 'rgba(255,255,255,0.5)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                  }}
+                                >
+                                  <img src={img.replace('f_webp,q_auto', 'w_200,f_webp,q_auto')} alt={`Vista ${idx+1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <div style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '14px' }}>Nessuna immagine associata.</div>
