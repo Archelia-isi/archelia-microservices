@@ -1,5 +1,5 @@
-import { logger, redis, env } from '@archelia/core';
-import { prisma } from '@archelia/database';
+import { logger, redis, env, imageService } from '@archelia/core';
+import { prisma, Prisma } from '@archelia/database';
 import { zucchettiClient } from '@archelia/zucchetti';
 
 const LISTINI_ECOMMERCE = ['ARC', 'VAELK'];
@@ -31,6 +31,8 @@ export interface ZucchettiArticle {
   arpeslor?: string;
   utdc?: string;
   utdv?: string;
+  ardatainse?: string;
+  ardatamodi?: string;
 }
 
 export class ZucchettiPullService {
@@ -78,6 +80,7 @@ export class ZucchettiPullService {
     const diagnostics = {
       pdfSkuCount: 0,
       zucchettiTotalCount: 0,
+      dbTotalProducts: 0,
       zucchettiLveCount: 0,
       dbUpsertedCount: 0,
       pdfSkusFoundInZucchetti: 0,
@@ -101,6 +104,9 @@ export class ZucchettiPullService {
 
       const allArticles = await this.fetchAllArticles();
       diagnostics.zucchettiTotalCount = allArticles.length;
+      diagnostics.dbTotalProducts = await prisma.product.count();
+
+      await imageService.loadImageMap();
 
       if (allArticles.length === 0) {
         logger.warn('⚠️ Nessun articolo trovato da Zucchetti');
@@ -214,7 +220,12 @@ export class ZucchettiPullService {
            });
            const existingSkus = new Set(existingProducts.map(p => p.sku));
            
-           const txs = batch.map(agg => {
+           const batchWithImages = await Promise.all(batch.map(async agg => {
+              const images = await imageService.getImagesForSku(agg.baseArticle.arcodar2);
+              return { agg, images };
+           }));
+
+           const txs = batchWithImages.map(({ agg, images }) => {
               const article = agg.baseArticle;
               
               if (existingSkus.has(article.arcodar2)) result.updated++;
@@ -246,6 +257,8 @@ export class ZucchettiPullService {
                   rawStockEk: agg.rawStockEk,
                   reservedStockEk: agg.reservedStockEk,
                   committedStockEk: agg.committedStockEk,
+                  imageUrl: images.length > 0 ? images[0] : null,
+                  imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
                   zucchettiUpdatedAt: article.utdv || null,
@@ -276,6 +289,8 @@ export class ZucchettiPullService {
                   rawStockEk: agg.rawStockEk,
                   reservedStockEk: agg.reservedStockEk,
                   committedStockEk: agg.committedStockEk,
+                  imageUrl: images.length > 0 ? images[0] : null,
+                  imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
                   zucchettiCreatedAt: article.utdc || null,

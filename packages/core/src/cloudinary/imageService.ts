@@ -1,4 +1,12 @@
 import { log as logger } from '../logger.js';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary globally for the core package
+cloudinary.config({
+  cloud_name: 'dikvomlhu',
+  api_key: '615533243888646',
+  api_secret: 'V0tOJU7LIspzCKChEkwatu2ZnmE',
+});
 
 const CLOUDINARY_CLOUD = 'dikvomlhu';
 const CLOUDINARY_FOLDER = 'prodotti';
@@ -8,15 +16,17 @@ export type ImageMap = Record<string, string[]>;
 
 export class ImageService {
   private imageMap: ImageMap | null = null;
-  private normalizedMap: Map<string, string[]> | null = null;
+  public normalizedMap: Map<string, string[]> | null = null;
 
   async loadImageMap(): Promise<ImageMap> {
     if (this.imageMap) return this.imageMap;
 
     try {
-      const cacheBustUrl = `${MAP_URL}?t=${Date.now()}`;
-      logger.info(`📸 Download mappa immagini da ${cacheBustUrl}...`, { module: 'core:cloudinary' });
-      const response = await fetch(cacheBustUrl);
+      logger.info(`📸 Download mappa immagini da Cloudinary API (bypass CDN cache)...`, { module: 'core:cloudinary' });
+      const result = await cloudinary.api.resource(`${CLOUDINARY_FOLDER}/mappa_immagini.json`, { resource_type: 'raw' });
+      const jsonUrl = result.secure_url;
+      
+      const response = await fetch(jsonUrl);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
