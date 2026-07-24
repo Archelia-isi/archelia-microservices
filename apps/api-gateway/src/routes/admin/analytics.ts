@@ -5,6 +5,8 @@ import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
 // import { shopifyGraphQL } from '@archelia/shopify'; // Shopify client per Analytics (opzionale/futuro)
 import { requireAdmin } from '../auth';
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 export async function analyticsRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
@@ -89,13 +91,9 @@ export async function analyticsRoutes(app: FastifyInstance) {
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { Queue } = await import('bullmq');
-      const IORedis = (await import('ioredis')).default;
-      const { env } = await import('@archelia/core');
-      
-      const REDIS_URL = env.REDIS_URL || 'redis://localhost:6379';
+      const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
       const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-      const analyticsQueue = new Queue('analytics-queue', { connection });
+      const analyticsQueue = new Queue('analytics-queue', { connection: connection as any });
 
       // Incolonniamo il job
       const job = await analyticsQueue.add('GENERATE_REPORT_PDF', {});
