@@ -168,7 +168,7 @@ export default function ImagesApp() {
               
               <div style={{ display: 'flex', flexDirection: 'row', gap: 'var(--spacing-2xl)', width: '100%', margin: '0', alignItems: 'stretch' }}>
                 
-                <div style={{ flex: 1, margin: 0, background: 'var(--color-surface)', backdropFilter: 'var(--glass-blur)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--color-border-glass)', padding: 'var(--spacing-xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                <GlassPanel style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
                     <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-main)' }}>📁 Upload Cartella</h2>
                   </div>
@@ -220,20 +220,11 @@ export default function ImagesApp() {
                       variant="primary" 
                       onClick={() => handleUpload(selectedFiles!)} 
                       disabled={!selectedFiles || isUploading}
-                      style={{ 
-                        padding: '12px 24px', 
-                        fontSize: '15px', 
-                        fontWeight: 600, 
-                        background: '#a78bfa', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: 'var(--radius-lg)' 
-                      }}
                     >
                       Carica su Cloudinary
                     </Button>
                   </div>
-                </div>
+                </GlassPanel>
 
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                   <ActionCard
