@@ -3,7 +3,7 @@ import { Users, MousePointerClick, ShoppingCart, TrendingUp, Download } from 'lu
 import StatCard from '../components/ui/StatCard';
 import FunnelBar from '../components/ui/FunnelBar';
 import LineChartGlass from '../components/ui/LineChartGlass';
-import StickyHeader from '../components/ui/StickyHeader';
+import toast from 'react-hot-toast';
 import './AnalyticsApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -40,6 +40,9 @@ export default function AnalyticsApp() {
   const handleGenerateReport = async () => {
     try {
       setGeneratingReport(true);
+      
+      const toastId = toast.loading('Generazione Report in corso...');
+      
       const response = await fetch(`${API_URL}/api/admin/analytics/report`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -47,12 +50,12 @@ export default function AnalyticsApp() {
       
       const json = await response.json();
       if (response.ok) {
-        alert('Richiesta inviata! Il worker-analytics sta generando il PDF in background.');
+        toast.success('Report inviato correttamente al worker in background!', { id: toastId });
       } else {
-        alert('Errore: ' + (json.error || 'Sconosciuto'));
+        toast.error('Errore: ' + (json.error || 'Sconosciuto'), { id: toastId });
       }
     } catch (err: any) {
-      alert('Errore di connessione al server.');
+      toast.error('Errore di connessione al server.');
     } finally {
       setGeneratingReport(false);
     }
@@ -77,20 +80,15 @@ export default function AnalyticsApp() {
 
   return (
     <div className="analytics-container">
-      <StickyHeader>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-          <button 
-            className="ui-button primary" 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            onClick={handleGenerateReport}
-            disabled={generatingReport}
-          >
-            <Download size={16} />
-            {generatingReport ? 'Invio in corso...' : 'Genera PDF'}
-          </button>
-        </div>
-      </StickyHeader>
-      
+      <button 
+        className="analytics-floating-btn" 
+        onClick={handleGenerateReport}
+        disabled={generatingReport}
+      >
+        <div className="analytics-floating-btn-glow"></div>
+        <Download size={18} />
+        <span>{generatingReport ? 'Generazione in corso...' : 'Genera Report PDF'}</span>
+      </button>
       <div className="analytics-grid">
         <StatCard 
           title="Visite Totali (Shopify)" 
