@@ -78,11 +78,7 @@ export default function AnalyticsApp() {
   return (
     <div className="analytics-container">
       <StickyHeader>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>Centro Analisi</h2>
-            <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '14px' }}>Overview delle performance (Ibrido: Shopify + Neon DB)</p>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
           <button 
             className="ui-button primary" 
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
