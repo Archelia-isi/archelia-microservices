@@ -79,7 +79,7 @@ export async function adminSearchRoutes(app: FastifyInstance) {
     try {
       log.info(`Ricerca Typesense per query: ${q}`, { module: 'api-gateway:search' });
       const { searchProducts } = await import('@archelia/typesense');
-      const results = await searchProducts(q);
+      const results = await searchProducts(q, { includeUnpublished: true });
       return reply.status(200).send(results);
     } catch (e: any) {
       log.error(`Errore ricerca Typesense: ${e.message}`, { module: 'api-gateway:search' });

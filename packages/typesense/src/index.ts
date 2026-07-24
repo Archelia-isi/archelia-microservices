@@ -405,16 +405,21 @@ export async function runBulkSync() {
 /**
  * Esegue una ricerca Typesense con le priorità definite dal cliente.
  */
-export async function searchProducts(q: string) {
+export async function searchProducts(q: string, options?: { includeUnpublished?: boolean }) {
   try {
-    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+    const searchParams: any = {
       q: q,
       query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
       query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
       sort_by: '_text_match:desc,is_in_promo:desc,natural_sku:asc',
-      per_page: 50,
-      filter_by: 'publishedOnWeb:true'
-    });
+      per_page: 50
+    };
+    
+    if (!options?.includeUnpublished) {
+      searchParams.filter_by = 'publishedOnWeb:true';
+    }
+
+    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search(searchParams);
     return searchResults;
   } catch (error) {
     console.error('Typesense search error:', error);
