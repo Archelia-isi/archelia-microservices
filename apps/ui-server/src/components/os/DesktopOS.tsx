@@ -264,16 +264,16 @@ export default function DesktopOS() {
     if (!windows['infinity']) {
       registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('/icons/infinity.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
     }
+    if (!windows['images']) {
+      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 330 });
+    }
     if (!windows['typesense']) {
       registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 330, desktopY: 30 });
     }
-    if (!windows['images']) {
-      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 230 });
-    }
     if (!windows['analytics']) {
-      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 230 });
+      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 130 });
     }
-  }, [registerApp, windows]);
+  }, []);
 
   if (!isLoggedIn) {
     return <LoginScreen onLoginSuccess={() => {
