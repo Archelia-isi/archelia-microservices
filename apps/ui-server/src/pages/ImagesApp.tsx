@@ -241,7 +241,6 @@ export default function ImagesApp() {
                         {images.length > 0 ? (
                           <div style={{ display: 'flex', gap: 'var(--spacing-md)', overflowX: 'auto', paddingBottom: 'var(--spacing-sm)' }}>
                             {images.map((img: string, idx: number) => {
-                              const fullResImg = img.replace('f_webp,q_auto', 'f_webp,q_auto').replace('w_200,f_webp,q_auto', 'f_webp,q_auto');
                               const fullImagesArray = images.map((i: string) => i.replace('f_webp,q_auto', 'f_webp,q_auto').replace('w_200,f_webp,q_auto', 'f_webp,q_auto'));
                               
                               return (
