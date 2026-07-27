@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
+import GlassPanel from '../components/ui/GlassPanel';
 import LogViewer, { type LogEntry } from '../components/ui/LogViewer';
-import { Terminal, RefreshCcw } from 'lucide-react';
+import { RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const APPS_LIST = [
-  { id: 'ui-server', label: 'UI Server' },
   { id: 'api-gateway', label: 'API Gateway' },
   { id: 'webhook-receiver', label: 'Webhook Receiver' },
   { id: 'ai-chatbot-service', label: 'AI Chatbot' },
@@ -16,7 +16,8 @@ const APPS_LIST = [
   { id: 'worker-equalizzatore', label: 'Equalizzatore' },
   { id: 'worker-marketing', label: 'Marketing' },
   { id: 'worker-promo', label: 'Promo Brain' },
-  { id: 'worker-analytics', label: 'Analytics' }
+  { id: 'worker-analytics', label: 'Analytics' },
+  { id: 'ui-server', label: 'UI Server' }
 ];
 
 export default function LogsApp() {
@@ -29,6 +30,9 @@ export default function LogsApp() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      // For api-gateway we also want to catch api-gateway:customers etc.
+      // But the backend `/api/admin/logs?category=` matches exact category.
+      // We will let the backend handle exact matches for now.
       const res = await fetch(`${API_URL}/api/admin/logs?category=${category}&limit=200`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -57,32 +61,32 @@ export default function LogsApp() {
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      backgroundColor: 'var(--color-bg-primary)'
+      backgroundColor: 'transparent'
     }}>
-      <StickyHeader>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--spacing-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Terminal size={24} color="var(--color-primary)" />
-            <h2 style={{ margin: 0 }}>System Logs</h2>
-          </div>
-          <button 
-            className="btn btn-secondary" 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            onClick={() => fetchLogs(activeTab)}
-            disabled={loading}
-          >
-            <RefreshCcw size={16} className={loading ? 'spin' : ''} />
-            Aggiorna
-          </button>
+      <StickyHeader paddingY="sm" backgroundOpacity={0}>
+        <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', alignItems: 'center', flex: 1, overflowX: 'auto', marginRight: 'var(--spacing-md)' }}>
+            <Tabs
+              tabs={APPS_LIST.map(app => ({
+                id: app.id,
+                label: app.label
+              }))}
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id.toString())}
+            />
+          </GlassPanel>
+          <GlassPanel padding="sm" radius="lg">
+            <button 
+              className="btn btn-secondary" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, padding: '8px 16px' }}
+              onClick={() => fetchLogs(activeTab)}
+              disabled={loading}
+            >
+              <RefreshCcw size={16} className={loading ? 'spin' : ''} />
+              Aggiorna
+            </button>
+          </GlassPanel>
         </div>
-        <Tabs
-          tabs={APPS_LIST.map(app => ({
-            id: app.id,
-            label: app.label
-          }))}
-          activeTab={activeTab}
-          onChange={(id) => setActiveTab(id.toString())}
-        />
       </StickyHeader>
 
       <div style={{ flex: 1, padding: 'var(--spacing-md)', overflow: 'hidden' }}>
