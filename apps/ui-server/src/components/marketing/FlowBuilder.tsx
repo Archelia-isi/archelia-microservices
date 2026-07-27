@@ -9,21 +9,23 @@ import './FlowBuilder.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
-type Step = { id: string, delay: number, template: string };
+type Step = { id?: string, delayHours?: number, delayDays?: number, template: string };
 
 function SequenceEditor({ 
   sequence, 
   onChange, 
   delayLabel,
+  delayField,
   templates
 }: { 
   sequence: Step[], 
   onChange: (s: Step[]) => void, 
   delayLabel: string,
+  delayField: 'delayHours' | 'delayDays',
   templates: any[]
 }) {
   const addStep = () => {
-    onChange([...sequence, { id: Math.random().toString(36).substring(7), delay: 1, template: '' }]);
+    onChange([...sequence, { id: Math.random().toString(36).substring(7), [delayField]: 1, template: '' }]);
   };
 
   const updateStep = (index: number, field: keyof Step, value: any) => {
@@ -42,30 +44,35 @@ function SequenceEditor({
 
   return (
     <div className="sequence-editor">
-      {sequence.map((step, idx) => (
-        <div key={step.id} className="sequence-step">
-          <div className="input-group" style={{ flex: '0 0 120px' }}>
-            <TextInput 
-              label={delayLabel}
-              type="number" 
-              value={step.delay} 
-              onChange={e => updateStep(idx, 'delay', parseInt(e.target.value) || 0)} 
-            />
+      {sequence.map((step, idx) => {
+        const stepKey = step.id || `step-${idx}`;
+        const delayValue = step[delayField] || 0;
+        
+        return (
+          <div key={stepKey} className="sequence-step">
+            <div className="input-group" style={{ flex: '0 0 120px' }}>
+              <TextInput 
+                label={delayLabel}
+                type="number" 
+                value={delayValue} 
+                onChange={e => updateStep(idx, delayField, parseInt(e.target.value) || 0)} 
+              />
+            </div>
+            <div className="input-group" style={{ flex: 1 }}>
+              <label>Template Email</label>
+              <Select 
+                value={step.template} 
+                onChange={e => updateStep(idx, 'template', e.target.value)}
+                options={options}
+                placeholder="-- Seleziona un Template --"
+              />
+            </div>
+            <Button variant="danger" onClick={() => removeStep(idx)}>
+              <Trash2 size={16} />
+            </Button>
           </div>
-          <div className="input-group" style={{ flex: 1 }}>
-            <label>Template Email</label>
-            <Select 
-              value={step.template} 
-              onChange={e => updateStep(idx, 'template', e.target.value)}
-              options={options}
-              placeholder="-- Seleziona un Template --"
-            />
-          </div>
-          <Button variant="danger" onClick={() => removeStep(idx)}>
-            <Trash2 size={16} />
-          </Button>
-        </div>
-      ))}
+        );
+      })}
       <div style={{ marginTop: '12px' }}>
         <Button variant="modern" onClick={addStep}>
           + Aggiungi Step
@@ -158,7 +165,8 @@ export default function FlowBuilder() {
             <SequenceEditor 
               sequence={Array.isArray(config.cartSequence) ? config.cartSequence : []} 
               onChange={seq => updateConfig('cartSequence', seq)} 
-              delayLabel="Ritardo (Ore)"
+              delayLabel="Ritardo Innesco (Ore)"
+              delayField="delayHours"
               templates={templates}
             />
           </div>
@@ -181,7 +189,8 @@ export default function FlowBuilder() {
             <SequenceEditor 
               sequence={Array.isArray(config.winbackSequence) ? config.winbackSequence : []} 
               onChange={seq => updateConfig('winbackSequence', seq)} 
-              delayLabel="Ritardo (Giorni)"
+              delayLabel="Ritardo Innesco (Giorni)"
+              delayField="delayDays"
               templates={templates}
             />
           </div>
@@ -212,7 +221,8 @@ export default function FlowBuilder() {
             <SequenceEditor 
               sequence={Array.isArray(config.browseSequence) ? config.browseSequence : []} 
               onChange={seq => updateConfig('browseSequence', seq)} 
-              delayLabel="Ritardo (Ore)"
+              delayLabel="Ritardo Innesco (Ore)"
+              delayField="delayHours"
               templates={templates}
             />
           </div>
