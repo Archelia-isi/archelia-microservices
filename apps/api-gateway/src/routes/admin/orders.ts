@@ -93,46 +93,4 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
 
     return reply.status(200).send({ success: true, message: 'Ordine riaccodato con successo per Zucchetti.' });
   });
-
-  // Recupero forzato vecchi ordini da Shopify
-  fastify.post('/api/admin/orders/recover', {
-    preHandler: [requireAdmin],
-    schema: {
-      response: {
-        200: z.object({ success: z.boolean(), message: z.string(), count: z.number() }),
-        500: z.object({ error: z.string() })
-      }
-    }
-  }, async (request, reply) => {
-    try {
-      const { shopifyClient } = await import('@archelia/shopify');
-      const { Queue } = await import('bullmq');
-      const { redis } = await import('@archelia/core');
-      
-      const shopifyOrdersQueue = new Queue('shopify-orders', { connection: redis as any });
-      
-      log.info('Avvio recupero ordini vecchi da Shopify (API Gateway)...');
-      
-      // Scarica gli ultimi 20 ordini da Shopify
-      const response: any = await shopifyClient.get('/orders.json?status=any&limit=20');
-      const orders = response.orders || [];
-
-      let queued = 0;
-      for (const order of orders) {
-        // Aggiungiamo alla coda simulando il payload del webhook
-        await shopifyOrdersQueue.add('order-create', order);
-        queued++;
-      }
-
-      log.info(`Recupero completato. Accodati ${queued} ordini.`);
-      return reply.status(200).send({ 
-        success: true, 
-        message: `Recupero avviato! ${queued} ordini storici sono stati messi in coda per l'elaborazione.`,
-        count: queued
-      });
-    } catch (err: any) {
-      log.error('Errore durante il recupero ordini:', err);
-      return reply.status(500).send({ error: err.message || 'Errore di sistema' });
-    }
-  });
 }
