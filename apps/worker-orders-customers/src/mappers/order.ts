@@ -99,6 +99,23 @@ export async function processOrderSync(orderPayload: any) {
   // 3. Salvataggio Storico (PENDING)
   const totalPrice = parseFloat(orderPayload.total_price || orderPayload.current_total_price || '0');
   
+  // Prima creiamo/aggiorniamo l'ordine Shopify (necessario per la foreign key)
+  await prisma.zelShopifyOrder.upsert({
+    where: { shopifyOrderId: shopifyOrderIdStr },
+    update: {
+      orderNumber: orderPayload.name,
+      totalPrice: totalPrice,
+      shopifyCustomerId: shopifyCustomerId,
+      updatedAt: new Date()
+    },
+    create: {
+      shopifyOrderId: shopifyOrderIdStr,
+      orderNumber: orderPayload.name,
+      totalPrice: totalPrice,
+      shopifyCustomerId: shopifyCustomerId
+    }
+  });
+
   await prisma.zelZucchettiOrderQueue.upsert({
     where: { shopifyOrderId: shopifyOrderIdStr },
     update: { 
