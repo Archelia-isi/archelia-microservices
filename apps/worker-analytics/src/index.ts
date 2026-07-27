@@ -6,8 +6,59 @@ import PDFDocument from 'pdfkit';
 
 const REDIS_URL = env.REDIS_URL || 'redis://localhost:6379';
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
+const pubSubClient = new IORedis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
 
 log.info('📊 Worker Analytics in avvio (v2)...', { module: 'worker-analytics' });
+
+// --- GESTIONE LOG AGGREGATI TRAMITE REDIS ---
+let logBatch: any[] = [];
+let batchTimeout: NodeJS.Timeout | null = null;
+
+const flushLogs = async () => {
+  if (logBatch.length === 0) return;
+  const currentBatch = [...logBatch];
+  logBatch = [];
+  try {
+    await prisma.logEntry.createMany({
+      data: currentBatch,
+      skipDuplicates: true
+    });
+  } catch (err: any) {
+    console.error('Failed to flush logs to DB:', err.message);
+  }
+};
+
+pubSubClient.subscribe('archelia:logs', (err) => {
+  if (err) log.error(`Failed to subscribe to archelia:logs: ${err.message}`);
+  else log.info('🎧 Subscribed to archelia:logs channel', { module: 'worker-analytics' });
+});
+
+pubSubClient.on('message', (channel, message) => {
+  if (channel === 'archelia:logs') {
+    try {
+      const data = JSON.parse(message);
+      logBatch.push({
+        level: data.level,
+        message: data.message,
+        category: data.category,
+        details: typeof data.details === 'object' ? JSON.stringify(data.details) : data.details,
+        createdAt: new Date(data.createdAt)
+      });
+      if (logBatch.length >= 50) {
+        if (batchTimeout) clearTimeout(batchTimeout);
+        flushLogs();
+      } else if (!batchTimeout) {
+        batchTimeout = setTimeout(() => {
+          batchTimeout = null;
+          flushLogs();
+        }, 5000);
+      }
+    } catch (e) {
+      // Ignora errori di parsing
+    }
+  }
+});
+// ----------------------------------------------
 
 const worker = new Worker('analytics-queue', async (job) => {
   log.info(`Elaborazione job ${job.id} - ${job.name}`, { module: 'worker-analytics' });
