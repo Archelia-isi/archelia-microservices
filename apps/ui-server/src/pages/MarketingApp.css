@@ -1,7 +1,7 @@
 .marketing-app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   background: transparent !important;
   overflow: hidden;
@@ -37,6 +37,7 @@
 
 .marketing-content {
   padding: 2rem;
+  padding-bottom: 4rem; /* Extra padding per non tagliare l'ultimo elemento allo scroll */
   flex: 1;
   overflow-y: auto;
 }
