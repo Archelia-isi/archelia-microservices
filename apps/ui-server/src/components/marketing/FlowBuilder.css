@@ -72,13 +72,6 @@
   color: var(--text-secondary);
 }
 
-.input-group input {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
 
 /* Toggle Switch */
 .toggle-switch {
