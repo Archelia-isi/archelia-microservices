@@ -18,12 +18,19 @@ if (vapidPublicKey && vapidPrivateKey) {
 
 export class PushSender {
   static async sendPush(deviceId: string, title: string, body: string, url: string = '/') {
+    const enableWrites = String((env as any).ENABLE_GLOBAL_WRITES || process.env.ENABLE_GLOBAL_WRITES).toLowerCase() === 'true';
+
     try {
       log.info(`[PushSender] Preparazione invio push per device ${deviceId}`, { module: 'worker-marketing' });
       const sub = await prisma.webPushSubscription.findUnique({ where: { deviceId } });
       if (!sub) {
         log.warn(`Push fallito: Sottoscrizione non trovata per Device ${deviceId}`, { module: 'worker-marketing' });
         return false;
+      }
+
+      if (!enableWrites) {
+        log.info(`[DRY-RUN] ENABLE_GLOBAL_WRITES è false. Push NON inviata realmente a ${deviceId}. Titolo: "${title}"`, { module: 'worker-marketing' });
+        return true;
       }
 
       const pushConfig = {

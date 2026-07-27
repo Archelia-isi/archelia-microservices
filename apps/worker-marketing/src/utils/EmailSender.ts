@@ -18,10 +18,16 @@ export class EmailSender {
   
   static async send(payload: BrevoEmailPayload): Promise<boolean> {
     const apiKey = (env as any).BREVO_API_KEY || process.env.BREVO_API_KEY;
+    const enableWrites = String((env as any).ENABLE_GLOBAL_WRITES || process.env.ENABLE_GLOBAL_WRITES).toLowerCase() === 'true';
     
     if (!apiKey) {
       log.warn("BREVO_API_KEY non trovata nel file .env. Skipo invio effettivo.", { module: 'worker-marketing' });
       // Per evitare crash in dev se non c'è la chiave, diamo l'OK simulato
+      return true;
+    }
+
+    if (!enableWrites) {
+      log.info(`[DRY-RUN] ENABLE_GLOBAL_WRITES è false. Mail NON inviata realmente a: ${JSON.stringify(payload.to.map(t => t.email))}`, { module: 'worker-marketing' });
       return true;
     }
 
