@@ -24,6 +24,8 @@ import InfinityApp from '../../pages/InfinityApp';
 import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
+import LogsApp from '../../pages/LogsApp';
+import { Terminal as TerminalIcon } from 'lucide-react';
 
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper } = useWindowStore();
@@ -272,6 +274,14 @@ export default function DesktopOS() {
     }
     if (!windows['analytics']) {
       registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 130 });
+    }
+    if (!windows['logs']) {
+      const TerminalIconWidget = () => (
+        <div style={{ width: '100%', height: '100%', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
+          <TerminalIcon color="#10b981" size={40} />
+        </div>
+      );
+      registerApp({ id: 'logs', title: 'System Logs', icon: <TerminalIconWidget />, color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 330, desktopY: 230 });
     }
   }, []);
 
