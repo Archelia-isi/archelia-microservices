@@ -41,7 +41,7 @@ pubSubClient.on('message', (channel, message) => {
         level: data.level,
         message: data.message,
         category: data.category,
-        details: typeof data.details === 'object' ? JSON.stringify(data.details) : data.details,
+        data: typeof data.details === 'object' ? JSON.stringify(data.details) : data.details,
         createdAt: new Date(data.createdAt)
       });
       if (logBatch.length >= 50) {
