@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react';
+import { Settings2, Play, CloudUpload } from 'lucide-react';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import Tabs from '../components/ui/Tabs';
 import StickyHeader from '../components/ui/StickyHeader';
@@ -16,35 +18,46 @@ export function MarketingApp() {
     setTimeout(() => setIsAppReady(true), 300);
   }, []);
 
-  if (!isAppReady) {
-    return <AppSplashScreen appName="Marketing" isLoading={true} icon="/icons/marketing.jpg" />;
-  }
-
   return (
-    <div className="marketing-app">
-      <StickyHeader paddingY="sm" backgroundOpacity={0}>
-        <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-          <div className="marketing-title">
-            <h2>📣 Control Center Automazioni</h2>
-            <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>Configura i flussi in background e monitora le code di invio.</p>
-          </div>
-          <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
-            <Tabs
-              tabs={[
-                { id: 'flows', label: 'Flussi & Automazioni' },
-                { id: 'queues', label: 'Gestione Code' }
-              ]}
-              activeTab={activeTab}
-              onChange={(id) => setActiveTab(id as any)}
-            />
-          </GlassPanel>
-        </div>
-      </StickyHeader>
+    <>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Centro Marketing" 
+        icon={<Settings2 size={56} />} 
+      />
+      
+      <div className={`marketing-app marketing-app-entry ${isAppReady ? 'ready' : ''}`}>
+        <div className="marketing-main-container">
+          
+          <StickyHeader paddingY="sm" backgroundOpacity={0}>
+            <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+              
+              <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>📣 Control Center Automazioni</h2>
+                  <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Configura i flussi in background e monitora le code di invio.</p>
+                </div>
+              </GlassPanel>
 
-      <div className="marketing-content">
-        {activeTab === 'flows' && <FlowBuilder />}
-        {activeTab === 'queues' && <QueueManager />}
+              <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
+                <Tabs
+                  tabs={[
+                    { id: 'flows', label: 'Flussi & Automazioni', icon: <Play size={14}/> },
+                    { id: 'queues', label: 'Gestione Code', icon: <CloudUpload size={14}/> }
+                  ]}
+                  activeTab={activeTab}
+                  onChange={(id) => setActiveTab(id as any)}
+                />
+              </GlassPanel>
+            </div>
+          </StickyHeader>
+
+          <div className="marketing-content">
+            {activeTab === 'flows' && <FlowBuilder />}
+            {activeTab === 'queues' && <QueueManager />}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
