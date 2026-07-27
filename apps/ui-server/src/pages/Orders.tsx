@@ -37,7 +37,7 @@ export default function Orders() {
       case 'COMPLETED': return <Badge variant="success"><CheckCircle size={12}/> Inviato ERP</Badge>;
       case 'FAILED': return <Badge variant="danger"><AlertTriangle size={12}/> Fallito ERP</Badge>;
       case 'PENDING': return <Badge variant="warning"><Clock size={12}/> In Coda ERP</Badge>;
-      default: return <Badge variant="secondary">Solo Shopify</Badge>;
+      default: return <Badge variant="neutral">Solo Shopify</Badge>;
     }
   };
 
