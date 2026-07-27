@@ -32,13 +32,6 @@ export function MarketingApp() {
           <StickyHeader paddingY="sm" backgroundOpacity={0}>
             <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
               
-              <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>📣 Control Center Automazioni</h2>
-                  <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Configura i flussi in background e monitora le code di invio.</p>
-                </div>
-              </GlassPanel>
-
               <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
                 <Tabs
                   tabs={[

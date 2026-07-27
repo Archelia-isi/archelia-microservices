@@ -1,0 +1,45 @@
+.ui-select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.ui-select {
+  appearance: none;
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary, #1d1d1f);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md, 8px);
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.ui-select:hover {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.ui-select:focus {
+  border-color: var(--color-primary, #0066cc);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+  background: #ffffff;
+}
+
+.ui-select-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary, #86868b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

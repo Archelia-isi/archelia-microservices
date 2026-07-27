@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import GlassPanel from '../ui/GlassPanel';
 import Loader from '../ui/Loader';
+import Select from '../ui/Select';
 import './FlowBuilder.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -34,6 +35,8 @@ function SequenceEditor({
     onChange(newSeq);
   };
 
+  const options = templates.map(t => ({ value: t.id, label: t.name }));
+
   return (
     <div className="sequence-editor">
       {sequence.map((step, idx) => (
@@ -48,16 +51,12 @@ function SequenceEditor({
           </div>
           <div className="input-group" style={{ flex: 1 }}>
             <label>Template Email</label>
-            <select 
+            <Select 
               value={step.template} 
-              onChange={e => updateStep(idx, 'template', e.target.value)} 
-              className="template-select"
-            >
-              <option value="">-- Seleziona un Template --</option>
-              {templates.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
+              onChange={e => updateStep(idx, 'template', e.target.value)}
+              options={options}
+              placeholder="-- Seleziona un Template --"
+            />
           </div>
           <button className="btn btn-icon delete-btn" onClick={() => removeStep(idx)}>
             ❌
@@ -238,16 +237,12 @@ export default function FlowBuilder() {
             </div>
             <div className="input-group">
               <label>Template Email per Loop</label>
-              <select 
+              <Select 
                 value={config.loopTemplateId || ''} 
-                onChange={e => updateConfig('loopTemplateId', e.target.value)} 
-                className="template-select"
-              >
-                <option value="">-- Seleziona un Template --</option>
-                {templates.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+                onChange={e => updateConfig('loopTemplateId', e.target.value)}
+                options={templates.map(t => ({ value: t.id, label: t.name }))}
+                placeholder="-- Seleziona un Template --"
+              />
             </div>
           </div>
         )}
