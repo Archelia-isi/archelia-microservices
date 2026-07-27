@@ -103,7 +103,7 @@ export default function QueueManager() {
           onChange={(id) => setActiveTab(id as any)}
         />
         <div className="queue-actions">
-          <Button variant="secondary" onClick={fetchData}>
+          <Button variant="modern" onClick={fetchData}>
             🔄 Aggiorna
           </Button>
           {selectedIds.size > 0 && (

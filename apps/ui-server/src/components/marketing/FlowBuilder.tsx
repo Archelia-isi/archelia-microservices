@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Trash2 } from 'lucide-react';
 import GlassPanel from '../ui/GlassPanel';
 import Loader from '../ui/Loader';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
+import TextInput from '../ui/TextInput';
 import './FlowBuilder.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -42,9 +44,9 @@ function SequenceEditor({
     <div className="sequence-editor">
       {sequence.map((step, idx) => (
         <div key={step.id} className="sequence-step">
-          <div className="input-group" style={{ flex: '0 0 100px' }}>
-            <label>{delayLabel}</label>
-            <input 
+          <div className="input-group" style={{ flex: '0 0 120px' }}>
+            <TextInput 
+              label={delayLabel}
               type="number" 
               value={step.delay} 
               onChange={e => updateStep(idx, 'delay', parseInt(e.target.value) || 0)} 
@@ -60,12 +62,12 @@ function SequenceEditor({
             />
           </div>
           <Button variant="danger" onClick={() => removeStep(idx)}>
-            ❌
+            <Trash2 size={16} />
           </Button>
         </div>
       ))}
       <div style={{ marginTop: '12px' }}>
-        <Button variant="secondary" onClick={addStep}>
+        <Button variant="modern" onClick={addStep}>
           + Aggiungi Step
         </Button>
       </div>
@@ -200,8 +202,8 @@ export default function FlowBuilder() {
         {config.browseEnabled && (
           <div className="flow-body">
             <div className="input-group" style={{ marginBottom: '16px', maxWidth: '300px' }}>
-              <label>Giorni di Cooldown:</label>
-              <input 
+              <TextInput 
+                label="Giorni di Cooldown:"
                 type="number" 
                 value={config.browseCooldownDays} 
                 onChange={e => updateConfig('browseCooldownDays', parseInt(e.target.value) || 10)} 
@@ -231,12 +233,20 @@ export default function FlowBuilder() {
         {config.loopEnabled && (
           <div className="flow-body flow-grid">
             <div className="input-group">
-              <label>Ritardo Innesco (Giorni):</label>
-              <input type="number" value={config.loopStartDays} onChange={e => updateConfig('loopStartDays', parseInt(e.target.value) || 30)} />
+              <TextInput 
+                label="Ritardo Innesco (Giorni):"
+                type="number" 
+                value={config.loopStartDays} 
+                onChange={e => updateConfig('loopStartDays', parseInt(e.target.value) || 30)} 
+              />
             </div>
             <div className="input-group">
-              <label>Ritardo Ciclico (Giorni):</label>
-              <input type="number" value={config.loopIntervalDays} onChange={e => updateConfig('loopIntervalDays', parseInt(e.target.value) || 20)} />
+              <TextInput 
+                label="Ritardo Ciclico (Giorni):"
+                type="number" 
+                value={config.loopIntervalDays} 
+                onChange={e => updateConfig('loopIntervalDays', parseInt(e.target.value) || 20)} 
+              />
             </div>
             <div className="input-group">
               <label>Template Email per Loop</label>
