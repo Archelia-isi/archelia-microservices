@@ -8,24 +8,26 @@ import './FlowBuilder.css'; // Possiamo riutilizzare gli stili dei layout del Fl
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
-type PushStep = { id: string, delay: number };
+type PushStep = { id?: string, delayHours?: number, delayDays?: number };
 
 function PushSequenceEditor({ 
   sequence, 
   onChange, 
   delayLabel,
+  delayField
 }: { 
   sequence: PushStep[], 
   onChange: (s: PushStep[]) => void, 
-  delayLabel: string
+  delayLabel: string,
+  delayField: 'delayHours' | 'delayDays'
 }) {
   const addStep = () => {
-    onChange([...sequence, { id: Math.random().toString(36).substring(7), delay: 1 }]);
+    onChange([...sequence, { id: Math.random().toString(36).substring(7), [delayField]: 1 }]);
   };
 
-  const updateStep = (index: number, field: keyof PushStep, value: any) => {
+  const updateStep = (index: number, value: any) => {
     const newSeq = [...sequence];
-    newSeq[index] = { ...newSeq[index], [field]: value };
+    newSeq[index] = { ...newSeq[index], [delayField]: value };
     onChange(newSeq);
   };
 
@@ -42,21 +44,27 @@ function PushSequenceEditor({
         <span>I testi delle notifiche web vengono scritti automaticamente caso per caso dall'Intelligenza Artificiale (Gemini) ottimizzati per le conversioni!</span>
       </div>
       
-      {sequence.map((step, idx) => (
-        <div key={step.id} className="sequence-step">
-          <div className="input-group" style={{ flex: '0 0 160px' }}>
-            <TextInput 
-              label={delayLabel}
-              type="number" 
-              value={step.delay} 
-              onChange={e => updateStep(idx, 'delay', parseInt(e.target.value) || 0)} 
-            />
+      {sequence.map((step, idx) => {
+        // Fallback robusto per ID univoco (i vecchi record non avevano l'ID)
+        const stepKey = step.id || `step-${idx}`;
+        const delayValue = step[delayField] || 0;
+        
+        return (
+          <div key={stepKey} className="sequence-step">
+            <div className="input-group" style={{ flex: '0 0 160px' }}>
+              <TextInput 
+                label={delayLabel}
+                type="number" 
+                value={delayValue} 
+                onChange={e => updateStep(idx, parseInt(e.target.value) || 0)} 
+              />
+            </div>
+            <Button variant="danger" onClick={() => removeStep(idx)}>
+              <Trash2 size={16} />
+            </Button>
           </div>
-          <Button variant="danger" onClick={() => removeStep(idx)}>
-            <Trash2 size={16} />
-          </Button>
-        </div>
-      ))}
+        );
+      })}
       <div style={{ marginTop: '12px' }}>
         <Button variant="modern" onClick={addStep}>
           + Aggiungi Notifica
@@ -139,6 +147,7 @@ export default function PushBuilder() {
               sequence={Array.isArray(config.pushCartSequence) ? config.pushCartSequence : []} 
               onChange={seq => updateConfig('pushCartSequence', seq)} 
               delayLabel="Ritardo Innesco (Ore)"
+              delayField="delayHours"
             />
           </div>
         )}
@@ -148,7 +157,7 @@ export default function PushBuilder() {
         <div className="flow-header">
           <div>
             <h3>🎯 WinBack Clienti Dormienti</h3>
-            <p>Riattiva vecchi clienti tramite push notification.</p>
+            <p>Invita un cliente a tornare se non acquista da molto tempo.</p>
           </div>
           <label className="toggle-switch">
             <input type="checkbox" checked={config.pushWinbackEnabled} onChange={e => updateConfig('pushWinbackEnabled', e.target.checked)} />
@@ -161,6 +170,7 @@ export default function PushBuilder() {
               sequence={Array.isArray(config.pushWinbackSequence) ? config.pushWinbackSequence : []} 
               onChange={seq => updateConfig('pushWinbackSequence', seq)} 
               delayLabel="Ritardo Innesco (Giorni)"
+              delayField="delayDays"
             />
           </div>
         )}
@@ -170,7 +180,7 @@ export default function PushBuilder() {
         <div className="flow-header">
           <div>
             <h3>👁️ Browse Abandonment</h3>
-            <p>Notifica push immediata quando il cliente visualizza un prodotto e poi esce.</p>
+            <p>Notifica se un utente guarda molti prodotti ma non aggiunge al carrello.</p>
           </div>
           <label className="toggle-switch">
             <input type="checkbox" checked={config.pushBrowseEnabled} onChange={e => updateConfig('pushBrowseEnabled', e.target.checked)} />
@@ -183,6 +193,7 @@ export default function PushBuilder() {
               sequence={Array.isArray(config.pushBrowseSequence) ? config.pushBrowseSequence : []} 
               onChange={seq => updateConfig('pushBrowseSequence', seq)} 
               delayLabel="Ritardo Innesco (Ore)"
+              delayField="delayHours"
             />
           </div>
         )}
