@@ -41,13 +41,38 @@ export default function Orders() {
     }
   };
 
+  const recoverOrders = async () => {
+    if (!window.confirm('Vuoi davvero scaricare gli ultimi 20 ordini da Shopify e forzare il reinvio a Zucchetti?')) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/orders/recover`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        setTimeout(fetchOrders, 2000);
+      } else {
+        alert('Errore: ' + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Errore di rete durante il recupero.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="animate-fade-in" style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
       <div className="flex-between" style={{ marginBottom: '2rem' }}>
         <h2 className="text-h1">Gestione Ordini</h2>
-        <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={fetchOrders}>
-          <ShoppingCart size={16} /> Sincronizza Ora
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn-secondary flex-center" style={{ gap: '0.5rem', background: 'var(--color-bg)', border: '1px solid var(--color-border)' }} onClick={recoverOrders}>
+            Recupera Vecchi
+          </button>
+          <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={fetchOrders}>
+            <ShoppingCart size={16} /> Sincronizza Ora
+          </button>
+        </div>
       </div>
 
       <GlassPanel padding="none">
