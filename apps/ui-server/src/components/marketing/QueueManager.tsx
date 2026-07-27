@@ -3,6 +3,7 @@ import GlassPanel from '../ui/GlassPanel';
 import Badge from '../ui/Badge';
 import Loader from '../ui/Loader';
 import Tabs from '../ui/Tabs';
+import Button from '../ui/Button';
 import './QueueManager.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -102,9 +103,13 @@ export default function QueueManager() {
           onChange={(id) => setActiveTab(id as any)}
         />
         <div className="queue-actions">
-          <button className="btn btn-secondary" onClick={fetchData}>🔄 Aggiorna</button>
+          <Button variant="secondary" onClick={fetchData}>
+            🔄 Aggiorna
+          </Button>
           {selectedIds.size > 0 && (
-             <button className="btn btn-danger" onClick={deleteSelected}>🗑️ Rimuovi Spuntati ({selectedIds.size})</button>
+             <Button variant="danger" onClick={deleteSelected}>
+               🗑️ Rimuovi Spuntati ({selectedIds.size})
+             </Button>
           )}
         </div>
       </div>

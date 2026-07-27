@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import GlassPanel from '../ui/GlassPanel';
 import Loader from '../ui/Loader';
 import Select from '../ui/Select';
+import Button from '../ui/Button';
 import './FlowBuilder.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -58,14 +59,16 @@ function SequenceEditor({
               placeholder="-- Seleziona un Template --"
             />
           </div>
-          <button className="btn btn-icon delete-btn" onClick={() => removeStep(idx)}>
+          <Button variant="danger" onClick={() => removeStep(idx)}>
             ❌
-          </button>
+          </Button>
         </div>
       ))}
-      <button className="btn btn-secondary add-step-btn" onClick={addStep}>
-        + Aggiungi Step
-      </button>
+      <div style={{ marginTop: '12px' }}>
+        <Button variant="secondary" onClick={addStep}>
+          + Aggiungi Step
+        </Button>
+      </div>
     </div>
   );
 }
