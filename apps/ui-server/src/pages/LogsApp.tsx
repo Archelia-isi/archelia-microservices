@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
 import GlassPanel from '../components/ui/GlassPanel';
+import Button from '../components/ui/Button';
 import LogViewer, { type LogEntry } from '../components/ui/LogViewer';
 import { RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -76,15 +77,16 @@ export default function LogsApp() {
             />
           </GlassPanel>
           <GlassPanel padding="sm" radius="lg">
-            <button 
-              className="btn btn-secondary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, padding: '8px 16px' }}
+            <Button 
+              variant="primary" 
+              size="sm"
+              icon={<RefreshCcw size={14} className={loading ? 'spin' : ''} />}
               onClick={() => fetchLogs(activeTab)}
               disabled={loading}
+              style={{ margin: 0 }}
             >
-              <RefreshCcw size={16} className={loading ? 'spin' : ''} />
               Aggiorna
-            </button>
+            </Button>
           </GlassPanel>
         </div>
       </StickyHeader>
