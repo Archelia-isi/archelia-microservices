@@ -124,4 +124,88 @@ export class JobPlanter {
       log.error(`[JobPlanter] Impossibile piantare seme Evergreen per ${customerEmail}: ${e.message}`, { error: e, module: 'worker-marketing' });
     }
   }
+
+  /**
+   * Sincronizza i Push per le Promozioni.
+   * Cerca eventi AI Promo non schedulati e programma i job per il futuro (o immediati se flash).
+   */
+  static async syncPromoPushes() {
+    try {
+      const unscheduledPromos = await prisma.aiPromoEvent.findMany({
+        where: {
+          isPushScheduled: false,
+          endsAt: { gt: new Date() }
+        }
+      });
+
+      if (unscheduledPromos.length === 0) return;
+
+      const allDevices = await prisma.webPushSubscription.findMany({
+        select: { deviceId: true }
+      });
+
+      if (allDevices.length === 0) return;
+
+      log.info(`[JobPlanter] Sincronizzazione Pushes per ${unscheduledPromos.length} promozioni su ${allDevices.length} devices attivi.`, { module: 'worker-marketing' });
+
+      for (const promo of unscheduledPromos) {
+        let scheduleTimes: Date[] = [];
+
+        if (promo.promoType === 'DAILY_DEAL') {
+             const baseDate = new Date(promo.startsAt);
+             const at9 = new Date(baseDate); at9.setHours(9, 0, 0, 0);
+             const at13 = new Date(baseDate); at13.setHours(13, 0, 0, 0);
+             const at20 = new Date(baseDate); at20.setHours(20, 0, 0, 0);
+             
+             scheduleTimes = [at9, at13, at20];
+             
+             const now = new Date();
+             scheduleTimes = scheduleTimes.filter(t => t > now);
+             
+             if (scheduleTimes.length === 0 && promo.endsAt > now) {
+                scheduleTimes = [new Date(now.getTime() + 10 * 60000)];
+             }
+
+        } else if (promo.promoType === 'FLASH_DEAL' || promo.promoType === 'STANDARD_HOURLY') {
+             scheduleTimes = [promo.startsAt];
+             const now = new Date();
+             if (scheduleTimes[0] <= now) {
+                 scheduleTimes[0] = new Date(now.getTime() + 5 * 60000);
+             }
+        }
+
+        const jobsToCreate: any[] = [];
+        for (const device of allDevices) {
+           for (const st of scheduleTimes) {
+               jobsToCreate.push({
+                   deviceId: device.deviceId,
+                   jobType: 'PROMO_PUSH',
+                   payload: {
+                       promoId: promo.id,
+                       promoType: promo.promoType,
+                       title: promo.title,
+                       description: promo.description
+                   },
+                   status: "PENDING",
+                   scheduledFor: st
+               });
+           }
+        }
+
+        if (jobsToCreate.length > 0) {
+            await prisma.pushJob.createMany({
+                data: jobsToCreate
+            });
+        }
+
+        await prisma.aiPromoEvent.update({
+            where: { id: promo.id },
+            data: { isPushScheduled: true }
+        });
+      }
+
+    } catch(e: any) {
+        log.error(`[JobPlanter] Fallita sincronizzazione Promo Pushes: ${e.message}`, { error: e, module: 'worker-marketing' });
+    }
+  }
 }

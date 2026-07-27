@@ -3,6 +3,8 @@ import { log, env, createRedisConnection } from '@archelia/core';
 import { CartSyncJob } from './jobs/CartSyncJob.js';
 import { EmailSenderJob } from './jobs/EmailSenderJob.js';
 import { PushNotificationJob } from './jobs/PushNotificationJob.js';
+import { ManualPushJob } from './jobs/ManualPushJob.js';
+import { JobPlanter } from './utils/JobPlanter.js';
 import { MarketingScheduler } from './scheduler.js';
 
 const connection = createRedisConnection();
@@ -38,6 +40,13 @@ async function startWorkers() {
     }
     if (job.name === 'PUSH') {
        return await PushNotificationJob.process(job);
+    }
+    if (job.name === 'SEND_WEB_PUSH') {
+       return await ManualPushJob.process(job);
+    }
+    if (job.name === 'SYNC_PROMO_PUSHES') {
+       await JobPlanter.syncPromoPushes();
+       return { success: true };
     }
 
     log.warn(`Job name non gestito dal worker marketing (marketing): ${job.name}`);
