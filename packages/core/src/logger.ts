@@ -34,16 +34,12 @@ const publishToRedis = (level: string, msg: string, data?: any) => {
   });
 
   if (redisClient) {
-    if (redisClient.status === 'ready') {
-      redisClient.publish('archelia:logs', payload).catch(() => {});
-    }
+    redisClient.publish('archelia:logs', payload).catch(() => {});
   } else {
     // Lazy load per evitare dipendenze circolari
     import('./redis.js').then(({ redis }) => {
       redisClient = redis;
-      if (redisClient.status === 'ready') {
-        redisClient.publish('archelia:logs', payload).catch(() => {});
-      }
+      redisClient.publish('archelia:logs', payload).catch(() => {});
     }).catch(() => {});
   }
 };
