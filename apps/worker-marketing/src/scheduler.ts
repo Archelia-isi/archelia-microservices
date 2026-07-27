@@ -37,6 +37,15 @@ export class MarketingScheduler {
             continue;
           }
 
+          // Filtro temporaneo per evitare che META_CAPI_SYNC vada nella coda EMAIL
+          if (job.jobType === 'META_CAPI_SYNC') {
+            await prisma.marketingJob.update({
+              where: { id: job.id },
+              data: { status: 'COMPLETED' }
+            });
+            continue;
+          }
+
           // Accodiamo su BullMQ
           await this.marketingQueue.add('EMAIL', {
             jobId: job.id,

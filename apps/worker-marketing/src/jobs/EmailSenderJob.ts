@@ -3,6 +3,7 @@ import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { EmailSender } from '../utils/EmailSender.js';
 import { MarketingTagEngine } from '../utils/TagEngine.js';
+import { JobPlanter } from '../utils/JobPlanter.js';
 
 export class EmailSenderJob {
   static async process(job: Job) {
@@ -22,6 +23,16 @@ export class EmailSenderJob {
       if (!marketingJob || marketingJob.status === "CANCELled") {
         log.warn(`[EmailSenderJob] Job ${jobId} non trovato o cancellato.`, { module: 'worker-marketing' });
         return { success: false, reason: 'CANCELLED_OR_NOT_FOUND' };
+      }
+
+      if (marketingJob.jobType === "META_CAPI_SYNC") {
+         log.info(`[EmailSenderJob] Sincronizzazione Meta Conversions CAPI in elaborazione...`, { module: 'worker-marketing' });
+         // Predisposizione per l'integrazione logica Facebook Pixel Server-Side
+         await prisma.marketingJob.update({
+           where: { id: jobId },
+           data: { status: "COMPLETED", updatedAt: new Date() }
+         });
+         return { success: true };
       }
 
       if (!marketingJob.template) {
@@ -68,6 +79,12 @@ export class EmailSenderJob {
       });
 
       log.info(`[EmailSenderJob] ✅ Email inviata con successo a ${customerEmail}`, { module: 'worker-marketing' });
+      
+      // --- EVERGREEN LOOP NURTURING ---
+      if (marketingJob.jobType === "EVERGREEN_EMAIL" && marketingJob.eventId) {
+        await JobPlanter.replantEvergreenEmail(customerEmail, marketingJob.eventId);
+      }
+
       return { success: true };
 
     } catch (error: any) {

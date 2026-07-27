@@ -2,6 +2,7 @@ import { Job } from 'bullmq';
 import { log } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { shopifyGraphQL } from '@archelia/shopify';
+import { JobPlanter } from '../utils/JobPlanter.js';
 
 export class CartSyncJob {
   static async process(job: Job) {
@@ -37,8 +38,9 @@ export class CartSyncJob {
       });
 
       // Se vogliamo anche loggarlo negli eventi di marketing:
+      let eventId = '';
       if (isAbandoned) {
-        await prisma.marketingEvent.create({
+        const event = await prisma.marketingEvent.create({
           data: {
             customerId: customerId.toString(),
             customerEmail: customerEmail,
@@ -46,9 +48,15 @@ export class CartSyncJob {
             payload: cartData,
           }
         });
+        eventId = event.id;
       }
 
       log.info(`[CartSyncJob] Carrello salvato su DB. customerId=${customerId}, status=${status}`, { module: 'worker-marketing' });
+
+      // Piantiamo i seed di marketing (Email e Push) se è un carrello abbandonato
+      if (isAbandoned && eventId) {
+        await JobPlanter.plantCartJobs(customerEmail, cartData, eventId);
+      }
 
       // Sincronizzazione con Shopify tramite Metafield (App <-> Sito)
       const customerGid = customerId.toString().includes('gid://')
