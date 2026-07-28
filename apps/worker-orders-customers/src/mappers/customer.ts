@@ -126,17 +126,6 @@ export async function processCustomerSync(customerPayload: any) {
     }
   }
 
-  if (!isUpdate) {
-    const hasOrder = await prisma.zelShopifyOrder.findFirst({
-      where: { shopifyCustomerId: shopifyId },
-      select: { shopifyOrderId: true }
-    });
-    if (!hasOrder) {
-      logger.info(`ℹ️ Mapper Engine: Cliente ${shopifyId} senza ordini — non entra in Zucchetti.`);
-      return;
-    }
-  }
-
   const addresses = (shopifyRecord.addresses as any[]) || [];
   let primaryAddress = shopifyRecord.billingAddress as any;
   
