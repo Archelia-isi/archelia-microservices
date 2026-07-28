@@ -183,7 +183,6 @@ export default function EqualizzatoreApp() {
                   ]}
                 />
               </div>
-              </div>
             </div>
 
             <div style={{ display: 'inline-block', width: 'max-content' }}>
