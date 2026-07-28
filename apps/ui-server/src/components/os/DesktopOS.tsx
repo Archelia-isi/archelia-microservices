@@ -7,6 +7,7 @@ import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
 import ContextMenu from '../ui/ContextMenu';
+import IconPickerModal from './IconPickerModal';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
@@ -25,15 +26,22 @@ import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
-import { Terminal as TerminalIcon } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+
+const DynamicLucideIcon = ({ name, size = 40, color = 'var(--color-foreground)' }: { name: string, size?: number, color?: string }) => {
+  const IconComponent = (LucideIcons as any)[name];
+  if (!IconComponent) return <LucideIcons.Image size={size} color={color} />;
+  return <IconComponent size={size} color={color} />;
+};
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper } = useWindowStore();
+  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper, changeAppIcon } = useWindowStore();
   const { widgets } = useWidgetStore();
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [isReady, setIsReady] = useState(false);
+  const [showIconPickerForAppId, setShowIconPickerForAppId] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
@@ -73,6 +81,9 @@ export default function DesktopOS() {
               } else if (!pos.isPinned && useWindowStore.getState().windows[appId]?.isPinned) {
                 togglePinApp(appId); // unpin if it was pinned
               }
+              if (pos.iconPath && useWindowStore.getState().windows[appId]) {
+                changeAppIcon(appId, pos.iconPath);
+              }
             });
           }
 
@@ -100,12 +111,13 @@ export default function DesktopOS() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean }> = {};
+    const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean, iconPath?: string }> = {};
     Object.values(windows).forEach(win => {
       desktopIcons[win.id] = {
         x: win.desktopX ?? 30,
         y: win.desktopY ?? 30,
-        isPinned: win.isPinned
+        isPinned: win.isPinned,
+        ...(win.iconPath && { iconPath: win.iconPath })
       };
     });
 
@@ -278,7 +290,7 @@ export default function DesktopOS() {
     if (!windows['logs']) {
       const TerminalIconWidget = () => (
         <div style={{ width: '100%', height: '100%', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
-          <TerminalIcon color="#10b981" size={40} />
+          <LucideIcons.Terminal color="#10b981" size={40} />
         </div>
       );
       registerApp({ id: 'logs', title: 'System Logs', icon: <TerminalIconWidget />, color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 330, desktopY: 230 });
@@ -347,7 +359,15 @@ export default function DesktopOS() {
               }}
             >
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
-                {app.icon}
+                {app.iconPath ? (
+                  app.iconPath.startsWith('lucide:') ? (
+                    <DynamicLucideIcon name={app.iconPath.split(':')[1]} />
+                  ) : (
+                    <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )
+                ) : (
+                  app.icon
+                )}
               </div>
               <span className="desktop-icon-label">{app.title}</span>
             </div>
@@ -387,7 +407,7 @@ export default function DesktopOS() {
             {
               id: 'change-icon',
               label: 'Cambia immagine icona',
-              onClick: () => { /* Placeholder per futuro sviluppo */ }
+              onClick: () => setShowIconPickerForAppId(contextMenu.appId)
             },
             {
               id: 'pin',
@@ -396,6 +416,13 @@ export default function DesktopOS() {
               onClick: () => togglePinApp(contextMenu.appId)
             }
           ]}
+        />
+      )}
+
+      {showIconPickerForAppId && (
+        <IconPickerModal 
+          appId={showIconPickerForAppId} 
+          onClose={() => setShowIconPickerForAppId(null)} 
         />
       )}
     </div>

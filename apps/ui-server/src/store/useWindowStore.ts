@@ -6,6 +6,7 @@ export interface WindowApp {
   title: string;
   component: React.ReactNode;
   icon: React.ReactNode;
+  iconPath?: string;
   isOpen: boolean;
   isPinned: boolean;
   isMinimized: boolean;
@@ -35,6 +36,7 @@ interface WindowState {
   updateDesktopPosition: (id: string, x: number, y: number) => void;
   updateSize: (id: string, width: number | string, height: number | string) => void;
   setWallpaper: (url: string) => void;
+  changeAppIcon: (id: string, iconPath: string) => void;
   isChatbotOpen: boolean;
   toggleChatbot: () => void;
 }
@@ -174,5 +176,17 @@ export const useWindowStore = create<WindowState>((set) => ({
     };
   }),
 
+  changeAppIcon: (id, iconPath) => set((state) => {
+    const win = state.windows[id];
+    if (!win) return state;
+    return {
+      windows: {
+        ...state.windows,
+        [id]: { ...win, iconPath }
+      }
+    };
+  }),
+
   setWallpaper: (url) => set({ wallpaper: url })
 }));
+

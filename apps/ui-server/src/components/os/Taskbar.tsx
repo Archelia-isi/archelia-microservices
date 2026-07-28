@@ -2,8 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
+import * as LucideIcons from 'lucide-react';
 import { BrainCircuit, LogOut } from 'lucide-react';
 import './Taskbar.css';
+
+const DynamicLucideIcon = ({ name, size = 40, color = 'var(--color-foreground)' }: { name: string, size?: number, color?: string }) => {
+  const IconComponent = (LucideIcons as any)[name];
+  if (!IconComponent) return <LucideIcons.Image size={size} color={color} />;
+  return <IconComponent size={size} color={color} />;
+};
 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot } = useWindowStore();
@@ -80,7 +87,15 @@ export default function Taskbar() {
                 title={app.title + " (Tasto destro per opzioni)"}
               >
                 <div className="taskbar-icon flex-center" style={{ background: app.color }}>
-                   {app.icon}
+                   {app.iconPath ? (
+                     app.iconPath.startsWith('lucide:') ? (
+                       <DynamicLucideIcon name={app.iconPath.split(':')[1]} />
+                     ) : (
+                       <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                     )
+                   ) : (
+                     app.icon
+                   )}
                 </div>
                 {app.isOpen && <div className="taskbar-dot" />}
               </div>
