@@ -1,6 +1,9 @@
 import { prisma } from '@archelia/database';
 import { logger, env } from '@archelia/core';
 import { zucchettiClient, zucchettiAuth } from '@archelia/zucchetti';
+import { ZucchettiClientService } from '@archelia/zucchetti';
+import { TelegramNotifier } from '../utils/telegram.js';
+import { OrderMailer } from '../utils/mailer.js';
 
 export class ZucchettiCustomerNotReadyError extends Error {
   constructor(message: string) {
@@ -64,6 +67,28 @@ export async function processOrderSync(orderPayload: any) {
   const orderDateRaw = new Date(orderPayload.created_at || Date.now()).toISOString();
   const orderDateFormatted = orderDateRaw.substring(0, 10);
   const shortOrderId = orderPayload.name ? orderPayload.name.replace('#', '') : orderPayload.id.toString().substring(0, 5);
+
+  // 0. Verifica se è un nuovo ordine per inviare le notifiche
+  const existingOrder = await prisma.zelShopifyOrder.findUnique({
+    where: { shopifyOrderId: shopifyOrderIdStr }
+  });
+  
+  if (!existingOrder) {
+    try {
+      const settings = await prisma.globalSettings.findUnique({ where: { id: 'default' }});
+      if (settings?.config) {
+        const config = JSON.parse(settings.config);
+        if (config.telegramChatId) {
+          TelegramNotifier.sendNewOrderMessage(config.telegramChatId, orderPayload).catch(e => logger.error(e, `Telegram error`));
+        }
+        if (config.orderNotificationEmails && config.orderNotificationEmails.length > 0) {
+          OrderMailer.sendNewOrderEmails(config.orderNotificationEmails, orderPayload).catch(e => logger.error(e, `Mailer error`));
+        }
+      }
+    } catch (e) {
+      logger.error({ error: e }, 'Errore durante invio notifiche ordine');
+    }
+  }
 
   // 1. Salvataggio preliminare dell'ordine in zelShopifyOrder per sbloccare il CustomerWorker
   const totalPrice = parseFloat(orderPayload.total_price || orderPayload.current_total_price || '0');

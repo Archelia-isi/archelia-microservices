@@ -6,6 +6,9 @@ import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
+import Tabs from '../components/ui/Tabs';
+import { Settings, Plus, Trash } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -13,6 +16,15 @@ export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+
+  // Settings state
+  const [notificationSettings, setNotificationSettings] = useState<{ orderNotificationEmails: string[], telegramChatId: string }>({
+    orderNotificationEmails: [],
+    telegramChatId: ''
+  });
+  const [newEmail, setNewEmail] = useState('');
+  const [loadingSettings, setLoadingSettings] = useState(false);
 
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -39,10 +51,71 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders(true);
+    fetchSettings();
     // Auto-refresh every 30s
     const interval = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotificationSettings(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const saveSettings = async (settingsToSave = notificationSettings) => {
+    setLoadingSettings(true);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settingsToSave)
+      });
+      if (res.ok) {
+        toast.success("Impostazioni salvate con successo");
+      } else {
+        toast.error("Errore nel salvataggio");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Errore di connessione");
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const handleAddEmail = () => {
+    if (newEmail && newEmail.includes('@') && !notificationSettings.orderNotificationEmails.includes(newEmail)) {
+      const updated = {
+        ...notificationSettings,
+        orderNotificationEmails: [...notificationSettings.orderNotificationEmails, newEmail]
+      };
+      setNotificationSettings(updated);
+      setNewEmail('');
+      saveSettings(updated);
+    }
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    const updated = {
+      ...notificationSettings,
+      orderNotificationEmails: notificationSettings.orderNotificationEmails.filter(e => e !== email)
+    };
+    setNotificationSettings(updated);
+    saveSettings(updated);
+  };
+
 
   const getStatusBadge = (queueStatus: string | undefined) => {
     switch (queueStatus) {
@@ -91,16 +164,26 @@ export default function Orders() {
         transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
         
-        <StickyHeader paddingY="sm" backgroundOpacity={0}>
-          <div className="flex-between" style={{ width: '100%', padding: '0 1rem' }}>
-            <div style={{ flex: 1 }}></div> {/* Spazio vuoto al posto del titolo */}
-            <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
-              <ShoppingCart size={16} /> Sincronizza Ora
-            </button>
-          </div>
+        <StickyHeader paddingY="md">
+          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Tabs 
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id as any)}
+              tabs={[
+                { id: 'orders', label: 'Lista Ordini', icon: <ShoppingCart size={14} /> },
+                { id: 'settings', label: 'Impostazioni Notifiche', icon: <Settings size={14} /> }
+              ]}
+            />
+            {activeTab === 'orders' && (
+              <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
+                <ShoppingCart size={16} /> Sincronizza Ora
+              </button>
+            )}
+          </GlassPanel>
         </StickyHeader>
 
         <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
+          {activeTab === 'orders' ? (
           <GlassPanel padding="none">
             {loading && orders.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center' }}><Loader size="md" /></div>
@@ -148,7 +231,7 @@ export default function Orders() {
                         <>
                           {order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}
                           <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                            {order.shopifyCustomer.email || order.shopifyCustomerId}
+                            {order.shopifyCustomer.email}
                           </span>
                         </>
                       ) : (
@@ -172,7 +255,68 @@ export default function Orders() {
             </table>
           </div>
         )}
-      </GlassPanel>
+        </GlassPanel>
+        ) : (
+          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+            <GlassPanel padding="lg" radius="lg" style={{ marginBottom: '1.5rem' }}>
+              <h2 className="text-h2" style={{ marginBottom: '1.5rem', fontSize: '18px' }}>Destinatari Email</h2>
+              <p className="text-body" style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+                Inserisci gli indirizzi email che riceveranno una notifica istantanea all'arrivo di ogni nuovo ordine.
+              </p>
+              
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <input 
+                  type="email" 
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="nuova.email@esempio.com" 
+                  className="input-field" 
+                  style={{ flex: 1 }}
+                />
+                <button className="btn-primary" onClick={handleAddEmail}>
+                  <Plus size={16} /> Aggiungi
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {notificationSettings.orderNotificationEmails.map(email => (
+                  <div key={email} className="flex-between" style={{ padding: '0.75rem 1rem', background: 'var(--color-bg-alt)', borderRadius: 'var(--radius-md)' }}>
+                    <span>{email}</span>
+                    <button className="btn-secondary flex-center" style={{ padding: '0.4rem', color: 'var(--color-danger)', borderColor: 'transparent', background: 'transparent' }} onClick={() => handleRemoveEmail(email)}>
+                      <Trash size={16} />
+                    </button>
+                  </div>
+                ))}
+                {notificationSettings.orderNotificationEmails.length === 0 && (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Nessuna email configurata.</div>
+                )}
+              </div>
+            </GlassPanel>
+
+            <GlassPanel padding="lg" radius="lg">
+              <h2 className="text-h2" style={{ marginBottom: '1.5rem', fontSize: '18px' }}>Notifiche Telegram</h2>
+              <p className="text-body" style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
+                Inserisci il <strong>Chat ID</strong> (che ottieni quando interagisci col tuo bot su Telegram) per ricevere una notifica push sul telefono per ogni nuovo ordine.
+              </p>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label className="text-body" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Telegram Chat ID</label>
+                <input 
+                  type="text" 
+                  value={notificationSettings.telegramChatId}
+                  onChange={(e) => setNotificationSettings({ ...notificationSettings, telegramChatId: e.target.value })}
+                  placeholder="Es: -100123456789" 
+                  className="input-field" 
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <button className="btn-primary" onClick={() => saveSettings()} disabled={loadingSettings}>
+                {loadingSettings ? 'Salvataggio...' : 'Salva Impostazioni Telegram'}
+              </button>
+            </GlassPanel>
+          </div>
+        )}
         </div>
 
       {/* MODAL DETTAGLIO ORDINE */}

@@ -187,6 +187,16 @@ model UserPreference {
   @@map("user_preferences")
 }
 
+// === IMPOSTAZIONI GLOBALI ===
+
+model GlobalSettings {
+  id        String   @id @default("default")
+  config    String   // JSON
+  updatedAt DateTime @updatedAt
+
+  @@map("global_settings")
+}
+
 // === STORICO PREZZI E CHANGELOG ===
 
 model PriceHistory {
