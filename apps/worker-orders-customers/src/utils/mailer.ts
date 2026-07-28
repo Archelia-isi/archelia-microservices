@@ -46,7 +46,7 @@ export class OrderMailer {
               </div>
             </td>
             <td style="padding: 16px 0; border-bottom: 1px solid #eaeaea; text-align: right; color: #0066cc; font-weight: bold; vertical-align: middle;">
-              €${item.price}
+              €${parseFloat(item.price).toFixed(2)}
             </td>
           </tr>
         `}).join('');
