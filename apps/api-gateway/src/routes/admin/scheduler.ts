@@ -17,6 +17,7 @@ const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: strin
   'sync-promo': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
   'sync-mid-zuc-stock': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
   'sync-mid-zuc-price': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 3, defaultUnit: 'days' },
+  'sync-images': { queue: zucchettiQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini', defaultInterval: 24, defaultUnit: 'hours' },
   'sync-shopify-push': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'days' },
   'sync-stock': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes' },
 };

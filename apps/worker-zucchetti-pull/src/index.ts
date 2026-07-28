@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq';
 import { redis, logger } from '@archelia/core';
 import { zucchettiPullService } from './services/sync.js';
+import { imageService } from './services/imageService.js';
 
 logger.info('🔄 Avvio Worker Zucchetti Pull...');
 
@@ -22,6 +23,12 @@ const pullWorker = new Worker('zucchetti-commands', async job => {
   if (command === 'SYNC_PRICING') {
     logger.info(`Ricevuto comando ${command} (Job ID: ${job.id})`);
     const result = await zucchettiPullService.syncPricing();
+    return result;
+  }
+  
+  if (command === 'SYNC_IMAGES') {
+    logger.info(`Ricevuto comando ${command} (Job ID: ${job.id})`);
+    const result = await imageService.syncImages();
     return result;
   }
   
