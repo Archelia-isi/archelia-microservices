@@ -82,9 +82,16 @@ export default function Orders() {
         appName="Gestione Ordini" 
         icon={<ShoppingCart size={56} />} 
       />
-      <div className={`animate-fade-in ${isAppReady ? 'ready' : ''}`} style={{ padding: '0', height: '100%', overflowY: 'auto' }}>
+      <div style={{ 
+        padding: '0', 
+        height: '100%', 
+        overflowY: 'auto',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         
-        <StickyHeader paddingY="md" backgroundOpacity={0.8}>
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
           <div className="flex-between" style={{ width: '100%', padding: '0 1rem' }}>
             <div style={{ flex: 1 }}></div> {/* Spazio vuoto al posto del titolo */}
             <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
