@@ -164,8 +164,8 @@ export default function Orders() {
         transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
         
-        <StickyHeader paddingY="md">
-          <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <StickyHeader paddingY="sm">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
             <Tabs 
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as any)}
@@ -179,7 +179,7 @@ export default function Orders() {
                 <ShoppingCart size={16} /> Sincronizza Ora
               </button>
             )}
-          </GlassPanel>
+          </div>
         </StickyHeader>
 
         <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
@@ -257,8 +257,8 @@ export default function Orders() {
         )}
         </GlassPanel>
         ) : (
-          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <GlassPanel padding="lg" radius="lg" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            <GlassPanel padding="lg" radius="lg" style={{ marginBottom: '0' }}>
               <h2 className="text-h2" style={{ marginBottom: '1.5rem', fontSize: '18px' }}>Destinatari Email</h2>
               <p className="text-body" style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
                 Inserisci gli indirizzi email che riceveranno una notifica istantanea all'arrivo di ogni nuovo ordine.
