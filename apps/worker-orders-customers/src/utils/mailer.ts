@@ -31,17 +31,25 @@ export class OrderMailer {
 
       let productsRows = '';
       if (orderData.line_items && orderData.line_items.length > 0) {
-        productsRows = orderData.line_items.map((item: any) => `
+        productsRows = orderData.line_items.map((item: any) => {
+          const thumb = item.image_url 
+            ? `<img src="${item.image_url}" width="48" height="48" style="border-radius: 8px; object-fit: contain; margin-right: 16px; border: 1px solid #eaeaea;" />`
+            : `<div style="width: 48px; height: 48px; border-radius: 8px; background-color: #f5f5f7; margin-right: 16px; display: inline-block; vertical-align: middle;"></div>`;
+
+          return `
           <tr>
-            <td style="padding: 12px 0; border-bottom: 1px solid #eaeaea;">
-              <p style="margin: 0; font-weight: bold; color: #333;">${item.title}</p>
-              <p style="margin: 4px 0 0; font-size: 12px; color: #777;">SKU: ${item.sku || 'N/A'} | Q.tà: ${item.quantity}</p>
+            <td style="padding: 16px 0; border-bottom: 1px solid #eaeaea; display: flex; align-items: center;">
+              ${thumb}
+              <div>
+                <p style="margin: 0; font-weight: bold; color: #333; line-height: 1.2;">${item.title}</p>
+                <p style="margin: 4px 0 0; font-size: 12px; color: #777;">SKU: ${item.sku || 'N/A'} | Q.tà: ${item.quantity}</p>
+              </div>
             </td>
-            <td style="padding: 12px 0; border-bottom: 1px solid #eaeaea; text-align: right; color: #0066cc; font-weight: bold;">
+            <td style="padding: 16px 0; border-bottom: 1px solid #eaeaea; text-align: right; color: #0066cc; font-weight: bold; vertical-align: middle;">
               €${item.price}
             </td>
           </tr>
-        `).join('');
+        `}).join('');
       }
 
       const htmlContent = `

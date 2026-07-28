@@ -78,6 +78,29 @@ export async function processOrderSync(orderPayload: any) {
       const settings = await prisma.globalSettings.findUnique({ where: { id: 'default' }});
       if (settings?.config) {
         const config = JSON.parse(settings.config);
+
+        // Arricchimento miniature prodotti da DB locale
+        const productGids = orderPayload.line_items
+          ?.filter((i: any) => i.product_id)
+          .map((i: any) => `gid://shopify/Product/${i.product_id}`) || [];
+
+        if (productGids.length > 0) {
+          try {
+            const products = await prisma.product.findMany({
+              where: { shopifyId: { in: productGids } },
+              select: { shopifyId: true, imageUrl: true }
+            });
+            const imageMap = new Map(products.map(p => [p.shopifyId, p.imageUrl]));
+            orderPayload.line_items.forEach((item: any) => {
+              if (item.product_id) {
+                item.image_url = imageMap.get(`gid://shopify/Product/${item.product_id}`);
+              }
+            });
+          } catch (err) {
+            logger.error({ error: err }, 'Errore durante fetch immagini per notifica ordine');
+          }
+        }
+
         if (config.telegramChatId) {
           TelegramNotifier.sendNewOrderMessage(config.telegramChatId, orderPayload).catch(e => logger.error(e, `Telegram error`));
         }
