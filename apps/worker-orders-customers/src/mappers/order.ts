@@ -61,7 +61,28 @@ export async function processOrderSync(orderPayload: any) {
     throw new Error(`Nessun cliente associato all'ordine ${shopifyOrderIdStr}`);
   }
 
-  // 1. Interlock di Sicurezza
+  const orderDateRaw = new Date(orderPayload.created_at || Date.now()).toISOString();
+  const orderDateFormatted = orderDateRaw.substring(0, 10);
+  const shortOrderId = orderPayload.name ? orderPayload.name.replace('#', '') : orderPayload.id.toString().substring(0, 5);
+
+  // 1. Salvataggio preliminare dell'ordine in zelShopifyOrder per sbloccare il CustomerWorker
+  const totalPrice = parseFloat(orderPayload.total_price || orderPayload.current_total_price || '0');
+  await prisma.zelShopifyOrder.upsert({
+    where: { shopifyOrderId: shopifyOrderIdStr },
+    update: {
+      orderNumber: orderPayload.order_number?.toString() || shortOrderId,
+      totalPrice,
+      shopifyCustomerId: shopifyCustomerId
+    },
+    create: {
+      shopifyOrderId: shopifyOrderIdStr,
+      orderNumber: orderPayload.order_number?.toString() || shortOrderId,
+      shopifyCustomerId: shopifyCustomerId,
+      totalPrice
+    }
+  });
+
+  // 1b. Interlock di Sicurezza
   const customerQueue = await prisma.zelZucchettiCustomerQueue.findUnique({
     where: { shopifyId: shopifyCustomerId }
   });
@@ -73,11 +94,6 @@ export async function processOrderSync(orderPayload: any) {
 
   const customerArcId = customerQueue.arcId;
 
-  // 2. Preparazione Dati Base
-  const orderDateRaw = new Date(orderPayload.created_at || Date.now()).toISOString();
-  const orderDateFormatted = orderDateRaw.substring(0, 10);
-  const shortOrderId = orderPayload.name ? orderPayload.name.replace('#', '') : orderPayload.id.toString().substring(0, 5);
-  
   // Calcolo Spese di Spedizione (MVSPETRA)
   let shippingPrice = 0;
   if (orderPayload.shipping_lines && orderPayload.shipping_lines.length > 0) {
@@ -95,26 +111,6 @@ export async function processOrderSync(orderPayload: any) {
 
   const tipoDocCommerciale = 'ORDCE';
   const classDocCommerciale = 'OR';
-
-  // 3. Salvataggio Storico (PENDING)
-  const totalPrice = parseFloat(orderPayload.total_price || orderPayload.current_total_price || '0');
-  
-  // Prima creiamo/aggiorniamo l'ordine Shopify (necessario per la foreign key)
-  await prisma.zelShopifyOrder.upsert({
-    where: { shopifyOrderId: shopifyOrderIdStr },
-    update: {
-      orderNumber: orderPayload.name,
-      totalPrice: totalPrice,
-      shopifyCustomerId: shopifyCustomerId,
-      updatedAt: new Date()
-    },
-    create: {
-      shopifyOrderId: shopifyOrderIdStr,
-      orderNumber: orderPayload.name,
-      totalPrice: totalPrice,
-      shopifyCustomerId: shopifyCustomerId
-    }
-  });
 
   await prisma.zelZucchettiOrderQueue.upsert({
     where: { shopifyOrderId: shopifyOrderIdStr },
