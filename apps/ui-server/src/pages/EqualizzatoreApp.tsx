@@ -157,9 +157,9 @@ export default function EqualizzatoreApp() {
         <div className="eq-main-container">
         
         {/* Dynamic Header & Progress bar & Tabs merged */}
-        <StickyHeader paddingY="sm" backgroundOpacity={0}>
+        <StickyHeader paddingY="sm">
           <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-            <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div className="eq-header-modern-left">
                 <h2>Review Station Pipeline</h2>
                 
@@ -183,9 +183,10 @@ export default function EqualizzatoreApp() {
                   ]}
                 />
               </div>
-            </GlassPanel>
+              </div>
+            </div>
 
-            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block', width: 'max-content' }}>
+            <div style={{ display: 'inline-block', width: 'max-content' }}>
               <Tabs 
                 activeTab={activeTab}
                 onChange={(id) => setActiveTab(id as number)}
@@ -196,7 +197,7 @@ export default function EqualizzatoreApp() {
                   { id: 4, label: `4. Da Sincronizzare (${activeTab === 4 ? items.length : '...'})`, icon: <CloudUpload size={14}/> },
                 ]}
               />
-            </GlassPanel>
+            </div>
           </div>
         </StickyHeader>
 
