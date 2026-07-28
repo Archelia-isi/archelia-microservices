@@ -164,7 +164,7 @@ export default function Orders() {
         transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
         
-        <StickyHeader paddingY="sm">
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
             <Tabs 
               activeTab={activeTab}
