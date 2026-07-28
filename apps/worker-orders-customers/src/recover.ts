@@ -19,8 +19,9 @@ async function recoverOrders() {
     }
 
     logger.info('Recupero completato. Il worker li smaltirà automaticamente.');
-  } catch (err) {
-    logger.error('Errore durante il recupero ordini:', err);
+  } catch (error: any) {
+    logger.error({ error: error.message }, 'Errore durante il recupero ordini');
+    process.exit(1);
   } finally {
     process.exit(0);
   }
