@@ -24,6 +24,18 @@ export class TelegramNotifier {
         : 'Cliente Sconosciuto';
       const email = orderData.customer?.email || 'Nessuna email';
 
+      const subtotal = orderData.subtotal_price || total;
+      const shipping = orderData.shipping_lines && orderData.shipping_lines.length > 0
+        ? orderData.shipping_lines.reduce((acc: number, line: any) => acc + parseFloat(line.price || 0), 0).toFixed(2)
+        : '0.00';
+
+      let productsList = '';
+      if (orderData.line_items && orderData.line_items.length > 0) {
+        productsList = '\\n<b>Prodotti Acquistati:</b>\\n' + orderData.line_items.map((item: any) => {
+          return `- ${item.quantity}x ${item.title} (${item.sku || 'Nessun SKU'}) - €${item.price}`;
+        }).join('\\n') + '\\n';
+      }
+
       const message = `
 🛍 <b>NUOVO ORDINE RICEVUTO!</b>
 <i>Archelia Store</i>
@@ -31,6 +43,9 @@ export class TelegramNotifier {
 <b>Ordine:</b> #${orderNumber}
 <b>Cliente:</b> ${customer}
 <b>Email:</b> ${email}
+${productsList}
+<b>Subtotale:</b> €${subtotal}
+<b>Spedizione:</b> €${shipping}
 <b>Totale:</b> €${total}
 
 <i>L'ordine è in fase di sincronizzazione con Zucchetti.</i>

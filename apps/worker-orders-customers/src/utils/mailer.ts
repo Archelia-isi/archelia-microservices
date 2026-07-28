@@ -24,17 +24,54 @@ export class OrderMailer {
         : 'Cliente Sconosciuto';
       const email = orderData.customer?.email || 'Nessuna email';
 
+      const subtotal = orderData.subtotal_price || total;
+      const shipping = orderData.shipping_lines && orderData.shipping_lines.length > 0
+        ? orderData.shipping_lines.reduce((acc: number, line: any) => acc + parseFloat(line.price || 0), 0).toFixed(2)
+        : '0.00';
+
+      let productsRows = '';
+      if (orderData.line_items && orderData.line_items.length > 0) {
+        productsRows = orderData.line_items.map((item: any) => `
+          <tr>
+            <td style="padding: 12px 0; border-bottom: 1px solid #eaeaea;">
+              <p style="margin: 0; font-weight: bold; color: #333;">${item.title}</p>
+              <p style="margin: 4px 0 0; font-size: 12px; color: #777;">SKU: ${item.sku || 'N/A'} | Q.tà: ${item.quantity}</p>
+            </td>
+            <td style="padding: 12px 0; border-bottom: 1px solid #eaeaea; text-align: right; color: #0066cc; font-weight: bold;">
+              €${item.price}
+            </td>
+          </tr>
+        `).join('');
+      }
+
       const htmlContent = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; padding: 20px;">
-          <h2 style="color: #0066cc;">Nuovo Ordine Ricevuto! 🎉</h2>
-          <p>È appena arrivato un nuovo ordine su Archelia Store.</p>
-          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
-          <p><strong>Ordine:</strong> #${orderNumber}</p>
-          <p><strong>Totale:</strong> €${total}</p>
-          <p><strong>Cliente:</strong> ${customer}</p>
-          <p><strong>Email Cliente:</strong> ${email}</p>
-          <hr style="border: none; border-top: 1px solid #eaeaea; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #888;">Questa notifica è stata generata automaticamente dal sistema di Gestione Ordini.</p>
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0;">
+          <div style="background-color: #f5f5f7; padding: 24px; text-align: center; border-bottom: 1px solid #eaeaea;">
+            <h2 style="margin: 0; color: #1d1d1f; font-size: 24px;">Dettaglio Ordine #${orderNumber}</h2>
+          </div>
+          <div style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+              <div style="background-color: #fafafa; padding: 16px; border-radius: 8px; width: 48%;">
+                <p style="margin: 0 0 8px 0; font-size: 12px; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px;">Dati Cliente</p>
+                <p style="margin: 0; font-weight: 600; color: #1d1d1f;">${customer}</p>
+                <p style="margin: 4px 0 0; font-size: 14px; color: #515154;">${email}</p>
+              </div>
+            </div>
+
+            <h3 style="font-size: 16px; color: #1d1d1f; margin: 0 0 16px 0;">Prodotti Acquistati</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+              ${productsRows}
+            </table>
+
+            <div style="text-align: right; border-top: 1px solid #eaeaea; padding-top: 16px;">
+              <p style="margin: 0 0 8px 0; color: #515154; font-size: 14px;">Subtotale: <span style="display: inline-block; width: 80px;">€${subtotal}</span></p>
+              <p style="margin: 0 0 16px 0; color: #515154; font-size: 14px;">Spedizione: <span style="display: inline-block; width: 80px;">€${shipping}</span></p>
+              <p style="margin: 0; color: #1d1d1f; font-size: 20px; font-weight: 700;">Totale: <span style="display: inline-block; width: 80px;">€${total}</span></p>
+            </div>
+          </div>
+          <div style="background-color: #f5f5f7; padding: 16px; text-align: center; font-size: 12px; color: #86868b;">
+            Questa notifica è generata automaticamente. L'ordine è in fase di sincronizzazione con Zucchetti.
+          </div>
         </div>
       `;
 

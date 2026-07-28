@@ -19,9 +19,6 @@ const fakeOrder = {
 async function run() {
   console.log('Avvio simulazione ordine...');
   try {
-    const settings = await prisma.globalSettings.findUnique({where:{id:'default'}});
-    console.log('SETTINGS ATTUALI:', settings?.config);
-
     await processOrderSync(fakeOrder);
     console.log('✅ Simulazione completata con successo! Attendo 3 secondi per le email...');
     await new Promise(r => setTimeout(r, 3000));
