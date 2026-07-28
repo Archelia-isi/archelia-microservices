@@ -51,8 +51,24 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
       prisma.zelShopifyOrder.count({ where })
     ]);
 
+    // Arricchimento dei dati cliente manualmente
+    const customerIds = data.map(o => o.shopifyCustomerId).filter(Boolean) as string[];
+    const customers = await prisma.zelShopifyCustomer.findMany({
+      where: { shopifyId: { in: customerIds } }
+    });
+    
+    const customerMap = new Map(customers.map(c => [c.shopifyId, c]));
+
+    const enrichedData = data.map(o => {
+      const cust = o.shopifyCustomerId ? customerMap.get(o.shopifyCustomerId) : null;
+      return {
+        ...o,
+        shopifyCustomer: cust || null
+      };
+    });
+
     return reply.status(200).send({
-      data,
+      data: enrichedData,
       total,
       page,
       totalPages: Math.ceil(total / limit)

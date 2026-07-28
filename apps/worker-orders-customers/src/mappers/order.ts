@@ -82,6 +82,23 @@ export async function processOrderSync(orderPayload: any) {
     }
   });
 
+  // 1.5. Inizializza coda Zucchetti PRIMA dell'Interlock per esporre subito il JSON alla UI
+  await prisma.zelZucchettiOrderQueue.upsert({
+    where: { shopifyOrderId: shopifyOrderIdStr },
+    update: { 
+      payload: orderPayload, 
+      totalPrice: totalPrice,
+      status: 'PENDING', 
+      updatedAt: new Date() 
+    },
+    create: { 
+      shopifyOrderId: shopifyOrderIdStr, 
+      payload: orderPayload, 
+      totalPrice: totalPrice,
+      status: 'PENDING' 
+    }
+  });
+
   // 1b. Interlock di Sicurezza
   const customerQueue = await prisma.zelZucchettiCustomerQueue.findUnique({
     where: { shopifyId: shopifyCustomerId }
@@ -112,21 +129,6 @@ export async function processOrderSync(orderPayload: any) {
   const tipoDocCommerciale = 'ORDCE';
   const classDocCommerciale = 'OR';
 
-  await prisma.zelZucchettiOrderQueue.upsert({
-    where: { shopifyOrderId: shopifyOrderIdStr },
-    update: { 
-      payload: orderPayload, 
-      totalPrice: totalPrice,
-      status: 'PENDING', 
-      updatedAt: new Date() 
-    },
-    create: { 
-      shopifyOrderId: shopifyOrderIdStr, 
-      payload: orderPayload, 
-      totalPrice: totalPrice,
-      status: 'PENDING' 
-    }
-  });
 
   try {
     if (!env.ENABLE_GLOBAL_WRITES) {

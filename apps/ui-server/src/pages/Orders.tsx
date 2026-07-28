@@ -142,10 +142,21 @@ export default function Orders() {
                       {new Date(order.createdAt).toLocaleString('it-IT')}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                      {order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name} 
-                      <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                        {order.zucchettiQueue?.payload?.customer?.email || order.shopifyCustomerId || '-'}
-                      </span>
+                      {order.shopifyCustomer ? (
+                        <>
+                          {order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}
+                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            {order.shopifyCustomer.email || order.shopifyCustomerId}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name} 
+                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            {order.zucchettiQueue?.payload?.customer?.email || order.shopifyCustomerId || '-'}
+                          </span>
+                        </>
+                      )}
                     </td>
                     <td style={{ padding: '1rem', fontWeight: 500 }}>
                       €{order.totalPrice?.toFixed(2) || '0.00'}
