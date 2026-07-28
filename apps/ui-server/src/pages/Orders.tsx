@@ -13,7 +13,9 @@ export default function Orders() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/orders?limit=50`);
+      const res = await fetch(`${API_URL}/api/admin/orders?limit=50`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
       const data = await res.json();
       if (data.data) {
         setOrders(data.data);
