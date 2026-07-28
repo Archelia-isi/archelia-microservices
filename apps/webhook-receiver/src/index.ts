@@ -12,7 +12,7 @@ async function buildApp() {
   // perché ci serve il body grezzo prima che venga parsato come JSON
   await app.register(rawBody as any, {
     field: 'rawBody',
-    global: false,
+    global: true,
     encoding: 'utf8',
     runFirst: true,
   });
