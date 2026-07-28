@@ -1,0 +1,8 @@
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+
+> @archelia/webhook-receiver@1.0.0 start
+> node dist/index.js
+
+2026-07-28T10:44:02.697153278Z [INFO] 🚀 Webhook Receiver avviato su porta 8080 time=1785235442008 pid=33 hostname="b94ad85ab0fa" module="webhook-receiver"
+2026-07-28T10:44:02.697156648Z [INFO] ✅ Connected to Redis successfully. time=1785235442016 pid=33 hostname="b94ad85ab0fa"

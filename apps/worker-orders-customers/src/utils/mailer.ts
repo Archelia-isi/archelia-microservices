@@ -41,7 +41,7 @@ export class OrderMailer {
       const toArray = emails.map(e => ({ email: e }));
 
       const payload = {
-        sender: { name: 'Archelia Notifiche', email: 'no-reply@archeliastore.com' },
+        sender: { name: 'Archelia Notifiche', email: 'info@archelia.it' },
         to: toArray,
         subject: `[Archelia] Nuovo Ordine #${orderNumber}`,
         htmlContent: htmlContent
