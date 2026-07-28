@@ -53,7 +53,8 @@ export default function Orders() {
     setLoadingProduct(true);
     setSelectedProduct({ sku }); // Show skeleton/loader immediately
     try {
-      const res = await fetch(`${API_URL}/api/admin/products/by-sku/${sku}`, {
+      const encodedSku = encodeURIComponent(sku);
+      const res = await fetch(`${API_URL}/api/admin/products/by-sku/${encodedSku}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.ok) {
