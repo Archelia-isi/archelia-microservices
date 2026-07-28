@@ -4,20 +4,23 @@ import GlassPanel from '../components/ui/GlassPanel';
 import Loader from '../components/ui/Loader';
 import Badge from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
+import AppSplashScreen from '../components/os/AppSplashScreen';
+import StickyHeader from '../components/ui/StickyHeader';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
 
   // Modals state
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [loadingProduct, setLoadingProduct] = useState(false);
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/orders?limit=50`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -29,14 +32,15 @@ export default function Orders() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+      setTimeout(() => setIsAppReady(true), 300);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(true);
     // Auto-refresh every 30s
-    const interval = setInterval(fetchOrders, 30000);
+    const interval = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -72,18 +76,28 @@ export default function Orders() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
-      <div className="flex-between" style={{ marginBottom: '2rem' }}>
-        <h2 className="text-h1">Gestione Ordini</h2>
-        <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={fetchOrders}>
-          <ShoppingCart size={16} /> Sincronizza Ora
-        </button>
-      </div>
+    <>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Gestione Ordini" 
+        icon={<ShoppingCart size={56} />} 
+      />
+      <div className={`animate-fade-in ${isAppReady ? 'ready' : ''}`} style={{ padding: '0', height: '100%', overflowY: 'auto' }}>
+        
+        <StickyHeader paddingY="md" backgroundOpacity={0.8}>
+          <div className="flex-between" style={{ width: '100%', padding: '0 1rem' }}>
+            <div style={{ flex: 1 }}></div> {/* Spazio vuoto al posto del titolo */}
+            <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
+              <ShoppingCart size={16} /> Sincronizza Ora
+            </button>
+          </div>
+        </StickyHeader>
 
-      <GlassPanel padding="none">
-        {loading && orders.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center' }}><Loader size="md" /></div>
-        ) : orders.length === 0 ? (
+        <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
+          <GlassPanel padding="none">
+            {loading && orders.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center' }}><Loader size="md" /></div>
+            ) : orders.length === 0 ? (
           <div style={{ padding: '5rem 2rem', textAlign: 'center' }}>
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', boxShadow: 'var(--shadow-sm)' }}>
               <Inbox size={28} color="var(--color-text-muted)" />
@@ -139,6 +153,7 @@ export default function Orders() {
           </div>
         )}
       </GlassPanel>
+        </div>
 
       {/* MODAL DETTAGLIO ORDINE */}
       <Modal isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={`Dettaglio Ordine ${selectedOrder?.orderNumber || selectedOrder?.shopifyOrderId || ''}`}>
@@ -292,5 +307,6 @@ export default function Orders() {
         ) : null}
       </Modal>
     </div>
+    </>
   );
 }
