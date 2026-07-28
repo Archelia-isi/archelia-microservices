@@ -15,7 +15,7 @@ const customerWorker = new Worker('shopify-customers', async job => {
   }
 
   logger.debug(`Ricevuto job customer-create/update per ID: ${shopifyId}`);
-  await processCustomerSync(shopifyId);
+  await processCustomerSync(customerPayload);
 }, {
   connection: redis as any,
   concurrency: 5 // Elabora fino a 5 clienti in parallelo

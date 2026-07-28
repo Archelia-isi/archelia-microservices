@@ -43,7 +43,17 @@ for (const key of keysToSync) {
   }
 }
 
-const services = ['worker-orders-customers', 'worker-zucchetti-pull', 'api-gateway'];
+const services = [
+  'worker-orders-customers', 
+  'worker-zucchetti-pull', 
+  'api-gateway',
+  'webhook-receiver',
+  'worker-marketing',
+  'worker-promo',
+  'worker-shopify-push',
+  'worker-analytics',
+  'worker-equalizzatore'
+];
 
 for (const service of services) {
   console.log(`Setting variables for ${service}...`);

@@ -67,16 +67,50 @@ async function zucchettiUpsert(token: string, action: string, payload: string, c
   }
 }
 
-export async function processCustomerSync(shopifyId: string) {
+export async function processCustomerSync(customerPayload: any) {
+  const shopifyId = customerPayload.id?.toString();
+  if (!shopifyId) return;
+
   logger.info(`📦 CustomerWorker: Avvio sincronizzazione per cliente Shopify ID ${shopifyId}`);
   
-  const shopifyRecord = await prisma.zelShopifyCustomer.findUnique({
-    where: { shopifyId }
-  });
+  // 1. Upsert del cliente in zelShopifyCustomer per evitare l'errore Mapper Engine
+  let pAddresses = customerPayload.addresses || [];
+  let pPrimaryAddress = customerPayload.default_address || pAddresses[0] || {};
+  let pFiscalData: any = {};
 
-  if (!shopifyRecord) {
-    throw new Error(`Mapper Engine: Cliente Shopify ID ${shopifyId} non trovato nel DB CRM.`);
+  if (customerPayload.metafields) {
+    // Prova a recuperare metaobject o metafield
+    const pIva = customerPayload.metafields.find((m: any) => m.key === 'partita_iva')?.value;
+    const cFiscale = customerPayload.metafields.find((m: any) => m.key === 'codice_fiscale')?.value;
+    const sdi = customerPayload.metafields.find((m: any) => m.key === 'codice_sdi')?.value;
+    const pec = customerPayload.metafields.find((m: any) => m.key === 'pec')?.value;
+    if (pIva || cFiscale || sdi || pec) {
+      pFiscalData = { pIva, cFiscale, sdi, pec };
+    }
   }
+
+  const shopifyRecord = await prisma.zelShopifyCustomer.upsert({
+    where: { shopifyId },
+    update: {
+      email: customerPayload.email || null,
+      firstName: customerPayload.first_name || null,
+      lastName: customerPayload.last_name || null,
+      phone: customerPayload.phone || null,
+      billingAddress: pPrimaryAddress,
+      addresses: pAddresses,
+      fiscalData: Object.keys(pFiscalData).length > 0 ? pFiscalData : undefined,
+    },
+    create: {
+      shopifyId,
+      email: customerPayload.email || null,
+      firstName: customerPayload.first_name || null,
+      lastName: customerPayload.last_name || null,
+      phone: customerPayload.phone || null,
+      billingAddress: pPrimaryAddress,
+      addresses: pAddresses,
+      fiscalData: pFiscalData,
+    }
+  });
 
   let isUpdate = !!shopifyRecord.zucchettiArcId;
 
