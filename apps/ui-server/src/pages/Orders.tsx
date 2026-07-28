@@ -136,7 +136,9 @@ export default function Orders() {
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
                     <td style={{ padding: '1rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{order.orderNumber || order.shopifyOrderId}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                        {order.orderNumber ? (order.orderNumber.startsWith('#') ? order.orderNumber : `#${order.orderNumber}`) : `#${order.shopifyOrderId}`}
+                      </span>
                     </td>
                     <td style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                       {new Date(order.createdAt).toLocaleString('it-IT')}
