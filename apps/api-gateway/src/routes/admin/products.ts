@@ -84,6 +84,30 @@ export async function adminProductsRoutes(app: FastifyInstance) {
     return reply.status(200).send(product);
   });
 
+  // Dettaglio prodotto per SKU
+  fastify.get('/api/admin/products/by-sku/:sku', { 
+    preHandler: [requireAdmin],
+    schema: {
+      params: z.object({
+        sku: z.string()
+      }),
+      response: {
+        200: z.any(),
+        404: z.object({ error: z.string() })
+      }
+    }
+  }, async (request, reply) => {
+    const product = await prisma.product.findUnique({
+      where: { sku: request.params.sku }
+    });
+    
+    if (!product) {
+      return reply.status(404).send({ error: 'Prodotto non trovato' });
+    }
+    
+    return reply.status(200).send(product);
+  });
+
   fastify.get('/api/admin/export/products-csv', { 
     preHandler: [requireAdmin],
     schema: {
