@@ -12,7 +12,7 @@ export default function WindowComponent({ id }: Props) {
   const activeWindowId = useWindowStore(state => state.activeWindowId);
   const { closeWindow, minimizeWindow, toggleMaximize, focusWindow, updatePosition, updateSize } = useWindowStore();
 
-  if (!windowApp || !windowApp.isOpen || windowApp.isMinimized) return null;
+  if (!windowApp || !windowApp.isOpen) return null;
 
   const isActive = activeWindowId === id;
 
@@ -55,7 +55,10 @@ export default function WindowComponent({ id }: Props) {
       enableResizing={!windowApp.isMaximized}
       dragHandleClassName="window-titlebar"
       onMouseDown={() => focusWindow(id)}
-      style={{ zIndex: windowApp.zIndex }}
+      style={{ 
+        zIndex: windowApp.zIndex,
+        display: windowApp.isMinimized ? 'none' : 'block'
+      }}
       className={`os-window ${isActive ? 'active' : ''}`}
       bounds="parent"
     >
