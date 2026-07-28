@@ -12,7 +12,8 @@ import {
 function verifyShopifyWebhook(request: FastifyRequest): boolean {
   const hmacHeader = request.headers['x-shopify-hmac-sha256'] as string;
   const rawBody = (request as any).rawBody; // Aggiunto da fastify-raw-body
-  const secret = env.SHOPIFY_WEBHOOK_SECRET;
+  // Usa SHOPIFY_WEBHOOK_SECRET oppure fallback a SHOPIFY_CLIENT_SECRET per le App Personalizzate
+  const secret = env.SHOPIFY_WEBHOOK_SECRET || env.SHOPIFY_CLIENT_SECRET;
 
   if (!hmacHeader || !rawBody || !secret) {
     log.warn('HMAC header, rawBody, or secret missing', { module: 'webhook-receiver' });
