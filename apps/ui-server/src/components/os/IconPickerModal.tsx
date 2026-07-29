@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { X, Search } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
 import './IconPickerModal.css';
 
@@ -27,14 +26,6 @@ const ICON_CATEGORIES = [
   { id: 'users', label: 'Utenti & Sicurezza', keywords: ['user', 'users', 'badge', 'id', 'lock', 'shield', 'key', 'security', 'unlock', 'password'] },
   { id: 'interface', label: 'Interfaccia', keywords: ['settings', 'cog', 'gear', 'home', 'search', 'menu', 'grid', 'list', 'check', 'x', 'plus', 'minus', 'arrow', 'chevron', 'close', 'edit', 'trash'] }
 ];
-
-const STANDARD_ICONS = Object.keys(LucideIcons)
-  .filter(key => key[0] === key[0].toUpperCase())
-  .map(key => ({
-    id: key,
-    icon: (LucideIcons as any)[key]
-  }))
-  .filter(item => typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null && item.icon.$$typeof));
 
 const COLORED_ICONS = Object.keys(FcIcons)
   .filter(key => key.startsWith('Fc'))
@@ -107,20 +98,12 @@ export default function IconPickerModal({ appId, onClose }: Props) {
 
   const activeCategoryKeywords = ICON_CATEGORIES.find(c => c.id === activeCategory)?.keywords || [];
 
-  const filteredStandard = STANDARD_ICONS.filter(item => {
-    const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterByKeywords(item.id, activeCategoryKeywords);
-    return matchesSearch && matchesCategory;
-  });
-
   const filteredColored = COLORED_ICONS.filter(item => {
     const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterByKeywords(item.id, activeCategoryKeywords);
     return matchesSearch && matchesCategory;
   });
 
-  // Rimozione limiti per poterle scorrere tutte
-  const displayedStandard = filteredStandard;
   const displayedColored = filteredColored;
 
   return (
@@ -187,23 +170,6 @@ export default function IconPickerModal({ appId, onClose }: Props) {
                 );
               })}
               {filteredColored.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
-            </div>
-          </section>
-
-          <section className="icon-picker-section">
-            <div className="standard-header">
-              <h3>Libreria Minimal ({STANDARD_ICONS.length}+ Icone)</h3>
-            </div>
-            <div className="standard-icons-grid">
-              {displayedStandard.map(item => {
-                const IconComponent = item.icon;
-                return (
-                  <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'lucide')} title={item.id}>
-                    <IconComponent size={24} />
-                  </div>
-                );
-              })}
-              {filteredStandard.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
             </div>
           </section>
         </div>

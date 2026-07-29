@@ -2,17 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
-import * as LucideIcons from 'lucide-react';
 import { BrainCircuit, LogOut } from 'lucide-react';
-import './Taskbar.css';
-
-const DynamicLucideIcon = ({ name, size = 40, color = 'var(--color-foreground)' }: { name: string, size?: number, color?: string }) => {
-  const IconComponent = (LucideIcons as any)[name];
-  if (!IconComponent) return <LucideIcons.Image size={size} color={color} />;
-  return <IconComponent size={size} color={color} />;
-};
-
 import * as FcIcons from 'react-icons/fc';
+import './Taskbar.css';
 
 const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
   const IconComponent = (FcIcons as any)[name];
@@ -96,9 +88,7 @@ export default function Taskbar() {
               >
                 <div className="taskbar-icon flex-center" style={{ background: app.color }}>
                    {app.iconPath ? (
-                     app.iconPath.startsWith('lucide:') ? (
-                       <DynamicLucideIcon name={app.iconPath.split(':')[1]} />
-                     ) : app.iconPath.startsWith('fc:') ? (
+                     app.iconPath.startsWith('fc:') ? (
                        <DynamicFcIcon name={app.iconPath.split(':')[1]} />
                      ) : (
                        <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
