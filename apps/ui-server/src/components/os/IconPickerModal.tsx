@@ -18,6 +18,16 @@ const PREMIUM_STYLES = [
   { id: 'abstract', name: 'Astratto Geometrico' }
 ];
 
+const ICON_CATEGORIES = [
+  { id: 'all', label: 'Tutte', keywords: [] },
+  { id: 'tech', label: 'Tech & Dati', keywords: ['server', 'database', 'terminal', 'code', 'laptop', 'cpu', 'hard', 'monitor', 'cloud', 'network', 'wifi', 'bluetooth', 'usb', 'data', 'web', 'link'] },
+  { id: 'business', label: 'Business & Shop', keywords: ['shopping', 'cart', 'bag', 'credit', 'dollar', 'euro', 'briefcase', 'chart', 'trending', 'package', 'box', 'store', 'shop', 'calculator', 'tag', 'wallet', 'money', 'sale'] },
+  { id: 'media', label: 'Media & File', keywords: ['image', 'video', 'camera', 'music', 'play', 'volume', 'mic', 'file', 'folder', 'document', 'pdf', 'audio', 'film', 'picture', 'gallery'] },
+  { id: 'communication', label: 'Comunicazione', keywords: ['mail', 'message', 'phone', 'megaphone', 'send', 'inbox', 'chat', 'bell', 'notification', 'share', 'contact'] },
+  { id: 'users', label: 'Utenti & Sicurezza', keywords: ['user', 'users', 'badge', 'id', 'lock', 'shield', 'key', 'security', 'unlock', 'password'] },
+  { id: 'interface', label: 'Interfaccia', keywords: ['settings', 'cog', 'gear', 'home', 'search', 'menu', 'grid', 'list', 'check', 'x', 'plus', 'minus', 'arrow', 'chevron', 'close', 'edit', 'trash'] }
+];
+
 const STANDARD_ICONS = Object.keys(LucideIcons)
   .filter(key => key[0] === key[0].toUpperCase() && key !== 'createLucideIcon' && key !== 'LucideProps' && key !== 'IconNode')
   .map(key => ({
@@ -35,6 +45,7 @@ const COLORED_ICONS = Object.keys(FcIcons)
 export default function IconPickerModal({ appId, onClose }: Props) {
   const { changeAppIcon, windows } = useWindowStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
   
   const app = windows[appId];
   if (!app) return null;
@@ -86,8 +97,25 @@ export default function IconPickerModal({ appId, onClose }: Props) {
     }
   };
 
-  const filteredStandard = STANDARD_ICONS.filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()));
-  const filteredColored = COLORED_ICONS.filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filterByKeywords = (id: string, keywords: string[]) => {
+    if (keywords.length === 0) return true;
+    const lowerId = id.toLowerCase();
+    return keywords.some(kw => lowerId.includes(kw));
+  };
+
+  const activeCategoryKeywords = ICON_CATEGORIES.find(c => c.id === activeCategory)?.keywords || [];
+
+  const filteredStandard = STANDARD_ICONS.filter(item => {
+    const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterByKeywords(item.id, activeCategoryKeywords);
+    return matchesSearch && matchesCategory;
+  });
+
+  const filteredColored = COLORED_ICONS.filter(item => {
+    const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterByKeywords(item.id, activeCategoryKeywords);
+    return matchesSearch && matchesCategory;
+  });
 
   // Rimozione limiti per poterle scorrere tutte
   const displayedStandard = filteredStandard;
@@ -105,7 +133,7 @@ export default function IconPickerModal({ appId, onClose }: Props) {
         
         <div className="icon-picker-content">
           <div className="icon-search-sticky">
-             <div className="icon-search" style={{ width: '100%', maxWidth: '100%', marginBottom: '1rem', padding: '0.75rem 1rem' }}>
+             <div className="icon-search" style={{ width: '100%', maxWidth: '100%', padding: '0.75rem 1rem' }}>
                 <Search size={18} />
                 <input 
                   type="text" 
@@ -114,6 +142,17 @@ export default function IconPickerModal({ appId, onClose }: Props) {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ width: '100%', fontSize: '1rem' }}
                 />
+              </div>
+              <div className="icon-categories-scroll">
+                {ICON_CATEGORIES.map(category => (
+                  <button 
+                    key={category.id} 
+                    className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
+                    onClick={() => setActiveCategory(category.id)}
+                  >
+                    {category.label}
+                  </button>
+                ))}
               </div>
           </div>
 
