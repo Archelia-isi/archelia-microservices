@@ -8,6 +8,12 @@ import { getThemeIconPath } from '../../utils/themeUtils';
 import './StartMenu.css';
 
 import { useSettingsStore } from '../../store/useSettingsStore';
+import * as FcIcons from 'react-icons/fc';
+
+const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
+  const IconComponent = (FcIcons as any)[name];
+  return IconComponent ? <IconComponent size={size} /> : null;
+};
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -182,8 +188,14 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                   }}>
                     {/* Render raw React Node or string image */}
                     {(() => {
-                      const themeIcon = getThemeIconPath(app.id, theme);
-                      if (themeIcon) return <img src={themeIcon} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                      const themeIconPath = getThemeIconPath(app.id, theme);
+                      const finalIconPath = themeIconPath || app.iconPath;
+                      if (finalIconPath) {
+                        if (finalIconPath.startsWith('fc:')) {
+                           return <DynamicFcIcon name={finalIconPath.split(':')[1]} size={64} />;
+                        }
+                        return <img src={finalIconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                      }
                       return typeof app.icon === 'string' ? <img src={app.icon} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : app.icon;
                     })()}
                   </div>
