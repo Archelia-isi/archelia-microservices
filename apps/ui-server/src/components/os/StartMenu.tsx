@@ -16,7 +16,7 @@ interface StartMenuProps {
 
 export default function StartMenu({ onClose }: StartMenuProps) {
   const { openWindow, windows } = useWindowStore();
-  const { activeTheme } = useSettingsStore();
+  const { theme } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleOpenApp = (appId: string) => {
@@ -28,12 +28,12 @@ export default function StartMenu({ onClose }: StartMenuProps) {
   const apps = useMemo(() => {
     let allApps = Object.values(windows).filter(app => {
       if (app.id === 'os-settings') return false;
-      if (app.id === 'roblox_game' && activeTheme !== 'roblox') return false;
+      if (app.id === 'roblox_game' && theme !== 'roblox') return false;
       return true;
     });
     if (!searchQuery.trim()) return allApps;
     return allApps.filter(app => app.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [windows, searchQuery, activeTheme]);
+  }, [windows, searchQuery, theme]);
 
   const isElectron = !!(window as any).__IS_ELECTRON__;
   const isMac = navigator.userAgent.toLowerCase().includes('mac');
