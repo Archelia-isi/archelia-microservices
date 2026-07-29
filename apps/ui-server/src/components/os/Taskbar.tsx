@@ -110,7 +110,7 @@ export default function Taskbar() {
             onClick={() => toggleChatbot()}
             title="Archelia AI Chatbot"
           >
-            <BrainCircuit size={20} color={isChatbotOpen ? '#00d2ff' : 'var(--color-text)'} />
+            <BrainCircuit size={20} color={isChatbotOpen ? '#00d2ff' : 'var(--color-text-main)'} />
           </div>
           <div 
             className="taskbar-chatbot-btn"
@@ -121,7 +121,7 @@ export default function Taskbar() {
             }}
             title="Esci da Archelia OS"
           >
-            <LogOut size={18} color="var(--color-text)" />
+            <LogOut size={18} color="var(--color-text-main)" />
           </div>
           <div className="taskbar-clock">
             <div className="taskbar-time">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
