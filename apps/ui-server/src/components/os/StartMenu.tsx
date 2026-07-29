@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
-import { User, LogOut, Search, Sparkles, Clock, Activity, Download } from 'lucide-react';
+import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
@@ -21,9 +21,9 @@ export default function StartMenu({ onClose }: StartMenuProps) {
     onClose();
   };
 
-  // Convert windows object to array and filter by search query
+  // Convert windows object to array and filter by search query, removing os-settings
   const apps = useMemo(() => {
-    const allApps = Object.values(windows);
+    let allApps = Object.values(windows).filter(app => app.id !== 'os-settings');
     if (!searchQuery.trim()) return allApps;
     return allApps.filter(app => app.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [windows, searchQuery]);
@@ -220,6 +220,18 @@ export default function StartMenu({ onClose }: StartMenuProps) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="start-menu-settings-btn" 
+              title="Impostazioni di Sistema" 
+              style={{ 
+                background: 'transparent', border: 'none', color: 'var(--color-text)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onClick={() => handleOpenApp('os-settings')}
+            >
+              <Settings size={20} />
+            </button>
             {!isElectron && (
               <button 
                 className="start-menu-download" 
