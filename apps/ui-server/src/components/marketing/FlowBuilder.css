@@ -106,7 +106,7 @@
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
+  background-color: var(--color-surface-solid);
   transition: .4s;
   border-radius: 50%;
 }

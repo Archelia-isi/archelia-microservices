@@ -13,6 +13,8 @@ export interface OSSettingsState {
   animationsEnabled: boolean;
   focusMode: boolean;
   autoLockMinutes: number; // 0 = never
+  systemVolume: number; // 0-100
+  systemSoundsEnabled: boolean;
 
   setTheme: (theme: Theme) => void;
   setAccentColor: (color: string) => void;
@@ -22,6 +24,8 @@ export interface OSSettingsState {
   setAnimationsEnabled: (enabled: boolean) => void;
   setFocusMode: (enabled: boolean) => void;
   setAutoLockMinutes: (minutes: number) => void;
+  setSystemVolume: (volume: number) => void;
+  setSystemSoundsEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<OSSettingsState>()(
@@ -35,6 +39,8 @@ export const useSettingsStore = create<OSSettingsState>()(
       animationsEnabled: true,
       focusMode: false,
       autoLockMinutes: 15,
+      systemVolume: 80,
+      systemSoundsEnabled: true,
 
       setTheme: (theme) => set({ theme }),
       setAccentColor: (accentColor) => set({ accentColor }),
@@ -44,6 +50,8 @@ export const useSettingsStore = create<OSSettingsState>()(
       setAnimationsEnabled: (animationsEnabled) => set({ animationsEnabled }),
       setFocusMode: (focusMode) => set({ focusMode }),
       setAutoLockMinutes: (autoLockMinutes) => set({ autoLockMinutes }),
+      setSystemVolume: (systemVolume) => set({ systemVolume }),
+      setSystemSoundsEnabled: (systemSoundsEnabled) => set({ systemSoundsEnabled }),
     }),
     {
       name: 'archelia-os-settings',

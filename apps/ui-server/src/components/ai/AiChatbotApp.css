@@ -334,7 +334,7 @@
   height: 60px;
   object-fit: cover;
   border-radius: 8px;
-  background: #fff; /* Se è un PNG trasparente */
+  background: var(--color-surface-solid); /* Se è un PNG trasparente */
 }
 
 .recommended-product-noimg {

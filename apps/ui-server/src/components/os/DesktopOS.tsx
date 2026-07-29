@@ -39,7 +39,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 import { useSettingsStore } from '../../store/useSettingsStore';
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper, changeAppIcon } = useWindowStore();
+  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper, changeAppIcon, activeWindowId } = useWindowStore();
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
 
@@ -189,6 +189,32 @@ export default function DesktopOS() {
 
     return () => clearTimeout(saveTimeout);
   }, [windows, wallpaper, widgets, isReady, isLoggedIn]);
+
+  // Auto-Lock Inactivity Timer
+  useEffect(() => {
+    if (!isLoggedIn || settings.autoLockMinutes === 0) return;
+
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+    
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        // Log out user
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsLoggedIn(false);
+      }, settings.autoLockMinutes * 60 * 1000);
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(e => document.addEventListener(e, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach(e => document.removeEventListener(e, resetTimer));
+    };
+  }, [isLoggedIn, settings.autoLockMinutes]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
@@ -416,6 +442,21 @@ export default function DesktopOS() {
             <WidgetContainer key={w.id} widget={w} />
           ))}
         </div>
+
+        {/* Focus Mode Overlay */}
+        {settings.focusMode && activeWindowId && windows[activeWindowId] && !windows[activeWindowId].isMinimized && (
+          <div 
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(4px)',
+              zIndex: (windows[activeWindowId].zIndex ?? 10) - 1,
+              pointerEvents: 'none',
+              transition: 'opacity 0.3s'
+            }}
+          />
+        )}
 
         {Object.values(windows).map(win => (
           <WindowComponent key={win.id} id={win.id} />

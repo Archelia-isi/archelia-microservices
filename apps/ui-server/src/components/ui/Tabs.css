@@ -30,7 +30,7 @@
 }
 
 .ui-tab-inline.active {
-  background: #ffffff;
+  background: var(--color-surface-solid);
   color: var(--color-primary);
   box-shadow: 0 2px 8px var(--color-hover-light);
 }
@@ -61,7 +61,7 @@
 }
 
 .ui-tab-block.active {
-  background: #ffffff;
+  background: var(--color-surface-solid);
   color: var(--color-text-primary);
   font-weight: 600;
   box-shadow: 0 2px 8px var(--color-hover-light), 0 0 0 0.5px var(--color-hover-light);

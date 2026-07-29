@@ -58,7 +58,7 @@
   overflow-x: auto;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  background: #ffffff;
+  background: var(--color-surface-solid);
 }
 
 .infinity-table {

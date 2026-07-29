@@ -181,7 +181,7 @@
 }
 
 .widget-size-btn:hover, .widget-size-btn.active {
-  background: white;
+  background: var(--color-surface-solid);
   color: black;
 }
 

@@ -141,7 +141,7 @@
   height: 100%;
   border: none;
   border-radius: 12px;
-  background: white;
+  background: var(--color-surface-solid);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 

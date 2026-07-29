@@ -65,7 +65,7 @@
 .os-app-icon {
   width: 100px;
   height: 100px;
-  background: white;
+  background: var(--color-surface-solid);
   border-radius: 24px;
   box-shadow: 0 10px 30px var(--color-hover-dark);
   display: flex;

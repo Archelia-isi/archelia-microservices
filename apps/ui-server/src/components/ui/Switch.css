@@ -46,7 +46,7 @@
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: white;
+  background-color: var(--color-surface-solid);
   border-radius: 50%;
   box-shadow: 0 3px 8px var(--shadow-md), 0 1px 1px rgba(0,0,0,0.16), 0 0 0 1px var(--color-hover-light);
   transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);

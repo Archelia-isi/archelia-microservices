@@ -189,10 +189,56 @@ export default function OSSettingsApp() {
             <div className="os-settings-card">
               <h3>Modifica Password</h3>
               <p style={{ marginBottom: '1rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Cambia la password di accesso ad Archelia OS.</p>
-              <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', maxWidth: '300px' }}>
-                <input type="password" placeholder="Vecchia Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
-                <input type="password" placeholder="Nuova Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
-                <button style={{ padding: '0.5rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Aggiorna Password</button>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  import('react-hot-toast').then(({ toast }) => {
+                    toast.success('Password aggiornata con successo! (Simulato)');
+                  });
+                  const form = e.target as HTMLFormElement;
+                  form.reset();
+                }}
+                style={{ display: 'flex', gap: '1rem', flexDirection: 'column', maxWidth: '300px' }}
+              >
+                <input required type="password" placeholder="Vecchia Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
+                <input required type="password" placeholder="Nuova Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
+                <button type="submit" style={{ padding: '0.5rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Aggiorna Password</button>
+              </form>
+            </div>
+          </div>
+        );
+      case 'audio':
+        return (
+          <div className="os-settings-section fade-in">
+            <h2>Audio e Notifiche</h2>
+            <div className="os-settings-card">
+              <div className="os-settings-row">
+                <div>
+                  <h3>Volume di Sistema</h3>
+                  <p>Regola il volume principale dell'OS.</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '200px' }}>
+                  <Bell size={18} color="var(--color-text-muted)" />
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={settings.systemVolume} 
+                    onChange={(e) => settings.setSystemVolume(parseInt(e.target.value))}
+                    className="os-slider"
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ minWidth: '3ch', textAlign: 'right' }}>{settings.systemVolume}%</span>
+                </div>
+              </div>
+            </div>
+            <div className="os-settings-card">
+              <div className="os-settings-row">
+                <div>
+                  <h3>Suoni di Sistema</h3>
+                  <p>Abilita i suoni per le notifiche, avvisi e clic.</p>
+                </div>
+                <Switch checked={settings.systemSoundsEnabled} onChange={(c) => settings.setSystemSoundsEnabled(c)} />
               </div>
             </div>
           </div>

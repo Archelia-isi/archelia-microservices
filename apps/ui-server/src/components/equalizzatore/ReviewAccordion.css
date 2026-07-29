@@ -15,7 +15,7 @@
 }
 
 .review-accordion.open {
-  background: #ffffff;
+  background: var(--color-surface-solid);
   border-color: rgba(0, 102, 204, 0.3);
   box-shadow: 0 12px 32px rgba(0, 102, 204, 0.1);
 }
@@ -105,7 +105,7 @@
   width: 160px;
   height: 160px;
   flex-shrink: 0;
-  background: white;
+  background: var(--color-surface-solid);
   border: 1px solid var(--color-border-light);
   border-radius: 16px;
   display: flex;

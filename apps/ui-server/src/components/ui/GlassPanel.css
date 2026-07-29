@@ -19,7 +19,7 @@
 }
 
 .ui-glass-solid {
-  background: #ffffff;
+  background: var(--color-surface-solid);
   border: 1px solid var(--color-hover-light);
 }
 
