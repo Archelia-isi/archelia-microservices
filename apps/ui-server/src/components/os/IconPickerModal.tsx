@@ -29,18 +29,20 @@ const ICON_CATEGORIES = [
 ];
 
 const STANDARD_ICONS = Object.keys(LucideIcons)
-  .filter(key => key[0] === key[0].toUpperCase() && key !== 'createLucideIcon' && key !== 'LucideProps' && key !== 'IconNode')
+  .filter(key => key[0] === key[0].toUpperCase())
   .map(key => ({
     id: key,
     icon: (LucideIcons as any)[key]
-  }));
+  }))
+  .filter(item => typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null && item.icon.$$typeof));
 
 const COLORED_ICONS = Object.keys(FcIcons)
   .filter(key => key.startsWith('Fc'))
   .map(key => ({
     id: key,
     icon: (FcIcons as any)[key]
-  }));
+  }))
+  .filter(item => typeof item.icon === 'function' || (typeof item.icon === 'object' && item.icon !== null && item.icon.$$typeof));
 
 export default function IconPickerModal({ appId, onClose }: Props) {
   const { changeAppIcon, windows } = useWindowStore();
@@ -176,11 +178,14 @@ export default function IconPickerModal({ appId, onClose }: Props) {
               <h3>Libreria Colorata ({COLORED_ICONS.length} Icone)</h3>
             </div>
             <div className="standard-icons-grid">
-              {displayedColored.map(item => (
-                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'fc')} title={item.id}>
-                  <item.icon size={28} />
-                </div>
-              ))}
+              {displayedColored.map(item => {
+                const IconComponent = item.icon;
+                return (
+                  <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'fc')} title={item.id}>
+                    <IconComponent size={28} />
+                  </div>
+                );
+              })}
               {filteredColored.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
             </div>
           </section>
@@ -190,11 +195,14 @@ export default function IconPickerModal({ appId, onClose }: Props) {
               <h3>Libreria Minimal ({STANDARD_ICONS.length}+ Icone)</h3>
             </div>
             <div className="standard-icons-grid">
-              {displayedStandard.map(item => (
-                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'lucide')} title={item.id}>
-                  <item.icon size={24} />
-                </div>
-              ))}
+              {displayedStandard.map(item => {
+                const IconComponent = item.icon;
+                return (
+                  <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'lucide')} title={item.id}>
+                    <IconComponent size={24} />
+                  </div>
+                );
+              })}
               {filteredStandard.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
             </div>
           </section>
