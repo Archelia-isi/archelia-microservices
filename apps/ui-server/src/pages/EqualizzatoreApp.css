@@ -33,7 +33,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 32px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border-light);
   font-size: 13px;
   font-weight: 500;
@@ -151,7 +151,7 @@
   padding: 80px;
   color: var(--color-text-muted); font-size: 17px;
   font-weight: 500;
-  background: rgba(255,255,255,0.5);
+  background: var(--color-surface);
   border-radius: 24px;
   border: 1px dashed var(--color-border-dark);
 }

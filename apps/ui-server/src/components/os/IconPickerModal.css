@@ -55,7 +55,7 @@
 }
 
 .icon-picker-close:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--color-surface);
   opacity: 1;
 }
 
@@ -99,7 +99,7 @@
 }
 
 .premium-icon-card:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--color-surface);
   transform: translateY(-2px);
 }
 
@@ -159,7 +159,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
   gap: 0.75rem;
-  background: rgba(255,255,255,0.03);
+  background: var(--color-surface);
   padding: 1rem;
   border-radius: var(--radius-md);
   border: 1px solid rgba(255,255,255,0.05);
@@ -170,7 +170,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.05);
+  background: var(--color-surface);
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--color-foreground);
@@ -216,7 +216,7 @@
 
 .category-pill {
   white-space: nowrap;
-  background: rgba(255,255,255,0.25);
+  background: var(--color-surface);
   border: 1px solid rgba(255,255,255,0.4);
   color: var(--color-foreground);
   padding: 0.4rem 1.2rem;
@@ -229,7 +229,7 @@
 }
 
 .category-pill:hover {
-  background: rgba(255,255,255,0.4);
+  background: var(--color-surface);
   transform: translateY(-1px);
 }
 

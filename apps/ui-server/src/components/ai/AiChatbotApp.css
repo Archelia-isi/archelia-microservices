@@ -304,7 +304,7 @@
   width: 4px;
 }
 .recommended-products-scroll::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.05);
+  background: var(--color-surface);
   border-radius: 4px;
 }
 .recommended-products-scroll::-webkit-scrollbar-thumb {
@@ -315,7 +315,7 @@
 .recommended-product-card {
   display: flex;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 8px;
   transition: all 0.2s ease;
@@ -324,7 +324,7 @@
 }
 
 .recommended-product-card:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
   border-color: rgba(0, 210, 255, 0.5);
 }
 
@@ -340,7 +340,7 @@
   width: 60px;
   height: 60px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
