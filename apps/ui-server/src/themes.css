@@ -4,222 +4,284 @@
 
 /* 1. RETRO (Windows 95) */
 body.theme-retro {
-  --color-bg: #008080; /* Win95 Teal desktop background */
+  font-family: 'MS Sans Serif', 'Tahoma', 'Pixelated', sans-serif !important;
+  --color-bg: #008080; 
   --color-surface: #c0c0c0;
   --color-surface-solid: #c0c0c0;
-  --color-app-bg: #c0c0c0;
-  
-  --color-primary: #000080; /* Navy blue title bars */
+  --color-app-bg: #ffffff;
+  --color-primary: #000080;
   --color-text-main: #000000;
-  --color-text-muted: #808080;
-  
-  --color-border: #ffffff; /* Top/Left border for 3D effect */
-  --color-border-dark: #000000; /* Bottom/Right border */
-  
-  --shadow-sm: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
-  --shadow-md: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
-  --shadow-lg: 2px 2px 0px #000000;
-  --shadow-glass: none;
-
-  --glass-blur: none;
-  --glass-app-blur: none;
-
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-full: 0px;
-
-  font-family: 'MS Sans Serif', 'Tahoma', 'Pixelated', sans-serif !important;
 }
-
-body.theme-retro .glass-panel,
-body.theme-retro .ui-glass-panel,
-body.theme-retro .os-window {
+body.theme-retro * { border-radius: 0 !important; }
+body.theme-retro .glass-panel, body.theme-retro .ui-glass-panel, body.theme-retro .os-window, body.theme-retro .taskbar {
+  background: #c0c0c0 !important;
+  backdrop-filter: none !important;
   border-top: 2px solid #ffffff !important;
   border-left: 2px solid #ffffff !important;
   border-bottom: 2px solid #000000 !important;
   border-right: 2px solid #000000 !important;
   box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf !important;
-  background: #c0c0c0 !important;
 }
-
-body.theme-retro .btn-primary {
+body.theme-retro .window-titlebar {
+  background: #000080 !important;
+  color: white !important;
+  padding: 4px 6px;
+  border: none !important;
+  font-weight: bold;
+}
+body.theme-retro .btn-primary, body.theme-retro .taskbar-item {
+  background: #c0c0c0 !important;
+  color: black !important;
   border-top: 2px solid #ffffff !important;
   border-left: 2px solid #ffffff !important;
   border-bottom: 2px solid #000000 !important;
   border-right: 2px solid #000000 !important;
-  background: #c0c0c0 !important;
-  color: #000000 !important;
-  box-shadow: none !important;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf !important;
 }
-body.theme-retro .btn-primary:active {
+body.theme-retro .btn-primary:active, body.theme-retro .taskbar-item.active {
   border-top: 2px solid #000000 !important;
   border-left: 2px solid #000000 !important;
   border-bottom: 2px solid #ffffff !important;
   border-right: 2px solid #ffffff !important;
+  box-shadow: inset 1px 1px #000000, inset -1px -1px #dfdfdf !important;
+  transform: none !important;
 }
+body.theme-retro .desktop-icon-wrapper {
+  background: transparent; border: 1px dotted transparent; box-shadow: none;
+}
+body.theme-retro .desktop-icon-wrapper:hover {
+  background: #000080; border: 1px dotted #ffffff; transform: none; box-shadow: none;
+}
+body.theme-retro .desktop-icon-label { color: white; text-shadow: 1px 1px 0 black; }
+body.theme-retro .desktop-icon-wrapper:hover .desktop-icon-label { color: white; text-shadow: none; }
+body.theme-retro .desktop-icon img { image-rendering: pixelated; filter: contrast(1.2); }
 
 /* =========================================
-   2. TEMA "PANIC" (Ansia) - theme-panic
+   2. TEMA "PANIC" (Ansia)
    ========================================= */
 body.theme-panic {
+  font-family: "Impact", "Arial Black", sans-serif !important;
   --color-primary: #dc2626;
-  --color-secondary: #991b1b;
-  --color-background: rgba(40, 0, 0, 0.9);
-  --color-surface: rgba(20, 0, 0, 0.8);
-  --color-text: #fca5a5;
-  --color-border: #dc2626;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --shadow-sm: 0 0 10px rgba(220, 38, 38, 0.5);
-  --shadow-md: 0 0 20px rgba(220, 38, 38, 0.6);
-  --shadow-lg: 0 0 30px rgba(220, 38, 38, 0.7);
-  --font-sans: "Impact", "Arial Black", sans-serif;
+  --color-text-main: #fca5a5;
 }
-
-body.theme-panic .os-window,
-body.theme-panic .glass-panel {
-  animation: panic-heartbeat 2s infinite, panic-glitch 5s infinite;
-  border: 1px solid #dc2626 !important;
+body.theme-panic .os-window, body.theme-panic .taskbar, body.theme-panic .glass-panel {
+  background: rgba(40, 0, 0, 0.95) !important;
+  border: 2px solid #dc2626 !important;
+  animation: panic-heartbeat 2s infinite, panic-glitch 4s infinite !important;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.4) !important;
 }
+body.theme-panic .window-titlebar {
+  background: #991b1b !important;
+  color: white !important;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+body.theme-panic .btn-primary {
+  background: #dc2626 !important;
+  color: white !important;
+  border: 1px solid #ff0000 !important;
+  box-shadow: 0 0 10px #dc2626 !important;
+}
+body.theme-panic .desktop-icon img {
+  filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(6) contrast(2);
+  animation: panic-glitch 3s infinite;
+}
+body.theme-panic .desktop-icon-label { color: #fca5a5; text-shadow: 0 0 5px #dc2626; font-size: 1.1rem; }
 
 @keyframes panic-heartbeat {
-  0% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
-  15% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); transform: scale(1.01); }
-  30% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
-  45% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); transform: scale(1.01); }
-  60% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
-  100% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
+  0% { transform: scale(1); }
+  15% { transform: scale(1.02); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.02); }
+  60% { transform: scale(1); }
+  100% { transform: scale(1); }
 }
-
 @keyframes panic-glitch {
   0% { transform: translate(0) skew(0); }
   98% { transform: translate(0) skew(0); }
-  99% { transform: translate(-5px, 2px) skew(10deg); filter: hue-rotate(90deg); }
+  99% { transform: translate(-3px, 2px) skew(5deg); filter: hue-rotate(90deg); }
   100% { transform: translate(0) skew(0); filter: hue-rotate(0deg); }
 }
 
 /* 3. ZEN (Namastè) */
 body.theme-zen {
-  --color-bg: #fdfbf7;
-  --color-surface: rgba(245, 240, 230, 0.8);
-  --color-surface-solid: #f4ede1;
-  --color-app-bg: rgba(250, 247, 242, 0.9);
-  
+  font-family: 'Inter', sans-serif !important;
   --color-primary: #a78bfa;
-  --color-text-main: #a8a29e; /* extremely low contrast intentionally */
-  --color-text-muted: #d6d3d1;
-  
-  --color-border: rgba(167, 139, 250, 0.2);
-  
-  /* Very slow animations */
-  --transition-normal: 1.5s ease-in-out;
-  --transition-bounce: 2s ease-in-out;
+}
+body.theme-zen * {
+  transition: all 1.5s ease-in-out !important; /* ultra slow */
+}
+body.theme-zen .os-window, body.theme-zen .taskbar, body.theme-zen .glass-panel {
+  background: rgba(250, 247, 242, 0.6) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(167, 139, 250, 0.2) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 40px rgba(167, 139, 250, 0.1) !important;
+}
+body.theme-zen .window-titlebar {
+  background: transparent !important;
+  color: #a8a29e !important;
+  font-weight: 300 !important;
+  letter-spacing: 4px;
+}
+body.theme-zen .btn-primary {
+  background: rgba(167, 139, 250, 0.2) !important;
+  color: #7c3aed !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+body.theme-zen .desktop-icon img {
+  filter: sepia(0.3) opacity(0.8) contrast(0.9);
+}
+body.theme-zen .desktop-icon-label {
+  color: #57534e; text-shadow: 0 0 10px white;
 }
 
 /* 4. MATRIX (Hacker) */
 body.theme-matrix {
-  --color-bg: #000000;
-  --color-surface: #000000;
-  --color-surface-solid: #000000;
-  --color-app-bg: #000000;
-  
-  --color-primary: #00ff00;
-  --color-text-main: #00ff00;
-  --color-text-muted: #008800;
-  
-  --color-border: #00ff00;
-  --color-border-light: rgba(0, 255, 0, 0.3);
-  
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-full: 0px;
-  
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: none;
-
   font-family: 'Courier New', Courier, monospace !important;
+  --color-primary: #00ff00;
+  color: #00ff00 !important;
 }
-
 body.theme-matrix * {
-  box-shadow: none !important;
+  border-radius: 0 !important; box-shadow: none !important; text-shadow: none !important;
+}
+body.theme-matrix .os-window, body.theme-matrix .taskbar, body.theme-matrix .glass-panel {
+  background: black !important;
   backdrop-filter: none !important;
+  border: 1px solid #00ff00 !important;
+}
+body.theme-matrix .window-titlebar {
+  background: #003300 !important;
+  color: #00ff00 !important;
+  border-bottom: 1px solid #00ff00 !important;
+}
+body.theme-matrix .btn-primary {
+  background: black !important;
+  color: #00ff00 !important;
+  border: 1px solid #00ff00 !important;
+}
+body.theme-matrix .btn-primary:hover, body.theme-matrix .taskbar-item.active {
+  background: #00ff00 !important; color: black !important;
+}
+body.theme-matrix .desktop-icon img {
+  filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(5) brightness(0.8) contrast(2);
+}
+body.theme-matrix .desktop-icon-label {
+  color: #00ff00; background: black; padding: 2px;
 }
 
 /* 5. KAWAII (Princess) */
 body.theme-kawaii {
-  --color-bg: #fce7f3;
-  --color-surface: rgba(253, 232, 243, 0.7);
-  --color-surface-solid: #fdf2f8;
-  --color-app-bg: rgba(255, 241, 242, 0.8);
-  
-  --color-primary: #ec4899;
-  --color-text-main: #831843;
-  --color-text-muted: #be185d;
-  
-  --color-border: rgba(244, 114, 182, 0.4);
-  
-  --shadow-md: 0 10px 30px rgba(236, 72, 153, 0.2);
-  
-  --radius-sm: 16px;
-  --radius-md: 24px;
-  --radius-lg: 32px;
-  
   font-family: 'Quicksand', 'Nunito', sans-serif !important;
+}
+body.theme-kawaii * {
+  border-radius: 24px !important;
+}
+body.theme-kawaii .os-window, body.theme-kawaii .taskbar, body.theme-kawaii .glass-panel {
+  background: rgba(255, 241, 242, 0.95) !important;
+  border: 4px solid #fbcfe8 !important;
+  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.2) !important;
+}
+body.theme-kawaii .window-titlebar {
+  background: #fbcfe8 !important;
+  color: #831843 !important;
+  font-weight: 800 !important;
+}
+body.theme-kawaii .btn-primary {
+  background: #ec4899 !important;
+  color: white !important;
+  box-shadow: 0 6px 0px #be185d !important;
+  font-weight: 800 !important;
+  transform: translateY(0);
+  transition: transform 0.1s;
+}
+body.theme-kawaii .btn-primary:active {
+  transform: translateY(6px) !important;
+  box-shadow: 0 0px 0px #be185d !important;
+}
+body.theme-kawaii .desktop-icon img {
+  filter: saturate(1.5) hue-rotate(-20deg) brightness(1.1);
+}
+body.theme-kawaii .desktop-icon-label {
+  color: #831843; font-weight: bold; background: white; border-radius: 10px !important; padding: 2px 8px; border: 2px solid #fbcfe8;
 }
 
 /* 6. CARTOON */
 body.theme-cartoon {
-  --color-bg: #fef08a;
-  --color-surface: #ffffff;
-  --color-surface-solid: #ffffff;
-  --color-app-bg: #ffffff;
-  
-  --color-primary: #ef4444;
-  --color-text-main: #000000;
-  --color-text-muted: #333333;
-  
-  --color-border: #000000;
-  --color-border-light: #000000;
-  
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  
-  --shadow-sm: 4px 4px 0px #000000;
-  --shadow-md: 6px 6px 0px #000000;
-  --shadow-lg: 8px 8px 0px #000000;
-  
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif !important;
 }
-
 body.theme-cartoon * {
-  border-width: 2px !important;
-  border-color: #000000 !important;
-  border-style: solid !important;
+  border-radius: 12px !important;
+}
+body.theme-cartoon .os-window, body.theme-cartoon .taskbar, body.theme-cartoon .glass-panel {
+  background: #ffffff !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+}
+body.theme-cartoon .window-titlebar {
+  background: #fef08a !important;
+  color: #000000 !important;
+  border-bottom: 4px solid #000000 !important;
+  font-weight: 900 !important;
+  font-size: 1.3rem;
+}
+body.theme-cartoon .btn-primary {
+  background: #ef4444 !important;
+  color: white !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px #000000 !important;
+  transform: translate(0, 0);
+  transition: transform 0.1s;
+}
+body.theme-cartoon .btn-primary:active {
+  transform: translate(4px, 4px) !important;
+  box-shadow: 0px 0px 0px #000000 !important;
+}
+body.theme-cartoon .desktop-icon img {
+  filter: saturate(2) contrast(1.5);
+  border: 3px solid black !important;
+  border-radius: 50% !important;
+  background: white;
+}
+body.theme-cartoon .desktop-icon-label {
+  color: black; font-weight: 900; text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;
 }
 
 /* 7. NEON */
 body.theme-neon {
-  --color-bg: #09090b;
-  --color-surface: rgba(24, 24, 27, 0.8);
-  --color-surface-solid: #18181b;
-  --color-app-bg: rgba(9, 9, 11, 0.9);
-  
-  --color-primary: #22d3ee;
-  --color-text-main: #ffffff;
-  --color-text-muted: #a1a1aa;
-  
-  --color-border: #22d3ee;
-  
-  --shadow-sm: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 10px rgba(34, 211, 238, 0.5);
-  --shadow-md: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.8);
-  --shadow-lg: 0 0 15px rgba(34, 211, 238, 1), 0 0 30px rgba(34, 211, 238, 1);
+  font-family: 'Inter', sans-serif !important;
+}
+body.theme-neon .os-window, body.theme-neon .taskbar, body.theme-neon .glass-panel {
+  background: rgba(9, 9, 11, 0.95) !important;
+  border: 1px solid #22d3ee !important;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5), inset 0 0 20px rgba(34, 211, 238, 0.1) !important;
+}
+body.theme-neon .window-titlebar {
+  background: transparent !important;
+  color: #22d3ee !important;
+  border-bottom: 1px solid #22d3ee !important;
+  text-shadow: 0 0 10px #22d3ee;
+}
+body.theme-neon .btn-primary {
+  background: transparent !important;
+  color: #22d3ee !important;
+  border: 2px solid #22d3ee !important;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.5), inset 0 0 10px rgba(34, 211, 238, 0.3) !important;
+  text-shadow: 0 0 5px #22d3ee;
+  transition: all 0.3s;
+}
+body.theme-neon .btn-primary:hover {
+  background: #22d3ee !important;
+  color: black !important;
+  box-shadow: 0 0 25px rgba(34, 211, 238, 1), inset 0 0 20px rgba(34, 211, 238, 0.8) !important;
+}
+body.theme-neon .desktop-icon img {
+  filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(5) brightness(1.2);
+  filter: drop-shadow(0 0 10px #22d3ee); /* use drop-shadow for neon */
+}
+body.theme-neon .desktop-icon-label {
+  color: #22d3ee; text-shadow: 0 0 8px #22d3ee;
 }
 
 /* 8. ROBLOX */
