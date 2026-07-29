@@ -313,41 +313,44 @@ body.theme-cartoon .btn-primary:active, body.theme-cartoon .os-theme-btn.active 
   background: #ff0000 !important;
 }
 
-/* 7. NEON (Cyberpunk Estremo) - Clip-Path Geometry */
+/* 7. NEON (Cyberpunk Estremo) - Clip-Path Geometry & Extreme Glow */
 body.theme-neon {
   font-family: 'Orbitron', 'Inter', sans-serif !important;
-  background-color: #050505 !important;
+  background-color: #000000 !important;
   background-image: 
-    linear-gradient(rgba(34, 211, 238, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.1) 1px, transparent 1px) !important;
+    linear-gradient(rgba(34, 211, 238, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.15) 1px, transparent 1px) !important;
   background-size: 40px 40px !important;
   color: #fff !important;
 }
 body.theme-neon * { border-radius: 0 !important; }
 body.theme-neon .os-window {
-  background: rgba(5, 5, 10, 0.9) !important;
+  background: rgba(0, 0, 5, 0.95) !important;
   border: 2px solid #22d3ee !important;
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.6), inset 0 0 30px rgba(34, 211, 238, 0.2) !important;
-  /* FUTURISTIC SLANTED CORNERS */
+  /* MASSIVE NEON GLOW */
+  box-shadow: 0 0 10px #22d3ee, 0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.4), inset 0 0 30px rgba(34, 211, 238, 0.5) !important;
   clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 30px 100%, 0 calc(100% - 30px)) !important;
 }
 body.theme-neon .taskbar {
-  background: rgba(5, 5, 10, 0.9) !important;
+  background: rgba(0, 0, 5, 0.95) !important;
   border-top: 2px solid #ff00ff !important;
-  box-shadow: 0 -5px 20px rgba(255, 0, 255, 0.5) !important;
+  box-shadow: 0 -5px 15px #ff00ff, 0 -10px 40px rgba(255, 0, 255, 0.6) !important;
 }
 body.theme-neon .window-titlebar {
-  background: rgba(34, 211, 238, 0.1) !important;
+  background: rgba(34, 211, 238, 0.15) !important;
   color: #ff00ff !important;
   border-bottom: 2px solid #ff00ff !important;
-  text-shadow: 0 0 10px #ff00ff;
+  /* MASSIVE TEXT GLOW */
+  text-shadow: 0 0 5px #ff00ff, 0 0 15px #ff00ff, 0 0 30px #ff00ff, 0 0 50px #ff00ff !important;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4) !important;
 }
 body.theme-neon .os-settings-sidebar {
   background: rgba(255, 0, 255, 0.05) !important;
   border-right: 2px solid #ff00ff !important;
+  box-shadow: 5px 0 20px rgba(255, 0, 255, 0.3) !important;
 }
 body.theme-neon .os-settings-card {
   background: rgba(34, 211, 238, 0.05) !important;
@@ -355,25 +358,27 @@ body.theme-neon .os-settings-card {
   border-left: 4px solid #22d3ee !important;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
   margin-bottom: 20px;
+  box-shadow: -10px 0 20px rgba(34, 211, 238, 0.4), inset 10px 0 20px rgba(34, 211, 238, 0.1) !important;
 }
 body.theme-neon .btn-primary, body.theme-neon .os-theme-btn {
   background: transparent !important;
   color: #22d3ee !important;
   border: 2px solid #22d3ee !important;
-  box-shadow: 0 0 15px rgba(34, 211, 238, 0.5), inset 0 0 15px rgba(34, 211, 238, 0.2) !important;
-  text-shadow: 0 0 8px #22d3ee;
+  box-shadow: 0 0 10px #22d3ee, 0 0 20px rgba(34, 211, 238, 0.8), inset 0 0 15px rgba(34, 211, 238, 0.5) !important;
+  text-shadow: 0 0 5px #22d3ee, 0 0 10px #22d3ee !important;
   text-transform: uppercase;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 body.theme-neon .btn-primary:hover, body.theme-neon .os-theme-btn.active {
   background: #22d3ee !important;
   color: black !important;
-  box-shadow: 0 0 30px rgba(34, 211, 238, 1), inset 0 0 20px rgba(34, 211, 238, 1) !important;
+  box-shadow: 0 0 20px #22d3ee, 0 0 50px rgba(34, 211, 238, 1), inset 0 0 20px rgba(34, 211, 238, 1) !important;
   border-color: #ffffff !important;
+  text-shadow: none !important;
 }
 body.theme-neon .desktop-icon img {
-  filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(10) brightness(1.5) contrast(1.5);
-  filter: drop-shadow(0 0 15px #22d3ee); 
+  filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(10) brightness(1.5) contrast(2);
+  filter: drop-shadow(0 0 5px #22d3ee) drop-shadow(0 0 15px #22d3ee) !important; 
 }
 
 /* 8. ROBLOX */
