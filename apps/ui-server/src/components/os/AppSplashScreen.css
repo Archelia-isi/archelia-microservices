@@ -77,38 +77,54 @@ body[class*="theme-"] .os-window:has(.eq-splash-active) .window-titlebar,
 }
 
 /* Spinner rotating around the logo */
-.os-app-icon-spinner {
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  border-radius: 50% !important; /* Perfect circle - !important prevents themes from breaking it */
-  border: 3px solid rgba(0, 102, 204, 0.05); /* Subtle track */
-  border-top-color: #0066cc; /* Active spinning part */
-  animation: osSpinAround 1s linear infinite;
+body .os-app-splash-screen .os-app-icon-spinner,
+body[class*="theme-"] .os-app-splash-screen .os-app-icon-spinner {
+  position: absolute !important;
+  width: 150px !important;
+  height: 150px !important;
+  border-radius: 50% !important; /* Perfect circle */
+  border: 3px solid rgba(0, 102, 204, 0.05) !important; /* Subtle track */
+  border-top-color: #0066cc !important; /* Active spinning part */
+  animation: osSpinAround 1s linear infinite !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  transform-origin: center center !important;
 }
 
-.os-app-icon {
-  width: 100px;
-  height: 100px;
-  background: var(--color-surface-solid);
-  border-radius: 24px;
-  box-shadow: 0 10px 30px var(--color-hover-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
+body .os-app-splash-screen .os-app-icon,
+body[class*="theme-"] .os-app-splash-screen .os-app-icon {
+  width: 100px !important;
+  height: 100px !important;
+  background: var(--color-surface-solid) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 10px 30px var(--color-hover-dark) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2 !important;
+  clip-path: none !important;
+  border: none !important;
 }
 
-.os-app-icon svg, .os-app-icon img {
-  color: var(--color-text); width: 56px;
-  height: 56px;
-  object-fit: contain;
+body .os-app-splash-screen .os-app-icon svg, 
+body .os-app-splash-screen .os-app-icon img,
+body[class*="theme-"] .os-app-splash-screen .os-app-icon svg, 
+body[class*="theme-"] .os-app-splash-screen .os-app-icon img {
+  color: var(--color-text) !important; 
+  width: 56px !important;
+  height: 56px !important;
+  object-fit: contain !important;
+  filter: none !important;
 }
 
-.os-app-splash-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--color-text); letter-spacing: -0.02em;
+body .os-app-splash-screen .os-app-splash-title,
+body[class*="theme-"] .os-app-splash-screen .os-app-splash-title {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  color: var(--color-text) !important; 
+  letter-spacing: -0.02em !important;
+  text-shadow: none !important;
 }
 
 @keyframes osSpinAround {
