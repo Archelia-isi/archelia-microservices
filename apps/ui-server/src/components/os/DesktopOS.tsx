@@ -77,7 +77,7 @@ export default function DesktopOS() {
     document.body.className = document.body.className.replace(/\b(dark-theme|theme-\w+)\b/g, '').trim();
 
     // Theme (Light/Dark mode + Sarcastic themes)
-    const customThemes = ['retro', 'panic', 'zen', 'matrix', 'kawaii', 'cartoon', 'neon'];
+    const customThemes = ['retro', 'panic', 'zen', 'matrix', 'kawaii', 'cartoon', 'neon', 'roblox'];
     if (customThemes.includes(settings.theme)) {
       document.body.classList.add(`theme-${settings.theme}`);
       // Alcuni temi sarcastici forzano la modalità scura per l'UI di base
