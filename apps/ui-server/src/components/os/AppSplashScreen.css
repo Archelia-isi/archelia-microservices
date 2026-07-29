@@ -18,12 +18,20 @@
 }
 
 /* GLOBAL HACK: Hide the window frame when splash screen is active */
-.os-window:has(.os-app-splash-active) {
+body[class*="theme-"] .os-window:has(.os-app-splash-active),
+body[class*="theme-"] .os-window:has(.eq-splash-active),
+.os-window:has(.os-app-splash-active),
+.os-window:has(.eq-splash-active) {
   background: transparent !important;
   box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
 }
 
-.os-window:has(.os-app-splash-active) .window-inner {
+body[class*="theme-"] .os-window:has(.os-app-splash-active) .window-inner,
+body[class*="theme-"] .os-window:has(.eq-splash-active) .window-inner,
+.os-window:has(.os-app-splash-active) .window-inner,
+.os-window:has(.eq-splash-active) .window-inner {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -31,11 +39,28 @@
   -webkit-backdrop-filter: none !important;
 }
 
-.os-window:has(.os-app-splash-active) .window-content {
+body[class*="theme-"] .os-window:has(.os-app-splash-active) .window-content,
+body[class*="theme-"] .os-window:has(.eq-splash-active) .window-content,
+.os-window:has(.os-app-splash-active) .window-content,
+.os-window:has(.eq-splash-active) .window-content {
   background: transparent !important;
+  border: none !important;
 }
 
-.os-window:has(.os-app-splash-active) .window-titlebar {
+/* Hide the actual app UI (siblings) while loading */
+body[class*="theme-"] .os-window:has(.os-app-splash-active) .window-content > *:not(.os-app-splash-screen),
+.os-window:has(.os-app-splash-active) .window-content > *:not(.os-app-splash-screen),
+body[class*="theme-"] .os-window:has(.eq-splash-active) .window-content > *:not(.eq-splash-screen-content),
+.os-window:has(.eq-splash-active) .window-content > *:not(.eq-splash-screen-content) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+body[class*="theme-"] .os-window:has(.os-app-splash-active) .window-titlebar,
+body[class*="theme-"] .os-window:has(.eq-splash-active) .window-titlebar,
+.os-window:has(.os-app-splash-active) .window-titlebar,
+.os-window:has(.eq-splash-active) .window-titlebar {
   opacity: 0 !important;
   pointer-events: none !important;
 }

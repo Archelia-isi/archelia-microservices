@@ -11,6 +11,8 @@ body.theme-retro {
   --color-app-bg: #ffffff;
   --color-primary: #000080;
   --color-text-main: #000000;
+  background-color: #008080 !important;
+  background-image: none !important;
 }
 body.theme-retro * { border-radius: 0 !important; }
 body.theme-retro .glass-panel, body.theme-retro .ui-glass-panel, body.theme-retro .os-window, body.theme-retro .taskbar {
@@ -20,10 +22,10 @@ body.theme-retro .glass-panel, body.theme-retro .ui-glass-panel, body.theme-retr
   border-left: 2px solid #ffffff !important;
   border-bottom: 2px solid #000000 !important;
   border-right: 2px solid #000000 !important;
-  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf !important;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf, 2px 2px 0px rgba(0,0,0,0.5) !important;
 }
 body.theme-retro .window-titlebar {
-  background: #000080 !important;
+  background: linear-gradient(90deg, #000080, #1084d0) !important;
   color: white !important;
   padding: 4px 6px;
   border: none !important;
@@ -52,236 +54,288 @@ body.theme-retro .desktop-icon-wrapper {
 body.theme-retro .desktop-icon-wrapper:hover {
   background: #000080; border: 1px dotted #ffffff; transform: none; box-shadow: none;
 }
-body.theme-retro .desktop-icon-label { color: white; text-shadow: 1px 1px 0 black; }
+body.theme-retro .desktop-icon-label { color: white; text-shadow: 1px 1px 0 black; font-family: 'MS Sans Serif' !important;}
 body.theme-retro .desktop-icon-wrapper:hover .desktop-icon-label { color: white; text-shadow: none; }
 body.theme-retro .desktop-icon img { image-rendering: pixelated; filter: contrast(1.2); }
 
 /* =========================================
-   2. TEMA "PANIC" (Ansia)
+   2. TEMA "PANIC" (Ansia Estrema)
    ========================================= */
 body.theme-panic {
   font-family: "Impact", "Arial Black", sans-serif !important;
-  --color-primary: #dc2626;
-  --color-text-main: #fca5a5;
+  --color-primary: #ff0000;
+  --color-text-main: #ffffff;
+  background-color: #330000 !important;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,0,0,0.1) 2px, rgba(255,0,0,0.1) 4px) !important;
+  animation: panic-shake-screen 0.5s infinite !important;
 }
 body.theme-panic .os-window, body.theme-panic .taskbar, body.theme-panic .glass-panel {
   background: rgba(40, 0, 0, 0.95) !important;
-  border: 2px solid #dc2626 !important;
-  animation: panic-heartbeat 2s infinite, panic-glitch 4s infinite !important;
-  box-shadow: 0 0 20px rgba(220, 38, 38, 0.4) !important;
+  border: 4px solid #ff0000 !important;
+  animation: panic-heartbeat 1.5s infinite, panic-glitch 3s infinite !important;
+  box-shadow: 0 0 40px rgba(255, 0, 0, 0.8), inset 0 0 20px rgba(255, 0, 0, 0.5) !important;
 }
 body.theme-panic .window-titlebar {
-  background: #991b1b !important;
+  background: #ff0000 !important;
   color: white !important;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  font-size: 1.5rem;
+  letter-spacing: 5px;
+  text-shadow: 2px 2px 0 black;
 }
 body.theme-panic .btn-primary {
-  background: #dc2626 !important;
+  background: #ff0000 !important;
   color: white !important;
-  border: 1px solid #ff0000 !important;
-  box-shadow: 0 0 10px #dc2626 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 20px #ff0000 !important;
+  animation: panic-heartbeat 1s infinite !important;
 }
 body.theme-panic .desktop-icon img {
-  filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(6) contrast(2);
-  animation: panic-glitch 3s infinite;
+  filter: grayscale(1) sepia(1) hue-rotate(-50deg) saturate(10) contrast(3);
+  animation: panic-glitch 2s infinite;
 }
-body.theme-panic .desktop-icon-label { color: #fca5a5; text-shadow: 0 0 5px #dc2626; font-size: 1.1rem; }
+body.theme-panic .desktop-icon-label { color: #ff0000; text-shadow: 0 0 10px #ff0000, 2px 2px 0 black; font-size: 1.5rem; text-transform: uppercase; }
 
+@keyframes panic-shake-screen {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
 @keyframes panic-heartbeat {
   0% { transform: scale(1); }
-  15% { transform: scale(1.02); }
+  15% { transform: scale(1.05); }
   30% { transform: scale(1); }
-  45% { transform: scale(1.02); }
+  45% { transform: scale(1.05); }
   60% { transform: scale(1); }
   100% { transform: scale(1); }
 }
 @keyframes panic-glitch {
   0% { transform: translate(0) skew(0); }
-  98% { transform: translate(0) skew(0); }
-  99% { transform: translate(-3px, 2px) skew(5deg); filter: hue-rotate(90deg); }
+  98% { transform: translate(0) skew(0); filter: hue-rotate(0deg); }
+  99% { transform: translate(-10px, 5px) skew(20deg) scale(1.1); filter: hue-rotate(180deg) invert(1); }
   100% { transform: translate(0) skew(0); filter: hue-rotate(0deg); }
 }
 
-/* 3. ZEN (Namastè) */
+/* 3. ZEN (Namastè Estremo) */
 body.theme-zen {
   font-family: 'Inter', sans-serif !important;
   --color-primary: #a78bfa;
+  background: radial-gradient(circle at center, #fdfbf7 0%, #e0e7ff 100%) !important;
 }
 body.theme-zen * {
-  transition: all 1.5s ease-in-out !important; /* ultra slow */
+  transition: all 2s cubic-bezier(0.25, 1, 0.5, 1) !important; /* ultra slow and smooth */
+  border-radius: 40px !important; /* maximum roundness */
 }
 body.theme-zen .os-window, body.theme-zen .taskbar, body.theme-zen .glass-panel {
-  background: rgba(250, 247, 242, 0.6) !important;
-  backdrop-filter: blur(20px) !important;
-  border: 1px solid rgba(167, 139, 250, 0.2) !important;
-  border-radius: 20px !important;
-  box-shadow: 0 10px 40px rgba(167, 139, 250, 0.1) !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(40px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 20px 80px rgba(167, 139, 250, 0.15) !important;
 }
 body.theme-zen .window-titlebar {
   background: transparent !important;
-  color: #a8a29e !important;
-  font-weight: 300 !important;
-  letter-spacing: 4px;
+  color: #78716c !important;
+  font-weight: 200 !important;
+  letter-spacing: 8px;
+  text-align: center;
 }
 body.theme-zen .btn-primary {
-  background: rgba(167, 139, 250, 0.2) !important;
-  color: #7c3aed !important;
-  border-radius: 20px !important;
-  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  color: #8b5cf6 !important;
+  box-shadow: 0 10px 20px rgba(139, 92, 246, 0.1) !important;
 }
 body.theme-zen .desktop-icon img {
-  filter: sepia(0.3) opacity(0.8) contrast(0.9);
+  filter: sepia(0.5) opacity(0.6) blur(1px);
+}
+body.theme-zen .desktop-icon:hover img {
+  filter: sepia(0) opacity(1) blur(0px);
 }
 body.theme-zen .desktop-icon-label {
-  color: #57534e; text-shadow: 0 0 10px white;
+  color: #a8a29e; font-weight: 300; letter-spacing: 2px;
 }
 
-/* 4. MATRIX (Hacker) */
+/* 4. MATRIX (Hacker Estremo) */
 body.theme-matrix {
   font-family: 'Courier New', Courier, monospace !important;
   --color-primary: #00ff00;
   color: #00ff00 !important;
+  background-color: #000000 !important;
+  background-image: linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
 }
 body.theme-matrix * {
-  border-radius: 0 !important; box-shadow: none !important; text-shadow: none !important;
+  border-radius: 0 !important; box-shadow: none !important; text-shadow: 0 0 5px #00ff00 !important;
 }
 body.theme-matrix .os-window, body.theme-matrix .taskbar, body.theme-matrix .glass-panel {
-  background: black !important;
+  background: rgba(0,0,0,0.9) !important;
   backdrop-filter: none !important;
-  border: 1px solid #00ff00 !important;
+  border: 2px solid #00ff00 !important;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), inset 0 0 20px rgba(0, 255, 0, 0.2) !important;
 }
 body.theme-matrix .window-titlebar {
-  background: #003300 !important;
+  background: #002200 !important;
   color: #00ff00 !important;
-  border-bottom: 1px solid #00ff00 !important;
+  border-bottom: 2px solid #00ff00 !important;
+  font-weight: bold;
 }
 body.theme-matrix .btn-primary {
   background: black !important;
   color: #00ff00 !important;
-  border: 1px solid #00ff00 !important;
+  border: 2px solid #00ff00 !important;
+  text-transform: uppercase;
 }
 body.theme-matrix .btn-primary:hover, body.theme-matrix .taskbar-item.active {
-  background: #00ff00 !important; color: black !important;
+  background: #00ff00 !important; color: black !important; text-shadow: none !important;
 }
 body.theme-matrix .desktop-icon img {
-  filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(5) brightness(0.8) contrast(2);
+  filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(10) brightness(0.8) contrast(3);
 }
 body.theme-matrix .desktop-icon-label {
-  color: #00ff00; background: black; padding: 2px;
+  color: #00ff00; background: black; padding: 2px 5px; border: 1px solid #00ff00;
 }
 
-/* 5. KAWAII (Princess) */
+/* 5. KAWAII (Princess Estremo) */
 body.theme-kawaii {
   font-family: 'Quicksand', 'Nunito', sans-serif !important;
+  background-color: #ffb6c1 !important;
+  background-image: radial-gradient(#ff69b4 2px, transparent 2px) !important;
+  background-size: 30px 30px !important;
 }
 body.theme-kawaii * {
-  border-radius: 24px !important;
+  border-radius: 30px !important;
 }
 body.theme-kawaii .os-window, body.theme-kawaii .taskbar, body.theme-kawaii .glass-panel {
-  background: rgba(255, 241, 242, 0.95) !important;
-  border: 4px solid #fbcfe8 !important;
-  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.2) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 5px solid #ff69b4 !important;
+  box-shadow: 0 20px 50px rgba(255, 105, 180, 0.4), inset 0 0 20px rgba(255, 192, 203, 0.5) !important;
 }
 body.theme-kawaii .window-titlebar {
-  background: #fbcfe8 !important;
-  color: #831843 !important;
-  font-weight: 800 !important;
+  background: linear-gradient(90deg, #ffb6c1, #ff69b4) !important;
+  color: white !important;
+  font-weight: 900 !important;
+  text-shadow: 2px 2px 0px #c71585;
 }
 body.theme-kawaii .btn-primary {
-  background: #ec4899 !important;
+  background: linear-gradient(180deg, #ff69b4, #ff1493) !important;
   color: white !important;
-  box-shadow: 0 6px 0px #be185d !important;
-  font-weight: 800 !important;
+  box-shadow: 0 8px 0px #c71585 !important;
+  font-weight: 900 !important;
   transform: translateY(0);
   transition: transform 0.1s;
 }
 body.theme-kawaii .btn-primary:active {
-  transform: translateY(6px) !important;
-  box-shadow: 0 0px 0px #be185d !important;
+  transform: translateY(8px) !important;
+  box-shadow: 0 0px 0px #c71585 !important;
 }
 body.theme-kawaii .desktop-icon img {
-  filter: saturate(1.5) hue-rotate(-20deg) brightness(1.1);
+  filter: saturate(2) hue-rotate(-20deg) brightness(1.2) drop-shadow(0 10px 10px rgba(255, 105, 180, 0.5));
 }
 body.theme-kawaii .desktop-icon-label {
-  color: #831843; font-weight: bold; background: white; border-radius: 10px !important; padding: 2px 8px; border: 2px solid #fbcfe8;
+  color: #ff1493; font-weight: 900; background: white; border-radius: 20px !important; padding: 4px 12px; border: 3px solid #ff69b4;
 }
 
-/* 6. CARTOON */
+/* 6. CARTOON (Fumetto Estremo) */
 body.theme-cartoon {
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif !important;
+  background-color: #ffff00 !important;
+  background-image: radial-gradient(circle, #000 1px, rgba(0, 0, 0, 0) 1px) !important;
+  background-size: 20px 20px !important;
 }
 body.theme-cartoon * {
   border-radius: 12px !important;
 }
 body.theme-cartoon .os-window, body.theme-cartoon .taskbar, body.theme-cartoon .glass-panel {
   background: #ffffff !important;
-  border: 4px solid #000000 !important;
-  box-shadow: 8px 8px 0px #000000 !important;
+  border: 6px solid #000000 !important;
+  box-shadow: 12px 12px 0px #000000 !important;
 }
 body.theme-cartoon .window-titlebar {
-  background: #fef08a !important;
-  color: #000000 !important;
-  border-bottom: 4px solid #000000 !important;
+  background: #ff0000 !important;
+  color: #ffffff !important;
+  border-bottom: 6px solid #000000 !important;
   font-weight: 900 !important;
-  font-size: 1.3rem;
+  font-size: 1.5rem;
+  text-shadow: 3px 3px 0px #000;
 }
 body.theme-cartoon .btn-primary {
-  background: #ef4444 !important;
+  background: #0000ff !important;
   color: white !important;
-  border: 3px solid #000000 !important;
-  box-shadow: 4px 4px 0px #000000 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
   transform: translate(0, 0);
   transition: transform 0.1s;
+  font-weight: 900;
 }
 body.theme-cartoon .btn-primary:active {
-  transform: translate(4px, 4px) !important;
+  transform: translate(6px, 6px) !important;
   box-shadow: 0px 0px 0px #000000 !important;
 }
 body.theme-cartoon .desktop-icon img {
-  filter: saturate(2) contrast(1.5);
-  border: 3px solid black !important;
+  filter: saturate(3) contrast(2);
+  border: 4px solid black !important;
   border-radius: 50% !important;
   background: white;
+  box-shadow: 5px 5px 0px black;
 }
 body.theme-cartoon .desktop-icon-label {
-  color: black; font-weight: 900; text-shadow: 2px 2px 0 white, -2px -2px 0 white, 2px -2px 0 white, -2px 2px 0 white;
+  color: black; font-weight: 900; font-size: 1.2rem; text-shadow: 3px 3px 0 white, -3px -3px 0 white, 3px -3px 0 white, -3px 3px 0 white;
 }
 
-/* 7. NEON */
+/* 7. NEON (Cyberpunk Estremo) */
 body.theme-neon {
   font-family: 'Inter', sans-serif !important;
+  background-color: #050505 !important;
+  background-image: 
+    linear-gradient(rgba(34, 211, 238, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.1) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
 }
 body.theme-neon .os-window, body.theme-neon .taskbar, body.theme-neon .glass-panel {
-  background: rgba(9, 9, 11, 0.95) !important;
-  border: 1px solid #22d3ee !important;
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5), inset 0 0 20px rgba(34, 211, 238, 0.1) !important;
+  background: rgba(5, 5, 10, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 2px solid #22d3ee !important;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.6), inset 0 0 30px rgba(34, 211, 238, 0.2) !important;
+  border-radius: 0 !important;
 }
 body.theme-neon .window-titlebar {
-  background: transparent !important;
-  color: #22d3ee !important;
-  border-bottom: 1px solid #22d3ee !important;
-  text-shadow: 0 0 10px #22d3ee;
+  background: rgba(34, 211, 238, 0.1) !important;
+  color: #ff00ff !important;
+  border-bottom: 2px solid #ff00ff !important;
+  text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
 }
 body.theme-neon .btn-primary {
   background: transparent !important;
   color: #22d3ee !important;
   border: 2px solid #22d3ee !important;
-  box-shadow: 0 0 15px rgba(34, 211, 238, 0.5), inset 0 0 10px rgba(34, 211, 238, 0.3) !important;
-  text-shadow: 0 0 5px #22d3ee;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.8), inset 0 0 15px rgba(34, 211, 238, 0.5) !important;
+  text-shadow: 0 0 8px #22d3ee;
   transition: all 0.3s;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 body.theme-neon .btn-primary:hover {
   background: #22d3ee !important;
   color: black !important;
-  box-shadow: 0 0 25px rgba(34, 211, 238, 1), inset 0 0 20px rgba(34, 211, 238, 0.8) !important;
+  box-shadow: 0 0 40px rgba(34, 211, 238, 1), inset 0 0 30px rgba(34, 211, 238, 1) !important;
+  border-color: #ffffff !important;
 }
 body.theme-neon .desktop-icon img {
-  filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(5) brightness(1.2);
-  filter: drop-shadow(0 0 10px #22d3ee); /* use drop-shadow for neon */
+  filter: grayscale(1) sepia(1) hue-rotate(180deg) saturate(10) brightness(1.5) contrast(1.5);
+  filter: drop-shadow(0 0 15px #22d3ee); 
 }
 body.theme-neon .desktop-icon-label {
-  color: #22d3ee; text-shadow: 0 0 8px #22d3ee;
+  color: #ff00ff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; font-weight: 900; font-size: 1.1rem;
 }
 
 /* 8. ROBLOX */
