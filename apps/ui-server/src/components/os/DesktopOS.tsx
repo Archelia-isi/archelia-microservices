@@ -27,11 +27,18 @@ import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
 import * as LucideIcons from 'lucide-react';
+import * as FcIcons from 'react-icons/fc';
 
 const DynamicLucideIcon = ({ name, size = 40, color = 'var(--color-foreground)' }: { name: string, size?: number, color?: string }) => {
   const IconComponent = (LucideIcons as any)[name];
   if (!IconComponent) return <LucideIcons.Image size={size} color={color} />;
   return <IconComponent size={size} color={color} />;
+};
+
+const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
+  const IconComponent = (FcIcons as any)[name];
+  if (!IconComponent) return <FcIcons.FcFolder size={size} />;
+  return <IconComponent size={size} />;
 };
 
 export default function DesktopOS() {
@@ -362,6 +369,8 @@ export default function DesktopOS() {
                 {app.iconPath ? (
                   app.iconPath.startsWith('lucide:') ? (
                     <DynamicLucideIcon name={app.iconPath.split(':')[1]} />
+                  ) : app.iconPath.startsWith('fc:') ? (
+                    <DynamicFcIcon name={app.iconPath.split(':')[1]} />
                   ) : (
                     <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   )

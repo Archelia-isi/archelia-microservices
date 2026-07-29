@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { X, Search } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import * as FcIcons from 'react-icons/fc';
 import './IconPickerModal.css';
 
 interface Props {
@@ -16,13 +18,18 @@ const PREMIUM_STYLES = [
   { id: 'abstract', name: 'Astratto Geometrico' }
 ];
 
-import * as LucideIcons from 'lucide-react';
-
 const STANDARD_ICONS = Object.keys(LucideIcons)
   .filter(key => key[0] === key[0].toUpperCase() && key !== 'createLucideIcon' && key !== 'LucideProps' && key !== 'IconNode')
   .map(key => ({
     id: key,
     icon: (LucideIcons as any)[key]
+  }));
+
+const COLORED_ICONS = Object.keys(FcIcons)
+  .filter(key => key.startsWith('Fc'))
+  .map(key => ({
+    id: key,
+    icon: (FcIcons as any)[key]
   }));
 
 export default function IconPickerModal({ appId, onClose }: Props) {
@@ -38,9 +45,10 @@ export default function IconPickerModal({ appId, onClose }: Props) {
     onClose();
   };
 
-  const handleStandardSelect = (iconId: string) => {
-    changeAppIcon(appId, `lucide:${iconId}`);
-    saveIconPreference(appId, `lucide:${iconId}`);
+  const handleStandardSelect = (iconId: string, type: 'lucide' | 'fc' = 'lucide') => {
+    const prefix = type === 'fc' ? 'fc:' : 'lucide:';
+    changeAppIcon(appId, `${prefix}${iconId}`);
+    saveIconPreference(appId, `${prefix}${iconId}`);
     onClose();
   };
 
@@ -79,7 +87,11 @@ export default function IconPickerModal({ appId, onClose }: Props) {
   };
 
   const filteredStandard = STANDARD_ICONS.filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()));
-  const displayedStandard = searchTerm.length > 1 ? filteredStandard : filteredStandard.slice(0, 100);
+  const filteredColored = COLORED_ICONS.filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  // Rimozione limiti per poterle scorrere tutte
+  const displayedStandard = filteredStandard;
+  const displayedColored = filteredColored;
 
   return (
     <div className="icon-picker-overlay" onClick={onClose}>
@@ -92,6 +104,19 @@ export default function IconPickerModal({ appId, onClose }: Props) {
         </div>
         
         <div className="icon-picker-content">
+          <div className="icon-search-sticky">
+             <div className="icon-search" style={{ width: '100%', maxWidth: '100%', marginBottom: '1rem', padding: '0.75rem 1rem' }}>
+                <Search size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Cerca tra oltre 1500+ icone..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', fontSize: '1rem' }}
+                />
+              </div>
+          </div>
+
           <section className="icon-picker-section">
             <h3>Archelia Premium 3D AI</h3>
             <p className="icon-picker-desc">Icone esclusive ad altissima risoluzione generate appositamente per questa applicazione.</p>
@@ -109,29 +134,29 @@ export default function IconPickerModal({ appId, onClose }: Props) {
 
           <section className="icon-picker-section">
             <div className="standard-header">
-              <h3>Libreria Standard ({STANDARD_ICONS.length}+ Icone)</h3>
-              <div className="icon-search">
-                <Search size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Cerca icone..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+              <h3>Libreria Colorata ({COLORED_ICONS.length} Icone)</h3>
+            </div>
+            <div className="standard-icons-grid">
+              {displayedColored.map(item => (
+                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'fc')} title={item.id}>
+                  <item.icon size={28} />
+                </div>
+              ))}
+              {filteredColored.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
+            </div>
+          </section>
+
+          <section className="icon-picker-section">
+            <div className="standard-header">
+              <h3>Libreria Minimal ({STANDARD_ICONS.length}+ Icone)</h3>
             </div>
             <div className="standard-icons-grid">
               {displayedStandard.map(item => (
-                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id)} title={item.id}>
+                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id, 'lucide')} title={item.id}>
                   <item.icon size={24} />
                 </div>
               ))}
               {filteredStandard.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
-              {searchTerm.length <= 1 && filteredStandard.length > 100 && (
-                <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center', fontSize: '0.8rem', marginTop: '1rem'}}>
-                  Mostrando 100 di {filteredStandard.length} icone. Usa la ricerca per vederne altre.
-                </p>
-              )}
             </div>
           </section>
         </div>

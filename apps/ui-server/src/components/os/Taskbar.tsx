@@ -12,6 +12,14 @@ const DynamicLucideIcon = ({ name, size = 40, color = 'var(--color-foreground)' 
   return <IconComponent size={size} color={color} />;
 };
 
+import * as FcIcons from 'react-icons/fc';
+
+const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
+  const IconComponent = (FcIcons as any)[name];
+  if (!IconComponent) return <FcIcons.FcFolder size={size} />;
+  return <IconComponent size={size} />;
+};
+
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot } = useWindowStore();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
@@ -90,6 +98,8 @@ export default function Taskbar() {
                    {app.iconPath ? (
                      app.iconPath.startsWith('lucide:') ? (
                        <DynamicLucideIcon name={app.iconPath.split(':')[1]} />
+                     ) : app.iconPath.startsWith('fc:') ? (
+                       <DynamicFcIcon name={app.iconPath.split(':')[1]} />
                      ) : (
                        <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                      )
