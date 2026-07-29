@@ -28,6 +28,7 @@ import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
+import MouseTrail from './MouseTrail';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
 
@@ -404,6 +405,9 @@ export default function DesktopOS() {
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${currentWallpaper})` }}>
       <Toaster position="top-right" />
+      {/* Mouse Trail Globale (Attivo solo se tema Panic) */}
+      <MouseTrail />
+
       {/* Area Finestre e Widget */}
       <div 
         className="desktop-workspace"

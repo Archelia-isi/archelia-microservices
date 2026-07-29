@@ -60,40 +60,45 @@ body.theme-retro .btn-primary:active {
   border-right: 2px solid #ffffff !important;
 }
 
-/* 2. PANIC (Adrenalinica) */
+/* =========================================
+   2. TEMA "PANIC" (Ansia) - theme-panic
+   ========================================= */
 body.theme-panic {
-  --color-bg: #450a0a;
-  --color-surface: rgba(153, 27, 27, 0.7);
-  --color-surface-solid: #7f1d1d;
-  --color-app-bg: rgba(127, 29, 29, 0.8);
-  
   --color-primary: #dc2626;
-  --color-text-main: #fef2f2;
-  --color-text-muted: #fca5a5;
-  
-  --color-border: rgba(220, 38, 38, 0.5);
-  
-  /* Fast aggressive animations */
-  --transition-normal: 0.1s linear;
-  --transition-bounce: 0.2s linear;
+  --color-secondary: #991b1b;
+  --color-background: rgba(40, 0, 0, 0.9);
+  --color-surface: rgba(20, 0, 0, 0.8);
+  --color-text: #fca5a5;
+  --color-border: #dc2626;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --shadow-sm: 0 0 10px rgba(220, 38, 38, 0.5);
+  --shadow-md: 0 0 20px rgba(220, 38, 38, 0.6);
+  --shadow-lg: 0 0 30px rgba(220, 38, 38, 0.7);
+  --font-sans: "Impact", "Arial Black", sans-serif;
 }
 
-body.theme-panic .os-window, body.theme-panic .btn-primary {
-  animation: shake 0.5s infinite;
+body.theme-panic .os-window,
+body.theme-panic .glass-panel {
+  animation: panic-heartbeat 2s infinite, panic-glitch 5s infinite;
+  border: 1px solid #dc2626 !important;
 }
 
-@keyframes shake {
-  0% { transform: translate(1px, 1px) rotate(0deg); }
-  10% { transform: translate(-1px, -2px) rotate(-1deg); }
-  20% { transform: translate(-3px, 0px) rotate(1deg); }
-  30% { transform: translate(3px, 2px) rotate(0deg); }
-  40% { transform: translate(1px, -1px) rotate(1deg); }
-  50% { transform: translate(-1px, 2px) rotate(-1deg); }
-  60% { transform: translate(-3px, 1px) rotate(0deg); }
-  70% { transform: translate(3px, 1px) rotate(-1deg); }
-  80% { transform: translate(-1px, -1px) rotate(1deg); }
-  90% { transform: translate(1px, 2px) rotate(0deg); }
-  100% { transform: translate(1px, -2px) rotate(-1deg); }
+@keyframes panic-heartbeat {
+  0% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
+  15% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); transform: scale(1.01); }
+  30% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
+  45% { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); transform: scale(1.01); }
+  60% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
+  100% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.5); transform: scale(1); }
+}
+
+@keyframes panic-glitch {
+  0% { transform: translate(0) skew(0); }
+  98% { transform: translate(0) skew(0); }
+  99% { transform: translate(-5px, 2px) skew(10deg); filter: hue-rotate(90deg); }
+  100% { transform: translate(0) skew(0); filter: hue-rotate(0deg); }
 }
 
 /* 3. ZEN (Namastè) */
