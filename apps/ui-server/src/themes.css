@@ -225,33 +225,115 @@ body.theme-neon {
 /* 8. ROBLOX */
 body.theme-roblox {
   --color-bg: #95a5a6; /* Fallback for wallpaper */
-  --color-surface: rgba(236, 240, 241, 0.9);
-  --color-surface-solid: #ecf0f1;
-  --color-app-bg: rgba(255, 255, 255, 0.9);
+  --color-surface: #ffffff;
+  --color-surface-solid: #ffffff;
+  --color-app-bg: #f1f2f6;
   
-  --color-primary: #e74c3c;
-  --color-text-main: #2c3e50;
-  --color-text-muted: #7f8c8d;
+  --color-primary: #00a2ff; /* Roblox blue */
+  --color-text-main: #2f3542;
+  --color-text-muted: #57606f;
   
-  --color-border: #bdc3c7;
+  --color-border: #2f3542;
   
-  --shadow-sm: 2px 2px 0px #bdc3c7;
-  --shadow-md: 4px 4px 0px #bdc3c7;
-  --shadow-lg: 6px 6px 0px #bdc3c7;
+  --shadow-sm: 0 4px 0px rgba(0,0,0,0.2);
+  --shadow-md: 0 6px 0px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 0px rgba(0,0,0,0.2);
   --shadow-glass: none;
 
   --glass-blur: none;
   --glass-app-blur: none;
 
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-full: 0px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 24px;
 
-  font-family: 'Arial Black', Impact, sans-serif !important;
+  font-family: 'Fredoka One', 'Arial Black', Impact, sans-serif !important;
 }
 
 body.theme-roblox * {
-  border-radius: 0 !important;
+  border-radius: 4px !important;
+}
+
+body.theme-roblox .glass-panel,
+body.theme-roblox .ui-glass-panel,
+body.theme-roblox .os-window {
+  background: #ffffff !important;
+  border: 4px solid #2f3542 !important;
+  box-shadow: 8px 8px 0px #2f3542 !important;
+  border-radius: 12px !important;
+}
+
+body.theme-roblox .taskbar {
+  background: #ff4757 !important;
+  border-top: 4px solid #2f3542 !important;
+  box-shadow: none !important;
+}
+
+body.theme-roblox .window-titlebar {
+  background: #00a2ff !important;
+  color: white !important;
+  border-bottom: 4px solid #2f3542 !important;
+  border-radius: 8px 8px 0 0 !important;
+  font-weight: normal !important;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+body.theme-roblox .btn-primary,
+body.theme-roblox button.primary,
+body.theme-roblox .taskbar-item.active {
+  background: #00b06f !important;
+  color: white !important;
+  border: 3px solid #2f3542 !important;
+  box-shadow: 0 4px 0px #2f3542 !important;
+  border-radius: 8px !important;
+  text-transform: uppercase;
+  transform: translateY(0);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+body.theme-roblox .btn-primary:active,
+body.theme-roblox button.primary:active {
+  transform: translateY(4px) !important;
+  box-shadow: 0 0px 0px #2f3542 !important;
+}
+
+body.theme-roblox .desktop-icon-wrapper {
+  background: rgba(255, 255, 255, 0.9);
+  border: 4px solid #2f3542;
+  border-radius: 12px !important;
+  padding: 8px;
+  box-shadow: 6px 6px 0px #2f3542;
+  transition: transform 0.1s;
+}
+
+body.theme-roblox .desktop-icon-wrapper:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 6px 11px 0px #2f3542;
+}
+
+body.theme-roblox .desktop-icon-label {
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #2f3542, -2px -2px 0 #2f3542, 2px -2px 0 #2f3542, -2px 2px 0 #2f3542, 0 4px 0 #2f3542;
+  font-size: 14px;
+  margin-top: 8px;
+  letter-spacing: 1px;
+}
+
+body.theme-roblox h1, 
+body.theme-roblox h2, 
+body.theme-roblox h3 {
+  color: #2f3542;
+  text-shadow: 2px 2px 0px #dfe4ea;
+  text-transform: uppercase;
+}
+
+body.theme-roblox input,
+body.theme-roblox select,
+body.theme-roblox textarea {
+  border: 3px solid #2f3542 !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 4px 0 rgba(0,0,0,0.05) !important;
 }
