@@ -23,7 +23,7 @@
   position: absolute;
   top: var(--spacing-xl);
   right: var(--spacing-xl);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
   border: none;
   border-radius: 50%;
   width: 48px;
@@ -38,7 +38,7 @@
 }
 
 .ui-lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-surface);
   transform: scale(1.05);
 }
 
@@ -70,7 +70,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface);
   border: none;
   border-radius: 50%;
   width: 56px;
@@ -85,7 +85,7 @@
 }
 
 .ui-lightbox-nav:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-surface);
   transform: translateY(-50%) scale(1.1);
 }
 

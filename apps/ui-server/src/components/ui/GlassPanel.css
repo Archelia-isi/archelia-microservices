@@ -5,14 +5,14 @@
 
 /* Variants */
 .ui-glass-light {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--color-surface);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid var(--color-border-glass);
 }
 
 .ui-glass-heavy {
-  background: rgba(245, 245, 247, 0.85);
+  background: var(--color-app-bg);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid var(--color-border-light);
@@ -20,7 +20,7 @@
 
 .ui-glass-solid {
   background: var(--color-surface-solid);
-  border: 1px solid var(--color-hover-light);
+  border: 1px solid var(--color-border);
 }
 
 /* Padding */

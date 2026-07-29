@@ -33,7 +33,7 @@
 
 /* Variants */
 .ui-btn-modern {
-  background: #fbfbfd;
+  background: var(--color-surface-solid);
   color: var(--color-text); border: 1px solid var(--color-border-light);
 }
 .ui-btn-modern:hover {

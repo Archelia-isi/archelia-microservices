@@ -67,7 +67,7 @@
   box-shadow: 0 2px 8px var(--color-hover-light), 0 0 0 0.5px var(--color-hover-light);
 }
 .ui-tab-block:hover:not(.active) {
-  background: rgba(255,255,255,0.4);
+  background: var(--color-surface);
 }
 
 .ui-tab-icon {
