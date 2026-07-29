@@ -15,6 +15,10 @@ export interface OSSettingsState {
   autoLockMinutes: number; // 0 = never
   systemVolume: number; // 0-100
   systemSoundsEnabled: boolean;
+  soundClicksEnabled: boolean;
+  soundWindowsEnabled: boolean;
+  soundNotificationsEnabled: boolean;
+  soundErrorsEnabled: boolean;
 
   setTheme: (theme: Theme) => void;
   setAccentColor: (color: string) => void;
@@ -26,6 +30,10 @@ export interface OSSettingsState {
   setAutoLockMinutes: (minutes: number) => void;
   setSystemVolume: (volume: number) => void;
   setSystemSoundsEnabled: (enabled: boolean) => void;
+  setSoundClicksEnabled: (enabled: boolean) => void;
+  setSoundWindowsEnabled: (enabled: boolean) => void;
+  setSoundNotificationsEnabled: (enabled: boolean) => void;
+  setSoundErrorsEnabled: (enabled: boolean) => void;
 }
 
 export const useSettingsStore = create<OSSettingsState>()(
@@ -41,6 +49,10 @@ export const useSettingsStore = create<OSSettingsState>()(
       autoLockMinutes: 15,
       systemVolume: 80,
       systemSoundsEnabled: true,
+      soundClicksEnabled: true,
+      soundWindowsEnabled: true,
+      soundNotificationsEnabled: true,
+      soundErrorsEnabled: true,
 
       setTheme: (theme) => set({ theme }),
       setAccentColor: (accentColor) => set({ accentColor }),
@@ -52,6 +64,10 @@ export const useSettingsStore = create<OSSettingsState>()(
       setAutoLockMinutes: (autoLockMinutes) => set({ autoLockMinutes }),
       setSystemVolume: (systemVolume) => set({ systemVolume }),
       setSystemSoundsEnabled: (systemSoundsEnabled) => set({ systemSoundsEnabled }),
+      setSoundClicksEnabled: (soundClicksEnabled) => set({ soundClicksEnabled }),
+      setSoundWindowsEnabled: (soundWindowsEnabled) => set({ soundWindowsEnabled }),
+      setSoundNotificationsEnabled: (soundNotificationsEnabled) => set({ soundNotificationsEnabled }),
+      setSoundErrorsEnabled: (soundErrorsEnabled) => set({ soundErrorsEnabled }),
     }),
     {
       name: 'archelia-os-settings',

@@ -42,7 +42,6 @@ export default function LoginScreen({ onLoginSuccess, wallpaper }: LoginScreenPr
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         toast.success(`Benvenuto ${data.user.displayName || data.user.username}`);
-        soundEngine.playOpenApp();
         onLoginSuccess();
       } else {
         soundEngine.playError();

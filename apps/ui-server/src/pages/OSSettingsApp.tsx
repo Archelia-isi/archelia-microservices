@@ -232,14 +232,48 @@ export default function OSSettingsApp() {
                 </div>
               </div>
             </div>
+            
             <div className="os-settings-card">
-              <div className="os-settings-row">
+              <div className="os-settings-row" style={{ marginBottom: '1rem' }}>
                 <div>
-                  <h3>Suoni di Sistema</h3>
-                  <p>Abilita i suoni per le notifiche, avvisi e clic.</p>
+                  <h3 style={{ margin: 0 }}>Suoni di Sistema (Master)</h3>
+                  <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Abilita o disabilita tutto l'audio dell'OS.</p>
                 </div>
                 <Switch checked={settings.systemSoundsEnabled} onChange={(c) => settings.setSystemSoundsEnabled(c)} />
               </div>
+              
+              {settings.systemSoundsEnabled && (
+                <div style={{ paddingLeft: '1rem', borderLeft: '2px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Click e Interazioni</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Suoni per click, bottoni, tab e interruttori.</p>
+                    </div>
+                    <Switch checked={settings.soundClicksEnabled} onChange={(c) => settings.setSoundClicksEnabled(c)} />
+                  </div>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Apertura e Chiusura Finestre</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Suoni all'avvio e chiusura delle applicazioni.</p>
+                    </div>
+                    <Switch checked={settings.soundWindowsEnabled} onChange={(c) => settings.setSoundWindowsEnabled(c)} />
+                  </div>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Notifiche</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Suoni all'arrivo di nuove notifiche di sistema.</p>
+                    </div>
+                    <Switch checked={settings.soundNotificationsEnabled} onChange={(c) => settings.setSoundNotificationsEnabled(c)} />
+                  </div>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Avvisi ed Errori</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Suoni riprodotti in caso di fallimenti (es. login errato).</p>
+                    </div>
+                    <Switch checked={settings.soundErrorsEnabled} onChange={(c) => settings.setSoundErrorsEnabled(c)} />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

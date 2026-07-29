@@ -57,44 +57,46 @@ class SoundEngine {
 
   // Suono per click leggeri (tab, bottoni)
   playClick() {
+    if (!useSettingsStore.getState().soundClicksEnabled) return;
     this.playTone(600, 'sine', 0.05, 0.5);
   }
 
   // Suono per toggle/switch abilitati
   playToggleOn() {
-    if (!this.canPlay()) return;
+    if (!this.canPlay() || !useSettingsStore.getState().soundClicksEnabled) return;
     this.playTone(400, 'sine', 0.05, 0.4);
     setTimeout(() => this.playTone(600, 'sine', 0.1, 0.5), 50);
   }
 
   // Suono per toggle/switch disabilitati
   playToggleOff() {
-    if (!this.canPlay()) return;
+    if (!this.canPlay() || !useSettingsStore.getState().soundClicksEnabled) return;
     this.playTone(300, 'sine', 0.1, 0.4);
   }
 
   // Suono per apertura app/finestre
   playOpenApp() {
-    if (!this.canPlay()) return;
+    if (!this.canPlay() || !useSettingsStore.getState().soundWindowsEnabled) return;
     this.playTone(523.25, 'sine', 0.1, 0.3); // C5
     setTimeout(() => this.playTone(659.25, 'sine', 0.2, 0.3), 50); // E5
   }
 
   // Suono per chiusura app/finestre
   playCloseApp() {
+    if (!useSettingsStore.getState().soundWindowsEnabled) return;
     this.playTone(300, 'sine', 0.15, 0.3);
   }
 
   // Suono per notifiche o popup importanti
   playNotification() {
-    if (!this.canPlay()) return;
+    if (!this.canPlay() || !useSettingsStore.getState().soundNotificationsEnabled) return;
     this.playTone(880, 'sine', 0.1, 0.4); // A5
     setTimeout(() => this.playTone(1108.73, 'sine', 0.3, 0.4), 100); // C#6
   }
 
   // Suono per avvisi/errori
   playError() {
-    if (!this.canPlay()) return;
+    if (!this.canPlay() || !useSettingsStore.getState().soundErrorsEnabled) return;
     this.playTone(150, 'sawtooth', 0.1, 0.3);
     setTimeout(() => this.playTone(150, 'sawtooth', 0.2, 0.3), 120);
   }
