@@ -3,7 +3,6 @@ import { useWindowStore } from '../../store/useWindowStore';
 import { User, LogOut, Search, Sparkles, Clock, Activity } from 'lucide-react';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
-import GlassPanel from '../ui/GlassPanel';
 import './StartMenu.css';
 
 interface StartMenuProps {
@@ -28,7 +27,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
   return (
     <div className="start-menu-overlay" onClick={onClose}>
-      <GlassPanel className="start-menu" onClick={e => e.stopPropagation()}>
+      <div className="start-menu" onClick={e => e.stopPropagation()}>
         
         {/* Header - Search */}
         <div className="start-menu-header" style={{ borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '1rem', marginBottom: '1rem' }}>
@@ -52,8 +51,8 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
             <div 
               style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border-glass)',
+                background: 'var(--color-surface-solid)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-lg)',
                 padding: '1rem',
                 cursor: 'pointer',
@@ -73,8 +72,8 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
             <div 
               style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border-glass)',
+                background: 'var(--color-surface-solid)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-lg)',
                 padding: '1rem',
                 cursor: 'pointer',
@@ -83,7 +82,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
               }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              onClick={() => handleOpenApp('settings')}
+              onClick={() => handleOpenApp('os-settings')}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <Clock size={16} color="var(--color-warning)" />
@@ -138,7 +137,8 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: 'var(--color-surface)',
+                    backgroundColor: 'var(--color-surface-solid)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '25%',
                     boxShadow: 'var(--shadow-sm)',
                     overflow: 'hidden'
@@ -199,7 +199,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
             <LogOut size={20} />
           </button>
         </div>
-      </GlassPanel>
+      </div>
     </div>
   );
 }

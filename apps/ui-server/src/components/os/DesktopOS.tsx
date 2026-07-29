@@ -26,7 +26,7 @@ import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
-import PersonalizationApp from '../../pages/PersonalizationApp';
+import OSSettingsApp from '../../pages/OSSettingsApp';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
 
@@ -275,8 +275,8 @@ export default function DesktopOS() {
       registerApp({ id: 'promo-manual', title: 'Promozioni AI (Manuale)', icon: <DynamicFcIcon name="FcBullish" />, color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 230, desktopY: 230 });
     }
     
-    if (!windows['personalization']) {
-      registerApp({ id: 'personalization', title: 'Personalizzazione', icon: <DynamicFcIcon name="FcPicture" />, color: 'transparent', component: <PersonalizationApp />, x: 100, y: 100, width: 800, height: 600 });
+    if (!windows['os-settings']) {
+      registerApp({ id: 'os-settings', title: 'Impostazioni', icon: <DynamicFcIcon name="FcSettings" />, color: 'transparent', component: <OSSettingsApp />, x: 100, y: 100, width: 900, height: 700 });
     }
 
     if (!windows['promo_auto']) {
