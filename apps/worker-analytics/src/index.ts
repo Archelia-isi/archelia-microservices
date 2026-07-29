@@ -141,3 +141,14 @@ worker.on('completed', (job) => {
 worker.on('failed', (job, err) => {
   log.error(`Job ${job?.id} (${job?.name}) fallito: ${err.message}`, { module: 'worker-analytics' });
 });
+
+// --- DUMMY HTTP SERVER PER HEALTH CHECK RAILWAY ---
+import http from 'http';
+const PORT = process.env.PORT || 8080;
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('Worker Analytics is online!');
+});
+server.listen(PORT, () => {
+  log.info(`Dummy HTTP server listening on port ${PORT} for Railway health checks.`, { module: 'worker-analytics' });
+});
