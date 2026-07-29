@@ -6,6 +6,8 @@ import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
 import './StartMenu.css';
 
+import { useSettingsStore } from '../../store/useSettingsStore';
+
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 interface StartMenuProps {
@@ -14,6 +16,7 @@ interface StartMenuProps {
 
 export default function StartMenu({ onClose }: StartMenuProps) {
   const { openWindow, windows } = useWindowStore();
+  const { activeTheme } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleOpenApp = (appId: string) => {
@@ -23,10 +26,14 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
   // Convert windows object to array and filter by search query, removing os-settings
   const apps = useMemo(() => {
-    let allApps = Object.values(windows).filter(app => app.id !== 'os-settings');
+    let allApps = Object.values(windows).filter(app => {
+      if (app.id === 'os-settings') return false;
+      if (app.id === 'roblox_game' && activeTheme !== 'roblox') return false;
+      return true;
+    });
     if (!searchQuery.trim()) return allApps;
     return allApps.filter(app => app.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [windows, searchQuery]);
+  }, [windows, searchQuery, activeTheme]);
 
   const isElectron = !!(window as any).__IS_ELECTRON__;
   const isMac = navigator.userAgent.toLowerCase().includes('mac');
