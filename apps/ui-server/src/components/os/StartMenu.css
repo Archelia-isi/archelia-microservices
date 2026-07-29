@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  bottom: 60px; /* Lascia scoperta la nuova taskbar */
+  bottom: 60px; /* Lascia scoperta la taskbar */
   z-index: 9999;
 }
 
@@ -11,16 +11,10 @@
   position: absolute;
   bottom: 12px;
   left: 12px;
-  width: 320px;
-  background: var(--color-surface);
-  backdrop-filter: var(--glass-app-blur) saturate(200%);
-  -webkit-backdrop-filter: var(--glass-app-blur) saturate(200%);
-  border: 1px solid var(--color-border-glass);
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5);
+  width: 700px;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   animation: startMenuSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -29,149 +23,17 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.start-menu-header {
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-border-light);
-  border-bottom: 1px solid var(--color-border-light);
+/* Custom Scrollbar for Apps Grid */
+.start-menu-apps-grid::-webkit-scrollbar {
+  width: 6px;
 }
-
-.start-menu-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.start-menu-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), #00C6FF);
-  color: white;
-}
-
-.start-menu-user-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.start-menu-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--color-text-main);
-}
-
-.start-menu-role {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-.start-menu-logout {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  border: none;
+.start-menu-apps-grid::-webkit-scrollbar-track {
   background: transparent;
-  color: var(--color-text-main);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s;
 }
-
-.start-menu-logout:hover {
-  background: rgba(255,59,48,0.1);
-  color: var(--color-danger);
+.start-menu-apps-grid::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-glass);
+  border-radius: 10px;
 }
-
-.start-menu-content {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.start-menu-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.start-menu-wallpapers {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.start-menu-wallpaper {
-  height: 60px;
-  border-radius: var(--radius-sm);
-  background-size: cover;
-  background-position: center;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.2s, border 0.2s;
-}
-
-.start-menu-wallpaper:hover {
-  transform: scale(1.05);
-}
-
-.start-menu-wallpaper.active {
-  border-color: var(--color-primary);
-}
-
-.start-menu-widgets {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.start-menu-widget-btn {
-  padding: 10px 12px;
-  background: var(--color-border-light);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-main);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.start-menu-widget-btn:hover:not(.disabled) {
-  background: var(--color-hover-dark);
-}
-
-.start-menu-widget-btn.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.start-menu-preview-box {
-  position: absolute;
-  bottom: 12px;
-  left: 340px; /* di fianco al menu start */
-  background: var(--color-surface);
-  backdrop-filter: var(--glass-app-blur) saturate(200%);
-  -webkit-backdrop-filter: var(--glass-app-blur) saturate(200%);
-  border: 1px solid var(--color-border-glass);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-glass);
-  padding: 16px;
-  animation: previewFadeIn 0.2s ease-out;
-  pointer-events: none;
-}
-
-@keyframes previewFadeIn {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
+.start-menu-apps-grid::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
 }
