@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'light' | 'dark' | 'auto';
+export type Theme = 'light' | 'dark' | 'auto' | 'retro' | 'panic' | 'zen' | 'matrix' | 'kawaii' | 'cartoon' | 'neon';
 export type TaskbarPosition = 'bottom' | 'top' | 'left' | 'right';
 
 export interface OSSettingsState {

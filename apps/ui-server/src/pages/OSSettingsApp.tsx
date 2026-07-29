@@ -37,15 +37,27 @@ export default function OSSettingsApp() {
             <h2>Aspetto e Temi</h2>
             
             <div className="os-settings-card">
-              <div className="os-settings-row">
+              <div className="os-settings-row" style={{ alignItems: 'flex-start' }}>
                 <div>
                   <h3>Tema di Sistema</h3>
                   <p>Scegli tra modalità chiara, scura o automatica.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className={`os-theme-btn ${settings.theme === 'light' ? 'active' : ''}`} onClick={() => settings.setTheme('light')}><Sun size={18}/> Chiaro</button>
-                  <button className={`os-theme-btn ${settings.theme === 'dark' ? 'active' : ''}`} onClick={() => settings.setTheme('dark')}><Moon size={18}/> Scuro</button>
-                  <button className={`os-theme-btn ${settings.theme === 'auto' ? 'active' : ''}`} onClick={() => settings.setTheme('auto')}><Monitor size={18}/> Auto</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className={`os-theme-btn ${settings.theme === 'light' ? 'active' : ''}`} onClick={() => settings.setTheme('light')}><Sun size={18}/> Chiaro</button>
+                    <button className={`os-theme-btn ${settings.theme === 'dark' ? 'active' : ''}`} onClick={() => settings.setTheme('dark')}><Moon size={18}/> Scuro</button>
+                    <button className={`os-theme-btn ${settings.theme === 'auto' ? 'active' : ''}`} onClick={() => settings.setTheme('auto')}><Monitor size={18}/> Auto</button>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.5rem', alignSelf: 'flex-start' }}>Temi Segreti (Sarcastic & Easter Eggs):</div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <button className={`os-theme-btn ${settings.theme === 'retro' ? 'active' : ''}`} onClick={() => settings.setTheme('retro')}>💾 Retro (Win95)</button>
+                    <button className={`os-theme-btn ${settings.theme === 'panic' ? 'active' : ''}`} onClick={() => settings.setTheme('panic')}>🔥 Ansia</button>
+                    <button className={`os-theme-btn ${settings.theme === 'zen' ? 'active' : ''}`} onClick={() => settings.setTheme('zen')}>🧘 Namastè</button>
+                    <button className={`os-theme-btn ${settings.theme === 'matrix' ? 'active' : ''}`} onClick={() => settings.setTheme('matrix')}>👾 Hacker</button>
+                    <button className={`os-theme-btn ${settings.theme === 'kawaii' ? 'active' : ''}`} onClick={() => settings.setTheme('kawaii')}>🎀 Kawaii</button>
+                    <button className={`os-theme-btn ${settings.theme === 'cartoon' ? 'active' : ''}`} onClick={() => settings.setTheme('cartoon')}>💥 Cartoon</button>
+                    <button className={`os-theme-btn ${settings.theme === 'neon' ? 'active' : ''}`} onClick={() => settings.setTheme('neon')}>🎸 Neon</button>
+                  </div>
                 </div>
               </div>
             </div>

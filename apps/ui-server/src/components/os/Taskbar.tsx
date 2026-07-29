@@ -3,6 +3,7 @@ import { useWindowStore } from '../../store/useWindowStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
+import { getThemeIconPath } from '../../utils/themeUtils';
 import { BrainCircuit, LogOut } from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
 import './Taskbar.css';
@@ -15,7 +16,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot } = useWindowStore();
-  const { taskbarPosition, taskbarAutoHide } = useSettingsStore();
+  const { taskbarPosition, taskbarAutoHide, theme } = useSettingsStore();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [time, setTime] = useState(new Date());
@@ -78,6 +79,8 @@ export default function Taskbar() {
         <div className="taskbar-center">
           {visibleApps.map(app => {
             const isActive = activeWindowId === app.id && app.isOpen && !app.isMinimized;
+            const themeIconPath = getThemeIconPath(app.id, theme);
+            const finalIconPath = themeIconPath || app.iconPath;
             return (
               <div 
                 key={app.id} 
@@ -89,11 +92,11 @@ export default function Taskbar() {
                 title={app.title + " (Tasto destro per opzioni)"}
               >
                 <div className="taskbar-icon flex-center" style={{ background: app.color }}>
-                   {app.iconPath ? (
-                     app.iconPath.startsWith('fc:') ? (
-                       <DynamicFcIcon name={app.iconPath.split(':')[1]} />
+                   {finalIconPath ? (
+                     finalIconPath.startsWith('fc:') ? (
+                       <DynamicFcIcon name={finalIconPath.split(':')[1]} />
                      ) : (
-                       <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                       <img src={finalIconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                      )
                    ) : (
                      app.icon

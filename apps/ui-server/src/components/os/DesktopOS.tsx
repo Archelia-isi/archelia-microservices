@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getThemeWallpaper, getThemeIconPath } from '../../utils/themeUtils';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { toast, Toaster } from 'react-hot-toast';
@@ -53,7 +54,8 @@ export default function DesktopOS() {
 
   const [showIntro, setShowIntro] = useState(false);
 
-  // Applica le impostazioni OS globali al documento
+  const activeTheme = settings.theme;
+  const currentWallpaper = getThemeWallpaper(activeTheme, wallpaper);
   useEffect(() => {
     const root = document.documentElement;
     // Accent Color
@@ -69,12 +71,22 @@ export default function DesktopOS() {
       document.body.classList.remove('disable-animations');
     }
 
-    // Theme (Light/Dark mode)
-    const isDark = settings.theme === 'dark' || (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (isDark) {
-      document.body.classList.add('dark-theme');
+    // Rimuovi tutti i temi precedenti
+    document.body.className = document.body.className.replace(/\b(dark-theme|theme-\w+)\b/g, '').trim();
+
+    // Theme (Light/Dark mode + Sarcastic themes)
+    const customThemes = ['retro', 'panic', 'zen', 'matrix', 'kawaii', 'cartoon', 'neon'];
+    if (customThemes.includes(settings.theme)) {
+      document.body.classList.add(`theme-${settings.theme}`);
+      // Alcuni temi sarcastici forzano la modalità scura per l'UI di base
+      if (['matrix', 'neon', 'panic'].includes(settings.theme)) {
+        document.body.classList.add('dark-theme');
+      }
     } else {
-      document.body.classList.remove('dark-theme');
+      const isDark = settings.theme === 'dark' || (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) {
+        document.body.classList.add('dark-theme');
+      }
     }
   }, [settings.theme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled]);
 
@@ -390,7 +402,7 @@ export default function DesktopOS() {
   }
 
   return (
-    <div className="desktop-os" style={{ backgroundImage: `url(${wallpaper})` }}>
+    <div className="desktop-os" style={{ backgroundImage: `url(${currentWallpaper})` }}>
       <Toaster position="top-right" />
       {/* Area Finestre e Widget */}
       <div 
@@ -400,7 +412,10 @@ export default function DesktopOS() {
       >
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-          {Object.values(windows).map(app => (
+          {Object.values(windows).map(app => {
+            const themeIconPath = getThemeIconPath(app.id, activeTheme);
+            const finalIconPath = themeIconPath || app.iconPath;
+            return (
             <div 
               key={`shortcut-${app.id}`} 
               className="desktop-icon-wrapper"
@@ -421,11 +436,11 @@ export default function DesktopOS() {
               }}
             >
               <div className="desktop-icon flex-center" style={{ background: app.color }}>
-                {app.iconPath ? (
-                  app.iconPath.startsWith('fc:') ? (
-                    <DynamicFcIcon name={app.iconPath.split(':')[1]} />
+                {finalIconPath ? (
+                  finalIconPath.startsWith('fc:') ? (
+                    <DynamicFcIcon name={finalIconPath.split(':')[1]} />
                   ) : (
-                    <img src={app.iconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={finalIconPath} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   )
                 ) : (
                   app.icon
@@ -433,7 +448,8 @@ export default function DesktopOS() {
               </div>
               <span className="desktop-icon-label">{app.title}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Livello Widget Desktop */}

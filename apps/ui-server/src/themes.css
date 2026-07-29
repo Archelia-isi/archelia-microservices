@@ -1,0 +1,218 @@
+/* =========================================
+   ARCHELIA SARCASTIC / EASTER EGG THEMES
+   ========================================= */
+
+/* 1. RETRO (Windows 95) */
+body.theme-retro {
+  --color-bg: #008080; /* Win95 Teal desktop background */
+  --color-surface: #c0c0c0;
+  --color-surface-solid: #c0c0c0;
+  --color-app-bg: #c0c0c0;
+  
+  --color-primary: #000080; /* Navy blue title bars */
+  --color-text-main: #000000;
+  --color-text-muted: #808080;
+  
+  --color-border: #ffffff; /* Top/Left border for 3D effect */
+  --color-border-dark: #000000; /* Bottom/Right border */
+  
+  --shadow-sm: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --shadow-md: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --shadow-lg: 2px 2px 0px #000000;
+  --shadow-glass: none;
+
+  --glass-blur: none;
+  --glass-app-blur: none;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+
+  font-family: 'MS Sans Serif', 'Tahoma', 'Pixelated', sans-serif !important;
+}
+
+body.theme-retro .glass-panel,
+body.theme-retro .ui-glass-panel,
+body.theme-retro .os-window {
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-bottom: 2px solid #000000 !important;
+  border-right: 2px solid #000000 !important;
+  box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf !important;
+  background: #c0c0c0 !important;
+}
+
+body.theme-retro .btn-primary {
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-bottom: 2px solid #000000 !important;
+  border-right: 2px solid #000000 !important;
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+  box-shadow: none !important;
+}
+body.theme-retro .btn-primary:active {
+  border-top: 2px solid #000000 !important;
+  border-left: 2px solid #000000 !important;
+  border-bottom: 2px solid #ffffff !important;
+  border-right: 2px solid #ffffff !important;
+}
+
+/* 2. PANIC (Adrenalinica) */
+body.theme-panic {
+  --color-bg: #450a0a;
+  --color-surface: rgba(153, 27, 27, 0.7);
+  --color-surface-solid: #7f1d1d;
+  --color-app-bg: rgba(127, 29, 29, 0.8);
+  
+  --color-primary: #dc2626;
+  --color-text-main: #fef2f2;
+  --color-text-muted: #fca5a5;
+  
+  --color-border: rgba(220, 38, 38, 0.5);
+  
+  /* Fast aggressive animations */
+  --transition-normal: 0.1s linear;
+  --transition-bounce: 0.2s linear;
+}
+
+body.theme-panic .os-window, body.theme-panic .btn-primary {
+  animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+/* 3. ZEN (Namastè) */
+body.theme-zen {
+  --color-bg: #fdfbf7;
+  --color-surface: rgba(245, 240, 230, 0.8);
+  --color-surface-solid: #f4ede1;
+  --color-app-bg: rgba(250, 247, 242, 0.9);
+  
+  --color-primary: #a78bfa;
+  --color-text-main: #a8a29e; /* extremely low contrast intentionally */
+  --color-text-muted: #d6d3d1;
+  
+  --color-border: rgba(167, 139, 250, 0.2);
+  
+  /* Very slow animations */
+  --transition-normal: 1.5s ease-in-out;
+  --transition-bounce: 2s ease-in-out;
+}
+
+/* 4. MATRIX (Hacker) */
+body.theme-matrix {
+  --color-bg: #000000;
+  --color-surface: #000000;
+  --color-surface-solid: #000000;
+  --color-app-bg: #000000;
+  
+  --color-primary: #00ff00;
+  --color-text-main: #00ff00;
+  --color-text-muted: #008800;
+  
+  --color-border: #00ff00;
+  --color-border-light: rgba(0, 255, 0, 0.3);
+  
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+  
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+body.theme-matrix * {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* 5. KAWAII (Princess) */
+body.theme-kawaii {
+  --color-bg: #fce7f3;
+  --color-surface: rgba(253, 232, 243, 0.7);
+  --color-surface-solid: #fdf2f8;
+  --color-app-bg: rgba(255, 241, 242, 0.8);
+  
+  --color-primary: #ec4899;
+  --color-text-main: #831843;
+  --color-text-muted: #be185d;
+  
+  --color-border: rgba(244, 114, 182, 0.4);
+  
+  --shadow-md: 0 10px 30px rgba(236, 72, 153, 0.2);
+  
+  --radius-sm: 16px;
+  --radius-md: 24px;
+  --radius-lg: 32px;
+  
+  font-family: 'Quicksand', 'Nunito', sans-serif !important;
+}
+
+/* 6. CARTOON */
+body.theme-cartoon {
+  --color-bg: #fef08a;
+  --color-surface: #ffffff;
+  --color-surface-solid: #ffffff;
+  --color-app-bg: #ffffff;
+  
+  --color-primary: #ef4444;
+  --color-text-main: #000000;
+  --color-text-muted: #333333;
+  
+  --color-border: #000000;
+  --color-border-light: #000000;
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  
+  --shadow-sm: 4px 4px 0px #000000;
+  --shadow-md: 6px 6px 0px #000000;
+  --shadow-lg: 8px 8px 0px #000000;
+  
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif !important;
+}
+
+body.theme-cartoon * {
+  border-width: 2px !important;
+  border-color: #000000 !important;
+  border-style: solid !important;
+}
+
+/* 7. NEON */
+body.theme-neon {
+  --color-bg: #09090b;
+  --color-surface: rgba(24, 24, 27, 0.8);
+  --color-surface-solid: #18181b;
+  --color-app-bg: rgba(9, 9, 11, 0.9);
+  
+  --color-primary: #22d3ee;
+  --color-text-main: #ffffff;
+  --color-text-muted: #a1a1aa;
+  
+  --color-border: #22d3ee;
+  
+  --shadow-sm: 0 0 5px rgba(34, 211, 238, 0.5), 0 0 10px rgba(34, 211, 238, 0.5);
+  --shadow-md: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.8);
+  --shadow-lg: 0 0 15px rgba(34, 211, 238, 1), 0 0 30px rgba(34, 211, 238, 1);
+}
