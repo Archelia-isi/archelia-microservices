@@ -74,7 +74,7 @@ export function EmailBuilderApp() {
   };
 
   if (!isAppReady) {
-    return <AppSplashScreen appName="AI Email Atelier" isLoading={true} icon="/icons/marketing.jpg" />;
+    return <AppSplashScreen appName="AI Email Atelier" isLoading={true} icon="./icons/marketing.jpg" />;
   }
 
   return (

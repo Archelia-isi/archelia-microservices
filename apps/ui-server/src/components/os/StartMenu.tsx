@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
-import { User, LogOut, Search, Sparkles, Clock, Activity } from 'lucide-react';
+import { User, LogOut, Search, Sparkles, Clock, Activity, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
 import './StartMenu.css';
+
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 interface StartMenuProps {
   onClose: () => void;
@@ -24,6 +27,32 @@ export default function StartMenu({ onClose }: StartMenuProps) {
     if (!searchQuery.trim()) return allApps;
     return allApps.filter(app => app.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [windows, searchQuery]);
+
+  const isElectron = !!(window as any).__IS_ELECTRON__;
+  const isMac = navigator.userAgent.toLowerCase().includes('mac');
+  
+  const handleDownloadApp = async () => {
+    const osParam = isMac ? 'mac' : 'win';
+    const url = `${API_URL}/api/admin/desktop/download/${osParam}`;
+    
+    const loadingToast = toast.loading('Ricerca aggiornamenti in corso...');
+    try {
+      const res = await fetch(url);
+      toast.dismiss(loadingToast);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData.error || 'App non ancora disponibile per il download.');
+        return;
+      }
+      
+      // Se il file esiste, apriamo il link che forzerà il download
+      window.open(url, '_blank');
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      toast.error('Impossibile contattare il server.');
+    }
+  };
 
   return (
     <div className="start-menu-overlay" onClick={onClose}>
@@ -190,14 +219,30 @@ export default function StartMenu({ onClose }: StartMenuProps) {
               <span className="start-menu-role" style={{ fontSize: '0.8rem', opacity: 0.8 }}>Amministratore</span>
             </div>
           </div>
-          <button className="start-menu-logout" title="Logout" style={{ 
-            background: 'transparent', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            <LogOut size={20} />
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {!isElectron && (
+              <button 
+                className="start-menu-download" 
+                title={`Scarica App per ${isMac ? 'Mac' : 'Windows'}`} 
+                style={{ 
+                  background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                onClick={handleDownloadApp}
+              >
+                <Download size={20} />
+              </button>
+            )}
+            <button className="start-menu-logout" title="Logout" style={{ 
+              background: 'transparent', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

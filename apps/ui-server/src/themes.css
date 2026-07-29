@@ -221,3 +221,37 @@ body.theme-neon {
   --shadow-md: 0 0 10px rgba(34, 211, 238, 0.8), 0 0 20px rgba(34, 211, 238, 0.8);
   --shadow-lg: 0 0 15px rgba(34, 211, 238, 1), 0 0 30px rgba(34, 211, 238, 1);
 }
+
+/* 8. ROBLOX */
+body.theme-roblox {
+  --color-bg: #95a5a6; /* Fallback for wallpaper */
+  --color-surface: rgba(236, 240, 241, 0.9);
+  --color-surface-solid: #ecf0f1;
+  --color-app-bg: rgba(255, 255, 255, 0.9);
+  
+  --color-primary: #e74c3c;
+  --color-text-main: #2c3e50;
+  --color-text-muted: #7f8c8d;
+  
+  --color-border: #bdc3c7;
+  
+  --shadow-sm: 2px 2px 0px #bdc3c7;
+  --shadow-md: 4px 4px 0px #bdc3c7;
+  --shadow-lg: 6px 6px 0px #bdc3c7;
+  --shadow-glass: none;
+
+  --glass-blur: none;
+  --glass-app-blur: none;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
+
+  font-family: 'Arial Black', Impact, sans-serif !important;
+}
+
+body.theme-roblox * {
+  border-radius: 0 !important;
+}

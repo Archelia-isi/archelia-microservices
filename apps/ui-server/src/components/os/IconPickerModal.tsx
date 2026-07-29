@@ -44,8 +44,8 @@ export default function IconPickerModal({ appId, onClose }: Props) {
   if (!app) return null;
 
   const handlePremiumSelect = (styleId: string) => {
-    changeAppIcon(appId, `/icons/${appId}_${styleId}.jpg`);
-    saveIconPreference(appId, `/icons/${appId}_${styleId}.jpg`);
+    changeAppIcon(appId, `./icons/${appId}_${styleId}.jpg`);
+    saveIconPreference(appId, `./icons/${appId}_${styleId}.jpg`);
     onClose();
   };
 
@@ -149,7 +149,7 @@ export default function IconPickerModal({ appId, onClose }: Props) {
               {PREMIUM_STYLES.map(style => (
                 <div key={style.id} className="premium-icon-card" onClick={() => handlePremiumSelect(style.id)}>
                   <div className="premium-icon-preview">
-                    <img src={`/icons/${appId}_${style.id}.jpg`} alt={style.name} onError={(e) => { e.currentTarget.src = '/icons/dashboard.jpg' }} />
+                    <img src={`./icons/${appId}_${style.id}.jpg`} alt={style.name} onError={(e) => { e.currentTarget.src = './icons/dashboard.jpg' }} />
                   </div>
                   <span className="premium-icon-name">{style.name}</span>
                 </div>

@@ -57,6 +57,7 @@ export default function OSSettingsApp() {
                     <button className={`os-theme-btn ${settings.theme === 'kawaii' ? 'active' : ''}`} onClick={() => settings.setTheme('kawaii')}>🎀 Kawaii</button>
                     <button className={`os-theme-btn ${settings.theme === 'cartoon' ? 'active' : ''}`} onClick={() => settings.setTheme('cartoon')}>💥 Cartoon</button>
                     <button className={`os-theme-btn ${settings.theme === 'neon' ? 'active' : ''}`} onClick={() => settings.setTheme('neon')}>🎸 Neon</button>
+                    <button className={`os-theme-btn ${settings.theme === 'roblox' ? 'active' : ''}`} onClick={() => settings.setTheme('roblox')}>🧱 Roblox</button>
                   </div>
                 </div>
               </div>
@@ -320,7 +321,7 @@ export default function OSSettingsApp() {
 
   return (
     <>
-      <AppSplashScreen isLoading={!isAppReady} appName="Impostazioni di Sistema" icon="/icons/settings.jpg" />
+      <AppSplashScreen isLoading={!isAppReady} appName="Impostazioni di Sistema" icon="./icons/settings.jpg" />
       <div className="os-settings-container">
         {/* Sidebar */}
         <div className="os-settings-sidebar">

@@ -72,6 +72,7 @@ class SoundEngine {
       case 'kawaii': return this.playTone(800, 'sine', 0.1, 0.3);
       case 'cartoon': return this.playTone(500, 'triangle', 0.1, 0.4);
       case 'neon': return this.playTone(200, 'sawtooth', 0.1, 0.3);
+      case 'roblox': return this.playTone(300, 'square', 0.05, 0.4);
       default: return this.playTone(600, 'sine', 0.05, 0.5);
     }
   }
@@ -94,6 +95,9 @@ class SoundEngine {
         this.playTone(1500, 'square', 0.03, 0.1);
         setTimeout(() => this.playTone(1600, 'square', 0.03, 0.1), 40);
         break;
+      case 'roblox':
+        this.playTone(400, 'square', 0.1, 0.4);
+        break;
       default:
         this.playTone(400, 'sine', 0.05, 0.4);
         setTimeout(() => this.playTone(600, 'sine', 0.1, 0.5), 50);
@@ -112,6 +116,7 @@ class SoundEngine {
         setTimeout(() => this.playTone(700, 'sine', 0.15, 0.3), 80);
         break;
       case 'matrix': return this.playTone(800, 'square', 0.03, 0.1);
+      case 'roblox': return this.playTone(200, 'square', 0.1, 0.4);
       default: return this.playTone(300, 'sine', 0.1, 0.4);
     }
   }
@@ -151,6 +156,10 @@ class SoundEngine {
         this.playTone(300, 'sawtooth', 0.1, 0.2);
         setTimeout(() => this.playTone(400, 'square', 0.2, 0.15), 100);
         break;
+      case 'roblox':
+        this.playTone(400, 'square', 0.1, 0.4);
+        setTimeout(() => this.playTone(600, 'square', 0.1, 0.4), 100);
+        break;
       default:
         this.playTone(523.25, 'sine', 0.1, 0.3); // C5
         setTimeout(() => this.playTone(659.25, 'sine', 0.2, 0.3), 50); // E5
@@ -176,6 +185,10 @@ class SoundEngine {
         setTimeout(() => this.playTone(300, 'triangle', 0.15, 0.4), 100);
         break;
       case 'neon': return this.playTone(150, 'sawtooth', 0.2, 0.3);
+      case 'roblox': 
+        this.playTone(200, 'sawtooth', 0.15, 0.5); // Oof sound
+        setTimeout(() => this.playTone(150, 'sawtooth', 0.15, 0.5), 50);
+        break;
       default: return this.playTone(300, 'sine', 0.15, 0.3);
     }
   }
@@ -216,6 +229,10 @@ class SoundEngine {
         this.playTone(600, 'square', 0.1, 0.2);
         setTimeout(() => this.playTone(800, 'square', 0.3, 0.2), 100);
         break;
+      case 'roblox':
+        this.playTone(600, 'square', 0.1, 0.4);
+        setTimeout(() => this.playTone(800, 'square', 0.2, 0.4), 100);
+        break;
       default:
         this.playTone(880, 'sine', 0.1, 0.4); // A5
         setTimeout(() => this.playTone(1108.73, 'sine', 0.3, 0.4), 100); // C#6
@@ -254,6 +271,10 @@ class SoundEngine {
         break;
       case 'neon':
         this.playTone(150, 'sawtooth', 0.3, 0.4);
+        break;
+      case 'roblox':
+        this.playTone(200, 'sawtooth', 0.15, 0.5); // Oof sound
+        setTimeout(() => this.playTone(150, 'sawtooth', 0.15, 0.5), 50);
         break;
       default:
         this.playTone(150, 'sawtooth', 0.1, 0.3);

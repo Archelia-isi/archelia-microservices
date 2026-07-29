@@ -23,7 +23,7 @@ import { adminSettingsRoutes } from './routes/admin/settings.js';
 import infinityRoutes from './routes/admin/infinity.js';
 import imagesRoutes from './routes/admin/images.js';
 import { analyticsRoutes } from './routes/admin/analytics.js';
-
+import { adminDesktopRoutes } from './routes/admin/desktop.js';
 async function buildApp() {
   const app = Fastify({
     logger: false, // We use Pino from @archelia/core
@@ -41,7 +41,7 @@ async function buildApp() {
   await app.register(cookie);
 
   await app.register(multipart, {
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: 1024 * 1024 * 1024 }, // 1GB per le app desktop
   });
 
   await app.register(healthRoutes);
@@ -65,6 +65,7 @@ async function buildApp() {
   await app.register(infinityRoutes, { prefix: '/api/admin/infinity' });
   await app.register(imagesRoutes, { prefix: '/api/admin' });
   await app.register(analyticsRoutes);
+  await app.register(adminDesktopRoutes);
 
   return app;
 }

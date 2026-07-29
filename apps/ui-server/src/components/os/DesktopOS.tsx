@@ -20,6 +20,8 @@ import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
 import AiChatbotApp from '../ai/AiChatbotApp';
 import LoginScreen from './LoginScreen';
+import MouseTrail from './MouseTrail';
+import RobloxMinigame from './RobloxMinigame';
 import './DesktopOS.css';
 
 import InfinityApp from '../../pages/InfinityApp';
@@ -28,7 +30,6 @@ import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
-import MouseTrail from './MouseTrail';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
 
@@ -112,7 +113,7 @@ export default function DesktopOS() {
         const data = await res.json();
         if (data.widgetConfig) {
           const config = data.widgetConfig;
-          if (config.wallpaper) setWallpaper(config.wallpaper);
+          if (config.wallpaper) setWallpaper(config.wallpaper.startsWith('/') ? '.' + config.wallpaper : config.wallpaper);
           
           // Restore desktop positions and pinned state
           if (config.desktopIcons) {
@@ -126,7 +127,7 @@ export default function DesktopOS() {
                 togglePinApp(appId); // unpin if it was pinned
               }
               if (pos.iconPath && useWindowStore.getState().windows[appId]) {
-                changeAppIcon(appId, pos.iconPath);
+                changeAppIcon(appId, pos.iconPath.startsWith('/') ? '.' + pos.iconPath : pos.iconPath);
               }
             });
           }
@@ -319,25 +320,25 @@ export default function DesktopOS() {
     // Registra le app all'avvio se non presenti (check per singola app invece che globalmente vuoto)
     const getImg = (src: string) => <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Icon" />;
     if (!windows['dashboard']) {
-      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
+      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
     }
     if (!windows['orders']) {
-      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('/icons/orders.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
+      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('./icons/orders.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
     }
     if (!windows['products']) {
-      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('/icons/products.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
+      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('./icons/products.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
     }
     if (!windows['settings']) {
-      registerApp({ id: 'settings', title: 'Centro Sincronizzazione', icon: getImg('/icons/settings.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
+      registerApp({ id: 'settings', title: 'Centro Sincronizzazione', icon: getImg('./icons/settings.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
     }
     if (!windows['equalizzatore']) {
-      registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
+      registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
     }
     if (!windows['marketing']) {
-      registerApp({ id: 'marketing', title: 'Centro Marketing', icon: getImg('/icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 130, desktopY: 130 });
+      registerApp({ id: 'marketing', title: 'Centro Marketing', icon: getImg('./icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 130, desktopY: 130 });
     }
     if (!windows['email_builder']) {
-      registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
+      registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
     }
     if (!windows['promo_manual']) {
       registerApp({ id: 'promo-manual', title: 'Promozioni AI (Manuale)', icon: <DynamicFcIcon name="FcBullish" />, color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 230, desktopY: 230 });
@@ -348,19 +349,19 @@ export default function DesktopOS() {
     }
 
     if (!windows['promo_auto']) {
-      registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
+      registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
     }
     if (!windows['infinity']) {
-      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
+      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
     }
     if (!windows['images']) {
-      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 330 });
+      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 330 });
     }
     if (!windows['typesense']) {
-      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 330, desktopY: 30 });
+      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 330, desktopY: 30 });
     }
     if (!windows['analytics']) {
-      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 130 });
+      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 130 });
     }
     if (!windows['logs']) {
       const TerminalIconWidget = () => (
@@ -369,6 +370,9 @@ export default function DesktopOS() {
         </div>
       );
       registerApp({ id: 'logs', title: 'System Logs', icon: <TerminalIconWidget />, color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 330, desktopY: 230 });
+    }
+    if (!windows['roblox_game']) {
+      registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 430, desktopY: 30 });
     }
   }, []);
 
@@ -383,7 +387,7 @@ export default function DesktopOS() {
     return (
       <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <video 
-          src="/videos/intro.mp4" 
+          src="./videos/intro.mp4" 
           autoPlay 
           playsInline
           onEnded={() => setShowIntro(false)}
@@ -405,10 +409,10 @@ export default function DesktopOS() {
   return (
     <div className="desktop-os" style={{ backgroundImage: `url(${currentWallpaper})` }}>
       <Toaster position="top-right" />
-      {/* Mouse Trail Globale (Attivo solo se tema Panic) */}
+      {/* Mouse Trail Globale (Attivo solo se tema Panic) */}     
       <MouseTrail />
 
-      {/* Area Finestre e Widget */}
+      {/* Login Screen Overlay */}
       <div 
         className="desktop-workspace"
         onDrop={handleWorkspaceDrop}
@@ -417,6 +421,7 @@ export default function DesktopOS() {
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
+            if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
             return (
