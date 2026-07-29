@@ -289,8 +289,7 @@
   overflow-y: auto;
   font-size: 15px;
   line-height: 1.6;
-  color: #1d1d1f;
-}
+  color: var(--color-text); }
 
 @keyframes fadeIn {
   from { opacity: 0; }

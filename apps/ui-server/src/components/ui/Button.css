@@ -34,12 +34,10 @@
 /* Variants */
 .ui-btn-modern {
   background: #fbfbfd;
-  color: #1d1d1f;
-  border: 1px solid var(--color-border-light);
+  color: var(--color-text); border: 1px solid var(--color-border-light);
 }
 .ui-btn-modern:hover {
-  background: #f5f5f7;
-  border-color: var(--color-border-dark);
+  background: var(--color-surface-solid); border-color: var(--color-border-dark);
 }
 .ui-btn-modern:active {
   transform: scale(0.97);
@@ -77,8 +75,7 @@
 
 .ui-btn-secondary {
   background: transparent;
-  color: #1d1d1f;
-}
+  color: var(--color-text); }
 .ui-btn-secondary:hover {
   background: var(--color-hover-light);
 }

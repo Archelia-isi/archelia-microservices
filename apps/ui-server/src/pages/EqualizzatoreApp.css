@@ -6,8 +6,7 @@
   background: transparent;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1d1d1f;
-  -webkit-font-smoothing: antialiased;
+  color: var(--color-text); -webkit-font-smoothing: antialiased;
 }
 
 /* App Entry Animation */
@@ -57,24 +56,20 @@
 }
 
 .eq-nav-item:hover {
-  color: #000000;
-}
+  color: var(--color-text); }
 
 .eq-nav-item.active {
-  color: #000000;
-  font-weight: 600;
+  color: var(--color-text); font-weight: 600;
 }
 
 .eq-nav-right {
   display: flex;
   align-items: center;
   gap: 16px;
-  color: #1d1d1f;
-}
+  color: var(--color-text); }
 
 .eq-nav-icon {
-  color: #86868b;
-  cursor: pointer;
+  color: var(--color-text-muted); cursor: pointer;
   transition: color 0.2s;
 }
 .eq-nav-icon:hover {
@@ -102,14 +97,12 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #1d1d1f;
-  white-space: nowrap;
+  color: var(--color-text); white-space: nowrap;
 }
 
 /* Sync Banner */
 .eq-sync-banner {
-  background: #f5f5f7;
-  border: none;
+  background: var(--color-surface-solid); border: none;
   padding: 32px;
   border-radius: 24px;
   text-align: center;
@@ -118,14 +111,12 @@
 }
 .eq-sync-banner h3 {
   margin: 0 0 12px 0;
-  color: #1d1d1f;
-  font-size: 24px;
+  color: var(--color-text); font-size: 24px;
   font-weight: 700;
 }
 .eq-sync-banner p {
   margin: 0 0 24px 0;
-  color: #86868b;
-  font-size: 15px;
+  color: var(--color-text-muted); font-size: 15px;
 }
 .sync-btn {
   margin: 0 auto;
@@ -158,8 +149,7 @@
   justify-content: center;
   gap: 16px;
   padding: 80px;
-  color: #86868b;
-  font-size: 17px;
+  color: var(--color-text-muted); font-size: 17px;
   font-weight: 500;
   background: rgba(255,255,255,0.5);
   border-radius: 24px;

@@ -6,8 +6,7 @@
   background: transparent;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1d1d1f;
-  -webkit-font-smoothing: antialiased;
+  color: var(--color-text); -webkit-font-smoothing: antialiased;
 }
 
 .eq-app-entry {
@@ -68,9 +67,7 @@
 }
 
 .infinity-table th {
-  background: #f5f5f7;
-  color: #86868b;
-  font-weight: 600;
+  background: var(--color-surface-solid); color: var(--color-text-muted); font-weight: 600;
   text-align: left;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-border-light);
@@ -82,8 +79,7 @@
 .infinity-table td {
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-border-light);
-  color: #1d1d1f;
-}
+  color: var(--color-text); }
 
 .infinity-table tr:last-child td {
   border-bottom: none;

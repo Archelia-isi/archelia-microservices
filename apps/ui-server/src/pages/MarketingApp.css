@@ -6,8 +6,7 @@
   background: transparent !important;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #1d1d1f;
-  -webkit-font-smoothing: antialiased;
+  color: var(--color-text); -webkit-font-smoothing: antialiased;
 }
 
 .marketing-app-entry {

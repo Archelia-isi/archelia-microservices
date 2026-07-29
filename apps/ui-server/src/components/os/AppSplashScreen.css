@@ -75,8 +75,7 @@
 }
 
 .os-app-icon svg, .os-app-icon img {
-  color: #1d1d1f;
-  width: 56px;
+  color: var(--color-text); width: 56px;
   height: 56px;
   object-fit: contain;
 }
@@ -84,8 +83,7 @@
 .os-app-splash-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1d1d1f;
-  letter-spacing: -0.02em;
+  color: var(--color-text); letter-spacing: -0.02em;
 }
 
 @keyframes osSpinAround {

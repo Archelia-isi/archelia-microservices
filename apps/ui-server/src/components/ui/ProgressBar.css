@@ -28,8 +28,7 @@
 
 .ui-progress-slim-fill {
   height: 100%;
-  background: #e5e5ea;
-  border-radius: 10px;
+  background: var(--color-surface-solid); border-radius: 10px;
   transition: width 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
