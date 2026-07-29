@@ -1,5 +1,6 @@
 import React from 'react';
 import './Tabs.css';
+import { soundEngine } from '../../utils/SoundEngine';
 
 export interface TabItem {
   id: string | number;
@@ -22,6 +23,13 @@ export default function Tabs({
   variant = 'inline',
   className = ''
 }: TabsProps) {
+  const handleChange = (id: string | number) => {
+    if (id !== activeTab) {
+      soundEngine.playClick();
+      onChange(id);
+    }
+  };
+
   return (
     <div className={`ui-tabs-${variant}-container ${className}`}>
       {tabs.map((tab) => {
@@ -30,7 +38,7 @@ export default function Tabs({
           <div
             key={tab.id}
             className={`ui-tab-${variant} ${isActive ? 'active' : ''}`}
-            onClick={() => onChange(tab.id)}
+            onClick={() => handleChange(tab.id)}
           >
             {tab.icon && <span className="ui-tab-icon">{tab.icon}</span>}
             <span className="ui-tab-label">{tab.label}</span>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import React from 'react';
+import { soundEngine } from '../utils/SoundEngine';
 
 export interface WindowApp {
   id: string;
@@ -64,35 +65,41 @@ export const useWindowStore = create<WindowState>((set) => ({
     }
   })),
 
-  openWindow: (id) => set((state) => {
-    const win = state.windows[id];
-    if (!win) return state;
-    highestZIndex++;
-    return {
-      windows: {
-        ...state.windows,
-        [id]: {
-          ...win,
-          isOpen: true,
-          isMinimized: false,
-          zIndex: highestZIndex
-        }
-      },
-      activeWindowId: id
-    };
-  }),
+  openWindow: (id) => {
+    soundEngine.playOpenApp();
+    set((state) => {
+      const win = state.windows[id];
+      if (!win) return state;
+      highestZIndex++;
+      return {
+        windows: {
+          ...state.windows,
+          [id]: {
+            ...win,
+            isOpen: true,
+            isMinimized: false,
+            zIndex: highestZIndex
+          }
+        },
+        activeWindowId: id
+      };
+    });
+  },
 
-  closeWindow: (id) => set((state) => {
-    const win = state.windows[id];
-    if (!win) return state;
-    return {
-      windows: {
-        ...state.windows,
-        [id]: { ...win, isOpen: false, isMinimized: false }
-      },
-      activeWindowId: state.activeWindowId === id ? null : state.activeWindowId
-    };
-  }),
+  closeWindow: (id) => {
+    soundEngine.playCloseApp();
+    set((state) => {
+      const win = state.windows[id];
+      if (!win) return state;
+      return {
+        windows: {
+          ...state.windows,
+          [id]: { ...win, isOpen: false, isMinimized: false }
+        },
+        activeWindowId: state.activeWindowId === id ? null : state.activeWindowId
+      };
+    });
+  },
 
   togglePinApp: (id) => set((state) => {
     const win = state.windows[id];

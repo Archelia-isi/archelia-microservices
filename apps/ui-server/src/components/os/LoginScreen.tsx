@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { soundEngine } from '../../utils/SoundEngine';
 import { User, Lock, ArrowRight, Loader } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -41,12 +42,15 @@ export default function LoginScreen({ onLoginSuccess, wallpaper }: LoginScreenPr
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         toast.success(`Benvenuto ${data.user.displayName || data.user.username}`);
+        soundEngine.playOpenApp();
         onLoginSuccess();
       } else {
+        soundEngine.playError();
         toast.error(data.error || 'Credenziali non valide');
       }
-    } catch (err) {
-      toast.error('Errore di connessione al server');
+    } catch (e: any) {
+      soundEngine.playError();
+      toast.error('Errore di connessione al server: ' + e.message);
     } finally {
       setIsLoading(false);
     }
