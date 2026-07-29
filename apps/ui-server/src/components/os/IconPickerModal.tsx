@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
-import { X, Search, Terminal, Package, ShoppingCart, BarChart, Settings, Mail, Megaphone, Image as ImageIcon, Briefcase, Calculator, Calendar, Camera, Globe, Box, Target, Zap, Server, Shield, Smartphone, Star, Trash, User, Video, Watch } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import './IconPickerModal.css';
 
 interface Props {
@@ -16,32 +16,14 @@ const PREMIUM_STYLES = [
   { id: 'abstract', name: 'Astratto Geometrico' }
 ];
 
-const STANDARD_ICONS = [
-  { id: 'Terminal', icon: Terminal },
-  { id: 'Package', icon: Package },
-  { id: 'ShoppingCart', icon: ShoppingCart },
-  { id: 'BarChart', icon: BarChart },
-  { id: 'Settings', icon: Settings },
-  { id: 'Mail', icon: Mail },
-  { id: 'Megaphone', icon: Megaphone },
-  { id: 'ImageIcon', icon: ImageIcon },
-  { id: 'Briefcase', icon: Briefcase },
-  { id: 'Calculator', icon: Calculator },
-  { id: 'Calendar', icon: Calendar },
-  { id: 'Camera', icon: Camera },
-  { id: 'Globe', icon: Globe },
-  { id: 'Box', icon: Box },
-  { id: 'Target', icon: Target },
-  { id: 'Zap', icon: Zap },
-  { id: 'Server', icon: Server },
-  { id: 'Shield', icon: Shield },
-  { id: 'Smartphone', icon: Smartphone },
-  { id: 'Star', icon: Star },
-  { id: 'Trash', icon: Trash },
-  { id: 'User', icon: User },
-  { id: 'Video', icon: Video },
-  { id: 'Watch', icon: Watch }
-];
+import * as LucideIcons from 'lucide-react';
+
+const STANDARD_ICONS = Object.keys(LucideIcons)
+  .filter(key => key[0] === key[0].toUpperCase() && key !== 'createLucideIcon' && key !== 'LucideProps' && key !== 'IconNode')
+  .map(key => ({
+    id: key,
+    icon: (LucideIcons as any)[key]
+  }));
 
 export default function IconPickerModal({ appId, onClose }: Props) {
   const { changeAppIcon, windows } = useWindowStore();
@@ -97,6 +79,7 @@ export default function IconPickerModal({ appId, onClose }: Props) {
   };
 
   const filteredStandard = STANDARD_ICONS.filter(item => item.id.toLowerCase().includes(searchTerm.toLowerCase()));
+  const displayedStandard = searchTerm.length > 1 ? filteredStandard : filteredStandard.slice(0, 100);
 
   return (
     <div className="icon-picker-overlay" onClick={onClose}>
@@ -126,7 +109,7 @@ export default function IconPickerModal({ appId, onClose }: Props) {
 
           <section className="icon-picker-section">
             <div className="standard-header">
-              <h3>Libreria Standard</h3>
+              <h3>Libreria Standard ({STANDARD_ICONS.length}+ Icone)</h3>
               <div className="icon-search">
                 <Search size={16} />
                 <input 
@@ -138,12 +121,17 @@ export default function IconPickerModal({ appId, onClose }: Props) {
               </div>
             </div>
             <div className="standard-icons-grid">
-              {filteredStandard.map(item => (
-                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id)}>
+              {displayedStandard.map(item => (
+                <div key={item.id} className="standard-icon-card" onClick={() => handleStandardSelect(item.id)} title={item.id}>
                   <item.icon size={24} />
                 </div>
               ))}
               {filteredStandard.length === 0 && <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center'}}>Nessuna icona trovata</p>}
+              {searchTerm.length <= 1 && filteredStandard.length > 100 && (
+                <p style={{opacity: 0.5, gridColumn: '1 / -1', textAlign: 'center', fontSize: '0.8rem', marginTop: '1rem'}}>
+                  Mostrando 100 di {filteredStandard.length} icone. Usa la ricerca per vederne altre.
+                </p>
+              )}
             </div>
           </section>
         </div>
