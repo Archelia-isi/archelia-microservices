@@ -4,6 +4,7 @@ import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings } f
 import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
+import { getThemeIconPath } from '../../utils/themeUtils';
 import './StartMenu.css';
 
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -180,7 +181,11 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                     overflow: 'hidden'
                   }}>
                     {/* Render raw React Node or string image */}
-                    {typeof app.icon === 'string' ? <img src={app.icon} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : app.icon}
+                    {(() => {
+                      const themeIcon = getThemeIconPath(app.id, theme);
+                      if (themeIcon) return <img src={themeIcon} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                      return typeof app.icon === 'string' ? <img src={app.icon} alt={app.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : app.icon;
+                    })()}
                   </div>
                   <span style={{ 
                     fontSize: '0.85rem', 

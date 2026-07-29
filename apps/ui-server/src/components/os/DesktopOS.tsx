@@ -111,6 +111,9 @@ export default function DesktopOS() {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.osSettings) {
+          settings.hydrate(data.osSettings);
+        }
         if (data.widgetConfig) {
           const config = data.widgetConfig;
           if (config.wallpaper) setWallpaper(config.wallpaper.startsWith('/') ? '.' + config.wallpaper : config.wallpaper);
@@ -149,8 +152,43 @@ export default function DesktopOS() {
       console.error('Failed to load preferences', e);
     } finally {
       setIsReady(true);
+      setTimeout(() => setShowIntro(false), 2000);
     }
   };
+
+  // Sincronizza su Redis le impostazioni OS quando cambiano (debounce di 1 secondo)
+  const syncTimeoutRef = React.useRef<any>(null);
+  useEffect(() => {
+    if (!isLoggedIn || !isReady) return;
+    
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        await fetch(`${API_URL}/api/admin/preferences`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            osSettings: useSettingsStore.getState()
+          })
+        });
+      } catch (err) {
+        console.error('Failed to sync osSettings', err);
+      }
+    }, 1000);
+    
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [settings, isLoggedIn, isReady]);
 
   const savePreferences = async () => {
     const token = localStorage.getItem('token');

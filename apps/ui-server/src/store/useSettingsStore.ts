@@ -34,6 +34,8 @@ export interface OSSettingsState {
   setSoundWindowsEnabled: (enabled: boolean) => void;
   setSoundNotificationsEnabled: (enabled: boolean) => void;
   setSoundErrorsEnabled: (enabled: boolean) => void;
+  
+  hydrate: (settings: Partial<OSSettingsState>) => void;
 }
 
 export const useSettingsStore = create<OSSettingsState>()(
@@ -68,6 +70,8 @@ export const useSettingsStore = create<OSSettingsState>()(
       setSoundWindowsEnabled: (soundWindowsEnabled) => set({ soundWindowsEnabled }),
       setSoundNotificationsEnabled: (soundNotificationsEnabled) => set({ soundNotificationsEnabled }),
       setSoundErrorsEnabled: (soundErrorsEnabled) => set({ soundErrorsEnabled }),
+      
+      hydrate: (settings) => set(settings)
     }),
     {
       name: 'archelia-os-settings',
