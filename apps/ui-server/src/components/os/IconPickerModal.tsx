@@ -116,30 +116,31 @@ export default function IconPickerModal({ appId, onClose }: Props) {
           </button>
         </div>
         
-        <div className="icon-picker-content">
-          <div className="icon-search-sticky">
-             <div className="icon-search" style={{ width: '100%', maxWidth: '100%', padding: '0.75rem 1rem' }}>
-                <Search size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Cerca tra oltre 1500+ icone..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ width: '100%', fontSize: '1rem' }}
-                />
-              </div>
-              <div className="icon-categories-scroll">
-                {ICON_CATEGORIES.map(category => (
-                  <button 
-                    key={category.id} 
-                    className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(category.id)}
-                  >
-                    {category.label}
-                  </button>
-                ))}
-              </div>
+        <div className="icon-search-container">
+          <div className="icon-search" style={{ width: '100%', maxWidth: '100%', padding: '0.75rem 1rem' }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Cerca tra le icone colorate..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: '100%', fontSize: '1rem' }}
+            />
           </div>
+          <div className="icon-categories-scroll">
+            {ICON_CATEGORIES.map(category => (
+              <button 
+                key={category.id} 
+                className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
+                onClick={() => setActiveCategory(category.id)}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="icon-picker-content">
 
           <section className="icon-picker-section">
             <h3>Archelia Premium 3D AI</h3>
