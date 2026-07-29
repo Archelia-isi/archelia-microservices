@@ -67,6 +67,32 @@
   --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+body.dark-theme {
+  --color-bg: #020617; /* Slate 950 */
+  --color-surface: rgba(15, 23, 42, 0.7); /* Slate 900 glass */
+  --color-surface-solid: #0f172a; /* Slate 900 */
+  --color-app-bg: rgba(2, 6, 23, 0.7);
+  
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-glass: rgba(255, 255, 255, 0.15);
+  --color-border-dark: rgba(255, 255, 255, 0.2);
+  --color-border-light: rgba(255, 255, 255, 0.05);
+
+  --color-hover-light: rgba(255, 255, 255, 0.05);
+  --color-hover-dark: rgba(255, 255, 255, 0.1);
+  --color-overlay: rgba(0, 0, 0, 0.6);
+}
+
+body.disable-animations *, body.disable-animations *::before, body.disable-animations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* ============================ */
 /* BASE RESET                   */
 /* ============================ */

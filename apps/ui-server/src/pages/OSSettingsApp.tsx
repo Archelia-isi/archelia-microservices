@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWindowStore } from '../store/useWindowStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+import type { TaskbarPosition } from '../store/useSettingsStore';
 import { Palette, AppWindow, Bell, Shield, Info, Monitor, Moon, Sun, MonitorPlay, Zap, Layout } from 'lucide-react';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import Switch from '../components/ui/Switch';
@@ -10,6 +12,8 @@ export default function OSSettingsApp() {
   const [activeCategory, setActiveCategory] = useState('appearance');
   const [isAppReady, setIsAppReady] = useState(false);
   const { setWallpaper, wallpaper } = useWindowStore();
+  
+  const settings = useSettingsStore();
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAppReady(true), 800);
@@ -39,9 +43,9 @@ export default function OSSettingsApp() {
                   <p>Scegli tra modalità chiara, scura o automatica.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="os-theme-btn active"><Sun size={18}/> Chiaro</button>
-                  <button className="os-theme-btn"><Moon size={18}/> Scuro</button>
-                  <button className="os-theme-btn"><Monitor size={18}/> Auto</button>
+                  <button className={`os-theme-btn ${settings.theme === 'light' ? 'active' : ''}`} onClick={() => settings.setTheme('light')}><Sun size={18}/> Chiaro</button>
+                  <button className={`os-theme-btn ${settings.theme === 'dark' ? 'active' : ''}`} onClick={() => settings.setTheme('dark')}><Moon size={18}/> Scuro</button>
+                  <button className={`os-theme-btn ${settings.theme === 'auto' ? 'active' : ''}`} onClick={() => settings.setTheme('auto')}><Monitor size={18}/> Auto</button>
                 </div>
               </div>
             </div>
@@ -53,11 +57,14 @@ export default function OSSettingsApp() {
                   <p>Personalizza il colore principale di Archelia OS.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <div className="os-color-circle active" style={{ background: '#0066cc' }}></div>
-                  <div className="os-color-circle" style={{ background: '#32B351' }}></div>
-                  <div className="os-color-circle" style={{ background: '#A154F2' }}></div>
-                  <div className="os-color-circle" style={{ background: '#FF3B30' }}></div>
-                  <div className="os-color-circle" style={{ background: '#FF9500' }}></div>
+                  {['#0ea5e9', '#10b981', '#8b5cf6', '#ef4444', '#f59e0b', '#ec4899', '#3b82f6'].map(color => (
+                    <div 
+                      key={color}
+                      className={`os-color-circle ${settings.accentColor === color ? 'active' : ''}`} 
+                      style={{ background: color }}
+                      onClick={() => settings.setAccentColor(color)}
+                    ></div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -68,7 +75,14 @@ export default function OSSettingsApp() {
                   <h3>Intensità Glassmorphism</h3>
                   <p>Regola la sfocatura (blur) dell'effetto vetro.</p>
                 </div>
-                <input type="range" min="10" max="60" defaultValue="40" className="os-slider" />
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="80" 
+                  value={settings.glassIntensity} 
+                  onChange={(e) => settings.setGlassIntensity(parseInt(e.target.value))}
+                  className="os-slider" 
+                />
               </div>
             </div>
             
@@ -104,8 +118,8 @@ export default function OSSettingsApp() {
                   <p>Dove ancorare la barra delle applicazioni.</p>
                 </div>
                 <Select 
-                  value="bottom"
-                  onChange={() => {}}
+                  value={settings.taskbarPosition}
+                  onChange={(e) => settings.setTaskbarPosition(e.target.value as TaskbarPosition)}
                   options={[
                     { value: 'bottom', label: 'In Basso' },
                     { value: 'top', label: 'In Alto' },
@@ -121,7 +135,7 @@ export default function OSSettingsApp() {
                   <h3>Nascondi Automaticamente</h3>
                   <p>La taskbar scompare quando non viene utilizzata.</p>
                 </div>
-                <Switch checked={false} onChange={() => {}} />
+                <Switch checked={settings.taskbarAutoHide} onChange={(c) => settings.setTaskbarAutoHide(c)} />
               </div>
             </div>
           </div>
@@ -134,18 +148,18 @@ export default function OSSettingsApp() {
               <div className="os-settings-row">
                 <div>
                   <h3>Effetti di Animazione</h3>
-                  <p>Abilita il rimbalzo elastico all'apertura delle app.</p>
+                  <p>Abilita animazioni fluide, apertura app e transizioni.</p>
                 </div>
-                <Switch checked={true} onChange={() => {}} />
+                <Switch checked={settings.animationsEnabled} onChange={(c) => settings.setAnimationsEnabled(c)} />
               </div>
             </div>
             <div className="os-settings-card">
               <div className="os-settings-row">
                 <div>
                   <h3>Focus Mode (Focus Assist)</h3>
-                  <p>Sfoca lo sfondo quando una finestra è al centro.</p>
+                  <p>Modalità concentrazione al momento non disponibile su questo livello.</p>
                 </div>
-                <Switch checked={false} onChange={() => {}} />
+                <Switch checked={settings.focusMode} onChange={(c) => settings.setFocusMode(c)} />
               </div>
             </div>
           </div>
@@ -161,8 +175,8 @@ export default function OSSettingsApp() {
                   <p>Richiedi la password dopo un periodo di inattività.</p>
                 </div>
                 <Select 
-                  value="15"
-                  onChange={() => {}}
+                  value={settings.autoLockMinutes.toString()}
+                  onChange={(e) => settings.setAutoLockMinutes(parseInt(e.target.value))}
                   options={[
                     { value: '0', label: 'Mai' },
                     { value: '5', label: '5 minuti' },
@@ -176,8 +190,8 @@ export default function OSSettingsApp() {
               <h3>Modifica Password</h3>
               <p style={{ marginBottom: '1rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Cambia la password di accesso ad Archelia OS.</p>
               <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', maxWidth: '300px' }}>
-                <input type="password" placeholder="Vecchia Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
-                <input type="password" placeholder="Nuova Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                <input type="password" placeholder="Vecchia Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
+                <input type="password" placeholder="Nuova Password" style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text-main)' }} />
                 <button style={{ padding: '0.5rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Aggiorna Password</button>
               </div>
             </div>

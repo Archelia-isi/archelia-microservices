@@ -36,9 +36,13 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
   return <IconComponent size={size} />;
 };
 
+import { useSettingsStore } from '../../store/useSettingsStore';
+
 export default function DesktopOS() {
   const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper, changeAppIcon } = useWindowStore();
   const { widgets } = useWidgetStore();
+  const settings = useSettingsStore();
+
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -48,6 +52,31 @@ export default function DesktopOS() {
   const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
   const [showIntro, setShowIntro] = useState(false);
+
+  // Applica le impostazioni OS globali al documento
+  useEffect(() => {
+    const root = document.documentElement;
+    // Accent Color
+    root.style.setProperty('--color-primary', settings.accentColor);
+    
+    // Glass Intensity
+    root.style.setProperty('--glass-app-blur', `blur(${settings.glassIntensity}px)`);
+    
+    // Animations
+    if (!settings.animationsEnabled) {
+      document.body.classList.add('disable-animations');
+    } else {
+      document.body.classList.remove('disable-animations');
+    }
+
+    // Theme (Light/Dark mode)
+    const isDark = settings.theme === 'dark' || (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  }, [settings.theme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled]);
 
   useEffect(() => {
     if (isLoggedIn) {

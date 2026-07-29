@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
 import { BrainCircuit, LogOut } from 'lucide-react';
@@ -14,6 +15,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot } = useWindowStore();
+  const { taskbarPosition, taskbarAutoHide } = useSettingsStore();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [time, setTime] = useState(new Date());
@@ -58,7 +60,7 @@ export default function Taskbar() {
     <>
       {isStartMenuOpen && <StartMenu onClose={() => setStartMenuOpen(false)} />}
       <div 
-        className="taskbar-container"
+        className={`taskbar-container pos-${taskbarPosition} ${taskbarAutoHide ? 'auto-hide' : ''}`}
         onDrop={handleTaskbarDrop}
         onDragOver={(e) => e.preventDefault()}
       >
