@@ -422,6 +422,7 @@ export default function DesktopOS() {
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
+            if (app.id === 'os-settings') return null;
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
             return (

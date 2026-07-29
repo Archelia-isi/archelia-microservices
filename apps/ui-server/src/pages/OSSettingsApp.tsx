@@ -321,7 +321,7 @@ export default function OSSettingsApp() {
 
   return (
     <>
-      <AppSplashScreen isLoading={!isAppReady} appName="Impostazioni di Sistema" icon="./icons/settings.jpg" />
+      <AppSplashScreen isLoading={!isAppReady} appName="Impostazioni di Sistema" icon={<img src="./icons/settings.jpg" alt="Settings" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '24px'}} />} />
       <div className="os-settings-container">
         {/* Sidebar */}
         <div className="os-settings-sidebar">
