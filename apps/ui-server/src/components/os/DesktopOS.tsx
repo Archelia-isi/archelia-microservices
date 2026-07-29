@@ -26,6 +26,7 @@ import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
+import PersonalizationApp from '../../pages/PersonalizationApp';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
 
@@ -271,8 +272,13 @@ export default function DesktopOS() {
       registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
     }
     if (!windows['promo_manual']) {
-      registerApp({ id: 'promo_manual', title: 'Generatore Sconti', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoManualApp />, x: 160, y: 160, width: 1100, height: 800, desktopX: 230, desktopY: 30 });
+      registerApp({ id: 'promo-manual', title: 'Promozioni AI (Manuale)', icon: <DynamicFcIcon name="FcBullish" />, color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 230, desktopY: 230 });
     }
+    
+    if (!windows['personalization']) {
+      registerApp({ id: 'personalization', title: 'Personalizzazione', icon: <DynamicFcIcon name="FcPicture" />, color: 'transparent', component: <PersonalizationApp />, x: 100, y: 100, width: 800, height: 600 });
+    }
+
     if (!windows['promo_auto']) {
       registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('/icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
     }

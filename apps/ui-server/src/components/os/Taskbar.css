@@ -7,10 +7,8 @@
   height: 60px;
   flex-shrink: 0;
   
-  /* Ultra-Premium Glassmorphism */
-  background: var(--color-border-glass);
-  backdrop-filter: var(--glass-app-blur) saturate(250%);
-  -webkit-backdrop-filter: var(--glass-app-blur) saturate(250%);
+  /* Solid Taskbar Background */
+  background: var(--color-surface-solid);
   
   display: flex;
   align-items: center;
@@ -31,7 +29,7 @@
 }
 
 .taskbar-container:hover {
-  background: var(--color-surface);
+  background: var(--color-surface-solid);
   box-shadow: 
     var(--shadow-xl),
     inset 0 1px 1px var(--color-surface-solid);
