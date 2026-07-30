@@ -12,8 +12,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     }
   }, []);
 
-  const [equation, setEquation] = useState('');
-  const [result, setResult] = useState('0');
+  const [equation, setEquation] = useState('0');
+  const [result, setResult] = useState('');
   const [hasEvaluated, setHasEvaluated] = useState(false);
   
   // For Small Size
@@ -36,7 +36,7 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     if (hasEvaluated) {
       const initial = num === '.' ? '0.' : num;
       setEquation(initial);
-      setResult(initial);
+      setResult('');
       setHasEvaluated(false);
       return;
     }
@@ -48,19 +48,15 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       newEq = newEq + num;
     }
     setEquation(newEq);
-    
-    try {
-      const res = new Function('return ' + newEq)();
-      if (typeof res === 'number' && !isNaN(res)) {
-        // limit decimals to 10 max
-        setResult(String(Math.round(res * 10000000000) / 10000000000));
-      }
-    } catch (e) {}
+    setResult('');
   };
 
   const handleOp = (op: string) => {
     if (hasEvaluated) {
-      setEquation(result + ' ' + op + ' ');
+      let baseVal = result.replace('=', '').trim();
+      if (!baseVal || baseVal === 'Errore') baseVal = '0';
+      setEquation(baseVal + ' ' + op + ' ');
+      setResult('');
       setHasEvaluated(false);
       return;
     }
@@ -74,15 +70,16 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       newEq = newEq + ' ' + op + ' ';
     }
     setEquation(newEq);
+    setResult('');
   };
 
   const handleEval = () => {
+    if (hasEvaluated) return;
     try {
       const res = new Function('return ' + equation)();
       if (typeof res === 'number' && !isNaN(res)) {
         const finalRes = String(Math.round(res * 10000000000) / 10000000000);
-        setResult(finalRes);
-        setEquation(equation + ' =');
+        setResult('= ' + finalRes);
         setHasEvaluated(true);
       }
     } catch (e) {
@@ -92,8 +89,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
   };
 
   const handleClear = () => {
-    setEquation('');
-    setResult('0');
+    setEquation('0');
+    setResult('');
     setHasEvaluated(false);
   };
 
@@ -109,19 +106,12 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       } else {
         newEq = newEq.slice(0, -1);
       }
-      setEquation(newEq);
       
       if (newEq === '') {
-        setResult('0');
-        return;
+        newEq = '0';
       }
-      
-      try {
-        const res = new Function('return ' + newEq)();
-        if (typeof res === 'number' && !isNaN(res)) {
-          setResult(String(Math.round(res * 10000000000) / 10000000000));
-        }
-      } catch (e) {}
+      setEquation(newEq);
+      setResult('');
     }
   };
 
@@ -168,8 +158,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     >
       <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '4px 8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.8, minHeight: '1.2rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0 }}>{equation}</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result}</div>
+          <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0 }}>{equation}</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result || '\u00A0'}</div>
         </div>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
           <button className="calc-btn action" onClick={handleClear}>C</button>
@@ -206,8 +196,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       onClick={() => containerRef.current?.focus()}
     >
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '12px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '90px', overflow: 'hidden' }}>
-        <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>{equation}</div>
-        <div style={{ fontSize: '3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result}</div>
+        <div style={{ fontSize: '1.5rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>{equation}</div>
+        <div style={{ fontSize: '2.5rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result || '\u00A0'}</div>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', flex: 1, minHeight: 0 }}>
