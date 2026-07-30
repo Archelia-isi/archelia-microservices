@@ -12,9 +12,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     }
   }, []);
 
-  const [display, setDisplay] = useState('0');
   const [equation, setEquation] = useState('');
-  const [isNewNumber, setIsNewNumber] = useState(true);
+  const [result, setResult] = useState('0');
   const [hasEvaluated, setHasEvaluated] = useState(false);
   
   // For Small Size
@@ -22,10 +21,9 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
 
   const handleSmallEval = () => {
     try {
-      // Unsafe eval is generally bad, but for a simple desktop calculator we'll use a safer approach using Function
-      const result = new Function('return ' + smallInput)();
-      if (Number.isFinite(result)) {
-        setSmallInput(String(result));
+      const res = new Function('return ' + smallInput)();
+      if (Number.isFinite(res)) {
+        setSmallInput(String(res));
       } else {
         setSmallInput('Errore');
       }
@@ -36,70 +34,94 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
 
   const handleNum = (num: string) => {
     if (hasEvaluated) {
-      setEquation('');
+      const initial = num === '.' ? '0.' : num;
+      setEquation(initial);
+      setResult(initial);
       setHasEvaluated(false);
-      setDisplay(num);
-      setIsNewNumber(false);
       return;
     }
-    if (isNewNumber) {
-      setDisplay(num);
-      setIsNewNumber(false);
+    
+    let newEq = equation;
+    if (newEq === '0' && num !== '.') {
+      newEq = num;
     } else {
-      setDisplay(display === '0' ? num : display + num);
+      newEq = newEq + num;
     }
+    setEquation(newEq);
+    
+    try {
+      const res = new Function('return ' + newEq)();
+      if (typeof res === 'number' && !isNaN(res)) {
+        // limit decimals to 10 max
+        setResult(String(Math.round(res * 10000000000) / 10000000000));
+      }
+    } catch (e) {}
   };
 
   const handleOp = (op: string) => {
     if (hasEvaluated) {
+      setEquation(result + ' ' + op + ' ');
       setHasEvaluated(false);
-      setEquation(display + ' ' + op + ' ');
-      setIsNewNumber(true);
       return;
     }
     
-    const currentVal = parseFloat(display);
-    if (equation.endsWith('+ ') || equation.endsWith('- ') || equation.endsWith('* ') || equation.endsWith('/ ')) {
-      if (isNewNumber) {
-        setEquation(equation.slice(0, -2) + op + ' ');
-        return;
-      }
-    }
+    let newEq = equation;
+    if (newEq === '') newEq = '0';
     
-    const newEquation = equation + currentVal + ' ' + op + ' ';
-    setEquation(newEquation);
-    setIsNewNumber(true);
+    if (newEq.endsWith(' ')) {
+      newEq = newEq.slice(0, -3) + ' ' + op + ' ';
+    } else {
+      newEq = newEq + ' ' + op + ' ';
+    }
+    setEquation(newEq);
   };
 
   const handleEval = () => {
     try {
-      const fullEq = equation + display;
-      const result = new Function('return ' + fullEq)();
-      setDisplay(String(result));
-      setEquation(fullEq + ' =');
-      setIsNewNumber(true);
-      setHasEvaluated(true);
+      const res = new Function('return ' + equation)();
+      if (typeof res === 'number' && !isNaN(res)) {
+        const finalRes = String(Math.round(res * 10000000000) / 10000000000);
+        setResult(finalRes);
+        setEquation(equation + ' =');
+        setHasEvaluated(true);
+      }
     } catch (e) {
-      setDisplay('Errore');
-      setEquation('');
-      setIsNewNumber(true);
+      setResult('Errore');
+      setHasEvaluated(true);
     }
   };
 
   const handleClear = () => {
-    setDisplay('0');
     setEquation('');
-    setIsNewNumber(true);
+    setResult('0');
     setHasEvaluated(false);
   };
 
   const handleDelete = () => {
-    if (isNewNumber) return;
-    if (display.length === 1) {
-      setDisplay('0');
-      setIsNewNumber(true);
-    } else {
-      setDisplay(display.slice(0, -1));
+    if (hasEvaluated) {
+      handleClear();
+      return;
+    }
+    if (equation.length > 0) {
+      let newEq = equation;
+      if (newEq.endsWith(' ')) {
+        newEq = newEq.slice(0, -3);
+      } else {
+        newEq = newEq.slice(0, -1);
+      }
+      setEquation(newEq);
+      
+      if (newEq === '') {
+        setResult('0');
+        return;
+      }
+      
+      try {
+        const res = new Function('return ' + newEq)();
+        if (typeof res === 'number' && !isNaN(res)) {
+          setResult(String(Math.round(res * 10000000000) / 10000000000));
+        }
+      } catch (e) {}
     }
   };
 
@@ -147,7 +169,7 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '4px 8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
           <div style={{ fontSize: '0.85rem', opacity: 0.8, minHeight: '1.2rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0 }}>{equation}</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{display}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result}</div>
         </div>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
           <button className="calc-btn action" onClick={handleClear}>C</button>
@@ -185,14 +207,14 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     >
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '12px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '90px', overflow: 'hidden' }}>
         <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>{equation}</div>
-        <div style={{ fontSize: '3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{display}</div>
+        <div style={{ fontSize: '3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result}</div>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', flex: 1, minHeight: 0 }}>
-        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sin(parseFloat(display))))}>sin</button>
-        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.cos(parseFloat(display))))}>cos</button>
-        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.tan(parseFloat(display))))}>tan</button>
-        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))}>√</button>
+        <button className="calc-btn advanced" onClick={() => setResult(String(Math.sin(parseFloat(result))))}>sin</button>
+        <button className="calc-btn advanced" onClick={() => setResult(String(Math.cos(parseFloat(result))))}>cos</button>
+        <button className="calc-btn advanced" onClick={() => setResult(String(Math.tan(parseFloat(result))))}>tan</button>
+        <button className="calc-btn advanced" onClick={() => setResult(String(Math.sqrt(parseFloat(result))))}>√</button>
         
         <button className="calc-btn action" onClick={handleClear}>C</button>
         <button className="calc-btn action" onClick={handleDelete}><Delete size={16} /></button>
