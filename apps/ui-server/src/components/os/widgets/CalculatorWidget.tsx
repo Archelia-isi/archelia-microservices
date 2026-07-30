@@ -156,33 +156,38 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       onKeyDown={handleKeyDown}
       onClick={() => containerRef.current?.focus()}
     >
-      <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '4px 8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0 }}>{equation}</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result || '\u00A0'}</div>
+      <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0 }}>
+        {/* Left Column */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '4px 8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+            <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{equation}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{result || '\u00A0'}</div>
+          </div>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
+            <button className="calc-btn action" onClick={handleClear}>C</button>
+            <button className="calc-btn action" onClick={handleDelete}><Delete size={14} /></button>
+            <button className="calc-btn action" onClick={() => handleOp('/')}><Divide size={14} /></button>
+            <button className="calc-btn action" onClick={() => handleOp('*')}><MultiplyIcon size={14} /></button>
+            <button className="calc-btn action" onClick={() => handleOp('-')}><Minus size={14} /></button>
+            <button className="calc-btn action" onClick={() => handleOp('+')}><Plus size={14} /></button>
+            <button className="calc-btn action equal" style={{ gridColumn: 'span 2', background: 'var(--color-primary)', color: 'white' }} onClick={handleEval}>=</button>
+          </div>
         </div>
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
-          <button className="calc-btn action" onClick={handleClear}>C</button>
-          <button className="calc-btn action" onClick={handleDelete}><Delete size={14} /></button>
-          <button className="calc-btn action" onClick={() => handleOp('/')}><Divide size={14} /></button>
-          <button className="calc-btn action" onClick={() => handleOp('*')}><MultiplyIcon size={14} /></button>
-          <button className="calc-btn action" onClick={() => handleOp('-')}><Minus size={14} /></button>
-          <button className="calc-btn action" onClick={() => handleOp('+')}><Plus size={14} /></button>
-          <button className="calc-btn action equal" style={{ gridColumn: 'span 2', background: 'var(--color-primary)', color: 'white' }} onClick={handleEval}>=</button>
+        
+        {/* Right Column (Numbers) */}
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(4, 1fr)', gap: '4px' }}>
+          <button className="calc-btn" onClick={() => handleNum('7')}>7</button>
+          <button className="calc-btn" onClick={() => handleNum('8')}>8</button>
+          <button className="calc-btn" onClick={() => handleNum('9')}>9</button>
+          <button className="calc-btn" onClick={() => handleNum('4')}>4</button>
+          <button className="calc-btn" onClick={() => handleNum('5')}>5</button>
+          <button className="calc-btn" onClick={() => handleNum('6')}>6</button>
+          <button className="calc-btn" onClick={() => handleNum('1')}>1</button>
+          <button className="calc-btn" onClick={() => handleNum('2')}>2</button>
+          <button className="calc-btn" onClick={() => handleNum('3')}>3</button>
+          <button className="calc-btn" style={{ gridColumn: 'span 2' }} onClick={() => handleNum('0')}>0</button>
+          <button className="calc-btn" onClick={() => handleNum('.')}>.</button>
         </div>
-      </div>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px', minHeight: 0 }}>
-        <button className="calc-btn" onClick={() => handleNum('7')}>7</button>
-        <button className="calc-btn" onClick={() => handleNum('8')}>8</button>
-        <button className="calc-btn" onClick={() => handleNum('9')}>9</button>
-        <button className="calc-btn" onClick={() => handleNum('4')}>4</button>
-        <button className="calc-btn" onClick={() => handleNum('5')}>5</button>
-        <button className="calc-btn" onClick={() => handleNum('6')}>6</button>
-        <button className="calc-btn" onClick={() => handleNum('1')}>1</button>
-        <button className="calc-btn" onClick={() => handleNum('2')}>2</button>
-        <button className="calc-btn" onClick={() => handleNum('3')}>3</button>
-        <button className="calc-btn" style={{ gridColumn: 'span 2' }} onClick={() => handleNum('0')}>0</button>
-        <button className="calc-btn" onClick={() => handleNum('.')}>.</button>
       </div>
     </div>
   );
