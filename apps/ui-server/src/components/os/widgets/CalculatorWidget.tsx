@@ -1,8 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Delete, Divide, Minus, Plus, X as MultiplyIcon } from 'lucide-react';
 
 export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    // Focus the widget when it mounts so keyboard works immediately
+    if (containerRef.current) {
+      containerRef.current.focus();
+    }
+  }, []);
+
   const [display, setDisplay] = useState('0');
   const [equation, setEquation] = useState('');
   const [isNewNumber, setIsNewNumber] = useState(true);
@@ -129,14 +138,16 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
 
   const renderMedium = () => (
     <div 
+      ref={containerRef}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px', outline: 'none' }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onClick={() => containerRef.current?.focus()}
     >
       <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ fontSize: '0.95rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{equation}</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '4px 8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+          <div style={{ fontSize: '0.85rem', opacity: 0.8, minHeight: '1.2rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', lineHeight: 1.2, flexShrink: 0 }}>{equation}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{display}</div>
         </div>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
           <button className="calc-btn action" onClick={handleClear}>C</button>
@@ -166,13 +177,15 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
 
   const renderLarge = () => (
     <div 
+      ref={containerRef}
       style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px', outline: 'none' }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onClick={() => containerRef.current?.focus()}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '12px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '100px' }}>
-        <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{equation}</div>
-        <div style={{ fontSize: '3.5rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '12px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '90px', overflow: 'hidden' }}>
+        <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', whiteSpace: 'nowrap', flexShrink: 0 }}>{equation}</div>
+        <div style={{ fontSize: '3rem', fontWeight: 500, width: '100%', textAlign: 'right', lineHeight: 1, flexShrink: 0, color: 'var(--color-text)' }}>{display}</div>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', flex: 1, minHeight: 0 }}>
