@@ -5,9 +5,33 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
   const [data, setData] = useState<any[]>([]);
 
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    // Simuliamo un fetch da un nostro backend futuro (es. /api/finance) che interroga Yahoo Finance o simili
-    setTimeout(() => {
+    const fetchFinance = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/finance/quote?symbols=AAPL,MSFT,TSLA,EURUSD=X,BTC-USD', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const results = json.quoteResponse?.result || [];
+          if (results.length > 0) {
+            setData(results.map((r: any) => ({
+              symbol: r.symbol,
+              name: r.shortName || r.longName || r.symbol,
+              price: r.regularMarketPrice || 0,
+              change: r.regularMarketChange || 0,
+              changePercent: r.regularMarketChangePercent || 0
+            })));
+            return;
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      
+      // Fallback
       setData([
         { symbol: 'AAPL', name: 'Apple Inc.', price: 189.43, change: +1.24, changePercent: +0.66 },
         { symbol: 'MSFT', name: 'Microsoft', price: 420.55, change: -2.10, changePercent: -0.50 },
@@ -15,8 +39,10 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
         { symbol: 'EUR/USD', name: 'Euro / Dollaro', price: 1.08, change: -0.001, changePercent: -0.09 },
         { symbol: 'BTC', name: 'Bitcoin', price: 65430.00, change: +1200.50, changePercent: +1.87 },
       ]);
-    }, 500);
-  }, []);
+    };
+    
+    fetchFinance();
+  }, [token]);
 
   const renderStock = (stock: any, showName: boolean = true) => {
     const isUp = stock.change >= 0;

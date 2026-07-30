@@ -5,17 +5,31 @@ import { ShoppingBag, TrendingUp, DollarSign } from 'lucide-react';
 export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }) {
   const [stats, setStats] = useState<any>(null);
 
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    // MOCK: Futura chiamata a /api/admin/shopify/sales
-    setTimeout(() => {
-      setStats({
-        today: { revenue: 1250.00, orders: 15, trend: +12.5 },
-        yesterday: { revenue: 1110.00, orders: 12 },
-        week: { revenue: 8450.50, orders: 95, trend: +4.2 },
-        month: { revenue: 32500.00, orders: 412, trend: -1.5 },
-      });
-    }, 500);
-  }, []);
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const { revenueToday, ordersToday } = data.stats;
+          
+          setStats({
+            today: { revenue: revenueToday || 0, orders: ordersToday || 0, trend: +12.5 }, // Trend can be calculated or mocked for now
+            yesterday: { revenue: 1110.00, orders: 12 },
+            week: { revenue: 8450.50, orders: 95, trend: +4.2 },
+            month: { revenue: 32500.00, orders: 412, trend: -1.5 },
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchStats();
+  }, [token]);
 
   if (!stats) return <div className="widget flex-center">Caricamento Vendite...</div>;
 

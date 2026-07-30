@@ -30,6 +30,8 @@ import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
+import CalendarApp from '../../pages/CalendarApp';
+import NotesApp from '../../pages/NotesApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
@@ -413,9 +415,9 @@ export default function DesktopOS() {
         </div>
       );
       registerApp({ id: 'logs', title: 'System Logs', icon: <TerminalIconWidget />, color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 330, desktopY: 230 });
-    }
-    if (!windows['roblox_game']) {
       registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 430, desktopY: 30 });
+      registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 430, desktopY: 130 });
+      registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 430, desktopY: 230 });
     }
   }, []);
 

@@ -1,14 +1,49 @@
+import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Notebook, FileText, ChevronRight } from 'lucide-react';
+import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
 export default function NotesWidget({ widget }: { widget: DesktopWidget }) {
-  // MOCK: Note dall'app Note
-  const recentNotes = [
-    { id: 1, title: 'Idee Nuova Collezione', preview: 'Appunti sui nuovi tessuti e pattern...', date: 'Oggi' },
-    { id: 2, title: 'Meeting Zucchetti', preview: 'Punti da discutere per integrazione ERP...', date: 'Ieri' },
-    { id: 3, title: 'To-Do List Settimana', preview: '1. Controllare ordini\n2. Aggiornare Shopify...', date: 'Lun' },
-    { id: 4, title: 'Bozza Email Fornitori', preview: 'Gentile fornitore, le scriviamo per...', date: 'Ven' }
-  ];
+  const [notes, setNotes] = useState<any[]>([]);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/notes', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNotes(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchNotes();
+  }, [token]);
+
+  // Strip HTML for preview
+  const stripHtml = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  };
+
+  const recentNotes = notes.map(n => {
+    const date = parseISO(n.updatedAt);
+    let dateStr = format(date, 'dd/MM');
+    if (isToday(date)) dateStr = 'Oggi';
+    else if (isYesterday(date)) dateStr = 'Ieri';
+
+    return {
+      id: n.id,
+      title: n.title,
+      preview: stripHtml(n.content).substring(0, 50) + '...',
+      date: dateStr,
+      color: n.color
+    };
+  });
 
   const renderSmall = () => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>

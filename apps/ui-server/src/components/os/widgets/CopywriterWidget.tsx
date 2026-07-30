@@ -21,22 +21,35 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
     }
   }, [widget.size, widget.id, updateWidgetSize]);
 
-  const handleGenerate = () => {
+  const token = localStorage.getItem('token');
+
+  const handleGenerate = async () => {
     if (!prompt.trim() && attachments.length === 0) return;
     setIsGenerating(true);
     setResult('');
     
-    // MOCK: In futuro qui andrà la chiamata al gateway (es. POST /api/v1/ai/generate con Gemini)
-    setTimeout(() => {
-      let mockRes = `Ecco una bozza ${tone} in risposta alla tua richiesta:\n\n`;
-      if (attachments.length > 0) {
-        mockRes += `(Ho analizzato anche ${attachments.length} file allegati)\n\n`;
+    try {
+      const res = await fetch('http://localhost:3000/api/admin/ai/copywriter', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ prompt: `${prompt}\n\nTono: ${tone}` })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setResult(data.text || 'Nessun risultato');
+      } else {
+        setResult('Errore durante la generazione del testo.');
       }
-      mockRes += "Gentile Cliente,\nGrazie per averci contattato. Stiamo verificando la sua richiesta e le faremo sapere al più presto.\nCordiali saluti.";
-      
-      setResult(mockRes);
+    } catch (e) {
+      console.error(e);
+      setResult('Errore di connessione.');
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const handleCopy = () => {

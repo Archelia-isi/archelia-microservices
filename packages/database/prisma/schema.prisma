@@ -1220,3 +1220,35 @@ model EqualizzatoreUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
+
+// === APP CALENDARIO ===
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  start       DateTime
+  end         DateTime
+  color       String?  // hex code or predefined theme color
+  allDay      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([start, end])
+  @@map("calendar_events")
+}
+
+// === APP NOTE ===
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text // HTML from tiptap or rich text
+  color       String?  // color for the sticky note
+  isPinned    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("notes")
+}

@@ -5,18 +5,38 @@ import { Package, AlertCircle } from 'lucide-react';
 export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget }) {
   const [orders, setOrders] = useState<any[]>([]);
 
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    // MOCK: Futura chiamata a /api/admin/orders/pending
-    setTimeout(() => {
-      setOrders([
-        { id: '#10234', customer: 'Mario Rossi', amount: 154.20, status: 'pending', time: '10 min fa' },
-        { id: '#10233', customer: 'Luigi Bianchi', amount: 89.90, status: 'syncing', time: '15 min fa' },
-        { id: '#10232', customer: 'Giulia Verdi', amount: 210.00, status: 'error', time: '1 ora fa' },
-        { id: '#10231', customer: 'Anna Neri', amount: 45.00, status: 'pending', time: '2 ore fa' },
-        { id: '#10230', customer: 'Paolo Gialli', amount: 320.50, status: 'pending', time: '3 ore fa' },
-      ]);
-    }, 500);
-  }, []);
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/orders?limit=10', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setOrders(json.data.map((o: any) => {
+            const zq = o.zucchettiQueue;
+            let status = 'syncing';
+            if (!zq) status = 'pending';
+            else if (zq.status === 'COMPLETED') status = 'completed';
+            else if (zq.status === 'FAILED') status = 'error';
+
+            return {
+              id: o.orderNumber || o.shopifyOrderId,
+              customer: o.customerName || 'Cliente Shopify',
+              amount: o.totalPrice || 0,
+              status,
+              time: new Date(o.createdAt).toLocaleDateString()
+            };
+          }).filter((o: any) => o.status !== 'completed')); // Show only pending/syncing/errors
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchOrders();
+  }, [token]);
 
   if (orders.length === 0) return <div className="widget flex-center">Caricamento Ordini...</div>;
 

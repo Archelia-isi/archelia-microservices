@@ -11,21 +11,38 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
     networkPing: 0
   });
 
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
-    // MOCK: In futuro chiederà dati reali al backend /api/admin/system
-    const updateStats = () => {
-      setStats({
-        cpu: Math.floor(Math.random() * 40) + 10,
-        ram: Math.floor(Math.random() * 30) + 40,
-        disk: 65,
-        activeTasks: Math.floor(Math.random() * 10) + 20,
-        networkPing: Math.floor(Math.random() * 30) + 10
-      });
+    let intId: any;
+    
+    const fetchSystemStats = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const { server, latencyMs } = data;
+          
+          setStats(prev => ({
+            ...prev,
+            cpu: Math.min(100, Math.round(server.cpuLoad * 10)), // Approximate load avg to percentage
+            ram: Math.min(100, Math.round((server.memory / 4096) * 100)), // Assuming 4GB total for display
+            disk: 65, // Mock disk
+            activeTasks: data.stats.syncLogs || 0,
+            networkPing: latencyMs || 12
+          }));
+        }
+      } catch (e) {
+        console.error(e);
+      }
     };
-    updateStats();
-    const intId = setInterval(updateStats, 2000);
+
+    fetchSystemStats();
+    intId = setInterval(fetchSystemStats, 10000); // Fetch every 10s
     return () => clearInterval(intId);
-  }, []);
+  }, [token]);
 
   const getStatusColor = (val: number) => {
     if (val > 85) return 'var(--color-danger)';

@@ -1,10 +1,31 @@
+import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 
 export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
-  const kpi1 = widget.config?.kpi1 || { label: 'Ordini Oggi', value: '124', trend: '+12%', isPositive: true };
-  const kpi2 = widget.config?.kpi2 || { label: 'Fatturato', value: '€3.4K', trend: '+8%', isPositive: true };
-  const kpi3 = widget.config?.kpi3 || { label: 'Nuovi Clienti', value: '18', trend: '-2%', isPositive: false };
-  const kpi4 = widget.config?.kpi4 || { label: 'Visite', value: '1.2K', trend: '+24%', isPositive: true };
+  const [stats, setStats] = useState<any>(null);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchStats();
+  }, [token]);
+
+  const kpi1 = widget.config?.kpi1 || { label: 'Ordini Oggi', value: stats?.ordersToday?.toString() || '...', trend: '', isPositive: true };
+  const kpi2 = widget.config?.kpi2 || { label: 'Fatturato', value: stats?.revenueToday ? `€${stats.revenueToday.toFixed(2)}` : '...', trend: '', isPositive: true };
+  const kpi3 = widget.config?.kpi3 || { label: 'Clienti Totali', value: stats?.customers?.toString() || '...', trend: '', isPositive: true };
+  const kpi4 = widget.config?.kpi4 || { label: 'Prodotti', value: stats?.products?.toString() || '...', trend: '', isPositive: true };
 
   const renderSingleKpi = (kpi: any, large = false) => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>

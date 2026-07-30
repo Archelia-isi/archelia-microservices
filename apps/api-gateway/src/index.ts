@@ -24,6 +24,10 @@ import infinityRoutes from './routes/admin/infinity.js';
 import imagesRoutes from './routes/admin/images.js';
 import { analyticsRoutes } from './routes/admin/analytics.js';
 import { adminDesktopRoutes } from './routes/admin/desktop.js';
+import { adminCalendarRoutes } from './routes/admin/calendar.js';
+import { adminNotesRoutes } from './routes/admin/notes.js';
+import { adminAiWidgetsRoutes } from './routes/admin/ai_widgets.js';
+import { adminFinanceRoutes } from './routes/admin/finance.js';
 async function buildApp() {
   const app = Fastify({
     logger: false, // We use Pino from @archelia/core
@@ -66,6 +70,10 @@ async function buildApp() {
   await app.register(imagesRoutes, { prefix: '/api/admin' });
   await app.register(analyticsRoutes);
   await app.register(adminDesktopRoutes);
+  await app.register(adminCalendarRoutes);
+  await app.register(adminNotesRoutes);
+  await app.register(adminAiWidgetsRoutes);
+  await app.register(adminFinanceRoutes);
 
   return app;
 }

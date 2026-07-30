@@ -1,13 +1,38 @@
+import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
+import { format, isToday, parseISO } from 'date-fns';
 
 export default function CalendarWidget({ widget }: { widget: DesktopWidget }) {
-  // MOCK: Eventi dal calendario locale o Google Calendar dell'utente
-  const todayEvents = [
-    { id: 1, title: 'Riunione Marketing', time: '10:00 - 11:30', location: 'Meet' },
-    { id: 2, title: 'Pranzo con Fornitore', time: '13:00 - 14:00', location: 'Ristorante Roma' },
-    { id: 3, title: 'Review Sviluppo App', time: '15:30 - 16:30', location: 'Ufficio' }
-  ];
+  const [events, setEvents] = useState<any[]>([]);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/admin/calendar', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Filter only today's events
+          const today = data.filter((e: any) => isToday(parseISO(e.start)));
+          setEvents(today);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchEvents();
+  }, [token]);
+
+  const todayEvents = events.map(e => ({
+    id: e.id,
+    title: e.title,
+    time: `${format(parseISO(e.start), 'HH:mm')} - ${format(parseISO(e.end), 'HH:mm')}`,
+    location: e.description || '',
+    color: e.color
+  }));
 
   const now = new Date();
   const dayName = now.toLocaleDateString('it-IT', { weekday: 'long' });
