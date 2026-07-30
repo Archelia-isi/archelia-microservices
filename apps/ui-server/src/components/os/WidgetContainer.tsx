@@ -16,6 +16,8 @@ import NewsWidget from './widgets/NewsWidget';
 import CopywriterWidget from './widgets/CopywriterWidget';
 import TranslatorWidget from './widgets/TranslatorWidget';
 import MonitorWidget from './widgets/MonitorWidget';
+import ShopifySalesWidget from './widgets/ShopifySalesWidget';
+import PendingOrdersWidget from './widgets/PendingOrdersWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -87,6 +89,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'copywriter': return <CopywriterWidget widget={widget} />;
       case 'translator': return <TranslatorWidget widget={widget} />;
       case 'monitor': return <MonitorWidget widget={widget} />;
+      case 'shopify-sales': return <ShopifySalesWidget widget={widget} />;
+      case 'pending-orders': return <PendingOrdersWidget widget={widget} />;
       default: return null;
     }
   };

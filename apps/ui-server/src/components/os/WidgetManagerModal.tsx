@@ -21,6 +21,8 @@ export default function WidgetManagerModal() {
     { type: 'copywriter', title: 'AI Copywriter', description: 'Assistente intelligente per email e testi.' },
     { type: 'translator', title: 'Traduttore Rapido', description: 'Traduttore potenziato da Gemini.' },
     { type: 'monitor', title: 'Monitor Sistema', description: 'Uso RAM, CPU e task in background.' },
+    { type: 'shopify-sales', title: 'Vendite Shopify', description: 'Andamento vendite in tempo reale.' },
+    { type: 'pending-orders', title: 'Ordini in Coda', description: 'Ordini da sincronizzare con Zucchetti.' },
     // Aggiungeremo gli altri qui man mano che li sviluppiamo
   ];
 
@@ -67,6 +69,8 @@ export default function WidgetManagerModal() {
                            w.type === 'copywriter' ? 'AI Copywriter' :
                            w.type === 'translator' ? 'Traduttore' :
                            w.type === 'monitor' ? 'Monitor Sistema' :
+                           w.type === 'shopify-sales' ? 'Vendite Shopify' :
+                           w.type === 'pending-orders' ? 'Ordini in Coda' :
                            w.type}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Taglia: {w.size}</div>
