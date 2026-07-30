@@ -24,7 +24,7 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
     const Icon = isUp ? TrendingUp : TrendingDown;
 
     return (
-      <div key={stock.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--color-surface-solid)', borderRadius: '8px', marginBottom: '8px' }}>
+      <div key={stock.symbol} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px', background: 'var(--color-surface-solid)', borderRadius: '8px', marginBottom: '4px' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontWeight: 600 }}>{stock.symbol}</span>
           {showName && <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>{stock.name}</span>}
@@ -43,19 +43,19 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
   if (data.length === 0) return <div className="widget flex-center">Caricamento...</div>;
 
   return (
-    <div className="widget finance-widget" style={{ width: '100%', height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="widget finance-widget" style={{ width: '100%', height: '100%', padding: '8px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
       {(!widget.size || widget.size === 'small') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600 }}>MERCATI</div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center' }}>
+          <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '4px', fontWeight: 600 }}>MERCATI</div>
           {renderStock(data[0], false)}
         </div>
       )}
 
       {widget.size === 'medium' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '12px', fontWeight: 600 }}>MERCATI & VALUTE</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600 }}>MERCATI & VALUTE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {renderStock(data[0], false)}
               {renderStock(data[1], false)}
@@ -69,12 +69,12 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
       )}
 
       {widget.size === 'large' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: '1rem', opacity: 0.7, marginBottom: '16px', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ fontSize: '1rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
             <span>MERCATI GLOBALI</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--color-success)' }}>Mercato Aperto</span>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
             {data.map(stock => renderStock(stock, true))}
           </div>
         </div>

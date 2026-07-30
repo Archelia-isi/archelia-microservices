@@ -36,7 +36,7 @@ export default function NewsWidget({ widget }: { widget: DesktopWidget }) {
   if (news.length === 0) return <div className="widget flex-center">Caricamento News...</div>;
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
         <Newspaper size={16} />
         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ULTIMA ORA</span>
@@ -51,13 +51,13 @@ export default function NewsWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <Newspaper size={16} />
         <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>NEWS TOP</span>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, overflowY: 'auto' }}>
-        {news.slice(0, 3).map((item, i) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        {news.slice(0, 2).map((item, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', borderBottom: i < 2 ? '1px solid var(--color-border-glass)' : 'none', paddingBottom: i < 2 ? '8px' : '0' }}>
             <a href={item.link} target="_blank" rel="noreferrer" style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: 600, fontSize: '0.85rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {item.title}
@@ -72,16 +72,16 @@ export default function NewsWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderLarge = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Newspaper size={18} />
           <span style={{ fontSize: '1rem', fontWeight: 600 }}>RASSEGNA STAMPA</span>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '8px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '8px' }}>
         {news.map((item, i) => (
-          <a key={i} href={item.link} target="_blank" rel="noreferrer" style={{ display: 'flex', gap: '12px', textDecoration: 'none', color: 'inherit' }}>
+          <a key={i} href={item.link} target="_blank" rel="noreferrer" style={{ display: 'flex', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
             {item.thumbnail && (
               <div style={{ width: '80px', height: '60px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0 }}>
                 <img src={item.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

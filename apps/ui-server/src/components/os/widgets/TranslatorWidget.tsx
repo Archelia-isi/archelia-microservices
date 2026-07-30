@@ -28,7 +28,7 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
   };
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center', alignItems: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
       <Languages size={32} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
       <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Traduttore</div>
       <div style={{ fontSize: '0.75rem', opacity: 0.7, textAlign: 'center', marginTop: '4px' }}>Ingrandisci per tradurre testi</div>
@@ -36,7 +36,7 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
   );
 
   const renderContent = (isLarge: boolean) => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Languages size={18} style={{ color: 'var(--color-primary)' }} />
@@ -62,17 +62,17 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: isLarge ? 'row' : 'column', gap: '12px', flex: 1 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: isLarge ? 'row' : 'column', gap: '8px', flex: 1 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Scrivi qui il testo da tradurre..."
-            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)', minHeight: isLarge ? '0' : '80px' }}
+            style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)', minHeight: isLarge ? '0' : '50px' }}
           />
         </div>
         {isLarge && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <div style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface-solid)', fontSize: '0.9rem', whiteSpace: 'pre-wrap', overflowY: 'auto' }}>
               {isTranslating ? 'Traduzione in corso...' : result || 'La traduzione apparirà qui.'}
             </div>

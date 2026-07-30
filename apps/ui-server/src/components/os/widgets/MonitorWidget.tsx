@@ -34,7 +34,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
   };
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center', alignItems: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
       <Activity size={32} style={{ color: getStatusColor(Math.max(stats.cpu, stats.ram)), marginBottom: '8px' }} />
       <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sistema</div>
       <div style={{ fontSize: '0.75rem', opacity: 0.7, textAlign: 'center', marginTop: '4px' }}>
@@ -44,12 +44,12 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Server size={18} style={{ color: 'var(--color-primary)' }} />
         <span style={{ fontSize: '1rem', fontWeight: 600 }}>Stato Server</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
             <span><Cpu size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> CPU</span>
@@ -79,7 +79,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderLarge = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Server size={20} style={{ color: 'var(--color-primary)' }} />
@@ -92,7 +92,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Resource Bars */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
               <span><Cpu size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Processore (CPU)</span>

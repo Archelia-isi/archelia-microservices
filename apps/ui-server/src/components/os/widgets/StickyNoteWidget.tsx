@@ -68,14 +68,14 @@ export default function StickyNoteWidget({ widget }: { widget: DesktopWidget }) 
       )}
       
       {widget.size === 'medium' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', height: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', height: '100%' }}>
           {renderNote(notes[0])}
           {renderNote(notes[1])}
         </div>
       )}
       
       {widget.size === 'large' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '12px', height: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '8px', height: '100%' }}>
           {renderNote(notes[0])}
           {renderNote(notes[1])}
           {renderNote(notes[2])}

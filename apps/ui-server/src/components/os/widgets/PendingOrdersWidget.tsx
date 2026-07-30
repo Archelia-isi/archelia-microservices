@@ -24,7 +24,7 @@ export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget 
   const errorCount = orders.filter(o => o.status === 'error').length;
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center', alignItems: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
       <Package size={32} style={{ color: errorCount > 0 ? 'var(--color-danger)' : 'var(--color-warning)', marginBottom: '8px' }} />
       <div style={{ fontSize: '2rem', fontWeight: 300 }}>{pendingCount}</div>
       <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>ORDINI IN CODA</div>
@@ -56,19 +56,19 @@ export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget 
   };
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <Package size={18} style={{ color: 'var(--color-warning)' }} />
         <span style={{ fontSize: '1rem', fontWeight: 600 }}>Coda Sincronizzazione ({pendingCount})</span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {orders.slice(0, 3).map(renderOrder)}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        {orders.slice(0, 2).map(renderOrder)}
       </div>
     </div>
   );
 
   const renderLarge = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Package size={20} style={{ color: 'var(--color-warning)' }} />
@@ -86,7 +86,7 @@ export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget 
         </div>
       </div>
       
-      <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '8px' }}>
         {orders.map(renderOrder)}
       </div>
     </div>

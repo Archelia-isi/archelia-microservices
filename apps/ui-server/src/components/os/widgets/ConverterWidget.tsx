@@ -73,10 +73,10 @@ export default function ConverterWidget({ widget }: { widget: DesktopWidget }) {
   };
 
   return (
-    <div className="widget converter-widget" style={{ width: '100%', height: '100%', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+    <div className="widget converter-widget" style={{ width: '100%', height: '100%', padding: '12px', display: 'flex', flexDirection: 'column' }}>
       
       {(!widget.size || widget.size === 'small') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center' }}>
           <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '4px', fontWeight: 600 }}>CONVERTITORE</div>
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             <input 
@@ -94,7 +94,7 @@ export default function ConverterWidget({ widget }: { widget: DesktopWidget }) {
       )}
 
       {(widget.size === 'medium' || widget.size === 'large') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
             {['valute', 'pesi', 'distanze'].map(c => (
               <button 
@@ -109,7 +109,7 @@ export default function ConverterWidget({ widget }: { widget: DesktopWidget }) {
           
           {renderDropdowns()}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, marginTop: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginTop: '8px' }}>
              <input 
                type="number" 
                value={amount} 

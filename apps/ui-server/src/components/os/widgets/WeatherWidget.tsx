@@ -72,11 +72,11 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
     return () => clearInterval(interval);
   }, [city]);
 
-  if (error) return <div className="widget weather-widget flex-center" style={{ padding: '16px', textAlign: 'center', color: 'var(--color-danger)' }}>{error}</div>;
+  if (error) return <div className="widget weather-widget flex-center" style={{ padding: '12px', textAlign: 'center', color: 'var(--color-danger)' }}>{error}</div>;
   if (!weatherData) return <div className="widget weather-widget flex-center">Caricamento...</div>;
 
   return (
-    <div className="widget weather-widget" style={{ width: '100%', height: '100%', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+    <div className="widget weather-widget" style={{ width: '100%', height: '100%', padding: '12px', display: 'flex', flexDirection: 'column' }}>
       
       {/* HEADER: sempre presente */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -85,7 +85,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
       </div>
 
       {(!widget.size || widget.size === 'small') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center', alignItems: 'center' }}>
           <h1 style={{ fontSize: '3.5rem', margin: '0', fontWeight: 300 }}>{weatherData.current.temp}°</h1>
           <p style={{ margin: 0, opacity: 0.8, fontSize: '1rem' }}>{weatherData.current.condition}</p>
         </div>
@@ -93,7 +93,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
 
       {widget.size === 'medium' && (
         <div style={{ display: 'flex', flex: 1, alignItems: 'center' }}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, alignItems: 'center' }}>
             <h1 style={{ fontSize: '3rem', margin: '0', fontWeight: 300 }}>{weatherData.current.temp}°</h1>
             <p style={{ margin: 0, opacity: 0.8, fontSize: '0.9rem' }}>{weatherData.current.condition}</p>
           </div>
@@ -113,7 +113,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
       {widget.size === 'large' && (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           <div style={{ display: 'flex', flex: 1 }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center', alignItems: 'center' }}>
               <h1 style={{ fontSize: '4rem', margin: '0', fontWeight: 300 }}>{weatherData.current.temp}°</h1>
               <p style={{ margin: 0, opacity: 0.8, fontSize: '1rem' }}>{weatherData.current.condition}</p>
             </div>

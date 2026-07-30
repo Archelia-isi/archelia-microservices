@@ -20,7 +20,7 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
   if (!stats) return <div className="widget flex-center">Caricamento Vendite...</div>;
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', opacity: 0.7 }}>
         <ShoppingBag size={14} />
         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>VENDITE OGGI</span>
@@ -34,12 +34,12 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
   );
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <ShoppingBag size={18} style={{ color: 'var(--color-primary)' }} />
         <span style={{ fontSize: '1rem', fontWeight: 600 }}>Andamento Shopify</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1 }}>
         <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
           <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Oggi ({stats.today.orders} ordini)</span>
           <span style={{ fontSize: '1.5rem', fontWeight: 600, margin: '4px 0' }}>€{stats.today.revenue.toFixed(2)}</span>
@@ -59,7 +59,7 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
   );
 
   const renderLarge = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ShoppingBag size={20} style={{ color: 'var(--color-primary)' }} />
@@ -70,8 +70,8 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '16px', borderRadius: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7, marginBottom: '8px' }}>
             <DollarSign size={16} /> <span style={{ fontSize: '0.9rem' }}>Fatturato Oggi</span>
           </div>
@@ -81,7 +81,7 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
             {stats.today.trend > 0 ? '+' : ''}{stats.today.trend}% rispetto a ieri
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '16px', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7, marginBottom: '8px' }}>
             <ShoppingBag size={16} /> <span style={{ fontSize: '0.9rem' }}>Ordini Oggi</span>
           </div>

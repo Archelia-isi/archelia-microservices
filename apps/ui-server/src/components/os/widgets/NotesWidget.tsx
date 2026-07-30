@@ -11,7 +11,7 @@ export default function NotesWidget({ widget }: { widget: DesktopWidget }) {
   ];
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center', alignItems: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
       <Notebook size={32} style={{ color: 'var(--color-warning)', marginBottom: '8px' }} />
       <div style={{ fontSize: '2rem', fontWeight: 300, lineHeight: 1 }}>{recentNotes.length}</div>
       <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>NOTE RECENTI</div>
@@ -19,14 +19,14 @@ export default function NotesWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <Notebook size={18} style={{ color: 'var(--color-warning)' }} />
         <span style={{ fontSize: '1rem', fontWeight: 600 }}>Note Rapide</span>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {recentNotes.slice(0, 3).map(note => (
-          <div key={note.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', cursor: 'pointer' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {recentNotes.slice(0, 2).map(note => (
+          <div key={note.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer' }}>
             <div style={{ background: 'var(--color-warning-transparent)', color: 'var(--color-warning)', padding: '8px', borderRadius: '8px' }}>
               <FileText size={16} />
             </div>
@@ -41,7 +41,7 @@ export default function NotesWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   const renderLarge = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Notebook size={20} style={{ color: 'var(--color-warning)' }} />
@@ -52,9 +52,9 @@ export default function NotesWidget({ widget }: { widget: DesktopWidget }) {
         </button>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', flex: 1, overflowY: 'auto', alignContent: 'start', paddingRight: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px', flex: 1, minHeight: 0, overflowY: 'auto', alignContent: 'start', paddingRight: '8px' }}>
         {recentNotes.map(note => (
-          <div key={note.id} style={{ background: 'var(--color-surface-solid)', padding: '16px', borderRadius: '8px', display: 'flex', flexDirection: 'column', cursor: 'pointer', border: '1px solid var(--color-border)' }}>
+          <div key={note.id} style={{ background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column', cursor: 'pointer', border: '1px solid var(--color-border)' }}>
             <span style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{note.title}</span>
             <span style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '12px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {note.preview}

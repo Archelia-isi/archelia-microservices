@@ -44,7 +44,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
   };
 
   const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', justifyContent: 'center', alignItems: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
       <Sparkles size={32} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
       <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>AI Copywriter</div>
       <div style={{ fontSize: '0.75rem', opacity: 0.7, textAlign: 'center', marginTop: '4px' }}>Ingrandisci per usare l'assistente email</div>
@@ -52,7 +52,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
   );
 
   const renderContent = (isLarge: boolean) => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px', overflow: 'hidden' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -78,7 +78,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
           placeholder="Di cosa vuoi parlare? Incolla qui l'email del cliente..."
-          style={{ width: '100%', height: isLarge ? '80px' : '60px', padding: '8px', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)' }}
+          style={{ width: '100%', height: isLarge ? '80px' : '40px', padding: '8px', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)' }}
         />
         
         {attachments.length > 0 && (
@@ -111,8 +111,8 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
 
       {/* Output Area */}
       {result && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, gap: '8px', minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
             {result}
           </div>
           <button 

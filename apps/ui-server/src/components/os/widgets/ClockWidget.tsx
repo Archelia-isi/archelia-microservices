@@ -78,7 +78,7 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
     const cleanLabel = rawInput || validTz.split('/').pop()?.replace('_', ' ') || 'Roma';
 
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center', alignItems: 'center' }}>
         <p style={{ margin: '0 0 4px 0', fontSize: '0.8rem', opacity: 0.7, textTransform: 'uppercase', fontWeight: 600 }}>{cleanLabel}</p>
         <h1 style={{ fontSize: widget.size === 'small' ? '3.5rem' : '2.5rem', fontWeight: 200, margin: 0, letterSpacing: '-0.05em' }}>
           {formatter.format(time)}
@@ -88,7 +88,7 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
   };
 
   return (
-    <div className="widget clock-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '16px' }}>
+    <div className="widget clock-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '12px' }}>
       {(!widget.size || widget.size === 'small') && (
         <>
           {renderClock(tz1)}
@@ -113,7 +113,7 @@ export default function ClockWidget({ widget }: { widget: DesktopWidget }) {
       )}
 
       {widget.size === 'large' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%', gap: '8px' }}>
           {renderClock(tz1)}
           {renderClock(tz2)}
           {renderClock(tz3)}

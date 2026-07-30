@@ -7,7 +7,7 @@ export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
   const kpi4 = widget.config?.kpi4 || { label: 'Visite', value: '1.2K', trend: '+24%', isPositive: true };
 
   const renderSingleKpi = (kpi: any, large = false) => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
       <p style={{ margin: 0, fontSize: large ? '1rem' : '0.8rem', opacity: 0.8 }}>{kpi.label}</p>
       <h1 style={{ fontSize: large ? '3rem' : '2rem', margin: '4px 0' }}>{kpi.value}</h1>
       <p style={{ margin: 0, color: kpi.isPositive ? '#32B351' : '#FF3B30', fontWeight: 600, fontSize: large ? '1rem' : '0.9rem' }}>
@@ -17,7 +17,7 @@ export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
   );
 
   return (
-    <div className="widget kpi-widget" style={{ width: '100%', height: '100%', padding: '16px', display: 'flex' }}>
+    <div className="widget kpi-widget" style={{ width: '100%', height: '100%', padding: '12px', display: 'flex' }}>
       {(!widget.size || widget.size === 'small') && (
         renderSingleKpi(kpi1, true)
       )}
@@ -31,7 +31,7 @@ export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
       )}
 
       {widget.size === 'large' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%', gap: '8px' }}>
           {renderSingleKpi(kpi1)}
           {renderSingleKpi(kpi2)}
           {renderSingleKpi(kpi3)}
