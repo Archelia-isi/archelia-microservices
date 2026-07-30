@@ -111,7 +111,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
 
       {/* Output Area */}
       {result && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, gap: '8px', minHeight: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
             {result}
           </div>
