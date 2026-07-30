@@ -18,6 +18,8 @@ import TranslatorWidget from './widgets/TranslatorWidget';
 import MonitorWidget from './widgets/MonitorWidget';
 import ShopifySalesWidget from './widgets/ShopifySalesWidget';
 import PendingOrdersWidget from './widgets/PendingOrdersWidget';
+import CalendarWidget from './widgets/CalendarWidget';
+import NotesWidget from './widgets/NotesWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -91,6 +93,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'monitor': return <MonitorWidget widget={widget} />;
       case 'shopify-sales': return <ShopifySalesWidget widget={widget} />;
       case 'pending-orders': return <PendingOrdersWidget widget={widget} />;
+      case 'calendar': return <CalendarWidget widget={widget} />;
+      case 'notes': return <NotesWidget widget={widget} />;
       default: return null;
     }
   };

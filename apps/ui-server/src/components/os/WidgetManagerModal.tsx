@@ -23,6 +23,8 @@ export default function WidgetManagerModal() {
     { type: 'monitor', title: 'Monitor Sistema', description: 'Uso RAM, CPU e task in background.' },
     { type: 'shopify-sales', title: 'Vendite Shopify', description: 'Andamento vendite in tempo reale.' },
     { type: 'pending-orders', title: 'Ordini in Coda', description: 'Ordini da sincronizzare con Zucchetti.' },
+    { type: 'calendar', title: 'Calendario', description: 'I tuoi appuntamenti (richiede app Calendario).' },
+    { type: 'notes', title: 'Note Rapide', description: 'Le tue note (richiede app Note).' },
     // Aggiungeremo gli altri qui man mano che li sviluppiamo
   ];
 
@@ -71,6 +73,8 @@ export default function WidgetManagerModal() {
                            w.type === 'monitor' ? 'Monitor Sistema' :
                            w.type === 'shopify-sales' ? 'Vendite Shopify' :
                            w.type === 'pending-orders' ? 'Ordini in Coda' :
+                           w.type === 'calendar' ? 'Calendario' :
+                           w.type === 'notes' ? 'Note Rapide' :
                            w.type}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Taglia: {w.size}</div>
