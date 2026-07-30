@@ -15,6 +15,8 @@ export default function WidgetManagerModal() {
     { type: 'kpi', title: 'KPI Sistema', description: 'Sguardo rapido alle metriche chiave.' },
     { type: 'calculator', title: 'Calcolatrice', description: 'Calcolatrice rapida sul desktop.' },
     { type: 'sticky-note', title: 'Post-it', description: 'Appunti rapidi e promemoria al volo.' },
+    { type: 'converter', title: 'Convertitore', description: 'Convertitore di valute e unità di misura.' },
+    { type: 'finance', title: 'Borsa & Finanza', description: 'Mercati finanziari e tassi di cambio.' },
     // Aggiungeremo gli altri qui man mano che li sviluppiamo
   ];
 
@@ -55,6 +57,8 @@ export default function WidgetManagerModal() {
                            w.type === 'weather' ? 'Meteo' : 
                            w.type === 'calculator' ? 'Calcolatrice' :
                            w.type === 'sticky-note' ? 'Post-it' :
+                           w.type === 'converter' ? 'Convertitore' :
+                           w.type === 'finance' ? 'Finanza' :
                            w.type}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Taglia: {w.size}</div>

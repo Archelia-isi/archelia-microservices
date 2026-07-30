@@ -10,6 +10,8 @@ import WeatherWidget from './widgets/WeatherWidget';
 import KpiWidget from './widgets/KpiWidget';
 import CalculatorWidget from './widgets/CalculatorWidget';
 import StickyNoteWidget from './widgets/StickyNoteWidget';
+import ConverterWidget from './widgets/ConverterWidget';
+import FinanceWidget from './widgets/FinanceWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -75,6 +77,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'kpi': return <KpiWidget widget={widget} />;
       case 'calculator': return <CalculatorWidget widget={widget} />;
       case 'sticky-note': return <StickyNoteWidget widget={widget} />;
+      case 'converter': return <ConverterWidget widget={widget} />;
+      case 'finance': return <FinanceWidget widget={widget} />;
       default: return null;
     }
   };
