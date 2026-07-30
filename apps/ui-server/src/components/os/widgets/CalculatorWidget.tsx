@@ -6,6 +6,7 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
   const [display, setDisplay] = useState('0');
   const [equation, setEquation] = useState('');
   const [isNewNumber, setIsNewNumber] = useState(true);
+  const [hasEvaluated, setHasEvaluated] = useState(false);
   
   // For Small Size
   const [smallInput, setSmallInput] = useState('');
@@ -25,6 +26,13 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
   };
 
   const handleNum = (num: string) => {
+    if (hasEvaluated) {
+      setEquation('');
+      setHasEvaluated(false);
+      setDisplay(num);
+      setIsNewNumber(false);
+      return;
+    }
     if (isNewNumber) {
       setDisplay(num);
       setIsNewNumber(false);
@@ -34,6 +42,13 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
   };
 
   const handleOp = (op: string) => {
+    if (hasEvaluated) {
+      setHasEvaluated(false);
+      setEquation(display + ' ' + op + ' ');
+      setIsNewNumber(true);
+      return;
+    }
+    
     const currentVal = parseFloat(display);
     if (equation.endsWith('+ ') || equation.endsWith('- ') || equation.endsWith('* ') || equation.endsWith('/ ')) {
       if (isNewNumber) {
@@ -52,8 +67,9 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       const fullEq = equation + display;
       const result = new Function('return ' + fullEq)();
       setDisplay(String(result));
-      setEquation('');
+      setEquation(fullEq + ' =');
       setIsNewNumber(true);
+      setHasEvaluated(true);
     } catch (e) {
       setDisplay('Errore');
       setEquation('');
@@ -65,6 +81,7 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     setDisplay('0');
     setEquation('');
     setIsNewNumber(true);
+    setHasEvaluated(false);
   };
 
   const handleDelete = () => {
@@ -118,8 +135,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     >
       <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ fontSize: '0.85rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+          <div style={{ fontSize: '0.95rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{equation}</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
         </div>
         <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
           <button className="calc-btn action" onClick={handleClear}>C</button>
@@ -153,9 +170,9 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '80px' }}>
-        <div style={{ fontSize: '0.85rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
-        <div style={{ fontSize: '3rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '12px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '100px' }}>
+        <div style={{ fontSize: '1.1rem', opacity: 0.8, minHeight: '1.5rem', width: '100%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{equation}</div>
+        <div style={{ fontSize: '3.5rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', flex: 1, minHeight: 0 }}>
