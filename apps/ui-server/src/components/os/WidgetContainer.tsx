@@ -167,6 +167,7 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       onDragStop={(_e, d) => handleDragStop(d)}
       enableResizing={false}
       bounds="parent"
+      cancel=".nodrag, button, input, select, textarea"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
     >
       <div className={`widget-wrapper widget-flip-container ${isFlipped ? 'flipped' : ''}`} style={{ position: 'relative', width: dim.width, height: dim.height, boxSizing: 'border-box' }}>
