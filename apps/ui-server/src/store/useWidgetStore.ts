@@ -4,7 +4,7 @@ export type WidgetSize = 'small' | 'medium' | 'large';
 
 export interface DesktopWidget {
   id: string;
-  type: 'clock' | 'weather' | 'kpi';
+  type: 'clock' | 'weather' | 'kpi' | 'calculator' | 'sticky-note';
   x: number;
   y: number;
   size: WidgetSize;

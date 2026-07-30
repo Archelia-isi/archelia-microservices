@@ -43,6 +43,8 @@ interface WindowState {
   editingIconAppId: string | null;
   setEditingIconAppId: (id: string | null) => void;
   toggleDesktopApp: (id: string) => void;
+  isWidgetManagerOpen: boolean;
+  toggleWidgetManager: () => void;
 }
 
 let highestZIndex = 100;
@@ -51,6 +53,8 @@ export const useWindowStore = create<WindowState>((set) => ({
   windows: {},
   activeWindowId: null,
   isChatbotOpen: false,
+  isWidgetManagerOpen: false,
+  toggleWidgetManager: () => set((state) => ({ isWidgetManagerOpen: !state.isWidgetManagerOpen })),
   editingIconAppId: null,
   setEditingIconAppId: (id) => set({ editingIconAppId: id }),
   toggleDesktopApp: (id) => set((state) => {

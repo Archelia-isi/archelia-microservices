@@ -1,27 +1,78 @@
 import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 
+function getWeatherCodeDetails(code: number) {
+  // WMO Weather interpretation codes
+  if (code === 0) return { condition: 'Sereno', icon: '☀️' };
+  if (code === 1 || code === 2) return { condition: 'Poco nuvoloso', icon: '🌤' };
+  if (code === 3) return { condition: 'Coperto', icon: '☁️' };
+  if (code >= 45 && code <= 48) return { condition: 'Nebbia', icon: '🌫' };
+  if (code >= 51 && code <= 55) return { condition: 'Pioviggine', icon: '🌦' };
+  if (code >= 61 && code <= 65) return { condition: 'Pioggia', icon: '🌧' };
+  if (code >= 71 && code <= 77) return { condition: 'Neve', icon: '❄️' };
+  if (code >= 80 && code <= 82) return { condition: 'Acquazzone', icon: '☔' };
+  if (code >= 95 && code <= 99) return { condition: 'Temporale', icon: '⛈️' };
+  return { condition: 'Sconosciuto', icon: '❓' };
+}
+
 export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
   const [weatherData, setWeatherData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const city = widget.config?.city || 'Roma';
   
-  // Per semplicità qui facciamo finta di fare una fetch, in produzione andrebbe chiamata geocoding + open-meteo
   useEffect(() => {
-    // Fake fetch for now to demonstrate layout
-    setTimeout(() => {
-      setWeatherData({
-        current: { temp: 24, condition: 'Soleggiato', icon: '🌤' },
-        details: { humidity: '45%', wind: '12 km/h', uv: 'Alto', feels: '26°C' },
-        forecast: [
-          { day: 'Mar', temp: '25°', icon: '☀️' },
-          { day: 'Mer', temp: '22°', icon: '⛅' },
-          { day: 'Gio', temp: '19°', icon: '🌧' },
-          { day: 'Ven', temp: '21°', icon: '🌤' },
-        ]
-      });
-    }, 500);
+    async function fetchWeather() {
+      try {
+        setError(null);
+        // 1. Geocoding
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=it&format=json`);
+        const geoData = await geoRes.json();
+        
+        if (!geoData.results || geoData.results.length === 0) {
+          setError('Città non trovata');
+          return;
+        }
+        
+        const { latitude, longitude, name } = geoData.results[0];
+        
+        // 2. Weather
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max&timezone=auto`);
+        const data = await weatherRes.json();
+        
+        const currentDetails = getWeatherCodeDetails(data.current.weather_code);
+        
+        const forecast = data.daily.time.slice(1, 5).map((dateStr: string, index: number) => {
+          const date = new Date(dateStr);
+          const dayName = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(date);
+          const dailyDetails = getWeatherCodeDetails(data.daily.weather_code[index + 1]);
+          const maxTemp = Math.round(data.daily.temperature_2m_max[index + 1]);
+          return { day: dayName.charAt(0).toUpperCase() + dayName.slice(1), temp: `${maxTemp}°`, icon: dailyDetails.icon };
+        });
+
+        setWeatherData({
+          cityName: name,
+          current: { temp: Math.round(data.current.temperature_2m), condition: currentDetails.condition, icon: currentDetails.icon },
+          details: { 
+            humidity: `${data.current.relative_humidity_2m}%`, 
+            wind: `${Math.round(data.current.wind_speed_10m)} km/h`, 
+            uv: data.daily.uv_index_max[0] ? data.daily.uv_index_max[0].toFixed(1) : 'N/D', 
+            feels: `${Math.round(data.current.apparent_temperature)}°C` 
+          },
+          forecast
+        });
+      } catch (err) {
+        console.error('Weather fetch error:', err);
+        setError('Errore connessione');
+      }
+    }
+    
+    fetchWeather();
+    // Aggiorna ogni ora
+    const interval = setInterval(fetchWeather, 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [city]);
 
+  if (error) return <div className="widget weather-widget flex-center" style={{ padding: '16px', textAlign: 'center', color: 'var(--color-danger)' }}>{error}</div>;
   if (!weatherData) return <div className="widget weather-widget flex-center">Caricamento...</div>;
 
   return (
@@ -29,7 +80,7 @@ export default function WeatherWidget({ widget }: { widget: DesktopWidget }) {
       
       {/* HEADER: sempre presente */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{city}</h2>
+        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>{weatherData.cityName}</h2>
         <span style={{ fontSize: '1.2rem' }}>{weatherData.current.icon}</span>
       </div>
 

@@ -8,6 +8,8 @@ import { Settings } from 'lucide-react';
 import ClockWidget from './widgets/ClockWidget';
 import WeatherWidget from './widgets/WeatherWidget';
 import KpiWidget from './widgets/KpiWidget';
+import CalculatorWidget from './widgets/CalculatorWidget';
+import StickyNoteWidget from './widgets/StickyNoteWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -71,6 +73,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'clock': return <ClockWidget widget={widget} />;
       case 'weather': return <WeatherWidget widget={widget} />;
       case 'kpi': return <KpiWidget widget={widget} />;
+      case 'calculator': return <CalculatorWidget widget={widget} />;
+      case 'sticky-note': return <StickyNoteWidget widget={widget} />;
       default: return null;
     }
   };

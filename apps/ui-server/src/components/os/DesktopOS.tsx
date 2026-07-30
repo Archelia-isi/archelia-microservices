@@ -9,6 +9,7 @@ import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
 import ContextMenu from '../ui/ContextMenu';
 import IconPickerModal from './IconPickerModal';
+import WidgetManagerModal from './WidgetManagerModal';
 import Dashboard from '../../pages/Dashboard';
 import Orders from '../../pages/Orders';
 import Products from '../../pages/Products';
@@ -45,13 +46,14 @@ export default function DesktopOS() {
   const { 
     windows, openWindow, togglePinApp, activeWindowId,
     wallpaper, isChatbotOpen, editingIconAppId, setEditingIconAppId, toggleDesktopApp,
-    registerApp, updateDesktopPosition, setWallpaper, changeAppIcon 
+    registerApp, updateDesktopPosition, setWallpaper, changeAppIcon, isWidgetManagerOpen, toggleWidgetManager
   } = useWindowStore();
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
 
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
+  const [desktopContextMenu, setDesktopContextMenu] = useState<{ x: number, y: number } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [isReady, setIsReady] = useState(false);
 
@@ -458,6 +460,14 @@ export default function DesktopOS() {
         className="desktop-workspace"
         onDrop={handleWorkspaceDrop}
         onDragOver={handleWorkspaceDragOver}
+        onContextMenu={(e) => {
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            setContextMenu(null);
+            setDesktopContextMenu({ x: e.clientX, y: e.clientY });
+          }
+        }}
+        onClick={() => setDesktopContextMenu(null)}
       >
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
@@ -569,12 +579,42 @@ export default function DesktopOS() {
         />
       )}
 
+      {/* Context Menu Desktop Vuoto */}
+      {desktopContextMenu && (
+        <ContextMenu
+          x={desktopContextMenu.x}
+          y={desktopContextMenu.y}
+          onClose={() => setDesktopContextMenu(null)}
+          items={[
+            {
+              id: 'manage-widgets',
+              label: 'Gestione Widgets',
+              onClick: () => {
+                toggleWidgetManager();
+                setDesktopContextMenu(null);
+              }
+            },
+            {
+              id: 'system-settings',
+              label: 'Impostazioni di Sistema',
+              dividerBefore: true,
+              onClick: () => {
+                openWindow('os-settings');
+                setDesktopContextMenu(null);
+              }
+            }
+          ]}
+        />
+      )}
+
       {editingIconAppId && (
         <IconPickerModal 
           appId={editingIconAppId} 
           onClose={() => setEditingIconAppId(null)} 
         />
       )}
+
+      {isWidgetManagerOpen && <WidgetManagerModal />}
     </div>
   );
 }

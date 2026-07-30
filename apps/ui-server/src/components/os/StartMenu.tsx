@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
-import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings } from 'lucide-react';
+import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings, LayoutDashboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
@@ -23,7 +23,7 @@ interface StartMenuProps {
 }
 
 export default function StartMenu({ onClose }: StartMenuProps) {
-  const { openWindow, windows, togglePinApp, toggleDesktopApp, setEditingIconAppId } = useWindowStore();
+  const { openWindow, windows, togglePinApp, toggleDesktopApp, setEditingIconAppId, toggleWidgetManager } = useWindowStore();
   const { theme } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
@@ -350,6 +350,18 @@ export default function StartMenu({ onClose }: StartMenuProps) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="start-menu-widgets-btn" 
+              title="Gestione Widgets" 
+              style={{ 
+                background: 'transparent', border: 'none', color: 'var(--color-text)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onClick={() => { toggleWidgetManager(); onClose(); }}
+            >
+              <LayoutDashboard size={20} />
+            </button>
             <button 
               className="start-menu-settings-btn" 
               title="Impostazioni di Sistema" 
