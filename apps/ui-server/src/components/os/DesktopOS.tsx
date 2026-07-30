@@ -42,7 +42,11 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 import { useSettingsStore } from '../../store/useSettingsStore';
 
 export default function DesktopOS() {
-  const { windows, wallpaper, registerApp, openWindow, togglePinApp, updateDesktopPosition, isChatbotOpen, setWallpaper, changeAppIcon, activeWindowId } = useWindowStore();
+  const { 
+    windows, openWindow, togglePinApp, activeWindowId,
+    wallpaper, isChatbotOpen, editingIconAppId, setEditingIconAppId, toggleDesktopApp,
+    registerApp, updateDesktopPosition, setWallpaper, changeAppIcon 
+  } = useWindowStore();
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
 
@@ -50,7 +54,6 @@ export default function DesktopOS() {
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [isReady, setIsReady] = useState(false);
-  const [showIconPickerForAppId, setShowIconPickerForAppId] = useState<string | null>(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
@@ -546,9 +549,15 @@ export default function DesktopOS() {
               onClick: () => openWindow(contextMenu.appId)
             },
             {
+              id: 'remove-desktop',
+              label: 'Rimuovi dal Desktop',
+              onClick: () => toggleDesktopApp(contextMenu.appId)
+            },
+            {
               id: 'change-icon',
               label: 'Cambia immagine icona',
-              onClick: () => setShowIconPickerForAppId(contextMenu.appId)
+              dividerBefore: true,
+              onClick: () => setEditingIconAppId(contextMenu.appId)
             },
             {
               id: 'pin',
@@ -560,10 +569,10 @@ export default function DesktopOS() {
         />
       )}
 
-      {showIconPickerForAppId && (
+      {editingIconAppId && (
         <IconPickerModal 
-          appId={showIconPickerForAppId} 
-          onClose={() => setShowIconPickerForAppId(null)} 
+          appId={editingIconAppId} 
+          onClose={() => setEditingIconAppId(null)} 
         />
       )}
     </div>

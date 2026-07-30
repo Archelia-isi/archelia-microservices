@@ -40,6 +40,9 @@ interface WindowState {
   changeAppIcon: (id: string, iconPath: string) => void;
   isChatbotOpen: boolean;
   toggleChatbot: () => void;
+  editingIconAppId: string | null;
+  setEditingIconAppId: (id: string | null) => void;
+  toggleDesktopApp: (id: string) => void;
 }
 
 let highestZIndex = 100;
@@ -48,6 +51,23 @@ export const useWindowStore = create<WindowState>((set) => ({
   windows: {},
   activeWindowId: null,
   isChatbotOpen: false,
+  editingIconAppId: null,
+  setEditingIconAppId: (id) => set({ editingIconAppId: id }),
+  toggleDesktopApp: (id) => set((state) => {
+    const win = state.windows[id];
+    if (!win) return state;
+    const isCurrentlyOnDesktop = win.desktopX !== undefined && win.desktopY !== undefined;
+    return {
+      windows: {
+        ...state.windows,
+        [id]: {
+          ...win,
+          desktopX: isCurrentlyOnDesktop ? undefined : 20,
+          desktopY: isCurrentlyOnDesktop ? undefined : 20
+        }
+      }
+    };
+  }),
   toggleChatbot: () => set((state) => ({ isChatbotOpen: !state.isChatbotOpen })),
   wallpaper: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2940&auto=format&fit=crop', // Apple style abstract default
   

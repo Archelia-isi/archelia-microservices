@@ -4,6 +4,7 @@ import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings } f
 import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
+import ContextMenu from '../ui/ContextMenu';
 import { getThemeIconPath } from '../../utils/themeUtils';
 import './StartMenu.css';
 
@@ -22,9 +23,10 @@ interface StartMenuProps {
 }
 
 export default function StartMenu({ onClose }: StartMenuProps) {
-  const { openWindow, windows } = useWindowStore();
+  const { openWindow, windows, togglePinApp, toggleDesktopApp, setEditingIconAppId } = useWindowStore();
   const { theme } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
 
   const [stats, setStats] = useState<any>(null);
   const [insightIndex, setInsightIndex] = useState(0);
@@ -273,6 +275,10 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                     e.currentTarget.style.backgroundColor = 'transparent';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, appId: app.id });
+                  }}
                 >
                   <div className="start-menu-app-icon" style={{
                     width: '64px',
@@ -381,6 +387,51 @@ export default function StartMenu({ onClose }: StartMenuProps) {
           </div>
         </div>
       </div>
+
+      {contextMenu && windows[contextMenu.appId] && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              id: 'open',
+              label: 'Apri',
+              onClick: () => {
+                handleOpenApp(contextMenu.appId);
+                setContextMenu(null);
+              }
+            },
+            {
+              id: 'desktop',
+              label: windows[contextMenu.appId].desktopX !== undefined ? 'Rimuovi dal Desktop' : 'Aggiungi al Desktop',
+              onClick: () => {
+                toggleDesktopApp(contextMenu.appId);
+                setContextMenu(null);
+              }
+            },
+            {
+              id: 'pin',
+              label: windows[contextMenu.appId].isPinned ? 'Rimuovi dalla taskbar' : 'Fissa sulla taskbar',
+              dividerBefore: true,
+              onClick: () => {
+                togglePinApp(contextMenu.appId);
+                setContextMenu(null);
+              }
+            },
+            {
+              id: 'change-icon',
+              label: 'Modifica Icona',
+              dividerBefore: true,
+              onClick: () => {
+                setEditingIconAppId(contextMenu.appId);
+                setContextMenu(null);
+                onClose(); // Close Start Menu when picking an icon
+              }
+            }
+          ]}
+        />
+      )}
     </div>
   );
 }

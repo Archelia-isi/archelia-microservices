@@ -15,7 +15,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 };
 
 export default function Taskbar() {
-  const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot } = useWindowStore();
+  const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot, setEditingIconAppId } = useWindowStore();
   const { taskbarPosition, taskbarAutoHide, theme } = useSettingsStore();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
@@ -150,8 +150,15 @@ export default function Taskbar() {
               }
             },
             {
+              id: 'change-icon',
+              label: 'Cambia immagine icona',
+              dividerBefore: true,
+              onClick: () => setEditingIconAppId(contextMenu.appId)
+            },
+            {
               id: 'pin',
-              label: windows[contextMenu.appId].isPinned ? 'Rimuovi dalla barra' : 'Fissa sulla barra',
+              label: windows[contextMenu.appId].isPinned ? 'Rimuovi dalla taskbar' : 'Fissa sulla taskbar',
+              dividerBefore: true,
               onClick: () => togglePinApp(contextMenu.appId)
             },
             {
