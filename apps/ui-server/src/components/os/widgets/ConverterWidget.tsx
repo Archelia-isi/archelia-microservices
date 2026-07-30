@@ -16,7 +16,7 @@ export default function ConverterWidget({ widget }: { widget: DesktopWidget }) {
   useEffect(() => {
     async function fetchRates() {
       try {
-        const res = await fetch('https://api.frankfurter.app/latest?from=EUR');
+        const res = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR');
         const data = await res.json();
         setRates({ EUR: 1, ...data.rates });
       } catch (e) {
