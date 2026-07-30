@@ -40,24 +40,43 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
     );
   };
 
+  const renderSquareCard = (stock: any) => {
+    const isUp = stock.change >= 0;
+    const color = isUp ? 'var(--color-success)' : 'var(--color-danger)';
+    const Icon = isUp ? TrendingUp : TrendingDown;
+
+    return (
+      <div key={stock.symbol} style={{ display: 'flex', flexDirection: 'column', padding: '12px', background: 'var(--color-surface-solid)', borderRadius: '12px', flex: 1 }}>
+         <div style={{ alignSelf: 'flex-end', fontWeight: 600, fontSize: '1.2rem' }}>{stock.price.toFixed(2)}</div>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 'auto' }}>
+           <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>{stock.symbol}</span>
+           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', color, fontSize: '0.8rem' }}>
+             <span style={{ display: 'flex', alignItems: 'center', gap: '2px' }}><Icon size={12} /> {isUp ? '+' : ''}{stock.change.toFixed(2)}</span>
+             <span>({isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%)</span>
+           </div>
+         </div>
+      </div>
+    );
+  };
+
   if (data.length === 0) return <div className="widget flex-center">Caricamento...</div>;
 
   return (
     <div className="widget finance-widget" style={{ width: '100%', height: '100%', padding: '8px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
       {(!widget.size || widget.size === 'small') && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, justifyContent: 'center' }}>
-          <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '4px', fontWeight: 600 }}>MERCATI</div>
-          {renderStock(data[0], false)}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600 }}>MERCATI</div>
+          {renderSquareCard(data[0])}
         </div>
       )}
 
       {widget.size === 'medium' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600 }}>MERCATI & VALUTE</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-            {renderStock(data[0], true)}
-            {renderStock(data[2], true)}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1 }}>
+            {renderSquareCard(data[0])}
+            {renderSquareCard(data[2])}
           </div>
         </div>
       )}
