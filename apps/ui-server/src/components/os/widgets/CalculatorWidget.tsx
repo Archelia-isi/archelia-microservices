@@ -95,38 +95,56 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     </div>
   );
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    const key = e.key;
+    if (/[0-9.]/.test(key)) {
+      handleNum(key);
+    } else if (['+', '-', '*', '/'].includes(key)) {
+      handleOp(key);
+    } else if (key === 'Enter' || key === '=') {
+      handleEval();
+    } else if (key === 'Backspace') {
+      handleDelete();
+    } else if (key === 'Escape' || key.toLowerCase() === 'c') {
+      handleClear();
+    }
+  };
+
   const renderMedium = (isLarge: boolean = false) => (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '0.5rem', marginBottom: '1rem', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)' }}>
-        <div style={{ fontSize: '0.9rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
-        <div style={{ fontSize: '2.5rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+    <div 
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px', outline: 'none' }}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: isLarge ? '80px' : '60px' }}>
+        <div style={{ fontSize: '0.85rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
+        <div style={{ fontSize: isLarge ? '3rem' : '2rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: isLarge ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: '8px', flex: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: isLarge ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)', gap: '4px', flex: 1 }}>
         {isLarge && (
           <>
             <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sin(parseFloat(display))))}>sin</button>
             <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.cos(parseFloat(display))))}>cos</button>
             <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.tan(parseFloat(display))))}>tan</button>
-            <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.log(parseFloat(display))))}>log</button>
             <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))}>√</button>
           </>
         )}
         
         <button className="calc-btn action" onClick={handleClear}>C</button>
-        <button className="calc-btn action" onClick={handleDelete}><Delete size={18} /></button>
-        <button className="calc-btn action" onClick={() => handleOp('/')}><Divide size={18} /></button>
-        <button className="calc-btn action" onClick={() => handleOp('*')}><MultiplyIcon size={18} /></button>
+        <button className="calc-btn action" onClick={handleDelete}><Delete size={16} /></button>
+        <button className="calc-btn action" onClick={() => handleOp('/')}><Divide size={16} /></button>
+        <button className="calc-btn action" onClick={() => handleOp('*')}><MultiplyIcon size={16} /></button>
         
         <button className="calc-btn" onClick={() => handleNum('7')}>7</button>
         <button className="calc-btn" onClick={() => handleNum('8')}>8</button>
         <button className="calc-btn" onClick={() => handleNum('9')}>9</button>
-        <button className="calc-btn action" onClick={() => handleOp('-')}><Minus size={18} /></button>
+        <button className="calc-btn action" onClick={() => handleOp('-')}><Minus size={16} /></button>
         
         <button className="calc-btn" onClick={() => handleNum('4')}>4</button>
         <button className="calc-btn" onClick={() => handleNum('5')}>5</button>
         <button className="calc-btn" onClick={() => handleNum('6')}>6</button>
-        <button className="calc-btn action" onClick={() => handleOp('+')}><Plus size={18} /></button>
+        <button className="calc-btn action" onClick={() => handleOp('+')}><Plus size={16} /></button>
         
         <button className="calc-btn" onClick={() => handleNum('1')}>1</button>
         <button className="calc-btn" onClick={() => handleNum('2')}>2</button>
@@ -147,12 +165,14 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
           background: var(--color-surface);
           border-radius: var(--radius-sm);
           color: var(--color-text);
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           transition: background 0.2s;
+          height: 100%;
+          width: 100%;
         }
         .calc-btn:hover { background: var(--color-border); }
         .calc-btn.action { background: var(--color-surface-solid); font-weight: 600; }
