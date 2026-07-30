@@ -181,7 +181,7 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
             >
               ✕
             </button>
-            {widget.type !== 'copywriter' && (
+            {widget.type !== 'copywriter' && widget.type !== 'translator' && (
               <button 
                 className="widget-settings-btn" 
                 onClick={(e) => { e.stopPropagation(); setIsFlipped(true); }}
