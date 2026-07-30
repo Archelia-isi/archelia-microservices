@@ -55,15 +55,9 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
       {widget.size === 'medium' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ fontSize: '0.9rem', opacity: 0.7, marginBottom: '8px', fontWeight: 600 }}>MERCATI & VALUTE</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {renderStock(data[0], false)}
-              {renderStock(data[1], false)}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {renderStock(data[2], false)}
-              {renderStock(data[3], false)}
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+            {renderStock(data[0], true)}
+            {renderStock(data[2], true)}
           </div>
         </div>
       )}
