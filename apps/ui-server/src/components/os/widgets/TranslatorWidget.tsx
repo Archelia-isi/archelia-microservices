@@ -19,16 +19,26 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
     }
   }, [widget.size, widget.id, updateWidgetSize]);
 
-  const handleTranslate = () => {
+  const handleTranslate = async () => {
     if (!text.trim()) return;
     setIsTranslating(true);
     setResult('');
     
-    // MOCK: Futura chiamata a Gemini / API Google Translate
-    setTimeout(() => {
-      setResult(`[Traduzione in ${langTo}]:\n\n${text}`);
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${langFrom}&tl=${langTo}&dt=t&q=${encodeURIComponent(text)}`);
+      const data = await res.json();
+      if (data && data[0]) {
+        const translatedText = data[0].map((item: any) => item[0]).join('');
+        setResult(translatedText);
+      } else {
+        setResult("Errore nella traduzione.");
+      }
+    } catch (err) {
+      console.error(err);
+      setResult("Errore di rete. Riprova più tardi.");
+    } finally {
       setIsTranslating(false);
-    }, 1000);
+    }
   };
 
   const handleCopy = () => {
@@ -45,33 +55,35 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
         {/* FRONTE: Input */}
         <div style={{ width: '100%', height: '100%', position: 'absolute', backfaceVisibility: 'hidden', display: 'flex', flexDirection: 'column', padding: '12px', gap: '8px' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Languages size={18} style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontSize: '1rem', fontWeight: 600 }}>Traduttore</span>
-            </div>
+          {/* Header Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Languages size={18} style={{ color: 'var(--color-primary)' }} />
+            <span style={{ fontSize: '1rem', fontWeight: 600 }}>Traduttore</span>
+          </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <select value={langFrom} onChange={e => setLangFrom(e.target.value)} className="nodrag" style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px', outline: 'none', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                <option value="auto">Rileva Lingua</option>
-                <option value="it">Italiano</option>
-                <option value="en">Inglese</option>
-                <option value="es">Spagnolo</option>
-                <option value="fr">Francese</option>
-                <option value="de">Tedesco</option>
-              </select>
-              <ArrowRight size={14} />
-              <select value={langTo} onChange={e => setLangTo(e.target.value)} className="nodrag" style={{ padding: '2px 4px', fontSize: '0.8rem', borderRadius: '4px', outline: 'none', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                <option value="en">Inglese</option>
-                <option value="it">Italiano</option>
-                <option value="es">Spagnolo</option>
-                <option value="fr">Francese</option>
-                <option value="de">Tedesco</option>
-              </select>
-            </div>
+          {/* Selezione Lingue (Row) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+            <select value={langFrom} onChange={e => setLangFrom(e.target.value)} className="nodrag" style={{ flex: 1, padding: '4px 6px', fontSize: '0.8rem', borderRadius: '4px', outline: 'none', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+              <option value="auto">Rileva Lingua</option>
+              <option value="it">Italiano</option>
+              <option value="en">Inglese</option>
+              <option value="es">Spagnolo</option>
+              <option value="fr">Francese</option>
+              <option value="de">Tedesco</option>
+              <option value="zh-CN">Cinese</option>
+            </select>
+            <ArrowRight size={14} style={{ color: 'var(--color-text-muted)' }} />
+            <select value={langTo} onChange={e => setLangTo(e.target.value)} className="nodrag" style={{ flex: 1, padding: '4px 6px', fontSize: '0.8rem', borderRadius: '4px', outline: 'none', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+              <option value="en">Inglese</option>
+              <option value="it">Italiano</option>
+              <option value="es">Spagnolo</option>
+              <option value="fr">Francese</option>
+              <option value="de">Tedesco</option>
+              <option value="zh-CN">Cinese</option>
+            </select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', flex: 1, marginTop: '4px' }}>
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
@@ -87,7 +99,7 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
                 className="nodrag"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.85rem', cursor: isTranslating ? 'wait' : 'pointer', opacity: (isTranslating || !text.trim()) ? 0.6 : 1 }}
               >
-                {isTranslating ? 'Elaborazione...' : <><Send size={14} /> Traduci</>}
+                {isTranslating ? 'Traduzione...' : <><Send size={14} /> Traduci</>}
               </button>
             </div>
           </div>
