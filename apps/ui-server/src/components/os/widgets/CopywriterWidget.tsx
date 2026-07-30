@@ -1,8 +1,10 @@
-import { useState, useRef } from 'react';
-import { type DesktopWidget } from '../../../store/useWidgetStore';
-import { Sparkles, Paperclip, Send, X, FileText, Check } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useWidgetStore, type DesktopWidget } from '../../../store/useWidgetStore';
+import { Sparkles, Paperclip, Send, X, FileText, Check, ArrowLeft } from 'lucide-react';
 
 export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) {
+  const updateWidgetSize = useWidgetStore(s => s.updateWidgetSize);
+  
   const [prompt, setPrompt] = useState('');
   const [tone, setTone] = useState('professionale');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -11,6 +13,13 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
   const [copied, setCopied] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Forza la taglia Large
+  useEffect(() => {
+    if (widget.size !== 'large') {
+      updateWidgetSize(widget.id, 'large');
+    }
+  }, [widget.size, widget.id, updateWidgetSize]);
 
   const handleGenerate = () => {
     if (!prompt.trim() && attachments.length === 0) return;
@@ -43,95 +52,101 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
     }
   };
 
-  const renderSmall = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', justifyContent: 'center', alignItems: 'center' }}>
-      <Sparkles size={32} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
-      <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>AI Copywriter</div>
-      <div style={{ fontSize: '0.75rem', opacity: 0.7, textAlign: 'center', marginTop: '4px' }}>Ingrandisci per usare l'assistente email</div>
-    </div>
-  );
-
-  const renderContent = (isLarge: boolean) => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px', overflow: 'hidden' }}>
+  return (
+    <div className="widget copywriter-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', perspective: '1000px', overflow: 'hidden' }}>
       
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
-          <span style={{ fontSize: '1rem', fontWeight: 600 }}>AI Copywriter</span>
-        </div>
-        <select 
-          value={tone}
-          onChange={e => setTone(e.target.value)}
-          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.8rem' }}
-        >
-          <option value="professionale">Professionale</option>
-          <option value="informale">Informale</option>
-          <option value="persuasivo">Persuasivo (Vendita)</option>
-          <option value="scuse">Scuse (Customer Care)</option>
-        </select>
-      </div>
-
-      {/* Input Area */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--color-surface-solid)', padding: '8px', borderRadius: '8px' }}>
-        <textarea
-          value={prompt}
-          onChange={e => setPrompt(e.target.value)}
-          placeholder="Di cosa vuoi parlare? Incolla qui l'email del cliente..."
-          style={{ width: '100%', height: isLarge ? '80px' : '40px', padding: '8px', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)' }}
-        />
+      <div style={{ width: '100%', height: '100%', transition: 'transform 0.6s', transformStyle: 'preserve-3d', position: 'relative', transform: result ? 'rotateY(180deg)' : '' }}>
         
-        {attachments.length > 0 && (
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', padding: '4px' }}>
-            {attachments.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                <FileText size={12} />
-                <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-          <button onClick={() => fileInputRef.current?.click()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }} title="Allega File o Immagini">
-            <Paperclip size={16} /> <span style={{ fontSize: '0.75rem' }}>Allega</span>
-          </button>
-          <input type="file" ref={fileInputRef} style={{ display: 'none' }} multiple onChange={handleFileChange} />
+        {/* FRONTE: Input */}
+        <div style={{ width: '100%', height: '100%', position: 'absolute', backfaceVisibility: 'hidden', display: 'flex', flexDirection: 'column', padding: '12px', gap: '8px' }}>
           
-          <button 
-            onClick={handleGenerate} 
-            disabled={isGenerating || (!prompt.trim() && attachments.length === 0)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.85rem', cursor: isGenerating ? 'wait' : 'pointer', opacity: (isGenerating || (!prompt.trim() && attachments.length === 0)) ? 0.6 : 1 }}
-          >
-            {isGenerating ? 'Elaborazione...' : <><Send size={14} /> Genera</>}
-          </button>
-        </div>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
+              <span style={{ fontSize: '1rem', fontWeight: 600 }}>AI Copywriter</span>
+            </div>
+            <select 
+              value={tone}
+              onChange={e => setTone(e.target.value)}
+              className="nodrag"
+              style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.8rem', outline: 'none' }}
+            >
+              <option value="professionale">Professionale</option>
+              <option value="informale">Informale</option>
+              <option value="persuasivo">Persuasivo (Vendita)</option>
+              <option value="scuse">Scuse (Customer Care)</option>
+            </select>
+          </div>
 
-      {/* Output Area */}
-      {result && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', flex: 1 }}>
+            <textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              className="nodrag"
+              placeholder="Di cosa vuoi parlare? Incolla qui l'email del cliente..."
+              style={{ width: '100%', flex: 1, padding: '0', border: 'none', background: 'transparent', resize: 'none', outline: 'none', fontSize: '0.9rem', color: 'var(--color-text)' }}
+            />
+            
+            {attachments.length > 0 && (
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', padding: '4px 0' }}>
+                {attachments.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                    <FileText size={12} />
+                    <span style={{ maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                    <X size={12} className="nodrag" style={{ cursor: 'pointer' }} onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button className="nodrag" onClick={() => fileInputRef.current?.click()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }} title="Allega File o Immagini">
+                <Paperclip size={16} /> <span style={{ fontSize: '0.75rem' }}>Allega</span>
+              </button>
+              <input type="file" ref={fileInputRef} style={{ display: 'none' }} multiple onChange={handleFileChange} />
+              
+              <button 
+                onClick={handleGenerate} 
+                disabled={isGenerating || (!prompt.trim() && attachments.length === 0)}
+                className="nodrag"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--color-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.85rem', cursor: isGenerating ? 'wait' : 'pointer', opacity: (isGenerating || (!prompt.trim() && attachments.length === 0)) ? 0.6 : 1 }}
+              >
+                {isGenerating ? 'Elaborazione...' : <><Send size={14} /> Genera</>}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* RETRO: Risultato */}
+        <div style={{ width: '100%', height: '100%', position: 'absolute', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', display: 'flex', flexDirection: 'column', padding: '12px', gap: '8px' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
+              <span style={{ fontSize: '1rem', fontWeight: 600 }}>Testo Generato</span>
+            </div>
+            <button className="nodrag" onClick={() => setResult('')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+               <ArrowLeft size={14} /> Indietro
+            </button>
+          </div>
+          
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--color-surface-solid)', borderRadius: '8px', padding: '12px', whiteSpace: 'pre-wrap', fontSize: '0.9rem', color: 'var(--color-text)' }} className="nodrag">
             {result}
           </div>
-          <button 
-            onClick={handleCopy}
-            style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: '1px solid var(--color-border)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', color: copied ? 'var(--color-success)' : 'var(--color-text)' }}
-          >
-            {copied ? <><Check size={14} /> Copiato!</> : 'Copia Testo'}
-          </button>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button 
+              onClick={handleCopy}
+              className="nodrag"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: copied ? 'var(--color-success)' : 'var(--color-surface-hover)', color: copied ? 'white' : 'var(--color-text)', border: '1px solid var(--color-border)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', transition: 'all 0.2s' }}
+            >
+              {copied ? <><Check size={14} /> Copiato negli appunti!</> : <><FileText size={14} /> Copia Testo</>}
+            </button>
+          </div>
+
         </div>
-      )}
 
-    </div>
-  );
-
-  return (
-    <div className="widget copywriter-widget" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {(!widget.size || widget.size === 'small') && renderSmall()}
-      {widget.size === 'medium' && renderContent(false)}
-      {widget.size === 'large' && renderContent(true)}
+      </div>
     </div>
   );
 }

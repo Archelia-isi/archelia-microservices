@@ -181,12 +181,14 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
             >
               ✕
             </button>
-            <button 
-              className="widget-settings-btn" 
-              onClick={(e) => { e.stopPropagation(); setIsFlipped(true); }}
-            >
-              <Settings size={14} />
-            </button>
+            {widget.type !== 'copywriter' && (
+              <button 
+                className="widget-settings-btn" 
+                onClick={(e) => { e.stopPropagation(); setIsFlipped(true); }}
+              >
+                <Settings size={14} />
+              </button>
+            )}
             {renderContent()}
           </div>
 
