@@ -110,26 +110,59 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
     }
   };
 
-  const renderMedium = (isLarge: boolean = false) => (
+  const renderMedium = () => (
     <div 
       style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px', outline: 'none' }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: isLarge ? '80px' : '60px' }}>
+      <div style={{ display: 'flex', gap: '8px', flex: 1, minHeight: 0, marginBottom: '8px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ fontSize: '0.85rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+        </div>
+        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px' }}>
+          <button className="calc-btn action" onClick={handleClear}>C</button>
+          <button className="calc-btn action" onClick={handleDelete}><Delete size={14} /></button>
+          <button className="calc-btn action" onClick={() => handleOp('/')}><Divide size={14} /></button>
+          <button className="calc-btn action" onClick={() => handleOp('*')}><MultiplyIcon size={14} /></button>
+          <button className="calc-btn action" onClick={() => handleOp('-')}><Minus size={14} /></button>
+          <button className="calc-btn action" onClick={() => handleOp('+')}><Plus size={14} /></button>
+          <button className="calc-btn action equal" style={{ gridColumn: 'span 2', background: 'var(--color-primary)', color: 'white' }} onClick={handleEval}>=</button>
+        </div>
+      </div>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '4px', minHeight: 0 }}>
+        <button className="calc-btn" onClick={() => handleNum('7')}>7</button>
+        <button className="calc-btn" onClick={() => handleNum('8')}>8</button>
+        <button className="calc-btn" onClick={() => handleNum('9')}>9</button>
+        <button className="calc-btn" onClick={() => handleNum('4')}>4</button>
+        <button className="calc-btn" onClick={() => handleNum('5')}>5</button>
+        <button className="calc-btn" onClick={() => handleNum('6')}>6</button>
+        <button className="calc-btn" onClick={() => handleNum('1')}>1</button>
+        <button className="calc-btn" onClick={() => handleNum('2')}>2</button>
+        <button className="calc-btn" onClick={() => handleNum('3')}>3</button>
+        <button className="calc-btn" style={{ gridColumn: 'span 2' }} onClick={() => handleNum('0')}>0</button>
+        <button className="calc-btn" onClick={() => handleNum('.')}>.</button>
+      </div>
+    </div>
+  );
+
+  const renderLarge = () => (
+    <div 
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px', outline: 'none' }}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-end', padding: '8px', marginBottom: '8px', background: 'var(--color-surface-solid)', borderRadius: 'var(--radius-md)', minHeight: '80px' }}>
         <div style={{ fontSize: '0.85rem', opacity: 0.7, minHeight: '1.2rem' }}>{equation}</div>
-        <div style={{ fontSize: isLarge ? '3rem' : '2rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
+        <div style={{ fontSize: '3rem', fontWeight: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'right' }}>{display}</div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: isLarge ? 'repeat(6, 1fr)' : 'repeat(5, 1fr)', gap: '4px', flex: 1 }}>
-        {isLarge && (
-          <>
-            <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sin(parseFloat(display))))}>sin</button>
-            <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.cos(parseFloat(display))))}>cos</button>
-            <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.tan(parseFloat(display))))}>tan</button>
-            <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))}>√</button>
-          </>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', gap: '4px', flex: 1, minHeight: 0 }}>
+        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sin(parseFloat(display))))}>sin</button>
+        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.cos(parseFloat(display))))}>cos</button>
+        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.tan(parseFloat(display))))}>tan</button>
+        <button className="calc-btn advanced" onClick={() => setDisplay(String(Math.sqrt(parseFloat(display))))}>√</button>
         
         <button className="calc-btn action" onClick={handleClear}>C</button>
         <button className="calc-btn action" onClick={handleDelete}><Delete size={16} /></button>
@@ -181,8 +214,8 @@ export default function CalculatorWidget({ widget }: { widget: DesktopWidget }) 
       `}</style>
       
       {(!widget.size || widget.size === 'small') && renderSmall()}
-      {widget.size === 'medium' && renderMedium(false)}
-      {widget.size === 'large' && renderMedium(true)}
+      {widget.size === 'medium' && renderMedium()}
+      {widget.size === 'large' && renderLarge()}
     </div>
   );
 }
