@@ -14,6 +14,8 @@ import ConverterWidget from './widgets/ConverterWidget';
 import FinanceWidget from './widgets/FinanceWidget';
 import NewsWidget from './widgets/NewsWidget';
 import CopywriterWidget from './widgets/CopywriterWidget';
+import TranslatorWidget from './widgets/TranslatorWidget';
+import MonitorWidget from './widgets/MonitorWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -83,6 +85,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'finance': return <FinanceWidget widget={widget} />;
       case 'news': return <NewsWidget widget={widget} />;
       case 'copywriter': return <CopywriterWidget widget={widget} />;
+      case 'translator': return <TranslatorWidget widget={widget} />;
+      case 'monitor': return <MonitorWidget widget={widget} />;
       default: return null;
     }
   };

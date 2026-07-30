@@ -19,6 +19,8 @@ export default function WidgetManagerModal() {
     { type: 'finance', title: 'Borsa & Finanza', description: 'Mercati finanziari e tassi di cambio.' },
     { type: 'news', title: 'News (RSS)', description: 'Ultime notizie dal tuo feed preferito.' },
     { type: 'copywriter', title: 'AI Copywriter', description: 'Assistente intelligente per email e testi.' },
+    { type: 'translator', title: 'Traduttore Rapido', description: 'Traduttore potenziato da Gemini.' },
+    { type: 'monitor', title: 'Monitor Sistema', description: 'Uso RAM, CPU e task in background.' },
     // Aggiungeremo gli altri qui man mano che li sviluppiamo
   ];
 
@@ -63,6 +65,8 @@ export default function WidgetManagerModal() {
                            w.type === 'finance' ? 'Finanza' :
                            w.type === 'news' ? 'News' :
                            w.type === 'copywriter' ? 'AI Copywriter' :
+                           w.type === 'translator' ? 'Traduttore' :
+                           w.type === 'monitor' ? 'Monitor Sistema' :
                            w.type}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Taglia: {w.size}</div>
