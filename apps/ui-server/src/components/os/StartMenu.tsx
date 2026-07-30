@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -25,6 +25,96 @@ export default function StartMenu({ onClose }: StartMenuProps) {
   const { openWindow, windows } = useWindowStore();
   const { theme } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const [stats, setStats] = useState<any>(null);
+  const [insightIndex, setInsightIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${API_URL}/api/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data.stats);
+        }
+      } catch (e) {
+        console.error('Failed to fetch stats for StartMenu', e);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const insights = useMemo(() => {
+    if (!stats) return [
+      { title: 'Caricamento...', value: '...', icon: <Activity size={16} color="var(--color-text-muted)" />, text: 'Recupero dati...', appId: 'dashboard' },
+      { title: 'Attendere', value: '...', icon: <Clock size={16} color="var(--color-text-muted)" />, text: 'Connessione al server...', appId: 'dashboard' }
+    ];
+
+    const formatCurrency = (val: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val);
+
+    const list = [
+      { 
+        title: 'Vendite Oggi', 
+        value: formatCurrency(stats.revenueToday), 
+        icon: <Activity size={16} color="var(--color-success)" />,
+        text: `${stats.ordersToday} ordini ricevuti oggi`,
+        appId: 'orders'
+      }
+    ];
+
+    if (stats.withoutImages > 0) {
+      list.push({
+        title: 'Attenzione Catalogo',
+        value: `${stats.withoutImages} Prod.`,
+        icon: <Clock size={16} color="var(--color-warning)" />,
+        text: 'Prodotti senza immagini',
+        appId: 'products'
+      });
+    }
+
+    if (stats.withoutStock > 0) {
+      list.push({
+        title: 'Scorte Zucchetti',
+        value: `${stats.withoutStock} Esauriti`,
+        icon: <Clock size={16} color="var(--color-danger)" />,
+        text: 'Articoli da riassortire',
+        appId: 'dashboard'
+      });
+    }
+
+    list.push({
+      title: 'Clienti Totali',
+      value: `${stats.customers}`,
+      icon: <User size={16} color="var(--color-primary)" />,
+      text: 'Clienti sincronizzati',
+      appId: 'customers'
+    });
+
+    list.push({
+      title: 'Fatturato Totale',
+      value: formatCurrency(stats.revenueTotal),
+      icon: <Activity size={16} color="var(--color-success)" />,
+      text: `${stats.ordersTotal} ordini totali`,
+      appId: 'analytics'
+    });
+
+    return list;
+  }, [stats]);
+
+  useEffect(() => {
+    if (insights.length <= 2) return;
+    const interval = setInterval(() => {
+      setInsightIndex(prev => (prev + 1) % insights.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [insights.length]);
+
+  const activeInsight1 = insights[insightIndex];
+  const activeInsight2 = insights[(insightIndex + 1) % insights.length];
 
   const handleOpenApp = (appId: string) => {
     openWindow(appId);
@@ -92,7 +182,11 @@ export default function StartMenu({ onClose }: StartMenuProps) {
               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-text-main)' }}>Sguardo Rapido</span>
             </div>
 
+
+
             <div 
+              key={activeInsight1.title}
+              className="insight-card fade-in"
               style={{
                 background: 'var(--color-surface-solid)',
                 border: '1px solid var(--color-border)',
@@ -100,20 +194,24 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                 padding: '1rem',
                 cursor: 'pointer',
                 transition: 'transform 0.2s',
-                boxShadow: 'var(--shadow-sm)'
+                boxShadow: 'var(--shadow-sm)',
+                animation: 'fadeIn 0.5s ease'
               }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              onClick={() => handleOpenApp('dashboard')}
+              onClick={() => handleOpenApp(activeInsight1.appId)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Activity size={16} color="var(--color-success)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Vendite Oggi</span>
+                {activeInsight1.icon}
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{activeInsight1.title}</span>
               </div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>€ 1.250,00</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 700 }}>{activeInsight1.value}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>{activeInsight1.text}</div>
             </div>
 
             <div 
+              key={activeInsight2.title}
+              className="insight-card fade-in"
               style={{
                 background: 'var(--color-surface-solid)',
                 border: '1px solid var(--color-border)',
@@ -121,17 +219,19 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                 padding: '1rem',
                 cursor: 'pointer',
                 transition: 'transform 0.2s',
-                boxShadow: 'var(--shadow-sm)'
+                boxShadow: 'var(--shadow-sm)',
+                animation: 'fadeIn 0.5s ease'
               }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              onClick={() => handleOpenApp('os-settings')}
+              onClick={() => handleOpenApp(activeInsight2.appId)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Clock size={16} color="var(--color-warning)" />
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Suggerimento</span>
+                {activeInsight2.icon}
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{activeInsight2.title}</span>
               </div>
-              <div style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>È ora di controllare le scorte Zucchetti</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{activeInsight2.value}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>{activeInsight2.text}</div>
             </div>
           </div>
 
