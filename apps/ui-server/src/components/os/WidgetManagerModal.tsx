@@ -17,6 +17,8 @@ export default function WidgetManagerModal() {
     { type: 'sticky-note', title: 'Post-it', description: 'Appunti rapidi e promemoria al volo.' },
     { type: 'converter', title: 'Convertitore', description: 'Convertitore di valute e unità di misura.' },
     { type: 'finance', title: 'Borsa & Finanza', description: 'Mercati finanziari e tassi di cambio.' },
+    { type: 'news', title: 'News (RSS)', description: 'Ultime notizie dal tuo feed preferito.' },
+    { type: 'copywriter', title: 'AI Copywriter', description: 'Assistente intelligente per email e testi.' },
     // Aggiungeremo gli altri qui man mano che li sviluppiamo
   ];
 
@@ -59,6 +61,8 @@ export default function WidgetManagerModal() {
                            w.type === 'sticky-note' ? 'Post-it' :
                            w.type === 'converter' ? 'Convertitore' :
                            w.type === 'finance' ? 'Finanza' :
+                           w.type === 'news' ? 'News' :
+                           w.type === 'copywriter' ? 'AI Copywriter' :
                            w.type}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Taglia: {w.size}</div>
@@ -93,6 +97,18 @@ export default function WidgetManagerModal() {
                     
                     {expandedWidgetId === w.id && (
                       <div style={{ padding: '1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface-solid)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {w.type === 'news' && (
+                          <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>URL Feed RSS</label>
+                            <input 
+                              type="text" 
+                              value={w.config?.rssUrl || 'https://www.ansa.it/sito/ansait_rss.xml'}
+                              onChange={(e) => updateWidgetConfig(w.id, { rssUrl: e.target.value })}
+                              style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                              placeholder="Es. https://www.ansa.it/sito/ansait_rss.xml"
+                            />
+                          </div>
+                        )}
                         {w.type === 'weather' && (
                           <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 500 }}>Città per il meteo</label>

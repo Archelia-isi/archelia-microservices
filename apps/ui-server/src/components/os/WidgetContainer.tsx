@@ -12,6 +12,8 @@ import CalculatorWidget from './widgets/CalculatorWidget';
 import StickyNoteWidget from './widgets/StickyNoteWidget';
 import ConverterWidget from './widgets/ConverterWidget';
 import FinanceWidget from './widgets/FinanceWidget';
+import NewsWidget from './widgets/NewsWidget';
+import CopywriterWidget from './widgets/CopywriterWidget';
 
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
@@ -79,6 +81,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       case 'sticky-note': return <StickyNoteWidget widget={widget} />;
       case 'converter': return <ConverterWidget widget={widget} />;
       case 'finance': return <FinanceWidget widget={widget} />;
+      case 'news': return <NewsWidget widget={widget} />;
+      case 'copywriter': return <CopywriterWidget widget={widget} />;
       default: return null;
     }
   };
