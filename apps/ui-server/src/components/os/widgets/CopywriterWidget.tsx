@@ -45,7 +45,8 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
         const data = await res.json();
         setResult(data.text || 'Nessun risultato');
       } else {
-        setResult('Errore durante la generazione del testo.');
+        const errorData = await res.json().catch(() => ({}));
+        setResult(errorData.text || 'Errore durante la generazione del testo.');
       }
     } catch (e) {
       console.error(e);

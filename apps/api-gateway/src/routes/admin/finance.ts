@@ -14,7 +14,8 @@ export async function adminFinanceRoutes(app: FastifyInstance) {
         symbols: z.string() // comma separated like AAPL,MSFT,EURUSD=X
       }),
       response: {
-        200: z.any()
+        200: z.any(),
+        500: z.object({ error: z.string() })
       }
     }
   }, async (request, reply) => {

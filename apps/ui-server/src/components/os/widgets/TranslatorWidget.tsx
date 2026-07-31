@@ -41,7 +41,8 @@ export default function TranslatorWidget({ widget }: { widget: DesktopWidget }) 
         const data = await res.json();
         setResult(data.text);
       } else {
-        setResult("Errore nella traduzione.");
+        const errorData = await res.json().catch(() => ({}));
+        setResult(errorData.text || "Errore nella traduzione.");
       }
     } catch (err) {
       console.error(err);

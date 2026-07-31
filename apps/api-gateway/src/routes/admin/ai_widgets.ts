@@ -15,7 +15,8 @@ export async function adminAiWidgetsRoutes(app: FastifyInstance) {
         prompt: z.string()
       }),
       response: {
-        200: z.object({ text: z.string() })
+        200: z.object({ text: z.string() }),
+        500: z.object({ text: z.string() })
       }
     }
   }, async (request, reply) => {
@@ -55,7 +56,8 @@ ${prompt}`;
         langTo: z.string()
       }),
       response: {
-        200: z.object({ text: z.string() })
+        200: z.object({ text: z.string() }),
+        500: z.object({ text: z.string() })
       }
     }
   }, async (request, reply) => {
