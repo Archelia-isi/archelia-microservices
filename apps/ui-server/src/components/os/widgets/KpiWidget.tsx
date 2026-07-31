@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
   const [stats, setStats] = useState<any>(null);
   const token = localStorage.getItem('token');
@@ -8,7 +11,7 @@ export default function KpiWidget({ widget }: { widget: DesktopWidget }) {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/stats', {
+        const res = await fetch(`${API_URL}/api/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

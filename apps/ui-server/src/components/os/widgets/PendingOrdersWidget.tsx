@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Package, AlertCircle } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget }) {
   const [orders, setOrders] = useState<any[]>([]);
 
@@ -10,7 +13,7 @@ export default function PendingOrdersWidget({ widget }: { widget: DesktopWidget 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/orders?limit=10', {
+        const res = await fetch(`${API_URL}/api/admin/orders?limit=10`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useWidgetStore, type DesktopWidget } from '../../../store/useWidgetStore';
 import { Sparkles, Paperclip, Send, X, FileText, Check, ArrowLeft } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) {
   const updateWidgetSize = useWidgetStore(s => s.updateWidgetSize);
   
@@ -29,7 +32,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
     setResult('');
     
     try {
-      const res = await fetch('http://localhost:3000/api/admin/ai/copywriter', {
+      const res = await fetch(`${API_URL}/api/admin/ai/copywriter`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
   const [data, setData] = useState<any[]>([]);
 
@@ -10,7 +13,7 @@ export default function FinanceWidget({ widget }: { widget: DesktopWidget }) {
   useEffect(() => {
     const fetchFinance = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/finance/quote?symbols=AAPL,MSFT,TSLA,EURUSD=X,BTC-USD', {
+        const res = await fetch(`${API_URL}/api/admin/finance/quote?symbols=AAPL,MSFT,TSLA,EURUSD=X,BTC-USD`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

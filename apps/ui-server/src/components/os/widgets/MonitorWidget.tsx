@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Activity, Server, Cpu, HardDrive } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
   const [stats, setStats] = useState({
     cpu: 0,
@@ -18,7 +21,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
     
     const fetchSystemStats = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/stats', {
+        const res = await fetch(`${API_URL}/api/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

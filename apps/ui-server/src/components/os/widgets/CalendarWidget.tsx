@@ -3,6 +3,9 @@ import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { Calendar as CalendarIcon, Clock, MapPin } from 'lucide-react';
 import { format, isToday, parseISO } from 'date-fns';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function CalendarWidget({ widget }: { widget: DesktopWidget }) {
   const [events, setEvents] = useState<any[]>([]);
   const token = localStorage.getItem('token');
@@ -10,7 +13,7 @@ export default function CalendarWidget({ widget }: { widget: DesktopWidget }) {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/calendar', {
+        const res = await fetch(`${API_URL}/api/admin/calendar`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

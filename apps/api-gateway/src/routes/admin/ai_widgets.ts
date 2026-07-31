@@ -27,7 +27,7 @@ export async function adminAiWidgetsRoutes(app: FastifyInstance) {
 
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const finalPrompt = `Sei un assistente AI copywriter, integrato nel sistema desktop aziendale.
 Rispondi in modo professionale ma dritto al punto, senza troppi preamboli.
@@ -67,7 +67,7 @@ ${prompt}`;
 
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const finalPrompt = `Traduci il seguente testo.
 Lingua di origine: ${langFrom}

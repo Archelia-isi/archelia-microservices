@@ -5,6 +5,9 @@ import { Plus, Trash2, StickyNote, Bold, Italic, List, ListOrdered, Save } from 
 import StickyHeader from '../components/ui/StickyHeader';
 import Button from '../components/ui/Button';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function NotesApp() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function NotesApp() {
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/admin/notes', { headers: authHeaders });
+      const res = await fetch(`${API_URL}/api/admin/notes`, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setNotes(data);

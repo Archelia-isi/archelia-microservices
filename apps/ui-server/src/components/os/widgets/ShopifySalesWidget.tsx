@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { ShoppingBag, TrendingUp, DollarSign } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }) {
   const [stats, setStats] = useState<any>(null);
 
@@ -10,7 +13,7 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/admin/stats', {
+        const res = await fetch(`${API_URL}/api/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

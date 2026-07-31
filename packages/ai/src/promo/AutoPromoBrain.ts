@@ -41,7 +41,7 @@ function getRandomItem(arr: any[]) {
 
 export async function generateAiSlogan(title: string, discount: number, type: 'Flash Deal' | 'Dead Stock' | 'Hourly Standard Deal'): Promise<{ titolo: string, desc: string }> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `
 Sei un esperto copywriter per l'e-commerce di ferramenta "Archelia".
 Stiamo scontando questo prodotto del ${discount}% (${type}): "${title}".

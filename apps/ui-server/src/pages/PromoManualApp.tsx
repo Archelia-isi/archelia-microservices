@@ -4,6 +4,9 @@ import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 export default function PromoManualApp() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -43,7 +46,7 @@ export default function PromoManualApp() {
         prodotti_target: formData.prodotti_target ? formData.prodotti_target.split(',').map(s => s.trim()) : undefined,
       };
       
-      const res = await fetch('http://localhost:3000/api/admin/promo/manual', {
+      const res = await fetch(`${API_URL}/api/admin/promo/manual`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

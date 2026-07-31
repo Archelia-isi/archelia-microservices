@@ -9,6 +9,9 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
 
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+
 // Locale config for date-fns
 const locales = {
   'it': it,
@@ -43,7 +46,7 @@ export default function CalendarApp() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/admin/calendar', { headers: authHeaders });
+      const res = await fetch(`${API_URL}/api/admin/calendar`, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         const parsedData = data.map((e: any) => ({

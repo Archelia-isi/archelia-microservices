@@ -20,7 +20,7 @@ export async function generateSlogan(productName: string, instructions?: string)
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Sei un senior copywriter pubblicitario specializzato in e-commerce e advertising digitale.
 
@@ -75,7 +75,7 @@ export async function generatePromoCopy(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     let basePrompt = `Sei un esperto copywriter e-commerce italiano. Devi scrivere un ${copyType === 'titolo' ? 'TITOLO BREVISSIMO' : 'TESTO COMMERCIALE'} per una promozione sul sito "Archelia" (Store Professionale e Materiale Tecnico).`;
     basePrompt += `\n- Meccanica Promozionale: ${tipo}`;
@@ -136,7 +136,7 @@ export async function generateBannerPrompt(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const productContext = productInfo?.title
       ? `\nPRODOTTO DA INTEGRARE NEL BANNER (non una foto isolata, ma integrato nella scena):\n- Nome: "${productInfo.title}"\n${productInfo.description ? `- Descrizione: "${productInfo.description}"` : ''}`
@@ -562,7 +562,7 @@ export async function generateAnalyticsSummary(metricsJson: any): Promise<string
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `Sei un Data Analyst e-commerce senior. Ho estratto queste metriche dal mio sito per l'ultimo periodo:
 ${JSON.stringify(metricsJson, null, 2)}
