@@ -73,7 +73,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
         {/* FRONTE: Input */}
         <div style={{ width: '100%', height: '100%', position: 'absolute', backfaceVisibility: 'hidden', display: 'flex', flexDirection: 'column', padding: '12px', gap: '8px' }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
               <span style={{ fontSize: '1rem', fontWeight: 600 }}>AI Copywriter</span>
@@ -82,7 +82,7 @@ export default function CopywriterWidget({ widget }: { widget: DesktopWidget }) 
               value={tone}
               onChange={e => setTone(e.target.value)}
               className="nodrag"
-              style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.8rem', outline: 'none' }}
+              style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', fontSize: '0.8rem', outline: 'none', width: '100%' }}
             >
               <option value="professionale">Professionale</option>
               <option value="informale">Informale</option>
