@@ -315,8 +315,11 @@ export default function DesktopOS() {
 
       const existingItems: Rect[] = [];
       Object.values(windows).forEach(win => {
-        // Only consider items placed on desktop
-        if (win.desktopX !== undefined && win.desktopY !== undefined && win.id !== appId) {
+        // Fix Ghost Bug: Ignore apps that are not pinned AND don't have a desktop coordinate assigned
+        // INOLTRE: escludi 'os-settings' e 'system-settings' che non devono mai occupare spazio sul desktop
+        if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined && win.id !== appId) {
+          if (win.id === 'os-settings' || win.id === 'system-settings') return;
+          if (win.id === 'roblox_game' && activeTheme !== 'roblox') return;
           const pos = pixelsToCell(win.desktopX, win.desktopY);
           existingItems.push({
             id: win.id,
@@ -481,6 +484,7 @@ export default function DesktopOS() {
             const boxes: Rect[] = [];
             Object.values(windows).forEach(win => {
               if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined) {
+                if (win.id === 'os-settings' || win.id === 'system-settings') return;
                 if (win.id === 'roblox_game' && activeTheme !== 'roblox') return; // Stessa logica di render
                 const pos = pixelsToCell(win.desktopX, win.desktopY);
                 boxes.push({ id: win.id, col: pos.col * CELL_WIDTH, row: pos.row * CELL_HEIGHT, ...getIconDimensions(), type: 'icon' });

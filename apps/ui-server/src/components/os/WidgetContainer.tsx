@@ -37,7 +37,9 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     const existingItems: Rect[] = [];
     Object.values(windows).forEach(win => {
       // Fix Ghost Bug: Ignore items not actively placed on desktop
-      if (win.desktopX !== undefined && win.desktopY !== undefined) {
+      if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined) {
+        if (win.id === 'os-settings' || win.id === 'system-settings') return;
+        if (win.id === 'roblox_game' && useSettingsStore.getState().theme !== 'roblox') return;
         const pos = pixelsToCell(win.desktopX, win.desktopY);
         existingItems.push({
           id: win.id,

@@ -210,6 +210,8 @@ export default function WidgetManagerModal() {
                       const existingItems: Rect[] = [];
                       Object.values(windows).forEach(win => {
                         if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined) {
+                          if (win.id === 'os-settings' || win.id === 'system-settings') return;
+                          if (win.id === 'roblox_game' && useSettingsStore.getState().theme !== 'roblox') return;
                           const pos = pixelsToCell(win.desktopX, win.desktopY);
                           existingItems.push({ id: win.id, col: pos.col, row: pos.row, ...getIconDimensions(), type: 'icon' });
                         }
