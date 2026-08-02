@@ -50,7 +50,7 @@ export function findNearestFreeCell(
 ): { col: number; row: number } {
   const itemsToCheck = existingItems.filter(i => i.id !== ignoreId);
   
-  const step = 20; // Saltiamo di 20 pixel per non bloccare la CPU con la 1x1 grid
+  const step = 5; // Saltiamo di 5 pixel per trovare con precisione lo spazio vuoto, senza appesantire troppo
   let radius = 0;
   const maxRadius = Math.max(maxCols, maxRows);
   
@@ -125,6 +125,15 @@ export function getMagneticSnap(
     // Possiamo allineare il bordo superiore/inferiore pari-pari o sinistro/destro pari-pari
     if (Math.abs(targetCol - item.col) <= snapRadius) snappedCol = item.col;
     if (Math.abs(targetRow - item.row) <= snapRadius) snappedRow = item.row;
+  }
+  
+  // VERIFICA CRITICA: Se lo snap ci fa sovrapporre a qualcosa, annulliamo lo snap
+  // Questo previene che un allineamento (es. bordo sinistro) spinga l'icona dentro un widget
+  const candidate = { col: snappedCol, row: snappedRow, colSpan, rowSpan };
+  const causesOverlap = itemsToCheck.some(item => checkOverlap(candidate, item, margin));
+  
+  if (causesOverlap) {
+    return { col: targetCol, row: targetRow }; // Se causa collisione, ignora il magnete
   }
   
   return { col: snappedCol, row: snappedRow };
