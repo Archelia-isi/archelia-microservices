@@ -110,33 +110,33 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
         {/* Resource Bars */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-              <span><Cpu size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Processore (CPU)</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+              <span><Cpu size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Processore (CPU)</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.cpu) }}>{stats.cpu}%</span>
             </div>
-            <div style={{ height: '8px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.cpu}%`, background: getStatusColor(stats.cpu), transition: 'width 0.5s ease' }} />
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-              <span><HardDrive size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Memoria (RAM)</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+              <span><HardDrive size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Memoria (RAM)</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.ram) }}>{stats.ram}%</span>
             </div>
-            <div style={{ height: '8px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.ram}%`, background: getStatusColor(stats.ram), transition: 'width 0.5s ease' }} />
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
               <span>Spazio Disco</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.disk) }}>{stats.disk}%</span>
             </div>
-            <div style={{ height: '8px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.disk}%`, background: getStatusColor(stats.disk) }} />
             </div>
           </div>
@@ -144,21 +144,21 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
         
         {/* Stats Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Worker Attivi</span>
-            <span style={{ fontSize: '1.5rem', fontWeight: 600 }}>5</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Worker Attivi</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>5</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Code BullMQ</span>
-            <span style={{ fontSize: '1.5rem', fontWeight: 600 }}>{stats.activeTasks}</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Code BullMQ</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{stats.activeTasks}</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>DB Latency</span>
-            <span style={{ fontSize: '1.5rem', fontWeight: 600, color: stats.networkPing > 100 ? 'var(--color-warning)' : 'inherit' }}>{stats.networkPing}ms</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>DB Latency</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 600, color: stats.networkPing > 100 ? 'var(--color-warning)' : 'inherit' }}>{stats.networkPing}ms</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Redis Status</span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-success)', marginTop: '4px' }}>Connesso</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Redis Status</span>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-success)', marginTop: '2px' }}>Connesso</span>
           </div>
         </div>
       </div>
