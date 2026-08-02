@@ -3,7 +3,7 @@ import { getThemeWallpaper, getThemeIconPath } from '../../utils/themeUtils';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { toast, Toaster } from 'react-hot-toast';
-import { getIconDimensions, getWidgetDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
+import { getIconDimensions, getWidgetDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, getMagneticSnap, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
@@ -52,6 +52,7 @@ export default function DesktopOS() {
   } = useWindowStore();
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
+  const { desktopSnapEnabled, desktopSnapRadius, desktopMargin } = settings;
 
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
@@ -67,6 +68,7 @@ export default function DesktopOS() {
   const currentWallpaper = getThemeWallpaper(activeTheme, wallpaper);
   useEffect(() => {
     const root = document.documentElement;
+    const settings = useSettingsStore.getState();
     // Accent Color
     root.style.setProperty('--color-primary', settings.accentColor);
     
@@ -97,7 +99,7 @@ export default function DesktopOS() {
         document.body.classList.add('dark-theme');
       }
     }
-  }, [settings.theme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled]);
+  }, [activeTheme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -119,7 +121,7 @@ export default function DesktopOS() {
       if (res.ok) {
         const data = await res.json();
         if (data.osSettings) {
-          settings.hydrate(data.osSettings);
+          useSettingsStore.getState().hydrate(data.osSettings);
         }
         if (data.widgetConfig) {
           const config = data.widgetConfig;
@@ -195,7 +197,7 @@ export default function DesktopOS() {
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
-  }, [settings, isLoggedIn, isReady]);
+  }, [useSettingsStore.getState(), isLoggedIn, isReady]);
 
   const savePreferences = async () => {
     const token = localStorage.getItem('token');
@@ -251,6 +253,7 @@ export default function DesktopOS() {
 
   // Auto-Lock Inactivity Timer
   useEffect(() => {
+    const settings = useSettingsStore.getState();
     if (!isLoggedIn || settings.autoLockMinutes === 0) return;
 
     let inactivityTimer: ReturnType<typeof setTimeout>;
@@ -273,7 +276,7 @@ export default function DesktopOS() {
       clearTimeout(inactivityTimer);
       events.forEach(e => document.removeEventListener(e, resetTimer));
     };
-  }, [isLoggedIn, settings.autoLockMinutes]);
+  }, [isLoggedIn, useSettingsStore.getState().autoLockMinutes]);
 
   const handleDragStartDesktopIcon = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('appId', id);
@@ -307,12 +310,14 @@ export default function DesktopOS() {
       const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
       
       // Calculate target cell
-      const { col: targetCol, row: targetRow } = pixelsToCell(targetX, targetY);
+      let targetCol = pixelsToCell(targetX, targetY).col;
+      let targetRow = pixelsToCell(targetX, targetY).row;
 
       const existingItems: Rect[] = [];
       Object.values(windows).forEach(win => {
-        if (!win.isPinned && win.id !== appId) {
-          const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
+        // Only consider items placed on desktop
+        if (win.desktopX !== undefined && win.desktopY !== undefined && win.id !== appId) {
+          const pos = pixelsToCell(win.desktopX, win.desktopY);
           existingItems.push({
             id: win.id,
             col: pos.col,
@@ -332,8 +337,15 @@ export default function DesktopOS() {
           type: 'widget'
         });
       });
+      
+      // Magnetic Snapping
+      if (desktopSnapEnabled) {
+        const snapped = getMagneticSnap(targetCol, targetRow, targetDim.colSpan, targetDim.rowSpan, existingItems, desktopSnapRadius, desktopMargin, appId);
+        targetCol = snapped.col;
+        targetRow = snapped.row;
+      }
 
-      // Find nearest free cell (Approccio A: sposta in spazio vuoto adiacente)
+      // Find nearest free cell if there is still an overlap
       const bestSpot = findNearestFreeCell(
         targetCol, 
         targetRow, 
@@ -341,7 +353,8 @@ export default function DesktopOS() {
         targetDim.rowSpan, 
         existingItems, 
         maxCols, 
-        maxRows
+        maxRows,
+        desktopMargin
       );
       
       updateDesktopPosition(appId, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT);
@@ -466,7 +479,7 @@ export default function DesktopOS() {
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
-            if (app.id === 'os-settings') return null;
+            if (app.id === 'os-settings' || app.desktopX === undefined || app.desktopY === undefined) return null;
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
             return (

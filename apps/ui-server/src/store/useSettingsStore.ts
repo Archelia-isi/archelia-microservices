@@ -20,6 +20,10 @@ export interface OSSettingsState {
   soundNotificationsEnabled: boolean;
   soundErrorsEnabled: boolean;
 
+  desktopSnapEnabled: boolean;
+  desktopSnapRadius: number;
+  desktopMargin: number;
+
   setTheme: (theme: Theme) => void;
   setAccentColor: (color: string) => void;
   setGlassIntensity: (intensity: number) => void;
@@ -34,6 +38,10 @@ export interface OSSettingsState {
   setSoundWindowsEnabled: (enabled: boolean) => void;
   setSoundNotificationsEnabled: (enabled: boolean) => void;
   setSoundErrorsEnabled: (enabled: boolean) => void;
+  
+  setDesktopSnapEnabled: (enabled: boolean) => void;
+  setDesktopSnapRadius: (radius: number) => void;
+  setDesktopMargin: (margin: number) => void;
   
   hydrate: (settings: Partial<OSSettingsState>) => void;
 }
@@ -55,6 +63,10 @@ export const useSettingsStore = create<OSSettingsState>()(
       soundWindowsEnabled: true,
       soundNotificationsEnabled: true,
       soundErrorsEnabled: true,
+      
+      desktopSnapEnabled: true,
+      desktopSnapRadius: 16,
+      desktopMargin: 16,
 
       setTheme: (theme) => set({ theme }),
       setAccentColor: (accentColor) => set({ accentColor }),
@@ -70,6 +82,10 @@ export const useSettingsStore = create<OSSettingsState>()(
       setSoundWindowsEnabled: (soundWindowsEnabled) => set({ soundWindowsEnabled }),
       setSoundNotificationsEnabled: (soundNotificationsEnabled) => set({ soundNotificationsEnabled }),
       setSoundErrorsEnabled: (soundErrorsEnabled) => set({ soundErrorsEnabled }),
+      
+      setDesktopSnapEnabled: (desktopSnapEnabled) => set({ desktopSnapEnabled }),
+      setDesktopSnapRadius: (desktopSnapRadius) => set({ desktopSnapRadius }),
+      setDesktopMargin: (desktopMargin) => set({ desktopMargin }),
       
       hydrate: (settings) => set(settings)
     }),

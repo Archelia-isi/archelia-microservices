@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { X, Plus, Trash2, LayoutGrid } from 'lucide-react';
 import { getIconDimensions, getWidgetDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import './IconPickerModal.css'; // Possiamo riutilizzare gli stili del modale
@@ -8,6 +9,7 @@ import './IconPickerModal.css'; // Possiamo riutilizzare gli stili del modale
 export default function WidgetManagerModal() {
   const { toggleWidgetManager, windows } = useWindowStore();
   const { widgets, addWidget, removeWidget, updateWidgetSize, updateWidgetConfig } = useWidgetStore();
+  const { desktopMargin } = useSettingsStore();
   const [expandedWidgetId, setExpandedWidgetId] = useState<string | null>(null);
 
   const availableWidgets = [
@@ -207,8 +209,8 @@ export default function WidgetManagerModal() {
                       const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
                       const existingItems: Rect[] = [];
                       Object.values(windows).forEach(win => {
-                        if (!win.isPinned) {
-                          const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
+                        if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined) {
+                          const pos = pixelsToCell(win.desktopX, win.desktopY);
                           existingItems.push({ id: win.id, col: pos.col, row: pos.row, ...getIconDimensions(), type: 'icon' });
                         }
                       });
@@ -222,7 +224,7 @@ export default function WidgetManagerModal() {
                       const startRow = Math.floor(maxRows / 2) - Math.floor(targetDim.rowSpan / 2);
                       
                       const bestSpot = findNearestFreeCell(
-                        startCol, startRow, targetDim.colSpan, targetDim.rowSpan, existingItems, maxCols, maxRows
+                        startCol, startRow, targetDim.colSpan, targetDim.rowSpan, existingItems, maxCols, maxRows, desktopMargin
                       );
                       
                       addWidget(aw.type as any, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT, 'medium');

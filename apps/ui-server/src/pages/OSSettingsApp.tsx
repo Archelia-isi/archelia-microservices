@@ -22,6 +22,7 @@ export default function OSSettingsApp() {
 
   const categories = [
     { id: 'appearance', icon: <Palette size={18} />, label: 'Aspetto e Temi' },
+    { id: 'desktop', icon: <Layout size={18} />, label: 'Desktop & Magnetismo' },
     { id: 'taskbar', icon: <Layout size={18} />, label: 'Dock & Taskbar' },
     { id: 'windows', icon: <AppWindow size={18} />, label: 'Gestione Finestre' },
     { id: 'audio', icon: <Bell size={18} />, label: 'Audio e Notifiche' },
@@ -117,6 +118,62 @@ export default function OSSettingsApp() {
                   />
                 ))}
               </div>
+            </div>
+          </div>
+        );
+      case 'desktop':
+        return (
+          <div className="os-settings-section fade-in">
+            <h2>Desktop & Magnetismo</h2>
+            <div className="os-settings-card">
+              <div className="os-settings-row">
+                <div>
+                  <h3>Magnetismo Icone (Smart Snap)</h3>
+                  <p>Allinea magicamente icone e widget quando vengono avvicinati.</p>
+                </div>
+                <Switch checked={settings.desktopSnapEnabled} onChange={(c) => settings.setDesktopSnapEnabled(c)} />
+              </div>
+              
+              {settings.desktopSnapEnabled && (
+                <div style={{ paddingLeft: '1rem', borderLeft: '2px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Raggio Magnetico (Forza)</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Distanza in pixel oltre la quale scatta l'allineamento automatico.</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '200px' }}>
+                      <input 
+                        type="range" 
+                        min="5" 
+                        max="50" 
+                        value={settings.desktopSnapRadius} 
+                        onChange={(e) => settings.setDesktopSnapRadius(parseInt(e.target.value))}
+                        className="os-slider"
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ minWidth: '4ch', textAlign: 'right' }}>{settings.desktopSnapRadius}px</span>
+                    </div>
+                  </div>
+                  <div className="os-settings-row">
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 500 }}>Margine di Sicurezza</h4>
+                      <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Spazio vuoto minimo garantito tra due elementi.</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '200px' }}>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="40" 
+                        value={settings.desktopMargin} 
+                        onChange={(e) => settings.setDesktopMargin(parseInt(e.target.value))}
+                        className="os-slider"
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ minWidth: '4ch', textAlign: 'right' }}>{settings.desktopMargin}px</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { useWidgetStore, type DesktopWidget, type WidgetSize } from '../../store/useWidgetStore';
 import { useWindowStore } from '../../store/useWindowStore';
-import { getWidgetDimensions, getIconDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { getWidgetDimensions, getIconDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, getMagneticSnap, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import { Settings } from 'lucide-react';
 
 import ClockWidget from './widgets/ClockWidget';
@@ -24,17 +25,20 @@ import NotesWidget from './widgets/NotesWidget';
 export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const { updateWidgetPosition, updateWidgetSize, removeWidget, widgets } = useWidgetStore();
   const windows = useWindowStore(s => s.windows);
+  const { desktopSnapEnabled, desktopSnapRadius, desktopMargin } = useSettingsStore();
   
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleDragStop = (d: { x: number, y: number }) => {
     const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
-    const { col: targetCol, row: targetRow } = pixelsToCell(d.x, d.y);
+    let targetCol = pixelsToCell(d.x, d.y).col;
+    let targetRow = pixelsToCell(d.x, d.y).row;
     
     const existingItems: Rect[] = [];
     Object.values(windows).forEach(win => {
-      if (!win.isPinned) {
-        const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
+      // Fix Ghost Bug: Ignore items not actively placed on desktop
+      if (win.desktopX !== undefined && win.desktopY !== undefined) {
+        const pos = pixelsToCell(win.desktopX, win.desktopY);
         existingItems.push({
           id: win.id,
           col: pos.col,
@@ -58,6 +62,14 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     });
 
     const targetDim = getWidgetDimensions(widget.type, widget.size || 'small');
+    
+    // Magnetic Snapping
+    if (desktopSnapEnabled) {
+      const snapped = getMagneticSnap(targetCol, targetRow, targetDim.colSpan, targetDim.rowSpan, existingItems, desktopSnapRadius, desktopMargin, widget.id);
+      targetCol = snapped.col;
+      targetRow = snapped.row;
+    }
+
     const bestSpot = findNearestFreeCell(
       targetCol,
       targetRow,
@@ -65,7 +77,8 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
       targetDim.rowSpan,
       existingItems,
       maxCols,
-      maxRows
+      maxRows,
+      desktopMargin
     );
     
     updateWidgetPosition(widget.id, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT);

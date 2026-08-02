@@ -1,5 +1,5 @@
-export const CELL_WIDTH = 10;
-export const CELL_HEIGHT = 10;
+export const CELL_WIDTH = 1;
+export const CELL_HEIGHT = 1;
 
 export interface Rect {
   id: string;
@@ -10,12 +10,13 @@ export interface Rect {
   type: 'icon' | 'widget';
 }
 
-export function checkOverlap(rect1: Omit<Rect, 'id'|'type'>, rect2: Omit<Rect, 'id'|'type'>): boolean {
+export function checkOverlap(rect1: Omit<Rect, 'id'|'type'>, rect2: Omit<Rect, 'id'|'type'>, margin: number = 0): boolean {
+  // Aggiungiamo il margine al rect1 in tutte le direzioni
   return (
-    rect1.col < rect2.col + rect2.colSpan &&
-    rect1.col + rect1.colSpan > rect2.col &&
-    rect1.row < rect2.row + rect2.rowSpan &&
-    rect1.row + rect1.rowSpan > rect2.row
+    rect1.col - margin < rect2.col + rect2.colSpan &&
+    rect1.col + rect1.colSpan + margin > rect2.col &&
+    rect1.row - margin < rect2.row + rect2.rowSpan &&
+    rect1.row + rect1.rowSpan + margin > rect2.row
   );
 }
 
@@ -44,16 +45,18 @@ export function findNearestFreeCell(
   existingItems: Rect[],
   maxCols: number,
   maxRows: number,
+  margin: number = 0,
   ignoreId?: string
 ): { col: number; row: number } {
   const itemsToCheck = existingItems.filter(i => i.id !== ignoreId);
   
+  const step = 20; // Saltiamo di 20 pixel per non bloccare la CPU con la 1x1 grid
   let radius = 0;
   const maxRadius = Math.max(maxCols, maxRows);
   
   while (radius <= maxRadius) {
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
+    for (let dy = -radius; dy <= radius; dy += step) {
+      for (let dx = -radius; dx <= radius; dx += step) {
         if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
         
         const col = targetCol + dx;
@@ -61,7 +64,7 @@ export function findNearestFreeCell(
         
         if (col >= 0 && col + colSpan <= maxCols && row >= 0 && row + rowSpan <= maxRows) {
           const candidate = { col, row, colSpan, rowSpan };
-          const hasOverlap = itemsToCheck.some(item => checkOverlap(candidate, item));
+          const hasOverlap = itemsToCheck.some(item => checkOverlap(candidate, item, margin));
           
           if (!hasOverlap) {
             return { col, row };
@@ -69,7 +72,7 @@ export function findNearestFreeCell(
         }
       }
     }
-    radius++;
+    radius += step;
   }
   
   // Fallback se schermo completamente saturo
@@ -77,17 +80,52 @@ export function findNearestFreeCell(
 }
 
 export function getWidgetDimensions(_type: string, size: string = 'small') {
-  // Original sizes were:
-  // small: 160x160 -> 16 cols x 16 rows
-  // medium: 320x160 -> 32 cols x 16 rows
-  // large: 320x320 -> 32 cols x 32 rows
-  if (size === 'small') return { colSpan: 16, rowSpan: 16 };
-  if (size === 'medium') return { colSpan: 32, rowSpan: 16 };
-  if (size === 'large') return { colSpan: 32, rowSpan: 32 };
-  return { colSpan: 16, rowSpan: 16 };
+  if (size === 'small') return { colSpan: 160, rowSpan: 160 };
+  if (size === 'medium') return { colSpan: 320, rowSpan: 160 };
+  if (size === 'large') return { colSpan: 320, rowSpan: 320 };
+  return { colSpan: 160, rowSpan: 160 };
 }
 
 export function getIconDimensions() {
-  // Original size was 80x100 roughly, we will use 8x10 cells
-  return { colSpan: 8, rowSpan: 10 };
+  return { colSpan: 80, rowSpan: 100 };
+}
+
+// Algoritmo di Snapping Magnetico
+export function getMagneticSnap(
+  targetCol: number,
+  targetRow: number,
+  colSpan: number,
+  rowSpan: number,
+  existingItems: Rect[],
+  snapRadius: number,
+  margin: number,
+  ignoreId?: string
+): { col: number; row: number } {
+  let snappedCol = targetCol;
+  let snappedRow = targetRow;
+  
+  const itemsToCheck = existingItems.filter(i => i.id !== ignoreId);
+
+  // Cerchiamo l'elemento più vicino per allineamento
+  for (const item of itemsToCheck) {
+    // Snap a sinistra o destra dell'oggetto (più il margine)
+    if (Math.abs(targetCol - (item.col - colSpan - margin)) <= snapRadius) {
+      snappedCol = item.col - colSpan - margin;
+    } else if (Math.abs(targetCol - (item.col + item.colSpan + margin)) <= snapRadius) {
+      snappedCol = item.col + item.colSpan + margin;
+    }
+    
+    // Snap in alto o in basso dell'oggetto (più il margine)
+    if (Math.abs(targetRow - (item.row - rowSpan - margin)) <= snapRadius) {
+      snappedRow = item.row - rowSpan - margin;
+    } else if (Math.abs(targetRow - (item.row + item.rowSpan + margin)) <= snapRadius) {
+      snappedRow = item.row + item.rowSpan + margin;
+    }
+    
+    // Possiamo allineare il bordo superiore/inferiore pari-pari o sinistro/destro pari-pari
+    if (Math.abs(targetCol - item.col) <= snapRadius) snappedCol = item.col;
+    if (Math.abs(targetRow - item.row) <= snapRadius) snappedRow = item.row;
+  }
+  
+  return { col: snappedCol, row: snappedRow };
 }
