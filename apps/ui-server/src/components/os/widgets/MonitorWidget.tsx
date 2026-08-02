@@ -11,7 +11,9 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
     ram: 0,
     disk: 0,
     activeTasks: 0,
-    networkPing: 0
+    networkPing: 0,
+    activeWorkers: 0,
+    redisStatus: 'Connesso'
   });
 
   const token = localStorage.getItem('token');
@@ -32,9 +34,11 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
             ...prev,
             cpu: Math.min(100, Math.round(server.cpuLoad * 10)), // Approximate load avg to percentage
             ram: Math.min(100, Math.round((server.memory / 4096) * 100)), // Assuming 4GB total for display
-            disk: 65, // Mock disk
-            activeTasks: data.stats.syncLogs || 0,
-            networkPing: latencyMs || 12
+            disk: server.disk ?? 65, 
+            activeTasks: server.bullMqJobs ?? 0,
+            networkPing: latencyMs || 12,
+            activeWorkers: server.activeWorkers ?? 0,
+            redisStatus: server.redisStatus ?? 'Sconosciuto'
           }));
         }
       } catch (e) {
@@ -146,7 +150,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
           <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Worker Attivi</span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>5</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{stats.activeWorkers}</span>
           </div>
           <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Code BullMQ</span>
@@ -158,7 +162,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
           </div>
           <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Redis Status</span>
-            <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-success)', marginTop: '2px' }}>Connesso</span>
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: stats.redisStatus === 'Connesso' ? 'var(--color-success)' : 'var(--color-danger)', marginTop: '2px' }}>{stats.redisStatus}</span>
           </div>
         </div>
       </div>
