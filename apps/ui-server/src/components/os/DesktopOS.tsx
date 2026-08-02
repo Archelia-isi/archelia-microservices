@@ -475,6 +475,36 @@ export default function DesktopOS() {
         }}
         onClick={() => setDesktopContextMenu(null)}
       >
+        {/* DEBUG: Visualizza i box di collisione */}
+        <div style={{position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 9999}}>
+          {(() => {
+            const boxes: Rect[] = [];
+            Object.values(windows).forEach(win => {
+              if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined) {
+                if (win.id === 'roblox_game' && activeTheme !== 'roblox') return; // Stessa logica di render
+                const pos = pixelsToCell(win.desktopX, win.desktopY);
+                boxes.push({ id: win.id, col: pos.col * CELL_WIDTH, row: pos.row * CELL_HEIGHT, ...getIconDimensions(), type: 'icon' });
+              }
+            });
+            widgets.forEach(w => {
+              const pos = pixelsToCell(w.x, w.y);
+              boxes.push({ id: w.id, col: pos.col * CELL_WIDTH, row: pos.row * CELL_HEIGHT, ...getWidgetDimensions(w.type, w.size || 'small'), type: 'widget' });
+            });
+            return boxes.map(box => (
+              <div key={'debug-'+box.id} style={{
+                position: 'absolute',
+                left: box.col, top: box.row, width: box.colSpan * CELL_WIDTH, height: box.rowSpan * CELL_HEIGHT,
+                border: '2px solid rgba(255,0,0,0.5)',
+                backgroundColor: 'rgba(255,0,0,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'red', fontWeight: 'bold', fontSize: '12px'
+              }}>
+                {box.id}
+              </div>
+            ));
+          })()}
+        </div>
+
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
