@@ -7,6 +7,31 @@ import os from 'os';
 import fs from 'fs';
 import { redis, shopifyProductsQueue, shopifyOrdersQueue, shopifyCustomersQueue, shopifyTrackingQueue, shopifyPromoQueue, marketingQueue, marketingJobsQueue } from '@archelia/core';
 
+let lastCpuUsage = process.cpuUsage();
+let lastCpuTime = process.hrtime.bigint();
+
+function getCpuPercentage(): number {
+  const currentUsage = process.cpuUsage();
+  const currentTime = process.hrtime.bigint();
+  
+  const userDiff = currentUsage.user - lastCpuUsage.user;
+  const sysDiff = currentUsage.system - lastCpuUsage.system;
+  const timeDiffUs = Number(currentTime - lastCpuTime) / 1000; // in microseconds
+  
+  // We don't reset lastCpuTime/Usage here on every call to avoid small intervals if multiple requests come at once.
+  // Actually, for accurate polling, we should reset it, but only if enough time has passed.
+  // Better yet, update it only if timeDiffUs > 100000 (100ms)
+  if (timeDiffUs > 100000) {
+    lastCpuUsage = currentUsage;
+    lastCpuTime = currentTime;
+  }
+  
+  if (timeDiffUs === 0) return 0;
+  
+  const percent = ((userDiff + sysDiff) / timeDiffUs) * 100;
+  return Math.min(100, percent);
+}
+
 export async function adminStatsRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
 
@@ -151,7 +176,7 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       server: {
         uptime: process.uptime(),
         memory: Math.round(memoryUsage * 100) / 100,
-        cpuLoad: Math.round(loadAvg * 100) / 100,
+        cpuLoad: Math.round(getCpuPercentage() * 10) / 10,
         disk: diskUsage,
         redisStatus,
         bullMqJobs,

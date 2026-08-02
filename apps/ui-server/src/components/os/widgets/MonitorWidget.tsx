@@ -32,7 +32,7 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
           
           setStats(prev => ({
             ...prev,
-            cpu: Math.min(100, Math.round(server.cpuLoad * 10)), // Approximate load avg to percentage
+            cpu: Math.min(100, Math.round(server.cpuLoad)), 
             ram: Math.min(100, Math.round((server.memory / 4096) * 100)), // Assuming 4GB total for display
             disk: server.disk ?? 65, 
             activeTasks: server.bullMqJobs ?? 0,
