@@ -3,7 +3,7 @@ import { getThemeWallpaper, getThemeIconPath } from '../../utils/themeUtils';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { toast, Toaster } from 'react-hot-toast';
-import { checkOverlap, getIconDimensions, getWidgetDimensions, type Rect } from '../../utils/desktopCollision';
+import { getIconDimensions, getWidgetDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import WindowComponent from './WindowComponent';
 import WidgetContainer from './WidgetContainer';
 import Taskbar from './Taskbar';
@@ -303,57 +303,48 @@ export default function DesktopOS() {
       const targetX = e.clientX - offsetX;
       const targetY = e.clientY - offsetY;
       
-      const app = windows[appId];
-      const originalX = app.desktopX ?? 30;
-      const originalY = app.desktopY ?? 30;
-
-      // Snap to grid (10px) per facilitare l'allineamento
-      let snappedX = Math.round(targetX / 10) * 10;
-      let snappedY = Math.round(targetY / 10) * 10;
-      
-      // Clamp boundaries so icons don't go outside or under taskbar
-      const iconWidth = 80;
-      const iconHeight = 85;
-      const maxW = window.innerWidth - iconWidth;
-      const maxH = window.innerHeight - 52 - iconHeight; // 52px is taskbar height
-      
-      snappedX = Math.max(0, Math.min(snappedX, maxW));
-      snappedY = Math.max(0, Math.min(snappedY, maxH));
-
       const targetDim = getIconDimensions();
-      const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
+      const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
+      
+      // Calculate target cell
+      const { col: targetCol, row: targetRow } = pixelsToCell(targetX, targetY);
 
       const existingItems: Rect[] = [];
       Object.values(windows).forEach(win => {
         if (!win.isPinned && win.id !== appId) {
+          const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
           existingItems.push({
             id: win.id,
-            x: win.desktopX ?? 30,
-            y: win.desktopY ?? 30,
+            col: pos.col,
+            row: pos.row,
             ...getIconDimensions(),
             type: 'icon'
           });
         }
       });
       widgets.forEach(w => {
+        const pos = pixelsToCell(w.x, w.y);
         existingItems.push({
           id: w.id,
-          x: w.x,
-          y: w.y,
+          col: pos.col,
+          row: pos.row,
           ...getWidgetDimensions(w.type, w.size || 'small'),
           type: 'widget'
         });
       });
 
-      // Importante: import checkOverlap da utils/desktopCollision in cima al file se non presente
-      const isOverlap = existingItems.some(item => checkOverlap(candidateRect, item));
+      // Find nearest free cell (Approccio A: sposta in spazio vuoto adiacente)
+      const bestSpot = findNearestFreeCell(
+        targetCol, 
+        targetRow, 
+        targetDim.colSpan, 
+        targetDim.rowSpan, 
+        existingItems, 
+        maxCols, 
+        maxRows
+      );
       
-      if (isOverlap) {
-        // Torna al posto originale
-        updateDesktopPosition(appId, originalX, originalY);
-      } else {
-        updateDesktopPosition(appId, snappedX, snappedY);
-      }
+      updateDesktopPosition(appId, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT);
     }
   };
 
@@ -492,8 +483,8 @@ export default function DesktopOS() {
               onDragEnd={handleDragEndDesktopIcon}
               style={{
                 position: 'absolute',
-                left: app.desktopX ?? 30,
-                top: app.desktopY ?? 30,
+                left: pixelsToCell(app.desktopX ?? 0, 0).col * CELL_WIDTH,
+                top: pixelsToCell(0, app.desktopY ?? 0).row * CELL_HEIGHT,
                 pointerEvents: 'auto',
                 opacity: draggingAppId === app.id ? 0 : 1
               }}

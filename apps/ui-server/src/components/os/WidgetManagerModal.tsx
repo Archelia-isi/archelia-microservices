@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
 import { useWidgetStore } from '../../store/useWidgetStore';
 import { X, Plus, Trash2, LayoutGrid } from 'lucide-react';
+import { getIconDimensions, getWidgetDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import './IconPickerModal.css'; // Possiamo riutilizzare gli stili del modale
 
 export default function WidgetManagerModal() {
-  const { toggleWidgetManager } = useWindowStore();
+  const { toggleWidgetManager, windows } = useWindowStore();
   const { widgets, addWidget, removeWidget, updateWidgetSize, updateWidgetConfig } = useWidgetStore();
   const [expandedWidgetId, setExpandedWidgetId] = useState<string | null>(null);
 
@@ -202,7 +203,30 @@ export default function WidgetManagerModal() {
                   <div style={{ fontWeight: 600 }}>{aw.title}</div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', flex: 1 }}>{aw.description}</div>
                   <button 
-                    onClick={() => addWidget(aw.type as any, window.innerWidth / 2 - 150, window.innerHeight / 2 - 100, 'medium')}
+                    onClick={() => {
+                      const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
+                      const existingItems: Rect[] = [];
+                      Object.values(windows).forEach(win => {
+                        if (!win.isPinned) {
+                          const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
+                          existingItems.push({ id: win.id, col: pos.col, row: pos.row, ...getIconDimensions(), type: 'icon' });
+                        }
+                      });
+                      widgets.forEach(w => {
+                        const pos = pixelsToCell(w.x, w.y);
+                        existingItems.push({ id: w.id, col: pos.col, row: pos.row, ...getWidgetDimensions(w.type, w.size || 'small'), type: 'widget' });
+                      });
+                      
+                      const targetDim = getWidgetDimensions(aw.type as any, 'medium');
+                      const startCol = Math.floor(maxCols / 2) - Math.floor(targetDim.colSpan / 2);
+                      const startRow = Math.floor(maxRows / 2) - Math.floor(targetDim.rowSpan / 2);
+                      
+                      const bestSpot = findNearestFreeCell(
+                        startCol, startRow, targetDim.colSpan, targetDim.rowSpan, existingItems, maxCols, maxRows
+                      );
+                      
+                      addWidget(aw.type as any, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT, 'medium');
+                    }}
                     style={{ padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 500 }}
                   >
                     <Plus size={16} /> Aggiungi

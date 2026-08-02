@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { useWidgetStore, type DesktopWidget, type WidgetSize } from '../../store/useWidgetStore';
 import { useWindowStore } from '../../store/useWindowStore';
-import { checkOverlap, getWidgetDimensions, getIconDimensions, type Rect } from '../../utils/desktopCollision';
+import { getWidgetDimensions, getIconDimensions, pixelsToCell, getGridBounds, findNearestFreeCell, CELL_WIDTH, CELL_HEIGHT, type Rect } from '../../utils/desktopCollision';
 import { Settings } from 'lucide-react';
 
 import ClockWidget from './widgets/ClockWidget';
@@ -28,22 +28,17 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleDragStop = (d: { x: number, y: number }) => {
-    let snappedX = Math.round(d.x / 10) * 10;
-    let snappedY = Math.round(d.y / 10) * 10;
-
-    const maxW = window.innerWidth - getWidgetDimensions(widget.type, widget.size || 'small').width;
-    const maxH = window.innerHeight - 52 - getWidgetDimensions(widget.type, widget.size || 'small').height;
-
-    snappedX = Math.max(0, Math.min(snappedX, maxW));
-    snappedY = Math.max(0, Math.min(snappedY, maxH));
+    const { maxCols, maxRows } = getGridBounds(window.innerWidth, window.innerHeight);
+    const { col: targetCol, row: targetRow } = pixelsToCell(d.x, d.y);
     
     const existingItems: Rect[] = [];
     Object.values(windows).forEach(win => {
       if (!win.isPinned) {
+        const pos = pixelsToCell(win.desktopX ?? 0, win.desktopY ?? 0);
         existingItems.push({
           id: win.id,
-          x: win.desktopX ?? 30,
-          y: win.desktopY ?? 30,
+          col: pos.col,
+          row: pos.row,
           ...getIconDimensions(),
           type: 'icon'
         });
@@ -51,10 +46,11 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     });
     widgets.forEach(w => {
       if (w.id !== widget.id) {
+        const pos = pixelsToCell(w.x, w.y);
         existingItems.push({
           id: w.id,
-          x: w.x,
-          y: w.y,
+          col: pos.col,
+          row: pos.row,
           ...getWidgetDimensions(w.type, w.size || 'small'),
           type: 'widget'
         });
@@ -62,15 +58,17 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
     });
 
     const targetDim = getWidgetDimensions(widget.type, widget.size || 'small');
-    const candidateRect = { x: snappedX, y: snappedY, ...targetDim };
+    const bestSpot = findNearestFreeCell(
+      targetCol,
+      targetRow,
+      targetDim.colSpan,
+      targetDim.rowSpan,
+      existingItems,
+      maxCols,
+      maxRows
+    );
     
-    const isOverlap = existingItems.some(item => checkOverlap(candidateRect, item));
-    
-    if (isOverlap) {
-      updateWidgetPosition(widget.id, widget.x, widget.y);
-    } else {
-      updateWidgetPosition(widget.id, snappedX, snappedY);
-    }
+    updateWidgetPosition(widget.id, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT);
   };
 
   const handleSizeChange = (newSize: WidgetSize) => {
@@ -160,17 +158,20 @@ export default function WidgetContainer({ widget }: { widget: DesktopWidget }) {
   };
 
   const dim = getWidgetDimensions(widget.type, widget.size || 'small');
+  const width = dim.colSpan * CELL_WIDTH;
+  const height = dim.rowSpan * CELL_HEIGHT;
 
   return (
     <Rnd
       position={{ x: widget.x, y: widget.y }}
       onDragStop={(_e, d) => handleDragStop(d)}
+      dragGrid={[CELL_WIDTH, CELL_HEIGHT]}
       enableResizing={false}
       bounds="parent"
       cancel=".nodrag, button, input, select, textarea"
       style={{ zIndex: 1, pointerEvents: 'auto', cursor: 'grab' }}
     >
-      <div className={`widget-wrapper widget-flip-container ${isFlipped ? 'flipped' : ''}`} style={{ position: 'relative', width: dim.width, height: dim.height, boxSizing: 'border-box' }}>
+      <div className={`widget-wrapper widget-flip-container ${isFlipped ? 'flipped' : ''}`} style={{ position: 'relative', width, height, boxSizing: 'border-box' }}>
         
         <div className="widget-flipper">
           {/* FRONTE DEL WIDGET */}
