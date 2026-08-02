@@ -20,7 +20,7 @@ export async function generateMjmlEmail(prompt: string): Promise<{ mjml: string;
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const systemPrompt = `Sei un Senior Email Developer ed Esperto di Conversion Rate Optimization (CRO).
 Il tuo compito è generare il codice sorgente MJML per campagne di Email Marketing di un e-commerce di successo.
