@@ -104,65 +104,65 @@ export default function MonitorWidget({ widget }: { widget: DesktopWidget }) {
 
   const renderLarge = () => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Server size={20} style={{ color: 'var(--color-primary)' }} />
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>Archelia Server Monitor</span>
+          <Server size={18} style={{ color: 'var(--color-primary)' }} />
+          <span style={{ fontSize: '1.1rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Server Monitor</span>
         </div>
-        <div style={{ padding: '4px 8px', background: 'var(--color-success-transparent)', color: 'var(--color-success)', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+        <div style={{ padding: '4px 6px', background: 'var(--color-success-transparent)', color: 'var(--color-success)', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
           ONLINE
         </div>
       </div>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Resource Bars */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span><Cpu size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Processore (CPU)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+              <span><Cpu size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> CPU</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.cpu) }}>{stats.cpu}%</span>
             </div>
-            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ height: '5px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.cpu}%`, background: getStatusColor(stats.cpu), transition: 'width 0.5s ease' }} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span><HardDrive size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> Memoria (RAM)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+              <span><HardDrive size={12} style={{ verticalAlign: 'middle', marginRight: '4px' }}/> RAM</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.ram) }}>{stats.ram}%</span>
             </div>
-            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ height: '5px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.ram}%`, background: getStatusColor(stats.ram), transition: 'width 0.5s ease' }} />
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span>Spazio Disco</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+              <span>Disco</span>
               <span style={{ fontWeight: 600, color: getStatusColor(stats.disk) }}>{stats.disk}%</span>
             </div>
-            <div style={{ height: '6px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ height: '5px', width: '100%', background: 'var(--color-surface-solid)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${stats.disk}%`, background: getStatusColor(stats.disk) }} />
             </div>
           </div>
         </div>
         
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Worker Attivi</span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{stats.activeWorkers}</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', flex: 1, minHeight: 0 }}>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '6px 8px', borderRadius: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Worker Attivi</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{stats.activeWorkers}</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Code BullMQ</span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{stats.activeTasks}</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '6px 8px', borderRadius: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Code BullMQ</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{stats.activeTasks}</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>DB Latency</span>
-            <span style={{ fontSize: '1.2rem', fontWeight: 600, color: stats.networkPing > 100 ? 'var(--color-warning)' : 'inherit' }}>{stats.networkPing}ms</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '6px 8px', borderRadius: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>DB Latency</span>
+            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: stats.networkPing > 100 ? 'var(--color-warning)' : 'inherit' }}>{stats.networkPing}ms</span>
           </div>
-          <div style={{ background: 'var(--color-surface-solid)', padding: '10px', borderRadius: '8px', display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>Redis Status</span>
-            <span style={{ fontSize: '1rem', fontWeight: 600, color: stats.redisStatus === 'Connesso' ? 'var(--color-success)' : 'var(--color-danger)', marginTop: '2px' }}>{stats.redisStatus}</span>
+          <div style={{ background: 'var(--color-surface-solid)', padding: '6px 8px', borderRadius: '6px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Redis Status</span>
+            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: stats.redisStatus === 'Connesso' ? 'var(--color-success)' : 'var(--color-danger)' }}>{stats.redisStatus}</span>
           </div>
         </div>
       </div>
