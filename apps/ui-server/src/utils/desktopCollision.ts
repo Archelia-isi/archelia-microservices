@@ -1,5 +1,5 @@
-export const CELL_WIDTH = 90;
-export const CELL_HEIGHT = 110;
+export const CELL_WIDTH = 10;
+export const CELL_HEIGHT = 10;
 
 export interface Rect {
   id: string;
@@ -19,6 +19,7 @@ export function checkOverlap(rect1: Omit<Rect, 'id'|'type'>, rect2: Omit<Rect, '
   );
 }
 
+// Convert absolute pixels to nearest cell
 export function pixelsToCell(x: number, y: number) {
   return {
     col: Math.max(0, Math.round(x / CELL_WIDTH)),
@@ -26,7 +27,9 @@ export function pixelsToCell(x: number, y: number) {
   };
 }
 
+// Get maximum grid boundaries
 export function getGridBounds(screenWidth: number, screenHeight: number) {
+  // Assumendo taskbar a 52px
   return {
     maxCols: Math.floor(screenWidth / CELL_WIDTH),
     maxRows: Math.floor((screenHeight - 52) / CELL_HEIGHT)
@@ -69,16 +72,22 @@ export function findNearestFreeCell(
     radius++;
   }
   
+  // Fallback se schermo completamente saturo
   return { col: targetCol, row: targetRow };
 }
 
 export function getWidgetDimensions(_type: string, size: string = 'small') {
-  if (size === 'small') return { colSpan: 2, rowSpan: 2 };
-  if (size === 'medium') return { colSpan: 4, rowSpan: 2 };
-  if (size === 'large') return { colSpan: 4, rowSpan: 4 };
-  return { colSpan: 2, rowSpan: 2 };
+  // Original sizes were:
+  // small: 160x160 -> 16 cols x 16 rows
+  // medium: 320x160 -> 32 cols x 16 rows
+  // large: 320x320 -> 32 cols x 32 rows
+  if (size === 'small') return { colSpan: 16, rowSpan: 16 };
+  if (size === 'medium') return { colSpan: 32, rowSpan: 16 };
+  if (size === 'large') return { colSpan: 32, rowSpan: 32 };
+  return { colSpan: 16, rowSpan: 16 };
 }
 
 export function getIconDimensions() {
-  return { colSpan: 1, rowSpan: 1 };
+  // Original size was 80x100 roughly, we will use 8x10 cells
+  return { colSpan: 8, rowSpan: 10 };
 }
