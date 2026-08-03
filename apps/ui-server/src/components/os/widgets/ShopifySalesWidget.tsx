@@ -18,13 +18,20 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
         });
         if (res.ok) {
           const data = await res.json();
-          const { revenueToday, ordersToday } = data.stats;
+          const { 
+            revenueToday, ordersToday, 
+            revenueYesterday, ordersYesterday,
+            revenueWeek, ordersWeek,
+            revenueMonth, ordersMonth
+          } = data.stats;
+          
+          const trendToday = revenueYesterday > 0 ? ((revenueToday - revenueYesterday) / revenueYesterday) * 100 : (revenueToday > 0 ? 100 : 0);
           
           setStats({
-            today: { revenue: revenueToday || 0, orders: ordersToday || 0, trend: +12.5 }, // Trend can be calculated or mocked for now
-            yesterday: { revenue: 1110.00, orders: 12 },
-            week: { revenue: 8450.50, orders: 95, trend: +4.2 },
-            month: { revenue: 32500.00, orders: 412, trend: -1.5 },
+            today: { revenue: revenueToday || 0, orders: ordersToday || 0, trend: Number(trendToday.toFixed(1)) },
+            yesterday: { revenue: revenueYesterday || 0, orders: ordersYesterday || 0 },
+            week: { revenue: revenueWeek || 0, orders: ordersWeek || 0, trend: 0 },
+            month: { revenue: revenueMonth || 0, orders: ordersMonth || 0, trend: 0 },
           });
         }
       } catch (e) {
@@ -67,8 +74,8 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-surface-solid)', padding: '8px', borderRadius: '8px', minHeight: 0, overflow: 'hidden' }}>
           <span style={{ fontSize: '0.75rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Questa Sett.</span>
           <span style={{ fontSize: '1.25rem', fontWeight: 600, margin: '2px 0' }}>€{stats.week.revenue.toFixed(2)}</span>
-          <span style={{ fontSize: '0.7rem', color: stats.week.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {stats.week.trend > 0 ? '+' : ''}{stats.week.trend}% vs Scorsa
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text)', opacity: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            N/A vs Scorsa
           </span>
         </div>
       </div>

@@ -51,6 +51,12 @@ export async function adminStatsRoutes(app: FastifyInstance) {
             syncLogs: z.number(),
             ordersToday: z.number(),
             revenueToday: z.number(),
+            ordersYesterday: z.number(),
+            revenueYesterday: z.number(),
+            ordersWeek: z.number(),
+            revenueWeek: z.number(),
+            ordersMonth: z.number(),
+            revenueMonth: z.number(),
             ordersTotal: z.number(),
             revenueTotal: z.number()
           }),
@@ -73,6 +79,17 @@ export async function adminStatsRoutes(app: FastifyInstance) {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
+    const startOfYesterday = new Date(startOfDay);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+    const startOfWeek = new Date(startOfDay);
+    const dayOfWeek = startOfWeek.getDay();
+    const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    startOfWeek.setDate(diffToMonday);
+    
+    const startOfMonth = new Date(startOfDay);
+    startOfMonth.setDate(1);
+
     const [
       totalProducts,
       publishedProducts,
@@ -81,7 +98,10 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       withoutStock,
       customers,
       syncLogs,
-      ordersTodayList,
+      todayAggregate,
+      yesterdayAggregate,
+      weekAggregate,
+      monthAggregate,
       allOrdersList
     ] = await Promise.all([
       prisma.product.count(),
@@ -91,9 +111,25 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       prisma.product.count({ where: { stock: 0 } }),
       prisma.zelShopifyCustomer.count(),
       prisma.syncLog.count(),
-      prisma.orderQueue.findMany({
+      prisma.zelShopifyOrder.aggregate({
         where: { createdAt: { gte: startOfDay } },
-        select: { payload: true }
+        _sum: { totalPrice: true },
+        _count: { id: true }
+      }),
+      prisma.zelShopifyOrder.aggregate({
+        where: { createdAt: { gte: startOfYesterday, lt: startOfDay } },
+        _sum: { totalPrice: true },
+        _count: { id: true }
+      }),
+      prisma.zelShopifyOrder.aggregate({
+        where: { createdAt: { gte: startOfWeek } },
+        _sum: { totalPrice: true },
+        _count: { id: true }
+      }),
+      prisma.zelShopifyOrder.aggregate({
+        where: { createdAt: { gte: startOfMonth } },
+        _sum: { totalPrice: true },
+        _count: { id: true }
       }),
       prisma.zelShopifyOrder.aggregate({
         _sum: { totalPrice: true },
@@ -101,14 +137,14 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       })
     ]);
 
-    const ordersToday = ordersTodayList.length;
-    let revenueToday = 0;
-    ordersTodayList.forEach(order => {
-      const payload: any = order.payload;
-      if (payload && payload.total_price) {
-        revenueToday += parseFloat(payload.total_price);
-      }
-    });
+    const ordersToday = todayAggregate._count.id;
+    const revenueToday = todayAggregate._sum.totalPrice || 0;
+    const ordersYesterday = yesterdayAggregate._count.id;
+    const revenueYesterday = yesterdayAggregate._sum.totalPrice || 0;
+    const ordersWeek = weekAggregate._count.id;
+    const revenueWeek = weekAggregate._sum.totalPrice || 0;
+    const ordersMonth = monthAggregate._count.id;
+    const revenueMonth = monthAggregate._sum.totalPrice || 0;
 
     const ordersTotal = allOrdersList._count.id;
     const revenueTotal = allOrdersList._sum.totalPrice || 0;
@@ -170,6 +206,12 @@ export async function adminStatsRoutes(app: FastifyInstance) {
         syncLogs,
         ordersToday,
         revenueToday,
+        ordersYesterday,
+        revenueYesterday,
+        ordersWeek,
+        revenueWeek,
+        ordersMonth,
+        revenueMonth,
         ordersTotal,
         revenueTotal
       },
