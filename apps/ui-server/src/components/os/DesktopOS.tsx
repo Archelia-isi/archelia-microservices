@@ -161,7 +161,6 @@ export default function DesktopOS() {
       console.error('Failed to load preferences', e);
     } finally {
       setIsReady(true);
-      setTimeout(() => setShowIntro(false), 2000);
     }
   };
 
