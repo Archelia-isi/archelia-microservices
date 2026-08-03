@@ -51,23 +51,23 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
   );
 
   const renderMedium = () => (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <ShoppingBag size={18} style={{ color: 'var(--color-primary)' }} />
-        <span style={{ fontSize: '1rem', fontWeight: 600 }}>Andamento Shopify</span>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '8px', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <ShoppingBag size={16} style={{ color: 'var(--color-primary)' }} />
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Andamento Shopify</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Oggi ({stats.today.orders} ordini)</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 600, margin: '4px 0' }}>€{stats.today.revenue.toFixed(2)}</span>
-          <span style={{ fontSize: '0.75rem', color: stats.today.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-surface-solid)', padding: '8px', borderRadius: '8px', minHeight: 0, overflow: 'hidden' }}>
+          <span style={{ fontSize: '0.75rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Oggi ({stats.today.orders} ordini)</span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 600, margin: '2px 0' }}>€{stats.today.revenue.toFixed(2)}</span>
+          <span style={{ fontSize: '0.7rem', color: stats.today.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {stats.today.trend > 0 ? '+' : ''}{stats.today.trend}% vs Ieri
           </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Questa Settimana</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 600, margin: '4px 0' }}>€{stats.week.revenue.toFixed(2)}</span>
-          <span style={{ fontSize: '0.75rem', color: stats.week.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-surface-solid)', padding: '8px', borderRadius: '8px', minHeight: 0, overflow: 'hidden' }}>
+          <span style={{ fontSize: '0.75rem', opacity: 0.7, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Questa Sett.</span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 600, margin: '2px 0' }}>€{stats.week.revenue.toFixed(2)}</span>
+          <span style={{ fontSize: '0.7rem', color: stats.week.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {stats.week.trend > 0 ? '+' : ''}{stats.week.trend}% vs Scorsa
           </span>
         </div>
@@ -77,50 +77,50 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
 
   const renderLarge = () => (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '12px', gap: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShoppingBag size={20} style={{ color: 'var(--color-primary)' }} />
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>Andamento Vendite Shopify</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+          <ShoppingBag size={18} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
+          <span style={{ fontSize: '1rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Vendite Shopify</span>
         </div>
-        <div style={{ padding: '4px 8px', background: 'var(--color-primary-transparent)', color: 'var(--color-primary)', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+        <div style={{ padding: '4px 6px', background: 'var(--color-primary-transparent)', color: 'var(--color-primary)', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, flexShrink: 0 }}>
           SINCRONIZZATO
         </div>
       </div>
       
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7, marginBottom: '8px' }}>
-            <DollarSign size={16} /> <span style={{ fontSize: '0.9rem' }}>Fatturato Oggi</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', minHeight: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.7, marginBottom: '4px' }}>
+            <DollarSign size={14} /> <span style={{ fontSize: '0.8rem' }}>Fatturato Oggi</span>
           </div>
-          <span style={{ fontSize: '2.5rem', fontWeight: 300, margin: '4px 0' }}>€{stats.today.revenue.toFixed(2)}</span>
-          <div style={{ fontSize: '0.85rem', color: stats.today.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)', display: 'flex', gap: '4px', alignItems: 'center' }}>
-            {stats.today.trend >= 0 ? <TrendingUp size={14} /> : null}
-            {stats.today.trend > 0 ? '+' : ''}{stats.today.trend}% rispetto a ieri
+          <span style={{ fontSize: '1.8rem', fontWeight: 600, margin: '2px 0' }}>€{stats.today.revenue.toFixed(2)}</span>
+          <div style={{ fontSize: '0.75rem', color: stats.today.trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)', display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {stats.today.trend >= 0 ? <TrendingUp size={12} /> : null}
+            {stats.today.trend > 0 ? '+' : ''}{stats.today.trend}% vs ieri
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: 0.7, marginBottom: '8px' }}>
-            <ShoppingBag size={16} /> <span style={{ fontSize: '0.9rem' }}>Ordini Oggi</span>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', background: 'var(--color-surface-solid)', padding: '12px', borderRadius: '8px', minHeight: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.7, marginBottom: '4px' }}>
+            <ShoppingBag size={14} /> <span style={{ fontSize: '0.8rem' }}>Ordini Oggi</span>
           </div>
-          <span style={{ fontSize: '2.5rem', fontWeight: 300, margin: '4px 0' }}>{stats.today.orders}</span>
-          <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+          <span style={{ fontSize: '1.8rem', fontWeight: 600, margin: '2px 0' }}>{stats.today.orders}</span>
+          <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>
             {stats.yesterday.orders} ordini ieri
           </div>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', padding: '16px 8px 0 8px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Fatturato Settimana</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>€{stats.week.revenue.toFixed(2)}</span>
+      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', paddingBottom: '4px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Fatt. Settimana</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>€{stats.week.revenue.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Fatturato Mese</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>€{stats.month.revenue.toFixed(2)}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', paddingLeft: '4px' }}>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Fatt. Mese</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>€{stats.month.revenue.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Ordini Mese</span>
-          <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{stats.month.orders}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', paddingLeft: '4px' }}>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Ordini Mese</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{stats.month.orders}</span>
         </div>
       </div>
     </div>
