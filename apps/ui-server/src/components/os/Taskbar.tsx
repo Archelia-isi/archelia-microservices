@@ -42,7 +42,10 @@ export default function Taskbar() {
     e.dataTransfer.setData('source', 'taskbar');
   };
 
-  const visibleApps = Object.values(windows).filter(app => app.isPinned || app.isOpen);
+  const visibleApps = Object.values(windows).filter(app => {
+    if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return false;
+    return app.isPinned || app.isOpen;
+  });
 
   const handleAppClick = (id: string, isOpen: boolean, isMinimized: boolean, isActive: boolean) => {
     if (!isOpen || isMinimized) {

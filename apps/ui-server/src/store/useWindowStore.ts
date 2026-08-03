@@ -20,6 +20,8 @@ export interface WindowApp {
   color: string;
   desktopX?: number;
   desktopY?: number;
+  desktopX_B2B?: number;
+  desktopY_B2B?: number;
 }
 
 interface WindowState {
@@ -34,7 +36,7 @@ interface WindowState {
   toggleMaximize: (id: string) => void;
   focusWindow: (id: string) => void;
   updatePosition: (id: string, x: number, y: number) => void;
-  updateDesktopPosition: (id: string, x: number, y: number) => void;
+  updateDesktopPosition: (id: string, x: number, y: number, storeType?: string) => void;
   updateSize: (id: string, width: number | string, height: number | string) => void;
   setWallpaper: (url: string) => void;
   changeAppIcon: (id: string, iconPath: string) => void;
@@ -42,7 +44,7 @@ interface WindowState {
   toggleChatbot: () => void;
   editingIconAppId: string | null;
   setEditingIconAppId: (id: string | null) => void;
-  toggleDesktopApp: (id: string) => void;
+  toggleDesktopApp: (id: string, storeType?: string) => void;
   isWidgetManagerOpen: boolean;
   toggleWidgetManager: () => void;
 }
@@ -57,17 +59,23 @@ export const useWindowStore = create<WindowState>((set) => ({
   toggleWidgetManager: () => set((state) => ({ isWidgetManagerOpen: !state.isWidgetManagerOpen })),
   editingIconAppId: null,
   setEditingIconAppId: (id) => set({ editingIconAppId: id }),
-  toggleDesktopApp: (id) => set((state) => {
+  toggleDesktopApp: (id, storeType) => set((state) => {
     const win = state.windows[id];
     if (!win) return state;
-    const isCurrentlyOnDesktop = win.desktopX !== undefined && win.desktopY !== undefined;
+    
+    const isB2B = storeType === 'B2B';
+    const isCurrentlyOnDesktop = isB2B 
+      ? (win.desktopX_B2B !== undefined && win.desktopY_B2B !== undefined)
+      : (win.desktopX !== undefined && win.desktopY !== undefined);
+
     return {
       windows: {
         ...state.windows,
         [id]: {
           ...win,
-          desktopX: isCurrentlyOnDesktop ? undefined : 20,
-          desktopY: isCurrentlyOnDesktop ? undefined : 20
+          ...(isB2B 
+            ? { desktopX_B2B: isCurrentlyOnDesktop ? undefined : 20, desktopY_B2B: isCurrentlyOnDesktop ? undefined : 20 }
+            : { desktopX: isCurrentlyOnDesktop ? undefined : 20, desktopY: isCurrentlyOnDesktop ? undefined : 20 })
         }
       }
     };
@@ -196,13 +204,18 @@ export const useWindowStore = create<WindowState>((set) => ({
     };
   }),
 
-  updateDesktopPosition: (id, x, y) => set((state) => {
+  updateDesktopPosition: (id, x, y, storeType) => set((state) => {
     const win = state.windows[id];
     if (!win) return state;
+    
+    const isB2B = storeType === 'B2B';
     return {
       windows: {
         ...state.windows,
-        [id]: { ...win, desktopX: x, desktopY: y }
+        [id]: {
+          ...win,
+          ...(isB2B ? { desktopX_B2B: x, desktopY_B2B: y } : { desktopX: x, desktopY: y })
+        }
       }
     };
   }),

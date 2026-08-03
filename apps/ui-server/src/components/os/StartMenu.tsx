@@ -446,9 +446,9 @@ export default function StartMenu({ onClose }: StartMenuProps) {
             },
             {
               id: 'desktop',
-              label: windows[contextMenu.appId].desktopX !== undefined ? 'Rimuovi dal Desktop' : 'Aggiungi al Desktop',
+              label: (currentStore === 'B2B' ? (windows[contextMenu.appId] as any).desktopX_B2B : windows[contextMenu.appId].desktopX) !== undefined ? 'Rimuovi dal Desktop' : 'Aggiungi al Desktop',
               onClick: () => {
-                toggleDesktopApp(contextMenu.appId);
+                toggleDesktopApp(contextMenu.appId, currentStore);
                 setContextMenu(null);
               }
             },

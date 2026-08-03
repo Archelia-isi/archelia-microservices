@@ -80,12 +80,8 @@ export default function DesktopOS() {
   useEffect(() => {
     const root = document.documentElement;
     const settings = useSettingsStore.getState();
-    // Accent Color (Override for B2B)
-    if (currentStore === 'B2B') {
-      root.style.setProperty('--color-primary', '#00C800'); // Verde Neon Izzo
-    } else {
-      root.style.setProperty('--color-primary', settings.accentColor);
-    }
+    // Accent Color (Reset Inline Overrides)
+    root.style.setProperty('--color-primary', settings.accentColor);
     
     // Glass Intensity
     root.style.setProperty('--glass-app-blur', `blur(${settings.glassIntensity}px)`);
@@ -114,7 +110,14 @@ export default function DesktopOS() {
         document.body.classList.add('dark-theme');
       }
     }
-  }, [activeTheme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled]);
+    
+    // Override Multi-Tenant Theme Izzo
+    if (currentStore === 'B2B') {
+      document.body.classList.add('theme-izzo');
+    } else {
+      document.body.classList.remove('theme-izzo');
+    }
+  }, [settings.theme, settings.accentColor, settings.glassIntensity, settings.animationsEnabled, currentStore]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -146,7 +149,10 @@ export default function DesktopOS() {
           if (config.desktopIcons) {
             Object.entries(config.desktopIcons).forEach(([appId, pos]: [string, any]) => {
               if (pos.x !== undefined && pos.y !== undefined) {
-                updateDesktopPosition(appId, pos.x, pos.y);
+                updateDesktopPosition(appId, pos.x, pos.y, 'RETAIL');
+              }
+              if (pos.xB2B !== undefined && pos.yB2B !== undefined) {
+                updateDesktopPosition(appId, pos.xB2B, pos.yB2B, 'B2B');
               }
               if (pos.isPinned && useWindowStore.getState().windows[appId] && !useWindowStore.getState().windows[appId].isPinned) {
                 togglePinApp(appId);
@@ -217,11 +223,13 @@ export default function DesktopOS() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const desktopIcons: Record<string, { x: number, y: number, isPinned: boolean, iconPath?: string }> = {};
+    const desktopIcons: Record<string, { x: number, y: number, xB2B?: number, yB2B?: number, isPinned: boolean, iconPath?: string }> = {};
     Object.values(windows).forEach(win => {
       desktopIcons[win.id] = {
         x: win.desktopX ?? 30,
         y: win.desktopY ?? 30,
+        ...(win.desktopX_B2B !== undefined && { xB2B: win.desktopX_B2B }),
+        ...(win.desktopY_B2B !== undefined && { yB2B: win.desktopY_B2B }),
         isPinned: win.isPinned,
         ...(win.iconPath && { iconPath: win.iconPath })
       };
@@ -329,12 +337,14 @@ export default function DesktopOS() {
 
       const existingItems: Rect[] = [];
       Object.values(windows).forEach(win => {
-        // Fix Ghost Bug: Ignore apps that are not pinned AND don't have a desktop coordinate assigned
         // INOLTRE: escludi 'os-settings' e 'system-settings' che non devono mai occupare spazio sul desktop
-        if (!win.isPinned && win.desktopX !== undefined && win.desktopY !== undefined && win.id !== appId) {
+        const currentX = currentStore === 'B2B' ? (win as any).desktopX_B2B : win.desktopX;
+        const currentY = currentStore === 'B2B' ? (win as any).desktopY_B2B : win.desktopY;
+
+        if (!win.isPinned && currentX !== undefined && currentY !== undefined && win.id !== appId) {
           if (win.id === 'os-settings' || win.id === 'system-settings') return;
           if (win.id === 'roblox_game' && activeTheme !== 'roblox') return;
-          const pos = pixelsToCell(win.desktopX, win.desktopY);
+          const pos = pixelsToCell(currentX, currentY);
           existingItems.push({
             id: win.id,
             col: pos.col,
@@ -374,7 +384,7 @@ export default function DesktopOS() {
         desktopMargin
       );
       
-      updateDesktopPosition(appId, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT);
+      updateDesktopPosition(appId, bestSpot.col * CELL_WIDTH, bestSpot.row * CELL_HEIGHT, currentStore);
     }
   };
 
@@ -500,7 +510,9 @@ export default function DesktopOS() {
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
-            if (app.id === 'os-settings' || app.desktopX === undefined || app.desktopY === undefined) return null;
+            if (app.id === 'os-settings') return null;
+            const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
+            if (gridPos.x === undefined || gridPos.y === undefined) return null;
             if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return null;
             
             const themeIconPath = getThemeIconPath(app.id, activeTheme);

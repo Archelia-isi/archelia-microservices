@@ -496,3 +496,14 @@ body.theme-roblox textarea {
   border-radius: 8px !important;
   box-shadow: inset 0 4px 0 rgba(0,0,0,0.05) !important;
 }
+
+/* =========================================
+   IZZO DISTRIBUZIONE BRAND THEME
+   ========================================= */
+body.theme-izzo {
+  --color-primary: #00C800 !important;
+  --color-primary-hover: #00a000 !important;
+  --color-primary-light: #e0ffe0 !important;
+  --color-primary-rgb: 0, 200, 0 !important;
+  --color-success: #00C800 !important;
+}
