@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
 import { getThemeIconPath } from '../../utils/themeUtils';
-import { BrainCircuit, LogOut, Store } from 'lucide-react';
+import { BrainCircuit, LogOut } from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
 import { useStoreContext } from '../../store/useStoreContext';
 import './Taskbar.css';
@@ -18,7 +18,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot, setEditingIconAppId } = useWindowStore();
   const { taskbarPosition, taskbarAutoHide, theme } = useSettingsStore();
-  const { currentStore, setStore } = useStoreContext();
+  const { currentStore } = useStoreContext();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [time, setTime] = useState(new Date());

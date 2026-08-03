@@ -26,7 +26,7 @@ interface StartMenuProps {
 export default function StartMenu({ onClose }: StartMenuProps) {
   const { openWindow, windows, togglePinApp, toggleDesktopApp, setEditingIconAppId, toggleWidgetManager } = useWindowStore();
   const { theme } = useSettingsStore();
-  const { currentStore } = useStoreContext();
+  const { currentStore, setStore } = useStoreContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
 
