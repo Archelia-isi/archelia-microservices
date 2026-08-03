@@ -28,9 +28,10 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
+    const storeType = (request.headers['x-store-context'] as 'RETAIL' | 'B2B') || 'RETAIL';
     const { page, limit, search, status } = request.query;
 
-    const where: any = {};
+    const where: any = { storeType };
     if (search) {
       where.OR = [
         { shopifyOrderId: { contains: search, mode: 'insensitive' } },

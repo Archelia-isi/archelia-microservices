@@ -9,10 +9,12 @@ import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
 import { Settings, Plus, Trash } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useStoreContext } from '../../store/useStoreContext';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function Orders() {
+  const { currentStore } = useStoreContext();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
@@ -35,7 +37,10 @@ export default function Orders() {
     if (showLoading) setLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/admin/orders?limit=50`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore
+        }
       });
       const data = await res.json();
       if (data.data) {
@@ -55,12 +60,15 @@ export default function Orders() {
     // Auto-refresh every 30s
     const interval = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentStore]);
 
   const fetchSettings = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/settings`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore
+        }
       });
       if (res.ok) {
         const data = await res.json();

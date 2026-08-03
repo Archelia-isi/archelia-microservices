@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { type DesktopWidget } from '../../../store/useWidgetStore';
 import { ShoppingBag, TrendingUp, DollarSign } from 'lucide-react';
+import { useStoreContext } from '../../../store/useStoreContext';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 
 export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }) {
   const [stats, setStats] = useState<any>(null);
+  const { currentStore } = useStoreContext();
 
   const token = localStorage.getItem('token');
 
@@ -14,7 +16,10 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
     const fetchStats = async () => {
       try {
         const res = await fetch(`${API_URL}/api/admin/stats`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'x-store-context': currentStore
+          }
         });
         if (res.ok) {
           const data = await res.json();
@@ -39,7 +44,7 @@ export default function ShopifySalesWidget({ widget }: { widget: DesktopWidget }
       }
     };
     fetchStats();
-  }, [token]);
+  }, [token, currentStore]);
 
   if (!stats) return <div className="widget flex-center">Caricamento Vendite...</div>;
 

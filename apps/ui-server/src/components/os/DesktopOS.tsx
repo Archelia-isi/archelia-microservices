@@ -43,6 +43,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 };
 
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { useStoreContext } from '../../store/useStoreContext';
 
 export default function DesktopOS() {
   const { 
@@ -52,6 +53,7 @@ export default function DesktopOS() {
   } = useWindowStore();
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
+  const { currentStore } = useStoreContext();
   const { desktopSnapEnabled, desktopSnapRadius, desktopMargin } = settings;
 
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
@@ -482,6 +484,8 @@ export default function DesktopOS() {
           {Object.values(windows).map(app => {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
             if (app.id === 'os-settings' || app.desktopX === undefined || app.desktopY === undefined) return null;
+            if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return null;
+            
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
             return (
@@ -543,9 +547,10 @@ export default function DesktopOS() {
           />
         )}
 
-        {Object.values(windows).map(win => (
-          <WindowComponent key={win.id} id={win.id} />
-        ))}
+        {Object.values(windows).map(win => {
+          if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(win.id)) return null;
+          return <WindowComponent key={win.id} id={win.id} />;
+        })}
       </div>
 
       {/* Nuova Taskbar */}

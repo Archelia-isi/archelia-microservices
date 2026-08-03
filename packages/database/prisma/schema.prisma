@@ -16,6 +16,7 @@ model SyncLog {
   id        String     @id @default(cuid())
   type      SyncType
   status    SyncStatus
+  storeType StoreType  @default(RETAIL)
   startedAt DateTime   @default(now())
   endedAt   DateTime?
 
@@ -53,32 +54,37 @@ enum SyncStatus {
   FAILED
 }
 
+enum StoreType {
+  RETAIL
+  B2B
+}
+
 // === SCHEDULER CONFIG (persiste tra deploy) ===
 
 // === CART SYNC QUEUE (App <-> Web Sync) ===
 
 model CartSyncQueue {
-  id          String   @id @default(uuid())
-  customerId  String   @unique // Shopify Customer ID
-  cartPayload Json     // Il JSON esatto del carrello
-  source      String   // "APP" o "WEB"
-  status      String   @default("PENDING") // "PENDING" | "PROCESSING" | "SYNCED" | "FAILED"
-  attempts    Int      @default(0)         // Numero di tentativi falliti (max 3 prima di FAILED)
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(uuid())
+  customerId  String    @unique // Shopify Customer ID
+  cartPayload Json // Il JSON esatto del carrello
+  source      String // "APP" o "WEB"
+  status      String    @default("PENDING") // "PENDING" | "PROCESSING" | "SYNCED" | "FAILED"
+  storeType   StoreType @default(RETAIL)
+  attempts    Int       @default(0) // Numero di tentativi falliti (max 3 prima di FAILED)
+  updatedAt   DateTime  @updatedAt
 
   @@index([status])
   @@map("cart_sync_queue")
 }
 
-
 model SchedulerConfig {
-  jobId         String   @id
-  enabled       Boolean  @default(false)
-  intervalValue Int      @default(30)
-  intervalUnit  String   @default("minutes")
+  jobId         String  @id
+  enabled       Boolean @default(false)
+  intervalValue Int     @default(30)
+  intervalUnit  String  @default("minutes")
   startTime     String?
 
-  updatedAt     DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   @@map("scheduler_config")
 }
@@ -86,15 +92,15 @@ model SchedulerConfig {
 // === BLACKLIST IMPORT SHOPIFY ===
 
 model ShopifyBlacklistRule {
-  id              String   @id @default("singleton")
-  
-  brands          Json     @default("[]") // Lista di codici marca bloccati
-  productGroups   Json     @default("[]") // Lista di categorie Zucchetti bloccate
-  families        Json     @default("[]") // Lista di famiglie bloccate
-  categories      Json     @default("[]") // Lista di categorie omogenee bloccate
-  products        Json     @default("[]") // Lista di SKU singoli esclusi
+  id String @id @default("singleton")
 
-  updatedAt       DateTime @updatedAt
+  brands        Json @default("[]") // Lista di codici marca bloccati
+  productGroups Json @default("[]") // Lista di categorie Zucchetti bloccate
+  families      Json @default("[]") // Lista di famiglie bloccate
+  categories    Json @default("[]") // Lista di categorie omogenee bloccate
+  products      Json @default("[]") // Lista di SKU singoli esclusi
+
+  updatedAt DateTime @updatedAt
 
   @@map("shopify_blacklist_rules")
 }
@@ -191,7 +197,7 @@ model UserPreference {
 
 model GlobalSettings {
   id        String   @id @default("default")
-  config    String   // JSON
+  config    String // JSON
   updatedAt DateTime @updatedAt
 
   @@map("global_settings")
@@ -327,39 +333,45 @@ model Product {
 
   // --- Prezzo e stock ---
   /// Prezzo listino ARC (liprezzo)
-  price          Float   @default(0)
+  price     Float   @default(0)
   /// Codice listino (licodlis)
-  priceList      String?
+  priceList String?
+
+  /// Prezzo listino B2B
+  priceB2b     Float   @default(0)
+  /// Codice listino B2B
+  priceListB2b String?
+
   /// Peso netto (arpesnet)
-  netWeight      Float?  @default(0)
+  netWeight      Float? @default(0)
   /// Peso lordo (arpeslor) espresso in decimali
-  grossWeight    Float?  @default(0)
+  grossWeight    Float? @default(0)
   /// Peso volumetrico (zzpesvol)
-  volume         Float?  @default(0)
+  volume         Float? @default(0)
   /// Lunghezza (ardimlun)
-  length         Float?  @default(0)
+  length         Float? @default(0)
   /// Larghezza (ardimlar)
-  width          Float?  @default(0)
+  width          Float? @default(0)
   /// Altezza (ardimalt)
-  height         Float?  @default(0)
+  height         Float? @default(0)
   /// Stock disponibile (PR) (giacenza - riservata - impegnata)
-  stock          Int     @default(0)
+  stock          Int    @default(0)
   /// Giacenza grezza (PR) (slqtaper)
-  rawStock       Float   @default(0)
+  rawStock       Float  @default(0)
   /// Quantità riservata (PR) (slqtrper)
-  reservedStock  Float   @default(0)
+  reservedStock  Float  @default(0)
   /// Quantità impegnata (PR) (slqtiper)
-  committedStock Float   @default(0)
+  committedStock Float  @default(0)
 
   // --- Stock Magazzino Elmark (EK) ---
   /// Stock disponibile Elmark (EK)
-  stockEk          Int     @default(0)
+  stockEk          Int   @default(0)
   /// Giacenza grezza (EK)
-  rawStockEk       Float   @default(0)
+  rawStockEk       Float @default(0)
   /// Quantità riservata (EK)
-  reservedStockEk  Float   @default(0)
+  reservedStockEk  Float @default(0)
   /// Quantità impegnata (EK)
-  committedStockEk Float   @default(0)
+  committedStockEk Float @default(0)
 
   // --- Immagini ---
   /// URL prima immagine originale (da Cloudinary)
@@ -371,24 +383,35 @@ model Product {
   /// Flag lock per ignorare il sync stock durante offerte flash con scarsità fittizia
   isFlashPromoLock Boolean @default(false)
   /// Pubblicato su web (arpubweb = S/N)
-  publishedOnWeb Boolean @default(false)
-  /// ID prodotto su Shopify (se sincronizzato)
-  shopifyId      String?
-  /// Stato su Shopify (ACTIVE, DRAFT, ARCHIVED)
-  shopifyStatus  String?
-  /// Handle URL su Shopify
-  shopifyHandle  String?
+  publishedOnWeb   Boolean @default(false)
+  /// Pubblicato su sito B2B
+  publishedOnB2b   Boolean @default(false)
+
+  /// ID prodotto su Shopify Retail
+  shopifyId     String?
+  /// Stato su Shopify Retail
+  shopifyStatus String?
+  /// Handle URL su Shopify Retail
+  shopifyHandle String?
+
+  /// ID prodotto su Shopify B2B
+  shopifyIdB2b     String?
+  /// Stato su Shopify B2B
+  shopifyStatusB2b String?
+  /// Handle URL su Shopify B2B
+  shopifyHandleB2b String?
+
   /// Numero di vendite registrate (storico)
-  soldCount      Int     @default(0)
+  soldCount Int @default(0)
 
   // --- Timestamp ---
   /// Data creazione su Zucchetti
   zucchettiCreatedAt String?
   /// Data ultima modifica su Zucchetti
   zucchettiUpdatedAt String?
-  
+
   zucchettiSyncedAt  DateTime? // Data ultima sincro su Zucchetti Infinity (Anagrafica)
-  zucchettiSyncError String?   // Ultimo errore restituito da Zucchetti (es. Nomenclature mancanti)
+  zucchettiSyncError String? // Ultimo errore restituito da Zucchetti (es. Nomenclature mancanti)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -403,8 +426,8 @@ model Product {
 
 /// Marche (es. EK → ELMARK, KO → KOMBO)
 model Brand {
-  code String @id
-  name String
+  code  String  @id
+  name  String
   isNew Boolean @default(false)
 
   @@map("brands")
@@ -460,13 +483,13 @@ model ProductMapping {
   manufacturerCode String?
 
   /// Ultimo prezzo sincronizzato
-  lastSyncedPrice Float?
+  lastSyncedPrice  Float?
   /// Ultimo stock sincronizzato
-  lastSyncedStock Int?
+  lastSyncedStock  Int?
   /// Ultimo peso lordo sincronizzato
   lastSyncedWeight Float?
   /// Hash dei dati per sync differenziale
-  lastDataHash    String?
+  lastDataHash     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -479,7 +502,8 @@ model ProductMapping {
 
 /// Ordine ricevuto da Shopify, in attesa di invio a Zucchetti
 model OrderQueue {
-  id String @id @default(cuid())
+  id        String    @id @default(cuid())
+  storeType StoreType @default(RETAIL)
 
   /// ID ordine su Shopify
   shopifyOrderId   String  @unique
@@ -518,39 +542,39 @@ model OrderQueue {
 }
 
 model MarketingSettings {
-  id              String   @id @default("marketing_config")
-  cartEnabled     Boolean  @default(true)
-  cartSequence    Json     @default("[]")
-  
-  winbackEnabled  Boolean  @default(false)
-  winbackSequence Json     @default("[]")
-  
-  browseEnabled      Boolean  @default(false)
-  browseCooldownDays Int      @default(10)
-  browseSequence     Json     @default("[]")
-  
-  metaCapiEnabled Boolean  @default(false)
-  
-  loopEnabled      Boolean  @default(false)
-  loopStartDays    Int      @default(30)
-  loopIntervalDays Int      @default(20)
+  id           String  @id @default("marketing_config")
+  cartEnabled  Boolean @default(true)
+  cartSequence Json    @default("[]")
+
+  winbackEnabled  Boolean @default(false)
+  winbackSequence Json    @default("[]")
+
+  browseEnabled      Boolean @default(false)
+  browseCooldownDays Int     @default(10)
+  browseSequence     Json    @default("[]")
+
+  metaCapiEnabled Boolean @default(false)
+
+  loopEnabled      Boolean @default(false)
+  loopStartDays    Int     @default(30)
+  loopIntervalDays Int     @default(20)
   loopTemplateId   String?
 
-  pushCartEnabled      Boolean  @default(false)
-  pushCartDelayMins    Int      @default(30)
-  pushCartSequence     Json     @default("[]")
+  pushCartEnabled   Boolean @default(false)
+  pushCartDelayMins Int     @default(30)
+  pushCartSequence  Json    @default("[]")
 
-  pushBrowseEnabled    Boolean  @default(false)
-  pushBrowseDelayMins  Int      @default(30)
-  pushBrowseSequence   Json     @default("[]")
+  pushBrowseEnabled   Boolean @default(false)
+  pushBrowseDelayMins Int     @default(30)
+  pushBrowseSequence  Json    @default("[]")
 
-  pushWinbackEnabled   Boolean  @default(false)
-  pushWinbackDelayMins Int      @default(1440)
-  pushWinbackSequence  Json     @default("[]")
+  pushWinbackEnabled   Boolean @default(false)
+  pushWinbackDelayMins Int     @default(1440)
+  pushWinbackSequence  Json    @default("[]")
 
-  pushPromoEnabled     Boolean  @default(false)
+  pushPromoEnabled Boolean @default(false)
 
-  updatedAt       DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 enum OrderQueueStatus {
@@ -651,50 +675,50 @@ model Banner {
 
 /// Cabina di regia per il motore AI delle offerte a tempo
 model AutoPromoSettings {
-  id                    String   @id @default("singleton")
-  isActive              Boolean  @default(false)
+  id       String  @id @default("singleton")
+  isActive Boolean @default(false)
 
   // -- AI Autopilot Settings --
-  aiAutopilotEnabled    Boolean  @default(false)
-  aiPrioritySkus        String[] @default([])   /// SKU prioritari iniettati dal Supervisore Gemini
+  aiAutopilotEnabled Boolean  @default(false)
+  aiPrioritySkus     String[] @default([]) /// SKU prioritari iniettati dal Supervisore Gemini
 
-  dailyDealsEnabled      Boolean  @default(true)
-  flashDealsEnabled      Boolean  @default(true)
-  standardHourlyEnabled  Boolean  @default(true)
+  dailyDealsEnabled     Boolean @default(true)
+  flashDealsEnabled     Boolean @default(true)
+  standardHourlyEnabled Boolean @default(true)
 
-  deadStockDiscount      Int      @default(30)
-  deadStockMonths        Int      @default(6)
-  deadStockItemCount     Int      @default(10)
+  deadStockDiscount  Int @default(30)
+  deadStockMonths    Int @default(6)
+  deadStockItemCount Int @default(10)
 
-  flashDealDiscount      Int      @default(40)
-  flashDealsPerDay       Int      @default(4)
-  flashDealDurations     String   @default("1,1,1,1")
-  flashDealHours         String   @default("10,14,18,21")
+  flashDealDiscount  Int    @default(40)
+  flashDealsPerDay   Int    @default(4)
+  flashDealDurations String @default("1,1,1,1")
+  flashDealHours     String @default("10,14,18,21")
 
-  standardHourlyDiscount Int      @default(30)
-  standardHourlyPerDay   Int      @default(4)
-  standardHourlyMonths   Int      @default(6)
-  standardHourlyDurations String  @default("1,1,1,1")
-  standardHourlyHours    String   @default("11,15,19,22")
+  standardHourlyDiscount  Int    @default(30)
+  standardHourlyPerDay    Int    @default(4)
+  standardHourlyMonths    Int    @default(6)
+  standardHourlyDurations String @default("1,1,1,1")
+  standardHourlyHours     String @default("11,15,19,22")
 
-  blacklistedCategories  String[] @default([])
-  sloganMode             String   @default("STATIC") // STATIC o AI
-  staticSlogans          String[] @default([])
+  blacklistedCategories String[] @default([])
+  sloganMode            String   @default("STATIC") // STATIC o AI
+  staticSlogans         String[] @default([])
 
-  dailyTargetBrands      String[] @default([])
-  dailyTargetGroups      String[] @default([])
-  dailyTargetFamilies    String[] @default([])
-  dailyTargetCategories  String[] @default([])
+  dailyTargetBrands     String[] @default([])
+  dailyTargetGroups     String[] @default([])
+  dailyTargetFamilies   String[] @default([])
+  dailyTargetCategories String[] @default([])
 
-  flashTargetBrands      String[] @default([])
-  flashTargetGroups      String[] @default([])
-  flashTargetFamilies    String[] @default([])
-  flashTargetCategories  String[] @default([])
+  flashTargetBrands     String[] @default([])
+  flashTargetGroups     String[] @default([])
+  flashTargetFamilies   String[] @default([])
+  flashTargetCategories String[] @default([])
 
-  stdTargetBrands        String[] @default([])
-  stdTargetGroups        String[] @default([])
-  stdTargetFamilies      String[] @default([])
-  stdTargetCategories    String[] @default([])
+  stdTargetBrands     String[] @default([])
+  stdTargetGroups     String[] @default([])
+  stdTargetFamilies   String[] @default([])
+  stdTargetCategories String[] @default([])
 
   updatedAt DateTime @updatedAt
 
@@ -705,49 +729,49 @@ model AutoPromoSettings {
 
 /// DATABASE 1: CRM Marketing (Mirror Shopify)
 model ZelShopifyCustomer {
-  shopifyId        String   @id /// GID o Numeric ID nativo di Shopify
-  email            String?
-  firstName        String?
-  lastName         String?
-  phone            String?
-  
+  shopifyId String  @id /// GID o Numeric ID nativo di Shopify
+  email     String?
+  firstName String?
+  lastName  String?
+  phone     String?
+
   /// Dati di fatturazione completi
-  billingAddress   Json?
-  
+  billingAddress Json?
+
   /// Array completo di tutti gli indirizzi associati al cliente su Shopify
-  addresses        Json?
+  addresses Json?
 
   /// Dati fiscali e PEC estratti dagli attributi carrello
-  fiscalData       Json?    
-  
+  fiscalData Json?
+
   /// Codice Zucchetti (es. ARC000001A) assegnato in modo permanente
-  zucchettiArcId   String?  @unique
-  
-  zucchettiQueue   ZelZucchettiCustomerQueue?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  zucchettiArcId String? @unique
+
+  zucchettiQueue ZelZucchettiCustomerQueue?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("zel_shopify_customer")
 }
 
 /// DATABASE 2: Coda ETL per ERP (Zucchetti Outbox)
 model ZelZucchettiCustomerQueue {
-  arcId            String   @id /// Codice Zucchetti auto-generato (chiave primaria coda)
-  
+  arcId String @id /// Codice Zucchetti auto-generato (chiave primaria coda)
+
   /// Foreign key a DB1
-  shopifyId        String   @unique
-  shopifyCustomer  ZelShopifyCustomer @relation(fields: [shopifyId], references: [shopifyId])
-  
+  shopifyId       String             @unique
+  shopifyCustomer ZelShopifyCustomer @relation(fields: [shopifyId], references: [shopifyId])
+
   /// Array o oggetto JSON pronto per essere convertito in XML
-  xmlPayload       Json
-  status           ZucchettiCustomerStatus @default(PENDING)
-  
-  attempts         Int      @default(0)
-  lastError        String?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  xmlPayload Json
+  status     ZucchettiCustomerStatus @default(PENDING)
+
+  attempts  Int     @default(0)
+  lastError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@map("zel_zucchetti_customer_queue")
@@ -763,41 +787,43 @@ enum ZucchettiCustomerStatus {
 
 /// DATABASE 1: CRM Ordini (Mirror Shopify)
 model ZelShopifyOrder {
-  id                String   @id @default(cuid())
-  shopifyOrderId    String   @unique
+  id                String    @id @default(cuid())
+  storeType         StoreType @default(RETAIL)
+  shopifyOrderId    String    @unique
   orderNumber       String?
-  totalPrice        Float    @default(0)
+  totalPrice        Float     @default(0)
   shopifyCustomerId String?
 
-  zucchettiQueue    ZelZucchettiOrderQueue?
+  zucchettiQueue ZelZucchettiOrderQueue?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("zel_shopify_order")
 }
 
 /// DATABASE 2: Coda Ordini per ERP (JSON Zucchetti)
 model ZelZucchettiOrderQueue {
-  id               String   @id @default(cuid())
+  id        String    @id @default(cuid())
+  storeType StoreType @default(RETAIL)
 
   /// Foreign key a DB1
-  shopifyOrderId   String   @unique
-  shopifyOrder     ZelShopifyOrder @relation(fields: [shopifyOrderId], references: [shopifyOrderId])
+  shopifyOrderId String          @unique
+  shopifyOrder   ZelShopifyOrder @relation(fields: [shopifyOrderId], references: [shopifyOrderId])
 
   /// Payload completo JSON per Zucchetti
-  payload          Json
-  
+  payload Json
+
   /// Totale ordine (estratto per calcoli veloci analytics)
-  totalPrice       Float @default(0)
-  
-  status           ZucchettiOrderStatus @default(PENDING)
+  totalPrice Float @default(0)
 
-  attempts         Int      @default(0)
-  lastError        String?
+  status ZucchettiOrderStatus @default(PENDING)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  attempts  Int     @default(0)
+  lastError String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
   @@map("zel_zucchetti_order_queue")
@@ -813,19 +839,19 @@ enum ZucchettiOrderStatus {
 
 /// Libreria dei Template Email (Creati via UI Dashboard)
 model MarketingTemplate {
-  id          String         @id @default(cuid())
-  name        String         @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   /// Oggetto dell'email predefinito (es. "Hai dimenticato qualcosa?")
   subject     String?
   /// Codice sorgente HTML compilato pronto per Brevo
-  htmlContent String         @db.Text
+  htmlContent String  @db.Text
   /// Stato JSON per ricaricare l'editor visivo (Drag & Drop)
-  designState Json?    
-  
-  jobs        MarketingJob[]
+  designState Json?
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  jobs MarketingJob[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("marketing_templates")
 }
@@ -834,31 +860,31 @@ model MarketingTemplate {
 
 /// Sessione Web tracciata dal frontend Shopify tramite App Proxy
 model TrackingSession {
-  id              String           @id @default(cuid())
-  deviceId        String           @unique /// Fingerprint del dispositivo assegnato in JS
-  customerEmail   String?
-  customerId      String?
-  
-  /// Parametri Sorgente
-  utmSource       String?
-  utmCampaign     String?
-  utmMedium       String?
-  referrer        String?
-  
-  /// Parametri Device
-  deviceCategory  String?          /// Mobile, Desktop o Tablet
-  
-  /// Geolocalizzazione (rapida via IP)
-  country         String?
-  city            String?
-  
-  bounce          Boolean          @default(true) /// Se c'è solo una pageview / durata bassissima diventa true
-  
-  events          MarketingEvent[]
+  id            String  @id @default(cuid())
+  deviceId      String  @unique /// Fingerprint del dispositivo assegnato in JS
+  customerEmail String?
+  customerId    String?
 
-  startedAt       DateTime         @default(now())
-  endedAt         DateTime?
-  updatedAt       DateTime         @updatedAt
+  /// Parametri Sorgente
+  utmSource   String?
+  utmCampaign String?
+  utmMedium   String?
+  referrer    String?
+
+  /// Parametri Device
+  deviceCategory String? /// Mobile, Desktop o Tablet
+
+  /// Geolocalizzazione (rapida via IP)
+  country String?
+  city    String?
+
+  bounce Boolean @default(true) /// Se c'è solo una pageview / durata bassissima diventa true
+
+  events MarketingEvent[]
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  updatedAt DateTime  @updatedAt
 
   @@index([deviceId])
   @@index([customerEmail])
@@ -868,29 +894,29 @@ model TrackingSession {
 
 /// Storicizzazione Azioni Utente (Vista prodotto, Carrello, ecc.)
 model MarketingEvent {
-  id             String         @id @default(cuid())
+  id        String @id @default(cuid())
   /// Tipo d'evento: TARGET_VIEW, CHECKOUT_STARTED, PURCAHSE
-  eventType      String
-  
+  eventType String
+
   /// Identificativi Cliente
-  customerId     String?  
-  customerEmail  String?
-  customerPhone  String?
-  
+  customerId    String?
+  customerEmail String?
+  customerPhone String?
+
   /// Dati dinamici (Prodotti visti, link carrello, totale)
-  payload        Json     
-  
+  payload Json
+
   /// L'evento è stato "risolto"? (es. Se il carrello è diventato PURCHASE, resolved = true)
-  resolved       Boolean        @default(false)
+  resolved Boolean @default(false)
 
   /// Appartenenza alla sessione corrente Web Analytics
-  sessionId      String?
-  session        TrackingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  sessionId String?
+  session   TrackingSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
-  jobs           MarketingJob[]
+  jobs MarketingJob[]
 
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([eventType, resolved])
   @@index([customerEmail])
@@ -899,28 +925,28 @@ model MarketingEvent {
 
 /// Schedulatore delle Azioni da sparare nel futuro
 model MarketingJob {
-  id             String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   /// Azione: ABANDONED_CART_EMAIL, META_CAPI_SYNC, WINBACK_EMAIL
-  jobType        String   
+  jobType      String
   /// Stato: PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
-  status         String   @default("PENDING") 
+  status       String   @default("PENDING")
   /// Quando deve essere eseguito questo lavoro?
-  scheduledFor   DateTime 
-  
+  scheduledFor DateTime
+
   /// Collegamento all'Evento scatenante originale
-  eventId        String?
-  event          MarketingEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  eventId String?
+  event   MarketingEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   /// Collegamento al Template da inviare (se è un job Email)
-  templateId     String?
-  template       MarketingTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId String?
+  template   MarketingTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
-  attempts       Int      @default(0)
-  lastError      String?
+  attempts  Int     @default(0)
+  lastError String?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, scheduledFor])
   @@map("marketing_jobs")
@@ -931,12 +957,12 @@ model MarketingJob {
 /// Tabella specchio strutturata esclusivamente in MAIUSCOLO
 /// per permettere l'aggregazione nativa via postgres_fdw da on-premise
 model MappedImage {
-  arcodart     String @map("ARCODART") @db.VarChar(50)
-  arfulres     String @map("ARFULRES") @db.VarChar(254)
-  ar200pix     String @map("AR200PIX") @db.VarChar(254)
-  ar400pix     String @map("AR400PIX") @db.VarChar(254)
-  ar500pix     String @map("AR500PIX") @db.VarChar(254)
-  ar600pix     String @map("AR600PIX") @db.VarChar(254)
+  arcodart String @map("ARCODART") @db.VarChar(50)
+  arfulres String @map("ARFULRES") @db.VarChar(254)
+  ar200pix String @map("AR200PIX") @db.VarChar(254)
+  ar400pix String @map("AR400PIX") @db.VarChar(254)
+  ar500pix String @map("AR500PIX") @db.VarChar(254)
+  ar600pix String @map("AR600PIX") @db.VarChar(254)
 
   @@id([arcodart, arfulres])
   @@map("mapped_img")
@@ -948,31 +974,31 @@ model WebPushSubscription {
   id            String   @id @default(cuid())
   deviceId      String   @unique
   endpoint      String
-  keys          Json     // { p256dh, auth }
-  customerEmail String?  // Opzionale
+  keys          Json // { p256dh, auth }
+  customerEmail String? // Opzionale
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
 model PushJob {
-  id             String   @id @default(cuid())
-  deviceId       String
-  jobType        String   // es. ABANDONED_CART_PUSH, BROWSE_PUSH, PROMO_PUSH, WINBACK_PUSH
-  status         String   @default("PENDING") // PENDING, COMPLETED, FAILED
-  payload        Json?    // Contesto per l'AI
-  scheduledFor   DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default(cuid())
+  deviceId     String
+  jobType      String // es. ABANDONED_CART_PUSH, BROWSE_PUSH, PROMO_PUSH, WINBACK_PUSH
+  status       String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  payload      Json? // Contesto per l'AI
+  scheduledFor DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model AiPromoEvent {
   id              String   @id @default(cuid())
-  promoType       String   // DAILY_DEAL, FLASH_DEAL, STANDARD_HOURLY
-  title           String   // Titolo esplosivo AI
-  description     String   // Descrizione AI
+  promoType       String // DAILY_DEAL, FLASH_DEAL, STANDARD_HOURLY
+  title           String // Titolo esplosivo AI
+  description     String // Descrizione AI
   discount        Float
-  productGids     Json     // Lista degli ID di shopify target
-  shopifyMetaId   String?  // L'ID del metaoggetto creato su shopify
+  productGids     Json // Lista degli ID di shopify target
+  shopifyMetaId   String? // L'ID del metaoggetto creato su shopify
   startsAt        DateTime // Orario esatto in cui inizia
   endsAt          DateTime // Orario esatto in cui finisce
   isPushScheduled Boolean  @default(false)
@@ -982,11 +1008,11 @@ model AiPromoEvent {
 // === ELMARK CATALOG INTEGRATION ===
 
 model ElmarkRawProduct {
-  id        String   @id @default(cuid())
-  elmarkId  String   @unique
+  id          String   @id @default(cuid())
+  elmarkId    String   @unique
   rawData     Json
   processed   String   @default("false") // Usato dal vecchio script
-  aiProcessed Boolean  @default(false)   // Nuovo flag usato dall'Equalizzatore IA
+  aiProcessed Boolean  @default(false) // Nuovo flag usato dall'Equalizzatore IA
   error       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1007,7 +1033,7 @@ model ElmarkProcessedProduct {
   technicalDesc   String?
   metaDescription String?
   keywords        String?
-  
+
   // --- Dati SEO / Commerciali Generati (Fase 7 e 8) ---
   seoTitle           String?
   seoDescription     String?
@@ -1031,45 +1057,45 @@ model ElmarkProcessedProduct {
   unitMultiplier Float?  @default(1)
 
   // --- Prezzo e stock ---
-  price          Float   @default(0)
-  purchasePrice  Float   @default(0)   // Prezzo d'acquisto calcolato (prezzo cliente - sconto)
-  lastSyncedPrice Float?               // Prezzo Retail inviato a Zucchetti l'ultima volta
-  lastSyncedPurchasePrice Float?       // Prezzo Acquisto inviato a Zucchetti l'ultima volta
-  discountPct    Float   @default(0)   // Percentuale sconto applicata
-  discgroup      String?               // Gruppo sconto Elmark (C, E1, E2, F, L)
-  priceList      String?
-  netWeight      Float?  @default(0)
-  grossWeight    Float?  @default(0)
-  volume         Float?  @default(0)
-  
+  price                   Float   @default(0)
+  purchasePrice           Float   @default(0) // Prezzo d'acquisto calcolato (prezzo cliente - sconto)
+  lastSyncedPrice         Float? // Prezzo Retail inviato a Zucchetti l'ultima volta
+  lastSyncedPurchasePrice Float? // Prezzo Acquisto inviato a Zucchetti l'ultima volta
+  discountPct             Float   @default(0) // Percentuale sconto applicata
+  discgroup               String? // Gruppo sconto Elmark (C, E1, E2, F, L)
+  priceList               String?
+  netWeight               Float?  @default(0)
+  grossWeight             Float?  @default(0)
+  volume                  Float?  @default(0)
+
   // --- Dimensioni (Novità Elmark) ---
-  length         Float?  @default(0)
-  width          Float?  @default(0)
-  height         Float?  @default(0)
+  length Float? @default(0)
+  width  Float? @default(0)
+  height Float? @default(0)
 
-  stock          Int     @default(0)
-  rawStock       Float   @default(0)
-  reservedStock  Float   @default(0)
-  committedStock Float   @default(0)
+  stock          Int   @default(0)
+  rawStock       Float @default(0)
+  reservedStock  Float @default(0)
+  committedStock Float @default(0)
 
-  stockEk          Int     @default(0)
-  rawStockEk       Float   @default(0)
-  reservedStockEk  Float   @default(0)
-  committedStockEk Float   @default(0)
+  stockEk          Int   @default(0)
+  rawStockEk       Float @default(0)
+  reservedStockEk  Float @default(0)
+  committedStockEk Float @default(0)
 
   // --- Immagini ---
   imageUrl  String?
   imageUrls Json?
 
   // --- Stato ---
-  isFlashPromoLock Boolean @default(false)
-  publishedOnWeb Boolean @default(false)
-  shopifyId      String?
-  shopifyStatus  String?
-  discardedSku   String?
-  soldCount      Int     @default(0)
-  syncStatus     String  @default("compatible") // "compatible" | "pending_review" | "error"
-  zucchettiSyncedAt DateTime?
+  isFlashPromoLock   Boolean   @default(false)
+  publishedOnWeb     Boolean   @default(false)
+  shopifyId          String?
+  shopifyStatus      String?
+  discardedSku       String?
+  soldCount          Int       @default(0)
+  syncStatus         String    @default("compatible") // "compatible" | "pending_review" | "error"
+  zucchettiSyncedAt  DateTime?
   zucchettiSyncError String?
 
   // --- Pipeline a 8 Fasi ---
@@ -1077,12 +1103,12 @@ model ElmarkProcessedProduct {
   reviewStatus    String @default("AUTO_APPROVED") // AUTO_APPROVED, PENDING_HUMAN_REVIEW, MANUALLY_APPROVED
 
   // --- Timestamp ---
-  elmarkCreatedAt   String?
-  elmarkUpdatedAt   String?
+  elmarkCreatedAt String?
+  elmarkUpdatedAt String?
 
-  createdAt DateTime @default(now())
+  createdAt              DateTime  @default(now())
   zucchettiStockSyncedAt DateTime? // Data ultima sincro Giacenze/Prezzi
-  zucchettiStockError    String?   // Errore durante Fase C
+  zucchettiStockError    String? // Errore durante Fase C
 
   updatedAt DateTime @updatedAt
 
@@ -1114,12 +1140,12 @@ model SkuPrefixMapping {
 model ShopifyCollection {
   handle     String   @id // Es: "elettricita-automazione" oppure "marca-elmark"
   title      String
-  shopifyId  String?  // GID di Shopify
+  shopifyId  String? // GID di Shopify
   productIds String[] // Array di GID abbinati in Fase 1
   toDelete   Boolean  @default(false)
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("shopify_collections")
 }
@@ -1128,9 +1154,9 @@ model ShopifyCollection {
 
 /// Mappa che mantiene in memoria l'high-water mark (ultimo numero usato) per ogni prefisso SKU
 model SkuSequenceMap {
-  prefix      String   @id // Es: "ILPALA", "E14", "CA"
-  lastNumber  Int      @default(0) // L'ultimo numero usato (es. 104 per ILPALA00104)
-  updatedAt   DateTime @updatedAt
+  prefix     String   @id // Es: "ILPALA", "E14", "CA"
+  lastNumber Int      @default(0) // L'ultimo numero usato (es. 104 per ILPALA00104)
+  updatedAt  DateTime @updatedAt
 
   @@map("sku_sequence_map")
 }
@@ -1140,42 +1166,42 @@ model SkuSequenceMap {
 /// Modello di appoggio temporaneo dove l'IA salva i suoi risultati a 3 Fasi.
 /// Nessun dato viene sovrascritto sul database web/Zucchetti finché non viene approvato qui.
 model EqualizzatoreStaging {
-  id             String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   /// Riferimento al prodotto originale (potrebbe essere un ID di elmark_raw_product o elmark_processed_product)
-  sourceId       String   @unique
-  sku            String?  @unique
+  sourceId String  @unique
+  sku      String? @unique
 
   /// Fase 1: Output Tecnico Tassonomico (JSON da Gemini)
-  phase1Payload  Json?
-  
+  phase1Payload Json?
+
   /// Fase 2: Output Visivo (JSON da Gemini Vision)
-  phase2Payload  Json?
-  
+  phase2Payload Json?
+
   /// Fase 3: Output Copywriting (JSON da Claude 3.5 Sonnet)
-  phase3Payload  Json?
+  phase3Payload Json?
 
   /// Gestione concorrenza
-  lockedBy       String?
-  lockedAt       DateTime?
+  lockedBy String?
+  lockedAt DateTime?
 
   /// Stato di avanzamento
-  status         String   @default("PENDING_PHASE1") // PENDING_PHASE1, PENDING_PHASE2, PENDING_PHASE3, PENDING_NOMENCLATURE, PENDING_DUPLICATE_CHECK, READY_FOR_SYNC, SYNCED, DISCARDED
+  status String @default("PENDING_PHASE1") // PENDING_PHASE1, PENDING_PHASE2, PENDING_PHASE3, PENDING_NOMENCLATURE, PENDING_DUPLICATE_CHECK, READY_FOR_SYNC, SYNCED, DISCARDED
 
   /// Payload approvato dall'utente nella Review Station
   approvedPayload Json?
 
   /// Stato di avanzamento della pipeline IA: "PENDING", "PHASE_1_DONE", "PHASE_2_DONE", "PHASE_3_DONE", "ERROR"
-  pipelineStatus String   @default("PENDING")
+  pipelineStatus String @default("PENDING")
 
   /// Stato della review umana: "PENDING", "APPROVED", "REJECTED"
-  reviewStatus   String   @default("PENDING")
+  reviewStatus String @default("PENDING")
 
   /// Log di eventuali errori dell'IA
-  errorMessage   String?
+  errorMessage String?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([pipelineStatus])
   @@index([reviewStatus])
@@ -1184,26 +1210,26 @@ model EqualizzatoreStaging {
 
 /// Tabella temporanea per lo staging della nomenclatura prima dell'allineamento semantico.
 model TaxonomyStaging {
-  id             String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   /// Riferimento al prodotto in EqualizzatoreStaging (es. EC660163M)
-  sourceId       String   @unique
-  
+  sourceId String @unique
+
   /// Nomenclatura testuale proposta dall'IA in Fase 1
-  proposedGroup      String?
-  proposedFamily     String?
-  proposedCategory   String?
+  proposedGroup    String?
+  proposedFamily   String?
+  proposedCategory String?
 
   /// Nomenclatura normalizzata e codici a 3 lettere dopo Fase 2 e 3
-  finalGroupCode     String?
-  finalFamilyCode    String?
-  finalCategoryCode  String?
+  finalGroupCode    String?
+  finalFamilyCode   String?
+  finalCategoryCode String?
 
   /// Stato della nomenclatura: "PENDING", "CLUSTERED", "MATCHED", "ERROR"
-  status         String   @default("PENDING")
+  status String @default("PENDING")
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@map("taxonomy_staging")
@@ -1229,7 +1255,7 @@ model CalendarEvent {
   description String?  @db.Text
   start       DateTime
   end         DateTime
-  color       String?  // hex code or predefined theme color
+  color       String? // hex code or predefined theme color
   allDay      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1241,13 +1267,13 @@ model CalendarEvent {
 // === APP NOTE ===
 
 model Note {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text // HTML from tiptap or rich text
-  color       String?  // color for the sticky note
-  isPinned    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text // HTML from tiptap or rich text
+  color     String? // color for the sticky note
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
   @@map("notes")

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Activity, Package, ShoppingCart, Users, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { useStoreContext } from '../store/useStoreContext';
 
 interface StatsResponse {
   stats: {
@@ -37,6 +38,7 @@ interface SyncLog {
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function Dashboard() {
+  const { currentStore } = useStoreContext();
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +48,16 @@ export default function Dashboard() {
       try {
         const [statsRes, logsRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/stats`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'X-Store-Context': currentStore
+            }
           }),
           fetch(`${API_URL}/api/admin/sync-history?limit=10`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            headers: { 
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'X-Store-Context': currentStore
+            }
           })
         ]);
 
@@ -69,7 +77,7 @@ export default function Dashboard() {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 30000); // Polling every 30s
     return () => clearInterval(interval);
-  }, []);
+  }, [currentStore]);
 
   if (loading && !stats) {
     return (

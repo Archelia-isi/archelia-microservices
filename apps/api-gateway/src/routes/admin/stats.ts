@@ -74,6 +74,7 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
+    const storeType = (request.headers['x-store-context'] as 'RETAIL' | 'B2B') || 'RETAIL';
     const startTime = Date.now();
 
     const startOfDay = new Date();
@@ -105,33 +106,34 @@ export async function adminStatsRoutes(app: FastifyInstance) {
       allOrdersList
     ] = await Promise.all([
       prisma.product.count(),
-      prisma.product.count({ where: { publishedOnWeb: true } }),
+      prisma.product.count({ where: storeType === 'B2B' ? { publishedOnB2b: true } : { publishedOnWeb: true } }),
       prisma.product.count({ where: { imageUrl: null } }),
-      prisma.product.count({ where: { price: 0 } }),
+      prisma.product.count({ where: storeType === 'B2B' ? { priceB2b: 0 } : { price: 0 } }),
       prisma.product.count({ where: { stock: 0 } }),
-      prisma.zelShopifyCustomer.count(),
-      prisma.syncLog.count(),
+      prisma.zelShopifyCustomer.count(), // I clienti potrebbero essere gli stessi, per ora contiamo tutti
+      prisma.syncLog.count({ where: { storeType } }),
       prisma.zelShopifyOrder.aggregate({
-        where: { createdAt: { gte: startOfDay } },
+        where: { storeType, createdAt: { gte: startOfDay } },
         _sum: { totalPrice: true },
         _count: { id: true }
       }),
       prisma.zelShopifyOrder.aggregate({
-        where: { createdAt: { gte: startOfYesterday, lt: startOfDay } },
+        where: { storeType, createdAt: { gte: startOfYesterday, lt: startOfDay } },
         _sum: { totalPrice: true },
         _count: { id: true }
       }),
       prisma.zelShopifyOrder.aggregate({
-        where: { createdAt: { gte: startOfWeek } },
+        where: { storeType, createdAt: { gte: startOfWeek } },
         _sum: { totalPrice: true },
         _count: { id: true }
       }),
       prisma.zelShopifyOrder.aggregate({
-        where: { createdAt: { gte: startOfMonth } },
+        where: { storeType, createdAt: { gte: startOfMonth } },
         _sum: { totalPrice: true },
         _count: { id: true }
       }),
       prisma.zelShopifyOrder.aggregate({
+        where: { storeType },
         _sum: { totalPrice: true },
         _count: { id: true }
       })

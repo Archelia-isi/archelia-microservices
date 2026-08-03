@@ -6,6 +6,7 @@ import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
 import ContextMenu from '../ui/ContextMenu';
 import { getThemeIconPath } from '../../utils/themeUtils';
+import { useStoreContext } from '../../store/useStoreContext';
 import './StartMenu.css';
 
 import { useSettingsStore } from '../../store/useSettingsStore';
@@ -25,6 +26,7 @@ interface StartMenuProps {
 export default function StartMenu({ onClose }: StartMenuProps) {
   const { openWindow, windows, togglePinApp, toggleDesktopApp, setEditingIconAppId, toggleWidgetManager } = useWindowStore();
   const { theme } = useSettingsStore();
+  const { currentStore } = useStoreContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
 
@@ -37,7 +39,10 @@ export default function StartMenu({ onClose }: StartMenuProps) {
         const token = localStorage.getItem('token');
         if (!token) return;
         const res = await fetch(`${API_URL}/api/admin/stats`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'x-store-context': currentStore
+          }
         });
         if (res.ok) {
           const data = await res.json();
@@ -128,11 +133,12 @@ export default function StartMenu({ onClose }: StartMenuProps) {
     let allApps = Object.values(windows).filter(app => {
       if (app.id === 'os-settings') return false;
       if (app.id === 'roblox_game' && theme !== 'roblox') return false;
+      if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return false;
       return true;
     });
     if (!searchQuery.trim()) return allApps;
     return allApps.filter(app => app.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [windows, searchQuery, theme]);
+  }, [windows, searchQuery, theme, currentStore]);
 
   const isElectron = !!(window as any).__IS_ELECTRON__;
   const isMac = navigator.userAgent.toLowerCase().includes('mac');

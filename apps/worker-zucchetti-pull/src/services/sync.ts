@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@archelia/database';
 import { zucchettiClient } from '@archelia/zucchetti';
 
 const LISTINI_ECOMMERCE = ['ARC', 'VAELK'];
+const LISTINI_B2B = ['B2B']; // Inserire qui il codice listino B2B corretto di Zucchetti
 const MAGAZZINI_ABILITATI = ['PR', 'EK'];
 
 export interface ZucchettiArticle {
@@ -133,7 +134,7 @@ export class ZucchettiPullService {
           const found = zucchettiSkuMap.get(pdfSku);
           if (found) {
             diagnostics.pdfSkusFoundInZucchetti++;
-            const lveEntry = found.find(a => LISTINI_ECOMMERCE.includes(a.licodlis));
+            const lveEntry = found.find(a => LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis));
             if (!lveEntry) {
               const listini = found.map(a => a.licodlis).join(', ');
               diagnostics.pdfSkusFilteredOutNotLve.push(pdfSku);
@@ -146,7 +147,7 @@ export class ZucchettiPullService {
       }
 
       const rawFilteredArticles = allArticles.filter(
-        (a) => LISTINI_ECOMMERCE.includes(a.licodlis) && MAGAZZINI_ABILITATI.includes(a.slcodmag)
+        (a) => (LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis)) && MAGAZZINI_ABILITATI.includes(a.slcodmag)
       );
 
       const skuMap = new Map<string, any>();
@@ -172,8 +173,10 @@ export class ZucchettiPullService {
         if (!agg) {
           agg = {
             baseArticle: a,
-            price: price,
-            priceList: a.licodlis,
+            price: LISTINI_ECOMMERCE.includes(a.licodlis) ? price : 0,
+            priceList: LISTINI_ECOMMERCE.includes(a.licodlis) ? a.licodlis : null,
+            priceB2b: LISTINI_B2B.includes(a.licodlis) ? price : 0,
+            priceListB2b: LISTINI_B2B.includes(a.licodlis) ? a.licodlis : null,
             stockPr: 0, rawStockPr: 0, reservedStockPr: 0, committedStockPr: 0,
             stockEk: 0, rawStockEk: 0, reservedStockEk: 0, committedStockEk: 0,
             seenPr: false,
@@ -181,9 +184,13 @@ export class ZucchettiPullService {
           };
           skuMap.set(sku, agg);
         } else {
-          if (price > agg.price) {
+          if (LISTINI_ECOMMERCE.includes(a.licodlis) && price > agg.price) {
             agg.price = price;
             agg.priceList = a.licodlis;
+          }
+          if (LISTINI_B2B.includes(a.licodlis) && price > agg.priceB2b) {
+            agg.priceB2b = price;
+            agg.priceListB2b = a.licodlis;
           }
         }
 
@@ -249,6 +256,8 @@ export class ZucchettiPullService {
                   unitMultiplier: parseFloat(article.armoltip) || 1,
                   price: agg.price,
                   priceList: agg.priceList,
+                  priceB2b: agg.priceB2b,
+                  priceListB2b: agg.priceListB2b,
                   stock: agg.stockPr,
                   rawStock: agg.rawStockPr,
                   reservedStock: agg.reservedStockPr,
@@ -261,6 +270,7 @@ export class ZucchettiPullService {
                   imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
+                  publishedOnB2b: article.arpubweb === 'S',
                   zucchettiUpdatedAt: article.utdv || null,
                 },
                 create: {
@@ -281,6 +291,8 @@ export class ZucchettiPullService {
                   unitMultiplier: parseFloat(article.armoltip) || 1,
                   price: agg.price,
                   priceList: agg.priceList,
+                  priceB2b: agg.priceB2b,
+                  priceListB2b: agg.priceListB2b,
                   stock: agg.stockPr,
                   rawStock: agg.rawStockPr,
                   reservedStock: agg.reservedStockPr,
@@ -293,6 +305,7 @@ export class ZucchettiPullService {
                   imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
+                  publishedOnB2b: article.arpubweb === 'S',
                   zucchettiCreatedAt: article.utdc || null,
                   zucchettiUpdatedAt: article.utdv || null,
                 },

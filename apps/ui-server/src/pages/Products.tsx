@@ -1,18 +1,23 @@
 import { Search, RefreshCw, Filter, PackageOpen, MoreVertical, ImageOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+import { useStoreContext } from '../../store/useStoreContext';
+
 interface Product {
   id: string;
   sku: string;
   title: string | null;
   brand: string | null;
   price: number | null;
+  priceB2b: number | null;
   stock: number | null;
   mainImage: string | null;
   publishedOnWeb: boolean;
+  publishedOnB2b: boolean;
 }
 
 export default function Products() {
+  const { currentStore } = useStoreContext();
   const [isSyncing, setIsSyncing] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,7 +52,8 @@ export default function Products() {
 
       const res = await fetch(url.toString(), {
         headers: {
-          'Authorization': `Bearer ${token || ''}`
+          'Authorization': `Bearer ${token || ''}`,
+          'X-Store-Context': currentStore
         }
       });
       if (res.ok) {
@@ -65,7 +71,7 @@ export default function Products() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [currentStore]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,7 +202,7 @@ export default function Products() {
                     {product.stock || 0} pz
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
-                    {product.publishedOnWeb ? (
+                    {(currentStore === 'B2B' ? product.publishedOnB2b : product.publishedOnWeb) ? (
                       <span style={{ fontSize: '12px', padding: '0.2rem 0.5rem', background: 'rgba(16,185,129,0.1)', color: 'var(--color-success)', borderRadius: 'var(--radius-sm)' }}>Pubblicato</span>
                     ) : (
                       <span style={{ fontSize: '12px', padding: '0.2rem 0.5rem', background: 'rgba(239,68,68,0.1)', color: 'var(--color-danger)', borderRadius: 'var(--radius-sm)' }}>Bozza</span>

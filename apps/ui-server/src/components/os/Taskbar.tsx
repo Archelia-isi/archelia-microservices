@@ -4,8 +4,9 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
 import { getThemeIconPath } from '../../utils/themeUtils';
-import { BrainCircuit, LogOut } from 'lucide-react';
+import { BrainCircuit, LogOut, Store } from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
+import { useStoreContext } from '../../store/useStoreContext';
 import './Taskbar.css';
 
 const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
@@ -17,6 +18,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 export default function Taskbar() {
   const { windows, openWindow, activeWindowId, minimizeWindow, closeWindow, togglePinApp, isChatbotOpen, toggleChatbot, setEditingIconAppId } = useWindowStore();
   const { taskbarPosition, taskbarAutoHide, theme } = useSettingsStore();
+  const { currentStore, setStore } = useStoreContext();
   const [isStartMenuOpen, setStartMenuOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
   const [time, setTime] = useState(new Date());
@@ -110,6 +112,26 @@ export default function Taskbar() {
 
         {/* Destra: Data, Ora, Logout e Chatbot */}
         <div className="taskbar-right">
+          {/* Tasto Multi-Tenant */}
+          <div 
+            className="taskbar-chatbot-btn"
+            style={{ 
+              background: currentStore === 'B2B' ? '#ff6b6b' : 'transparent',
+              padding: '0 10px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 'bold',
+              color: currentStore === 'B2B' ? '#fff' : 'var(--color-text-main)'
+            }}
+            onClick={() => setStore(currentStore === 'RETAIL' ? 'B2B' : 'RETAIL')}
+            title="Cambia Azienda"
+          >
+            <Store size={18} color={currentStore === 'B2B' ? '#fff' : 'var(--color-text-main)'} />
+            {currentStore}
+          </div>
+
           <div 
             className={`taskbar-chatbot-btn ${isChatbotOpen ? 'active' : ''}`}
             onClick={() => toggleChatbot()}
