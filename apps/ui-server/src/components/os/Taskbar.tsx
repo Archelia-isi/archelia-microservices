@@ -73,7 +73,7 @@ export default function Taskbar() {
             className="taskbar-logo taskbar-start-btn" 
             onClick={() => setStartMenuOpen(!isStartMenuOpen)}
           >
-            ARCHELIA
+            {currentStore === 'B2B' ? 'IZZO DISTRIBUZIONE' : 'ARCHELIA'}
           </div>
         </div>
 
@@ -112,27 +112,7 @@ export default function Taskbar() {
 
         {/* Destra: Data, Ora, Logout e Chatbot */}
         <div className="taskbar-right">
-          {/* Tasto Multi-Tenant */}
-          <div 
-            className="taskbar-chatbot-btn"
-            style={{ 
-              background: currentStore === 'B2B' ? '#ff6b6b' : 'transparent',
-              padding: '0 10px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 'bold',
-              color: currentStore === 'B2B' ? '#fff' : 'var(--color-text-main)'
-            }}
-            onClick={() => setStore(currentStore === 'RETAIL' ? 'B2B' : 'RETAIL')}
-            title="Cambia Azienda"
-          >
-            <Store size={18} color={currentStore === 'B2B' ? '#fff' : 'var(--color-text-main)'} />
-            {currentStore}
-          </div>
-
-          <div 
+          {/* Tasto Multi-Tenant Rimosso dalla taskbar e spostato nel menu start */}          <div 
             className={`taskbar-chatbot-btn ${isChatbotOpen ? 'active' : ''}`}
             onClick={() => toggleChatbot()}
             title="Archelia AI Chatbot"

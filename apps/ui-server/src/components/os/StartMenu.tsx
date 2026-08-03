@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useWindowStore } from '../../store/useWindowStore';
-import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings, LayoutDashboard } from 'lucide-react';
+import { User, LogOut, Search, Sparkles, Clock, Activity, Download, Settings, LayoutDashboard, Store } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TextInput from '../ui/TextInput';
 import Badge from '../ui/Badge';
@@ -379,6 +379,30 @@ export default function StartMenu({ onClose }: StartMenuProps) {
               onClick={() => handleOpenApp('os-settings')}
             >
               <Settings size={20} />
+            </button>
+            <button 
+              className="start-menu-settings" 
+              title="Cambia Azienda" 
+              style={{ 
+                background: currentStore === 'B2B' ? 'var(--color-primary)' : 'transparent',
+                border: 'none', 
+                color: currentStore === 'B2B' ? '#fff' : 'var(--color-primary)', 
+                cursor: 'pointer', 
+                padding: '0.5rem', 
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+              onMouseEnter={(e) => { if (currentStore !== 'B2B') e.currentTarget.style.backgroundColor = 'var(--color-surface)' }}
+              onMouseLeave={(e) => { if (currentStore !== 'B2B') e.currentTarget.style.backgroundColor = 'transparent' }}
+              onClick={() => {
+                const newStore = currentStore === 'RETAIL' ? 'B2B' : 'RETAIL';
+                setStore(newStore);
+              }}
+            >
+              <Store size={20} />
+              {currentStore === 'B2B' ? 'Passa a RETAIL' : 'Passa a B2B'}
             </button>
             {!isElectron && (
               <button 

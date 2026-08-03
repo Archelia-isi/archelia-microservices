@@ -65,14 +65,27 @@ export default function DesktopOS() {
   const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
   const [showIntro, setShowIntro] = useState(false);
+  const [showSwitchIntro, setShowSwitchIntro] = useState(false);
+  const [prevStore, setPrevStore] = useState(currentStore);
+
+  useEffect(() => {
+    if (currentStore !== prevStore) {
+      setShowSwitchIntro(true);
+      setPrevStore(currentStore);
+    }
+  }, [currentStore, prevStore]);
 
   const activeTheme = settings.theme;
   const currentWallpaper = getThemeWallpaper(activeTheme, wallpaper);
   useEffect(() => {
     const root = document.documentElement;
     const settings = useSettingsStore.getState();
-    // Accent Color
-    root.style.setProperty('--color-primary', settings.accentColor);
+    // Accent Color (Override for B2B)
+    if (currentStore === 'B2B') {
+      root.style.setProperty('--color-primary', '#00C800'); // Verde Neon Izzo
+    } else {
+      root.style.setProperty('--color-primary', settings.accentColor);
+    }
     
     // Glass Intensity
     root.style.setProperty('--glass-app-blur', `blur(${settings.glassIntensity}px)`);
@@ -436,14 +449,18 @@ export default function DesktopOS() {
     }} wallpaper={wallpaper} />;
   }
 
-  if (showIntro) {
+  if (showIntro || showSwitchIntro) {
+    const videoSrc = showSwitchIntro && currentStore === 'B2B' ? './videos/intro-izzo.mp4' : './videos/intro.mp4';
     return (
       <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <video 
-          src="./videos/intro.mp4" 
+          src={videoSrc} 
           autoPlay 
           playsInline
-          onEnded={() => setShowIntro(false)}
+          onEnded={() => {
+            setShowIntro(false);
+            setShowSwitchIntro(false);
+          }}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       </div>
