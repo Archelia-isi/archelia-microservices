@@ -9,7 +9,7 @@ import StickyHeader from '../components/ui/StickyHeader';
 import Tabs from '../components/ui/Tabs';
 import { Settings, Plus, Trash } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useStoreContext } from '../../store/useStoreContext';
+import { useStoreContext } from '../store/useStoreContext';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 

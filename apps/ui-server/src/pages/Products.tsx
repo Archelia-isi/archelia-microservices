@@ -1,7 +1,7 @@
 import { Search, RefreshCw, Filter, PackageOpen, MoreVertical, ImageOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { useStoreContext } from '../../store/useStoreContext';
+import { useStoreContext } from '../store/useStoreContext';
 
 interface Product {
   id: string;
