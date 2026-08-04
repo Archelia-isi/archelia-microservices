@@ -26,7 +26,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { startDate, endDate } = request.query as { startDate?: string, endDate?: string };
-      const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+      const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
       
       const dateFilter: any = {};
       if (startDate) {

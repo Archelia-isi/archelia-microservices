@@ -665,7 +665,7 @@ export class ProductSyncService {
         productCreateMedia(productId: $productId, media: $media) {
           mediaUserErrors { message }
         }
-      }`, { productId, media: mediaInputs });
+      }`, { productId, media: mediaInputs }, this.storeType);
 
       if (addRes.productCreateMedia.mediaUserErrors.length > 0) {
         const errors = addRes.productCreateMedia.mediaUserErrors.map((e: any) => e.message).join('; ');

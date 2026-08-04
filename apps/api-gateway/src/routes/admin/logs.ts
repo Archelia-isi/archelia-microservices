@@ -35,7 +35,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category, level, limit, search } = request.query;
-    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
 
     const where: any = { storeType };
     if (category) where.category = category;
@@ -63,7 +63,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
     const entries = await prisma.logEntry.findMany({
       where: { level: 'error', storeType },
       orderBy: { createdAt: 'desc' },
@@ -96,7 +96,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category, level, page, limit, search, from, to } = request.query;
-    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
 
     const where: any = { storeType };
     if (category) where.category = category;
@@ -141,7 +141,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
-    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
 
     if (isNaN(startOfDay.getTime())) {
       return reply.status(400).send({ error: 'Data non valida' });
@@ -181,7 +181,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category } = request.query;
-    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
     
     if (category) {
       await prisma.logEntry.deleteMany({ where: { category, storeType } });

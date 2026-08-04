@@ -20,6 +20,9 @@ const envSchema = z.object({
   SHOPIFY_STORE_URL: z.string().default(''),
   SHOPIFY_CLIENT_ID: z.string().default(''),
   SHOPIFY_CLIENT_SECRET: z.string().default(''),
+  SHOPIFY_B2B_STORE_URL: z.string().optional(),
+  SHOPIFY_B2B_CLIENT_ID: z.string().optional(),
+  SHOPIFY_B2B_CLIENT_SECRET: z.string().optional(),
   SHOPIFY_API_VERSION: z.string().default('2026-01'),
   SHOPIFY_WEBHOOK_SECRET: z.string().default(''),
   SHOPIFY_STOREFRONT_TOKEN: z.string().optional(),
@@ -66,6 +69,9 @@ function loadEnv() {
   // Sanitizza URL (Rimuove doppie virgolette, fix comune con dotenv/Railway)
   data.ZUCCHETTI_BASE_URL = data.ZUCCHETTI_BASE_URL.replace(/^["']|["']$/g, '').trim();
   data.SHOPIFY_STORE_URL = data.SHOPIFY_STORE_URL.replace(/^["']|["']$/g, '').trim();
+  if (data.SHOPIFY_B2B_STORE_URL) {
+    data.SHOPIFY_B2B_STORE_URL = data.SHOPIFY_B2B_STORE_URL.replace(/^["']|["']$/g, '').trim();
+  }
   data.DATABASE_URL = data.DATABASE_URL.replace(/^["']|["']$/g, '').trim();
   data.DATABASE_WORKER_URL = data.DATABASE_WORKER_URL.replace(/^["']|["']$/g, '').trim();
   if (data.REDIS_URL) data.REDIS_URL = data.REDIS_URL.replace(/^["']|["']$/g, '').trim();
