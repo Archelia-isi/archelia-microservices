@@ -22,9 +22,9 @@ interface WidgetState {
 
 export const useWidgetStore = create<WidgetState>((set) => ({
   widgets: [
-    { id: 'default-clock', type: 'clock', x: window.innerWidth > 800 ? window.innerWidth - 300 : 50, y: 50, size: 'small' },
-    { id: 'default-weather', type: 'weather', x: window.innerWidth > 800 ? window.innerWidth - 300 : 50, y: 220, size: 'large' },
-    { id: 'default-calc', type: 'calculator', x: window.innerWidth > 800 ? window.innerWidth - 300 : 50, y: 650, size: 'medium' }
+    { id: 'default-clock', type: 'clock', x: window.innerWidth > 800 ? window.innerWidth - 450 : 50, y: 50, size: 'small' },
+    { id: 'default-weather', type: 'weather', x: window.innerWidth > 800 ? window.innerWidth - 450 : 50, y: 220, size: 'large' },
+    { id: 'default-calc', type: 'calculator', x: window.innerWidth > 800 ? window.innerWidth - 450 : 50, y: 650, size: 'medium' }
   ],
   addWidget: (type, x, y, size = 'small') => set((state) => {
     if (state.widgets.some(w => w.type === type)) return state;
