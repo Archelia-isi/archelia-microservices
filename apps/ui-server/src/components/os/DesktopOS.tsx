@@ -70,6 +70,7 @@ export default function DesktopOS() {
 
   useEffect(() => {
     if (currentStore !== prevStore) {
+      useWindowStore.getState().closeAllWindows();
       setShowSwitchIntro(true);
       setPrevStore(currentStore);
     }

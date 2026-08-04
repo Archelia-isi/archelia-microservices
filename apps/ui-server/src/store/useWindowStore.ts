@@ -32,6 +32,7 @@ interface WindowState {
   openWindow: (id: string) => void;
   togglePinApp: (id: string) => void;
   closeWindow: (id: string) => void;
+  closeAllWindows: () => void;
   minimizeWindow: (id: string) => void;
   toggleMaximize: (id: string) => void;
   focusWindow: (id: string) => void;
@@ -129,6 +130,20 @@ export const useWindowStore = create<WindowState>((set) => ({
           [id]: { ...win, isOpen: false, isMinimized: false }
         },
         activeWindowId: state.activeWindowId === id ? null : state.activeWindowId
+      };
+    });
+  },
+
+  closeAllWindows: () => {
+    soundEngine.playCloseApp();
+    set((state) => {
+      const nextWindows = { ...state.windows };
+      for (const id in nextWindows) {
+        nextWindows[id] = { ...nextWindows[id], isOpen: false, isMinimized: false };
+      }
+      return {
+        windows: nextWindows,
+        activeWindowId: null
       };
     });
   },
