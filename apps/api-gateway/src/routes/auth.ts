@@ -113,6 +113,12 @@ export async function authRoutes(app: FastifyInstance) {
     
     if (!isValid) return reply.status(401).send({ error: 'Credenziali non valide' });
 
+    // FORZATURA ASSOLUTA: Salvatore è sempre MASTER e isRoot, a prescindere da cosa dice il DB (sia esso prod o dev)
+    if (user.username.toLowerCase() === 'salvatore') {
+      user.role = 'MASTER';
+      user.isRoot = true;
+    }
+
     const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role, permissions: user.permissions, isRoot: user.isRoot };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
@@ -194,6 +200,13 @@ export async function authRoutes(app: FastifyInstance) {
       if (u.encryptedPassword && u.encryptionIv) {
          rawPassword = decryptPassword(u.encryptedPassword, u.encryptionIv);
       }
+      
+      // FORZATURA ASSOLUTA per visualizzazione
+      if (u.username.toLowerCase() === 'salvatore') {
+        u.role = 'MASTER';
+        u.isRoot = true;
+      }
+      
       return {
         id: u.id,
         username: u.username,
@@ -201,9 +214,9 @@ export async function authRoutes(app: FastifyInstance) {
         displayName: u.displayName,
         lastLogin: u.lastLogin,
         createdAt: u.createdAt,
-        createdById: u.createdById,
         isRoot: u.isRoot,
         permissions: u.permissions || {},
+        createdById: u.createdById,
         rawPassword
       };
     });
@@ -235,6 +248,13 @@ export async function authRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const caller = (request as any).user as JwtPayload;
+    
+    // FORZATURA ASSOLUTA: Salvatore ha sempre poteri MASTER, anche se il token è vecchio
+    if (caller.username.toLowerCase() === 'salvatore') {
+      caller.role = 'MASTER';
+      caller.isRoot = true;
+    }
+
     const { username, password, displayName, role, permissions } = request.body;
 
     // RBAC Validation
