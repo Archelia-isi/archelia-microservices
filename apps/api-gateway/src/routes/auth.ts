@@ -53,31 +53,6 @@ export async function authRoutes(app: FastifyInstance) {
     };
   });
 
-  fastify.addHook('onReady', async () => {
-    try {
-      const adminExists = await prisma.adminUser.findUnique({ where: { username: 'Salvatore' } });
-      if (!adminExists) {
-        const passwordHash = await bcrypt.hash('Salvatore', 10);
-        const { encryptedPassword, encryptionIv } = encryptPassword('Salvatore');
-        await prisma.adminUser.create({
-          data: {
-            username: 'Salvatore',
-            passwordHash,
-            encryptedPassword,
-            encryptionIv,
-            role: 'MASTER',
-            isRoot: true,
-            permissions: { allowedStores: ["RETAIL", "B2B"] },
-            displayName: 'Salvatore'
-          }
-        });
-        log.info('✅ Default ROOT MASTER user created (Salvatore)', { module: 'api-gateway:auth' });
-      }
-    } catch (e) {
-      log.error('Error creating default master', { error: e, module: 'api-gateway:auth' });
-    }
-  });
-
   fastify.post('/api/auth/login', {
     schema: {
       body: z.object({
