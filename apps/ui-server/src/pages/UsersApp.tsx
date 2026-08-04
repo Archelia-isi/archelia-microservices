@@ -28,17 +28,17 @@ interface UserData {
 }
 
 const APPS_LIST = [
-  { id: 'orders', name: 'Gestione Ordini' },
-  { id: 'products', name: 'Catalogo Prodotti' },
-  { id: 'settings', name: 'Centro Sincronizzazione' },
-  { id: 'equalizzatore', name: 'Equalizzatore' },
-  { id: 'marketing', name: 'Centro Marketing' },
-  { id: 'promo-manual', name: 'Promozioni AI (Manuale)' },
-  { id: 'promo_auto', name: 'Sconti Automatici' },
-  { id: 'infinity', name: 'Infinity' },
-  { id: 'images', name: 'Immagini Asset' },
-  { id: 'typesense', name: 'Typesense' },
-  { id: 'analytics', name: 'Centro Analisi' }
+  { id: 'orders', name: 'Gestione Ordini', processes: [{id: 'view', label: 'Visualizza'}, {id: 'manage_status', label: 'Gestisci Stati'}, {id: 'refund', label: 'Rimborsi'}, {id: 'delete', label: 'Elimina'}] },
+  { id: 'products', name: 'Catalogo Prodotti', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit', label: 'Modifica'}, {id: 'delete', label: 'Elimina'}, {id: 'sync_zucchetti', label: 'Sync Zucchetti'}] },
+  { id: 'settings', name: 'Centro Sincronizzazione', processes: [{id: 'view', label: 'Visualizza'}, {id: 'trigger_sync', label: 'Avvia Sync'}, {id: 'edit_config', label: 'Configura'}] },
+  { id: 'equalizzatore', name: 'Equalizzatore', processes: [{id: 'view', label: 'Visualizza'}, {id: 'approve_fields', label: 'Approva Campi'}, {id: 'regenerate_ai', label: 'Rigenera AI'}, {id: 'lock_items', label: 'Blocca Articoli'}] },
+  { id: 'marketing', name: 'Centro Marketing', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_templates', label: 'Modifica Template'}, {id: 'send_campaigns', label: 'Invia Campagne'}] },
+  { id: 'promo-manual', name: 'Promozioni AI (Manuale)', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_promo', label: 'Crea Promo'}, {id: 'delete_promo', label: 'Elimina Promo'}] },
+  { id: 'promo_auto', name: 'Sconti Automatici', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_rules', label: 'Modifica Regole'}, {id: 'toggle_autopilot', label: 'Autopilot'}] },
+  { id: 'infinity', name: 'Infinity', processes: [{id: 'view', label: 'Visualizza'}, {id: 'download_invoices', label: 'Scarica Fatture'}, {id: 'sync_customers', label: 'Sincronizza Clienti'}] },
+  { id: 'images', name: 'Immagini Asset', processes: [{id: 'view', label: 'Visualizza'}, {id: 'upload', label: 'Carica'}, {id: 'delete', label: 'Elimina'}] },
+  { id: 'typesense', name: 'Typesense', processes: [{id: 'view', label: 'Visualizza'}, {id: 'reindex', label: 'Re-indicizza'}, {id: 'manage_schema', label: 'Gestisci Schema'}] },
+  { id: 'analytics', name: 'Centro Analisi', processes: [{id: 'view', label: 'Visualizza'}, {id: 'export_pdf', label: 'Esporta PDF'}, {id: 'manage_tracking', label: 'Gestisci Tracking'}] }
 ];
 
 export default function UsersApp() {
@@ -57,7 +57,7 @@ export default function UsersApp() {
     displayName: '',
     role: 'OPERATOR',
     allowedStores: ['RETAIL', 'B2B'],
-    appPermissions: {} as Record<string, { view: boolean; write: boolean }>
+    appPermissions: {} as Record<string, Record<string, boolean>>
   });
 
   useEffect(() => {
@@ -92,6 +92,44 @@ export default function UsersApp() {
     }
   };
 
+  const getPresetPermissions = (role: string) => {
+    const newPerms: Record<string, Record<string, boolean>> = {};
+    
+    if (role === 'MASTER' || role === 'ADMIN') {
+      APPS_LIST.forEach(app => {
+        newPerms[app.id] = {};
+        app.processes.forEach(p => {
+          newPerms[app.id][p.id] = true;
+        });
+      });
+    } else if (role === 'VIEWER') {
+      APPS_LIST.forEach(app => {
+        newPerms[app.id] = {};
+        app.processes.forEach(p => {
+          newPerms[app.id][p.id] = p.id === 'view';
+        });
+      });
+    } else if (role === 'OPERATOR') {
+      APPS_LIST.forEach(app => {
+        newPerms[app.id] = {};
+        app.processes.forEach(p => {
+          if (p.id === 'view') {
+            newPerms[app.id][p.id] = true;
+          } else if (['manage_status', 'edit', 'approve_fields', 'lock_items'].includes(p.id)) {
+            newPerms[app.id][p.id] = true;
+          } else {
+            newPerms[app.id][p.id] = false;
+          }
+        });
+      });
+    } else if (role === 'AGENT') {
+      ['orders', 'products', 'analytics'].forEach(appId => {
+        newPerms[appId] = { view: true };
+      });
+    }
+    return newPerms;
+  };
+
   const resetForm = () => {
     setFormData({
       username: '',
@@ -99,9 +137,17 @@ export default function UsersApp() {
       displayName: '',
       role: 'OPERATOR',
       allowedStores: ['RETAIL'],
-      appPermissions: {}
+      appPermissions: getPresetPermissions('OPERATOR')
     });
     setEditingUser(null);
+  };
+
+  const handleRoleChange = (newRole: string) => {
+    setFormData(prev => ({
+      ...prev,
+      role: newRole,
+      appPermissions: getPresetPermissions(newRole)
+    }));
   };
 
   const openCreateModal = () => {
@@ -111,13 +157,16 @@ export default function UsersApp() {
 
   const openEditModal = (user: UserData) => {
     setEditingUser(user);
+    
+    const initialPerms = user.permissions?.apps || getPresetPermissions(user.role);
+    
     setFormData({
       username: user.username,
-      password: '', // Non precompilata, solo se vuole cambiarla
+      password: '',
       displayName: user.displayName || '',
       role: user.role,
       allowedStores: user.permissions?.allowedStores || ['RETAIL'],
-      appPermissions: user.permissions?.apps || {}
+      appPermissions: initialPerms
     });
     setIsModalOpen(true);
   };
@@ -194,18 +243,25 @@ export default function UsersApp() {
     }
   };
 
-  const toggleAppPermission = (appId: string, type: 'view' | 'write') => {
+  const toggleAppProcess = (appId: string, processId: string) => {
+    if (formData.role === 'VIEWER' && processId !== 'view') return; // VIEWER non può editare nient'altro
+
     setFormData(prev => {
-      const currentApp = prev.appPermissions[appId] || { view: false, write: false };
+      const currentApp = prev.appPermissions[appId] || {};
+      const newValue = !currentApp[processId];
       
-      const newApp = { ...currentApp, [type]: !currentApp[type] };
-      // Se do il write, forza la view
-      if (type === 'write' && newApp.write) {
+      const newApp = { ...currentApp, [processId]: newValue };
+      
+      // Se do un permesso operativo, forza la view
+      if (processId !== 'view' && newValue) {
         newApp.view = true;
       }
-      // Se tolgo view, tolgo anche write
-      if (type === 'view' && !newApp.view) {
-        newApp.write = false;
+      
+      // Se tolgo view, tolgo automaticamente tutti gli altri permessi
+      if (processId === 'view' && !newValue) {
+        Object.keys(newApp).forEach(key => {
+          newApp[key] = false;
+        });
       }
 
       return {
@@ -237,6 +293,8 @@ export default function UsersApp() {
         { value: 'AGENT', label: 'Agente' },
         { value: 'VIEWER', label: 'Visitatore' }
       ];
+
+  const isViewer = formData.role === 'VIEWER';
 
   return (
     <>
@@ -303,92 +361,143 @@ export default function UsersApp() {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Modifica Utente' : 'Nuovo Utente'}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '600px', maxWidth: '90vw' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <TextInput 
-              label="Nome Visualizzato" 
-              value={formData.displayName} 
-              onChange={e => setFormData({...formData, displayName: e.target.value})} 
-              placeholder="Es. Mario Rossi"
-            />
-            <TextInput 
-              label="Username (Login)" 
-              value={formData.username} 
-              onChange={e => setFormData({...formData, username: e.target.value})} 
-              placeholder="mario.rossi"
-              required
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo</label>
-              <Select 
-                value={formData.role}
-                onChange={e => setFormData({...formData, role: e.target.value})}
-                options={roleOptions}
-              />
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            background: 'var(--color-background)',
+            width: '1200px', maxWidth: '95vw', height: '90vh',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+            border: '1px solid var(--color-border)',
+            overflow: 'hidden'
+          }}>
+            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
+              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>{editingUser ? 'Modifica Utente' : 'Nuovo Utente'}</h2>
             </div>
-            <TextInput 
-              label={editingUser ? "Nuova Password (lascia vuoto per non cambiare)" : "Password"} 
-              type="password"
-              value={formData.password} 
-              onChange={e => setFormData({...formData, password: e.target.value})} 
-              placeholder="Minimo 6 caratteri"
-              required={!editingUser}
-            />
-          </div>
+            
+            <div style={{ padding: '2rem', flex: 1, overflowY: 'auto', display: 'flex', gap: '2rem' }}>
+              
+              {/* Colonna Sinistra: Dati Base */}
+              <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <TextInput 
+                  label="Nome Visualizzato" 
+                  value={formData.displayName} 
+                  onChange={e => setFormData({...formData, displayName: e.target.value})} 
+                  placeholder="Es. Mario Rossi"
+                />
+                <TextInput 
+                  label="Username (Login)" 
+                  value={formData.username} 
+                  onChange={e => setFormData({...formData, username: e.target.value})} 
+                  placeholder="mario.rossi"
+                  required
+                />
+                
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo</label>
+                  <Select 
+                    value={formData.role}
+                    onChange={e => handleRoleChange(e.target.value)}
+                    options={roleOptions}
+                  />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' }}>
+                    Cambiando ruolo verranno pre-caricati i permessi ideali per quel livello.
+                  </div>
+                </div>
 
-          {['OPERATOR', 'AGENT', 'VIEWER', 'ADMIN'].includes(formData.role) && formData.role !== 'MASTER' && (
-            <div style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-              <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={16} color="var(--color-primary)" /> Permessi Aziende
-              </h4>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={formData.allowedStores.includes('RETAIL')} onChange={() => toggleStore('RETAIL')} />
-                  ARCHELIA (Retail)
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={formData.allowedStores.includes('B2B')} onChange={() => toggleStore('B2B')} />
-                  IZZO B2B
-                </label>
-              </div>
-            </div>
-          )}
+                <TextInput 
+                  label={editingUser ? "Nuova Password (lascia vuoto per non cambiare)" : "Password"} 
+                  type="password"
+                  value={formData.password} 
+                  onChange={e => setFormData({...formData, password: e.target.value})} 
+                  placeholder="Minimo 6 caratteri"
+                  required={!editingUser}
+                />
 
-          {['OPERATOR', 'AGENT', 'VIEWER', 'ADMIN'].includes(formData.role) && formData.role !== 'MASTER' && (
-            <div style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-              <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AppWindow size={16} color="var(--color-primary)" /> Accesso Applicazioni
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                {APPS_LIST.map(app => (
-                  <div key={app.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--color-background)', borderRadius: 'var(--radius-sm)' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{app.name}</span>
+                {['OPERATOR', 'AGENT', 'VIEWER', 'ADMIN'].includes(formData.role) && formData.role !== 'MASTER' && (
+                  <div style={{ padding: '1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Shield size={16} color="var(--color-primary)" /> Permessi Aziende
+                    </h4>
                     <div style={{ display: 'flex', gap: '1rem' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={formData.appPermissions[app.id]?.view || false} onChange={() => toggleAppPermission(app.id, 'view')} />
-                        Vedi
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={formData.allowedStores.includes('RETAIL')} onChange={() => toggleStore('RETAIL')} />
+                        ARCHELIA (Retail)
                       </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8rem', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={formData.appPermissions[app.id]?.write || false} onChange={() => toggleAppPermission(app.id, 'write')} />
-                        Scrivi
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={formData.allowedStores.includes('B2B')} onChange={() => toggleStore('B2B')} />
+                        IZZO B2B
                       </label>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
-            <Button type="submit" variant="primary" icon={<Check size={16} />}>Salva Utente</Button>
+              {/* Colonna Destra: Permessi Granulari */}
+              {['OPERATOR', 'AGENT', 'VIEWER', 'ADMIN'].includes(formData.role) && formData.role !== 'MASTER' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                    <AppWindow size={18} color="var(--color-primary)" /> Processi Applicativi (Configurazione Avanzata)
+                  </h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                    {APPS_LIST.map(app => (
+                      <div key={app.id} style={{ display: 'flex', flexDirection: 'column', padding: '1rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text-main)' }}>{app.name}</div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.25rem' }}>
+                          {app.processes.map(proc => {
+                            const isChecked = formData.appPermissions[app.id]?.[proc.id] || false;
+                            // Se il ruolo è VIEWER, e il processo NON è 'view', disabilita
+                            const isDisabled = isViewer && proc.id !== 'view';
+
+                            return (
+                              <label key={proc.id} style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', 
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.4 : 1
+                              }}>
+                                <input 
+                                  type="checkbox" 
+                                  checked={isChecked} 
+                                  disabled={isDisabled}
+                                  onChange={() => toggleAppProcess(app.id, proc.id)} 
+                                />
+                                {proc.label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {formData.role === 'MASTER' && (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                  <div className="flex-center" style={{ flexDirection: 'column', gap: '1rem', textAlign: 'center' }}>
+                    <ShieldAlert size={48} color="var(--color-warning)" />
+                    <div>
+                      <h3 style={{ margin: 0, color: 'var(--color-warning)' }}>Accesso Illimitato</h3>
+                      <p style={{ maxWidth: '400px', marginTop: '0.5rem' }}>Il ruolo MASTER possiede l'accesso assoluto a tutte le aziende e a tutti i processi applicativi. Nessuna restrizione può essere applicata.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: 'rgba(255,255,255,0.02)' }}>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
+              <Button variant="primary" icon={<Check size={16} />} onClick={handleSubmit}>Salva Utente</Button>
+            </div>
           </div>
-        </form>
-      </Modal>
+        </div>
+      )}
 
       <style>{`
         .users-grid {
