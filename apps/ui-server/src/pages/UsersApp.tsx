@@ -28,17 +28,22 @@ interface UserData {
 }
 
 const APPS_LIST = [
+  { id: 'dashboard', name: 'Dashboard Archelia', processes: [{id: 'view', label: 'Visualizza'}] },
   { id: 'orders', name: 'Gestione Ordini', processes: [{id: 'view', label: 'Visualizza'}, {id: 'manage_status', label: 'Gestisci Stati'}, {id: 'refund', label: 'Rimborsi'}, {id: 'delete', label: 'Elimina'}] },
   { id: 'products', name: 'Catalogo Prodotti', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit', label: 'Modifica'}, {id: 'delete', label: 'Elimina'}, {id: 'sync_zucchetti', label: 'Sync Zucchetti'}] },
   { id: 'settings', name: 'Centro Sincronizzazione', processes: [{id: 'view', label: 'Visualizza'}, {id: 'trigger_sync', label: 'Avvia Sync'}, {id: 'edit_config', label: 'Configura'}] },
   { id: 'equalizzatore', name: 'Equalizzatore', processes: [{id: 'view', label: 'Visualizza'}, {id: 'approve_fields', label: 'Approva Campi'}, {id: 'regenerate_ai', label: 'Rigenera AI'}, {id: 'lock_items', label: 'Blocca Articoli'}] },
   { id: 'marketing', name: 'Centro Marketing', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_templates', label: 'Modifica Template'}, {id: 'send_campaigns', label: 'Invia Campagne'}] },
+  { id: 'email_builder', name: 'Generatore Email', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_email', label: 'Crea Email'}, {id: 'delete_email', label: 'Elimina Email'}] },
   { id: 'promo-manual', name: 'Promozioni AI (Manuale)', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_promo', label: 'Crea Promo'}, {id: 'delete_promo', label: 'Elimina Promo'}] },
   { id: 'promo_auto', name: 'Sconti Automatici', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_rules', label: 'Modifica Regole'}, {id: 'toggle_autopilot', label: 'Autopilot'}] },
   { id: 'infinity', name: 'Infinity', processes: [{id: 'view', label: 'Visualizza'}, {id: 'download_invoices', label: 'Scarica Fatture'}, {id: 'sync_customers', label: 'Sincronizza Clienti'}] },
   { id: 'images', name: 'Immagini Asset', processes: [{id: 'view', label: 'Visualizza'}, {id: 'upload', label: 'Carica'}, {id: 'delete', label: 'Elimina'}] },
   { id: 'typesense', name: 'Typesense', processes: [{id: 'view', label: 'Visualizza'}, {id: 'reindex', label: 'Re-indicizza'}, {id: 'manage_schema', label: 'Gestisci Schema'}] },
-  { id: 'analytics', name: 'Centro Analisi', processes: [{id: 'view', label: 'Visualizza'}, {id: 'export_pdf', label: 'Esporta PDF'}, {id: 'manage_tracking', label: 'Gestisci Tracking'}] }
+  { id: 'analytics', name: 'Centro Analisi', processes: [{id: 'view', label: 'Visualizza'}, {id: 'export_pdf', label: 'Esporta PDF'}, {id: 'manage_tracking', label: 'Gestisci Tracking'}] },
+  { id: 'logs', name: 'System Logs', processes: [{id: 'view', label: 'Visualizza'}, {id: 'download_logs', label: 'Scarica Log'}] },
+  { id: 'os-settings', name: 'Impostazioni di Sistema', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_system_config', label: 'Modifica Sistema'}] },
+  { id: 'users_management', name: 'Gestione Utenti', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_user', label: 'Crea Utente'}, {id: 'edit_user', label: 'Modifica Utente'}, {id: 'delete_user', label: 'Elimina Utente'}] }
 ];
 
 export default function UsersApp() {
