@@ -248,7 +248,13 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const caller = (request as any).user as JwtPayload;
+    const callerJwt = (request as any).user as JwtPayload;
+    
+    // Resolve actual DB user to prevent FK constraint errors with stale tokens
+    const realCaller = await prisma.adminUser.findUnique({ where: { username: callerJwt.username } });
+    if (!realCaller) return reply.status(401).send({ error: 'Sessione non valida, ricarica la pagina e fai il login' });
+    
+    const caller = { ...callerJwt, userId: realCaller.id };
     
     // FORZATURA ASSOLUTA: Salvatore ha sempre poteri MASTER, anche se il token è vecchio
     if (caller.username.toLowerCase() === 'salvatore') {
@@ -321,7 +327,13 @@ export async function authRoutes(app: FastifyInstance) {
       })
     }
   }, async (request, reply) => {
-    const caller = (request as any).user as JwtPayload;
+    const callerJwt = (request as any).user as JwtPayload;
+    
+    // Resolve actual DB user to prevent FK constraint errors with stale tokens
+    const realCaller = await prisma.adminUser.findUnique({ where: { username: callerJwt.username } });
+    if (!realCaller) return reply.status(401).send({ error: 'Sessione non valida, ricarica la pagina e fai il login' });
+    
+    const caller = { ...callerJwt, userId: realCaller.id };
     const { id } = request.params;
     const updateData = request.body;
     
@@ -369,7 +381,11 @@ export async function authRoutes(app: FastifyInstance) {
       })
     }
   }, async (request, reply) => {
-    const caller = (request as any).user as JwtPayload;
+    const callerJwt = (request as any).user as JwtPayload;
+    
+    const realCaller = await prisma.adminUser.findUnique({ where: { username: callerJwt.username } });
+    if (!realCaller) return reply.status(401).send({ error: 'Sessione non valida' });
+    const caller = { ...callerJwt, userId: realCaller.id };
     const { id } = request.params;
     
     const targetUser = await prisma.adminUser.findUnique({ where: { id } });
