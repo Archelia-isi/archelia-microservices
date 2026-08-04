@@ -32,15 +32,16 @@ export default function LoginScreen({ onLoginSuccess, wallpaper }: LoginScreenPr
 
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       
-      const data = await res.json();
+      const data = await response.json();
+      console.log('LOGIN RESPONSE:', data);
       
-      if (res.ok) {
+      if (response.ok) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         toast.success(`Benvenuto ${data.user.displayName || data.user.username}`);

@@ -167,6 +167,9 @@ model WebhookLog {
 model AdminUser {
   id                String    @id @default(cuid())
   username          String    @unique
+  email             String?   @unique
+  firstName         String?
+  lastName          String?
   
   // Hash per il login standard (es. bcrypt)
   passwordHash      String

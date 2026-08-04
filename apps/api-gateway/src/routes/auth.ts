@@ -66,6 +66,9 @@ export async function authRoutes(app: FastifyInstance) {
             id: z.string(),
             username: z.string(),
             role: z.string(),
+            firstName: z.string().nullable().optional(),
+            lastName: z.string().nullable().optional(),
+            email: z.string().nullable().optional(),
             displayName: z.string().nullable(),
             permissions: z.any().optional(),
             isRoot: z.boolean().optional()
@@ -77,7 +80,8 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const { username, password } = request.body;
+    const { username: rawUsername, password } = request.body;
+    const username = rawUsername.toLowerCase();
 
     const user = await prisma.adminUser.findUnique({ where: { username } });
     if (!user) return reply.status(401).send({ error: 'Credenziali non valide' });
@@ -114,7 +118,10 @@ export async function authRoutes(app: FastifyInstance) {
       user: { 
         id: user.id, 
         username: user.username, 
-        role: user.role, 
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
         displayName: user.displayName,
         permissions: user.permissions,
         isRoot: user.isRoot
@@ -153,6 +160,9 @@ export async function authRoutes(app: FastifyInstance) {
           id: z.string(),
           username: z.string(),
           role: z.string(),
+          firstName: z.string().nullable(),
+          lastName: z.string().nullable(),
+          email: z.string().nullable(),
           displayName: z.string().nullable(),
           lastLogin: z.date().nullable(),
           createdAt: z.date(),
@@ -173,7 +183,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const users = await prisma.adminUser.findMany({
       where: whereClause,
-      select: { id: true, username: true, role: true, displayName: true, lastLogin: true, createdAt: true, createdById: true, isRoot: true, permissions: true, encryptedPassword: true, encryptionIv: true },
+      select: { id: true, username: true, role: true, firstName: true, lastName: true, email: true, displayName: true, lastLogin: true, createdAt: true, createdById: true, isRoot: true, permissions: true, encryptedPassword: true, encryptionIv: true },
       orderBy: { createdAt: 'desc' }
     });
     
@@ -193,6 +203,9 @@ export async function authRoutes(app: FastifyInstance) {
         id: u.id,
         username: u.username,
         role: u.role,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
         displayName: u.displayName,
         lastLogin: u.lastLogin,
         createdAt: u.createdAt,
@@ -210,6 +223,9 @@ export async function authRoutes(app: FastifyInstance) {
     preHandler: [requireAdmin],
     schema: {
       body: z.object({
+        firstName: z.string().min(1, 'Nome richiesto'),
+        lastName: z.string().min(1, 'Cognome richiesto'),
+        email: z.string().email('Email non valida'),
         username: z.string().min(3),
         password: z.string().min(6),
         displayName: z.string().optional(),
@@ -221,6 +237,9 @@ export async function authRoutes(app: FastifyInstance) {
           id: z.string(),
           username: z.string(),
           role: z.string(),
+          firstName: z.string().nullable(),
+          lastName: z.string().nullable(),
+          email: z.string().nullable(),
           displayName: z.string().nullable()
         }),
         400: z.object({ error: z.string() }),
@@ -237,15 +256,27 @@ export async function authRoutes(app: FastifyInstance) {
       caller.isRoot = true;
     }
 
-    const { username, password, displayName, role, permissions } = request.body;
+    const { password, role, permissions } = request.body;
+    const username = request.body.username.toLowerCase();
+    const email = request.body.email.toLowerCase();
+    const firstName = request.body.firstName;
+    const lastName = request.body.lastName;
+    const displayName = request.body.displayName || `${firstName} ${lastName}`;
 
     // RBAC Validation
     if (caller.role === 'ADMIN' && (role === 'MASTER' || role === 'ADMIN')) {
       return reply.status(403).send({ error: 'Gli Admin possono creare solo Operatori, Agenti o Visitatori.' });
     }
 
-    const exists = await prisma.adminUser.findUnique({ where: { username } });
-    if (exists) return reply.status(400).send({ error: 'Username già in uso' });
+    const exists = await prisma.adminUser.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email }
+        ]
+      }
+    });
+    if (exists) return reply.status(400).send({ error: 'Username o Email già in uso' });
 
     const passwordHash = await bcrypt.hash(password, 10);
     const { encryptedPassword, encryptionIv } = encryptPassword(password);
@@ -253,15 +284,18 @@ export async function authRoutes(app: FastifyInstance) {
     const user = await prisma.adminUser.create({
       data: {
         username,
+        email,
+        firstName,
+        lastName,
         passwordHash,
         encryptedPassword,
         encryptionIv,
         role,
-        displayName: displayName || username,
+        displayName,
         createdById: caller.userId,
         permissions: permissions || {}
       },
-      select: { id: true, username: true, role: true, displayName: true }
+      select: { id: true, username: true, role: true, firstName: true, lastName: true, email: true, displayName: true }
     });
 
     return reply.status(200).send(user);
@@ -275,6 +309,9 @@ export async function authRoutes(app: FastifyInstance) {
         id: z.string()
       }),
       body: z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().email().optional(),
         username: z.string().min(3).optional(),
         password: z.string().min(6).optional(),
         displayName: z.string().optional(),
@@ -304,6 +341,9 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const dataToUpdate: any = { ...updateData };
+    if (dataToUpdate.username) dataToUpdate.username = dataToUpdate.username.toLowerCase();
+    if (dataToUpdate.email) dataToUpdate.email = dataToUpdate.email.toLowerCase();
+
     if (updateData.password) {
        dataToUpdate.passwordHash = await bcrypt.hash(updateData.password, 10);
        const { encryptedPassword, encryptionIv } = encryptPassword(updateData.password);

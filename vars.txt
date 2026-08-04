@@ -1,0 +1,227 @@
+╔══════════════════════════ Variables for api-gateway ═════════════════════════╗
+║ ANTHROPIC_API_KEY                      │ sk-ant-api03-                       ║
+║                                        │ upVM9npTtDgA3wmr4r9EsKdvQhZP4fQ_Rl9 ║
+║                                        │ nKdTd2JfyjJQ48baH_S0Pl0EsoudQMh23kn ║
+║                                        │ z0i0ieBllCptSqRQ-_6AAngAA           ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ BREVO_API_KEY                          │ xkeysib-                            ║
+║                                        │ b799062dc7bf2ba287363b9a3196bc4b8fc ║
+║                                        │ 01c27702be013bbeb909b760d5a59-      ║
+║                                        │ cDDj2FHJFzJLgsBw                    ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ CLOUDINARY_API_KEY                     │ 615533243888646                     ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ CLOUDINARY_API_SECRET                  │ V0tOJU7LIspzCKChEkwatu2ZnmE         ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ CLOUDINARY_CLOUD_NAME                  │ dikvomlhu                           ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ DATABASE_URL                           │ postgresql://                       ║
+║                                        │ neondb_owner:npg_QnzJT1yAcP3K@ep-   ║
+║                                        │ still-surf-ag5oqx54.c-2.eu-         ║
+║                                        │ central-1.aws.neon.tech/neondb?     ║
+║                                        │ sslmode=require&channel_binding=req ║
+║                                        │ uire                                ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ GEMINI_API_KEY                         │ AQ.Ab8RN6IR_w8CgwbQe6d5WKeZaXVqWcTc ║
+║                                        │ _DnZ0tNdr8ILpJuS1g                  ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ GOOGLE_SERVICE_ACCOUNT_JSON_B64        │ ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3V ║
+║                                        │ udCIsCiAgInByb2plY3RfaWQiOiAiZ2VuLW ║
+║                                        │ xhbmctY2xpZW50LTA3MDg5MDQ4MDUiLAogI ║
+║                                        │ CJwcml2YXRlX2tleV9pZCI6ICI4MDM2NmNj ║
+║                                        │ YzVhZWM5ZmMwNTUyMGNjNDU2NDE3N2U1NjA ║
+║                                        │ 2OThkODM1IiwKICAicHJpdmF0ZV9rZXkiOi ║
+║                                        │ AiLS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tL ║
+║                                        │ S0tXG5NSUlFdlFJQkFEQU5CZ2txaGtpRzl3 ║
+║                                        │ MEJBUUVGQUFTQ0JLY3dnZ1NqQWdFQUFvSUJ ║
+║                                        │ BUURqZCtRcldlZ1hwSjNSXG5PMFdWTjdrV0 ║
+║                                        │ pwQmR3SmtvekJmbEJBbkkrZ2k5QytVcnFtc ║
+║                                        │ VphYk9yaG96WTdpR2N4c1YwVHY0T1ZxN0M4 ║
+║                                        │ NFgzXG5pQ0k2ZzE3SnFIRHYwQksyTkQzSzU ║
+║                                        │ xUW9oTHVXU3d1Y3U2NkhYZFBTL0gvWTJsaF ║
+║                                        │ lMUzhUWUJTUVlhckdVNEZjXG40NHJzMlMwS ║
+║                                        │ EpOWFUvTmJWMWp1R1lQbUJsaXpSOXNmL2xL ║
+║                                        │ WWM5WnpWSXJzUzByRUdsdWx5RFdYcVBLNFh ║
+║                                        │ BTmFqXG53cHIwOTRFWjlCT0wvSWlqWkRwVm ║
+║                                        │ lJaGMwOXRzMC9Ta0lFbjB0Qjg3MVNKZ016M ║
+║                                        │ zVqVDBWV2UzUHRPU0xPTHVjXG5wT3JqZWxj ║
+║                                        │ akRkQlZRNnQzZFhaU1NVV09QRk80cVAxcjJ ║
+║                                        │ 0TVhGOE9USk1TeUVDSW1OS2ZXZklqMnNHdm ║
+║                                        │ 5FblRIXG42cVlwMFRvTEFnTUJBQUVDZ2dFQ ║
+║                                        │ UdqT01MOFlxYXRiR2F2eDExbXRWd1l4dG9x ║
+║                                        │ NzF0WEpVNmtkZHpTMm41Z2JCXG52aGJpTW9 ║
+║                                        │ 1dmEzbVRMY1c0VDNQQitOVEVoT2hOTngyUD ║
+║                                        │ krUlJkUVgrM0NHdjZKL0NHQVRLZlYzS0h1U ║
+║                                        │ 3pLdXU0XG5DYlRBdE0wRkFrK2RkbUFvUHZm ║
+║                                        │ dGJVRHEvWHFTamtlK0pmSDc1YTVhZG5FeXh ║
+║                                        │ GYmZkRUE2R1ErQWpnRzdaZS9jXG5scEZKaU ║
+║                                        │ FwT0ZIVVBBRHplcGRqS05jUzdQNE5yYUhKT ║
+║                                        │ UNUK1VaZ3dMNWFjWlV4dGJqS283R2N0SDJK ║
+║                                        │ SzIwSHpVXG5zMk1uTWl5VVhoVG5rY1lYTWQ ║
+║                                        │ 0TmJ3a2VWS1puVm5rVVY2alVRcmNLYmFzej ║
+║                                        │ ZhdVF3NDRyTmZrOS9kNFJwcEhkXG5QUW9IO ║
+║                                        │ EM3ajBBa3c2R21DL1Z0MnUwVjl1OE95WDRI ║
+║                                        │ Y3JyZWtKRjFpVVFLQmdRRDZPNXp2R1ZQSEM ║
+║                                        │ 0Y0JvS013XG5CaEZ6YlBPUXVnUkhiS0w4U1 ║
+║                                        │ IvOWFHTXJySTBQUlJYeGs2aTNMMktjVVFIQ ║
+║                                        │ 2toYVRWSzgyQXhXZEJQaEVzK0FsXG5Xa25K ║
+║                                        │ eEpKUDJWMjUycTEvb1NwMDJkUHkvM29sTDd ║
+║                                        │ CVUxKY2lTZTZnSzcwc3NRMmNSK08yVGxNMW ║
+║                                        │ ZUc29TZUlvXG5QeTA0R0lDelJNdjBFbjcvZ ║
+║                                        │ 3QxRGk5MDJpUUtCZ1FEb3RmZGZWMVQ4cUpM ║
+║                                        │ UzhBbGJaMHNIY3RkbUp5U3F3ODk1XG5sZE1 ║
+║                                        │ FL2lLSEZacmVXMHJnL1FWSFFvMmk3L1hMQl ║
+║                                        │ NRNlovY0NkOWwvTEhuOXNsOVc0clNqUTRrU ║
+║                                        │ 1FPdm5ldzBGXG5XL3hITCtScE02RXQrNU9Z ║
+║                                        │ K2JoSmcrRWJmdW1tMnY3WlpSbkZZdWNUeld ║
+║                                        │ BSVpUKzdlYTZlV0l2S1FnbHRZTzNLXG42VW ║
+║                                        │ FxdjBWRzh3S0JnUUNpUVF0R1lqYlhodHI0c ║
+║                                        │ kMrRVVUcjVqRGoyckJkZ05Nb09LbUJLMFdn ║
+║                                        │ VWhxTkV0bmcvXG5GNDY3a1Vjd3Nyb2didGV ║
+║                                        │ pbXJPdG94eGRuejVZVmdaT1VoZ3NjNENucy ║
+║                                        │ 9zNUt0bDdPNGFyRkIrQm5qU1diakM0XG5zO ║
+║                                        │ TBmeDY2cVB4SkFLMkgyNXdwNVNKcGR3YUVk ║
+║                                        │ UTZNWWs3Wi9mQ3Zma2dscGJxRFlqd05uN0F ║
+║                                        │ YNWVRS0JnRkZVXG43NjBodjdGQ1ZYWmxzRS ║
+║                                        │ tDeldWQURPcEYrZm00ei9XRm1LZmhEajQ2S ║
+║                                        │ GROakFzdVpndFBCL2ZDWmYwVkNlY1B6XG4v ║
+║                                        │ QStmeGFNOTd6RHN1NGVKV21ySk9zbm5hTXV ║
+║                                        │ SWlI2ZlpJK1l2SExNT2FQeGprZGoxN1hSNH ║
+║                                        │ NZU1dDVVoyd0l0XG41SkRwSFN2OWxuZTRzM ║
+║                                        │ HFabjU3MkFYMWlFUnRxU2hHbDhDM1RCYXBq ║
+║                                        │ QW9HQWIvTlVxaEovVnMyUngxNEtxWlZHXG5 ║
+║                                        │ XeGYxL3FZdjI0U1BqaEZIdmw0MGxITTNGWH ║
+║                                        │ Rnc0xzSUpNb0g5RWxpa01vTXBGME1tUFRUd ║
+║                                        │ VV5dmRvOENMVXptXG5iSFA5dXBvcFJPRDY3 ║
+║                                        │ d0ZHNXA3Yk5mN0pKTmNaYmZhelVvQkRMNkd ║
+║                                        │ 1L1lDc2xWY3Y3RU9vZmlaMlZYZ2E0dUh0XG ║
+║                                        │ 52by92ajluVmRaYU11NjZzSlU5dzA2UT1cb ║
+║                                        │ i0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS1c ║
+║                                        │ biIsCiAgImNsaWVudF9lbWFpbCI6ICJhcmN ║
+║                                        │ oZWxpYS1haS1zZXJ2ZXJAZ2VuLWxhbmctY2 ║
+║                                        │ xpZW50LTA3MDg5MDQ4MDUuaWFtLmdzZXJ2a ║
+║                                        │ WNlYWNjb3VudC5jb20iLAogICJjbGllbnRf ║
+║                                        │ aWQiOiAiMTEyNTQ2MzI2ODQ4NTU4MTI2MDU ║
+║                                        │ yIiwKICAiYXV0aF91cmkiOiAiaHR0cHM6Ly ║
+║                                        │ 9hY2NvdW50cy5nb29nbGUuY29tL28vb2F1d ║
+║                                        │ GgyL2F1dGgiLAogICJ0b2tlbl91cmkiOiAi ║
+║                                        │ aHR0cHM6Ly9vYXV0aDIuZ29vZ2xlYXBpcy5 ║
+║                                        │ jb20vdG9rZW4iLAogICJhdXRoX3Byb3ZpZG ║
+║                                        │ VyX3g1MDlfY2VydF91cmwiOiAiaHR0cHM6L ║
+║                                        │ y93d3cuZ29vZ2xlYXBpcy5jb20vb2F1dGgy ║
+║                                        │ L3YxL2NlcnRzIiwKICAiY2xpZW50X3g1MDl ║
+║                                        │ fY2VydF91cmwiOiAiaHR0cHM6Ly93d3cuZ2 ║
+║                                        │ 9vZ2xlYXBpcy5jb20vcm9ib3QvdjEvbWV0Y ║
+║                                        │ WRhdGEveDUwOS9hcmNoZWxpYS1haS1zZXJ2 ║
+║                                        │ ZXIlNDBnZW4tbGFuZy1jbGllbnQtMDcwODk ║
+║                                        │ wNDgwNS5pYW0uZ3NlcnZpY2VhY2NvdW50Lm ║
+║                                        │ NvbSIsCiAgInVuaXZlcnNlX2RvbWFpbiI6I ║
+║                                        │ CJnb29nbGVhcGlzLmNvbSIKfQo=         ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ PHOTOROOM_API_KEY                      │ sk_pr_default_6d06de0873f6da94b7f5f ║
+║                                        │ 4d0adeec64c71d5bde8                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ PHOTOROOM_SANDBOX_API_KEY              │ sandbox_sk_pr_default_6d06de0873f6d ║
+║                                        │ a94b7f5f4d0adeec64c71d5bde8         ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_ENVIRONMENT                    │ production                          ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_ENVIRONMENT_ID                 │ 442263d3-b035-4259-a531-            ║
+║                                        │ 76e9876e39f8                        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_ENVIRONMENT_NAME               │ production                          ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_PRIVATE_DOMAIN                 │ api-gateway.railway.internal        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_PROJECT_ID                     │ 42bf8057-8a6c-436f-9194-            ║
+║                                        │ 5b65164f3cfb                        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_PROJECT_NAME                   │ Archelia Middelware 2.0             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_PUBLIC_DOMAIN                  │ api-gateway-production-             ║
+║                                        │ 2ec6.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_AI_CHATBOT_SERVICE_URL │ ai-chatbot-service-production-      ║
+║                                        │ 076a.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_API_GATEWAY_URL        │ api-gateway-production-             ║
+║                                        │ 2ec6.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_ID                     │ 5ce4a783-31a1-449b-98ec-            ║
+║                                        │ 03d2656c000a                        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_NAME                   │ api-gateway                         ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_UI_SERVER_URL          │ ui-server-production-               ║
+║                                        │ 4cf5.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_SERVICE_WEBHOOK_RECEIVER_URL   │ webhook-receiver-production-        ║
+║                                        │ f7d5.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_STATIC_URL                     │ api-gateway-production-             ║
+║                                        │ 2ec6.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_VOLUME_ID                      │ 4f3e3d8d-b9dd-4e9f-9d18-            ║
+║                                        │ ae0add72d1da                        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_VOLUME_MOUNT_PATH              │ /app/uploads                        ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ RAILWAY_VOLUME_NAME                    │ api-gateway-volume                  ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDISHOST                              │ redis.railway.internal              ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDISPASSWORD                          │ hBzNmHlZrBeckCdUBBqrvlxCilqoctZX    ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDISPORT                              │ 6379                                ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDISUSER                              │ default                             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDIS_PASSWORD                         │ hBzNmHlZrBeckCdUBBqrvlxCilqoctZX    ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDIS_PUBLIC_URL                       │ redis://                            ║
+║                                        │ default:hBzNmHlZrBeckCdUBBqrvlxCilq ║
+║                                        │ octZX@hayabusa.proxy.rlwy.net:14144 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ REDIS_URL                              │ redis://                            ║
+║                                        │ default:hBzNmHlZrBeckCdUBBqrvlxCilq ║
+║                                        │ octZX@redis.railway.internal:6379   ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ SHOPIFY_API_VERSION                    │ 2026-01                             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ SHOPIFY_CLIENT_ID                      │ ed66a677722253513e663315d217ad86    ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ SHOPIFY_CLIENT_SECRET                  │ shpss_53ef3c55855aec521a7cae09c4adc ║
+║                                        │ 5eb                                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ SHOPIFY_STORE_URL                      │ archelia-2.myshopify.com            ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ SHOPIFY_WEBHOOK_SECRET                 │ a84171538ef97bee09ba00f63cd7e156394 ║
+║                                        │ a0652a8f6f2025c64313e1e270aa5       ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ TYPESENSE_ADMIN_KEY                    │ i8m9prchqoaif52i1x25cv13d99k9nev    ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ TYPESENSE_URL                          │ https://typesense-production-       ║
+║                                        │ 3d76.up.railway.app                 ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ VAPID_PRIVATE_KEY                      │ DLcVotYbZ59ii7LH_tzLkqeLmbC6Snsohx5 ║
+║                                        │ fESGVYWA                            ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ VAPID_PUBLIC_KEY                       │ BDD3L9FT8CVmvvAeLMu6-               ║
+║                                        │ Qil3coMzYiHb_xqk7-                  ║
+║                                        │ Oc1YcI9fUoC90p4AsRh2yE98gdd2fI4yM5H ║
+║                                        │ n4J8CXyPgQCMg                       ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_APPLICATION_ID               │ 00004                               ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_BASE_URL                     │ https://                            ║
+║                                        │ infinity.immobiliareizzo.com/ahrweb ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_PASSWORD                     │ SspSrvZ2025%%                       ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_SP_COMPANY                   │ A0002                               ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_SP_COMPANY_ISI               │ A0002                               ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ ZUCCHETTI_USERNAME                     │ Soapserv                            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+

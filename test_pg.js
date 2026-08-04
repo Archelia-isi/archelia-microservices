@@ -14,7 +14,7 @@ async function main() {
   console.log('Salvatore:', res.rows[0]);
   
   // also check if there is any other user
-  const all = await client.query('SELECT id, username, role FROM "admin_users"');
+  const all = await client.query('SELECT id, username, role, "isRoot" FROM "admin_users"');
   console.log('All users:', JSON.stringify(all.rows, null, 2));
   await client.end();
 }

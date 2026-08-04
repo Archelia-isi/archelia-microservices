@@ -18,6 +18,9 @@ interface UserData {
   id: string;
   username: string;
   role: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   displayName: string | null;
   lastLogin: string | null;
   createdAt: string;
@@ -57,6 +60,9 @@ export default function UsersApp() {
 
   // Form State
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
     username: '',
     password: '',
     displayName: '',
@@ -137,6 +143,9 @@ export default function UsersApp() {
 
   const resetForm = () => {
     setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
       username: '',
       password: '',
       displayName: '',
@@ -166,6 +175,9 @@ export default function UsersApp() {
     const initialPerms = user.permissions?.apps || getPresetPermissions(user.role);
     
     setFormData({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
       username: user.username,
       password: '',
       displayName: user.displayName || '',
@@ -209,8 +221,11 @@ export default function UsersApp() {
       const token = localStorage.getItem('token');
       
       const payload: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
         username: formData.username,
-        displayName: formData.displayName || formData.username,
+        displayName: formData.displayName || `${formData.firstName} ${formData.lastName}`,
         role: formData.role,
         permissions: {
           allowedStores: formData.allowedStores,
@@ -389,19 +404,41 @@ export default function UsersApp() {
               
               {/* Colonna Sinistra: Dati Base */}
               <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <TextInput 
+                    label="Nome" 
+                    value={formData.firstName} 
+                    onChange={e => setFormData({...formData, firstName: e.target.value})} 
+                    placeholder="Mario"
+                    required
+                  />
+                  <TextInput 
+                    label="Cognome" 
+                    value={formData.lastName} 
+                    onChange={e => setFormData({...formData, lastName: e.target.value})} 
+                    placeholder="Rossi"
+                    required
+                  />
+                </div>
                 <TextInput 
-                  label="Nome Visualizzato" 
-                  value={formData.displayName} 
-                  onChange={e => setFormData({...formData, displayName: e.target.value})} 
-                  placeholder="Es. Mario Rossi"
-                />
-                <TextInput 
-                  label="Username (Login)" 
-                  value={formData.username} 
-                  onChange={e => setFormData({...formData, username: e.target.value})} 
-                  placeholder="mario.rossi"
+                  label="Email (Univoca)" 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value.toLowerCase()})} 
+                  placeholder="mario.rossi@email.it"
                   required
                 />
+                <div>
+                  <TextInput 
+                    label="Username (Login Univoco)" 
+                    value={formData.username} 
+                    onChange={e => setFormData({...formData, username: e.target.value.toLowerCase()})} 
+                    placeholder="mario.rossi"
+                    required
+                  />
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                    * Email e Username verranno salvati sempre in minuscolo per evitare conflitti. Il login accetterà comunque anche le maiuscole.
+                  </div>
+                </div>
                 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo</label>
