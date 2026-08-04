@@ -8,7 +8,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 import Select from '../components/ui/Select';
-import Modal from '../components/ui/Modal';
+
 import { getUser } from '../utils/permissions';
 import type { UserState } from '../utils/permissions';
 
