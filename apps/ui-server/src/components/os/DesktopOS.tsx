@@ -518,7 +518,7 @@ export default function DesktopOS() {
             const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
             if (gridPos.x == null || gridPos.y == null) return null;
             
-            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app'];
+            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
             if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return null;
             
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
@@ -583,7 +583,7 @@ export default function DesktopOS() {
         )}
 
         {Object.values(windows).map(win => {
-          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app'];
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
           if (currentStore === 'B2B' && !b2bAllowedApps.includes(win.id)) return null;
           return <WindowComponent key={win.id} id={win.id} />;
         })}
