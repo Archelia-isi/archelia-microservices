@@ -85,7 +85,8 @@ export async function authRoutes(app: FastifyInstance) {
             username: z.string(),
             role: z.string(),
             displayName: z.string().nullable(),
-            permissions: z.any()
+            permissions: z.any().optional(),
+            isRoot: z.boolean().optional()
           })
         }),
         401: z.object({
