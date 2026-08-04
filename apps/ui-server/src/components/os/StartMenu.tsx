@@ -29,6 +29,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
   const { currentStore, setStore } = useStoreContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [stats, setStats] = useState<any>(null);
   const [insightIndex, setInsightIndex] = useState(0);
@@ -168,8 +169,16 @@ export default function StartMenu({ onClose }: StartMenuProps) {
   };
 
   return (
-    <div className="start-menu-overlay" onClick={onClose}>
-      <div className="start-menu" onClick={e => e.stopPropagation()}>
+    <div 
+      className="start-menu-overlay" 
+      onClick={onClose}
+      style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
+    >
+      <div 
+        className="start-menu" 
+        onClick={e => e.stopPropagation()}
+        style={{ pointerEvents: 'auto' }}
+      >
         
         {/* Header - Search */}
         <div className="start-menu-header" style={{ borderBottom: '1px solid var(--color-border-glass)', paddingBottom: '1rem', marginBottom: '1rem' }}>
@@ -273,6 +282,19 @@ export default function StartMenu({ onClose }: StartMenuProps) {
                     padding: '0.5rem',
                     borderRadius: 'var(--radius-md)',
                     transition: 'all 0.2s ease'
+                  }}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('appId', app.id);
+                    e.dataTransfer.setData('source', 'start-menu');
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    e.dataTransfer.setData('offsetX', (e.clientX - rect.left).toString());
+                    e.dataTransfer.setData('offsetY', (e.clientY - rect.top).toString());
+                    setTimeout(() => setIsDragging(true), 0);
+                  }}
+                  onDragEnd={() => {
+                    setIsDragging(false);
+                    onClose();
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';

@@ -326,7 +326,7 @@ export default function DesktopOS() {
     
     if (source === 'taskbar' && appId) {
       if (windows[appId].isPinned) togglePinApp(appId);
-    } else if (source === 'desktop' && appId) {
+    } else if ((source === 'desktop' || source === 'start-menu') && appId) {
       const offsetX = parseFloat(e.dataTransfer.getData('offsetX')) || 0;
       const offsetY = parseFloat(e.dataTransfer.getData('offsetY')) || 0;
       const targetX = e.clientX - offsetX;
