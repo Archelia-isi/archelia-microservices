@@ -11,6 +11,7 @@ import './StartMenu.css';
 
 import { useSettingsStore } from '../../store/useSettingsStore';
 import * as FcIcons from 'react-icons/fc';
+import { canViewApp } from '../../utils/permissions';
 
 const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
   const IconComponent = (FcIcons as any)[name];
@@ -131,11 +132,17 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
   // Convert windows object to array and filter by search query, removing os-settings
   const apps = useMemo(() => {
-    const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
+    const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
     let allApps = Object.values(windows).filter(app => {
       if (app.id === 'os-settings') return false;
       if (app.id === 'roblox_game' && theme !== 'roblox') return false;
+      
+      // Controlli base B2B vs RETAIL originali
       if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
+      
+      // Controlli RBAC: l'utente può vedere l'app in questo store?
+      if (!canViewApp(app.id, currentStore)) return false;
+      
       return true;
     });
     if (!searchQuery.trim()) return allApps;

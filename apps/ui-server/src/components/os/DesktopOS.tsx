@@ -33,6 +33,7 @@ import LogsApp from '../../pages/LogsApp';
 import CalendarApp from '../../pages/CalendarApp';
 import NotesApp from '../../pages/NotesApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
+import UsersApp from '../../pages/UsersApp';
 import * as FcIcons from 'react-icons/fc';
 import { Terminal } from 'lucide-react';
 
@@ -44,6 +45,7 @@ const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => 
 
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { useStoreContext } from '../../store/useStoreContext';
+import { canViewApp } from '../../utils/permissions';
 
 export default function DesktopOS() {
   const { 
@@ -454,6 +456,7 @@ export default function DesktopOS() {
       registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 430, desktopY: 30 });
       registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 430, desktopY: 130 });
       registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 430, desktopY: 230 });
+      registerApp({ id: 'users_management', title: 'Gestione Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 530, desktopY: 30 });
     }
   }, []);
 
@@ -519,8 +522,9 @@ export default function DesktopOS() {
             const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
             if (gridPos.x == null || gridPos.y == null) return null;
             
-            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
+            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
             if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return null;
+            if (!canViewApp(app.id, currentStore)) return null;
             
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
@@ -584,8 +588,9 @@ export default function DesktopOS() {
         )}
 
         {Object.values(windows).map(win => {
-          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
           if (currentStore === 'B2B' && !b2bAllowedApps.includes(win.id)) return null;
+          if (!canViewApp(win.id, currentStore)) return null;
           return <WindowComponent key={win.id} id={win.id} />;
         })}
       </div>

@@ -7,6 +7,7 @@ import { getThemeIconPath } from '../../utils/themeUtils';
 import { BrainCircuit, LogOut } from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
 import { useStoreContext } from '../../store/useStoreContext';
+import { canViewApp } from '../../utils/permissions';
 import './Taskbar.css';
 
 const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
@@ -42,10 +43,11 @@ export default function Taskbar() {
     e.dataTransfer.setData('source', 'taskbar');
   };
 
-  const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings'];
+  const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
   
   const visibleApps = Object.values(windows).filter(app => {
     if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
+    if (!canViewApp(app.id, currentStore)) return false;
     return app.isPinned || app.isOpen;
   });
 

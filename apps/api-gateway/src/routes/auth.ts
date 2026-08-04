@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@archelia/database';
 import { env, log } from '@archelia/core';
+import { encryptPassword, decryptPassword } from '../utils/crypto';
 
 // Default to a fallback secret if not in env, for safety during development
 const JWT_SECRET = env.JWT_SECRET || 'secret-key-super-sicura-1234';
@@ -13,6 +14,8 @@ export interface JwtPayload {
   userId: string;
   username: string;
   role: string;
+  permissions?: any;
+  isRoot?: boolean;
 }
 
 // Authentication Hook
@@ -31,11 +34,11 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
   }
 };
 
-// Admin Authorization Hook
+// Admin Authorization Hook (MASTER or ADMIN)
 export const requireAdmin = async (request: FastifyRequest, reply: FastifyReply) => {
   await authenticate(request, reply);
   const user = (request as any).user as JwtPayload;
-  if (user?.role !== 'ADMIN') {
+  if (user?.role !== 'ADMIN' && user?.role !== 'MASTER') {
     return reply.status(403).send({ error: 'Forbidden: Admin only' });
   }
 };
@@ -45,22 +48,26 @@ export async function authRoutes(app: FastifyInstance) {
 
   fastify.addHook('onReady', async () => {
     try {
-      const adminExists = await prisma.equalizzatoreUser.findUnique({ where: { username: 'Salvatore' } });
+      const adminExists = await prisma.adminUser.findUnique({ where: { username: 'Salvatore' } });
       if (!adminExists) {
         const passwordHash = await bcrypt.hash('Salvatore', 10);
-        await prisma.equalizzatoreUser.create({
+        const { encryptedPassword, encryptionIv } = encryptPassword('Salvatore');
+        await prisma.adminUser.create({
           data: {
             username: 'Salvatore',
             passwordHash,
-            rawPassword: 'Salvatore',
-            role: 'ADMIN',
+            encryptedPassword,
+            encryptionIv,
+            role: 'MASTER',
+            isRoot: true,
+            permissions: { allowedStores: ["RETAIL", "B2B"] },
             displayName: 'Salvatore'
           }
         });
-        log.info('✅ Default ADMIN user created (Salvatore)', { module: 'api-gateway:auth' });
+        log.info('✅ Default ROOT MASTER user created (Salvatore)', { module: 'api-gateway:auth' });
       }
     } catch (e) {
-      log.error('Error creating default admin', { error: e, module: 'api-gateway:auth' });
+      log.error('Error creating default master', { error: e, module: 'api-gateway:auth' });
     }
   });
 
@@ -77,7 +84,8 @@ export async function authRoutes(app: FastifyInstance) {
             id: z.string(),
             username: z.string(),
             role: z.string(),
-            displayName: z.string().nullable()
+            displayName: z.string().nullable(),
+            permissions: z.any()
           })
         }),
         401: z.object({
@@ -88,7 +96,7 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { username, password } = request.body;
 
-    const user = await prisma.equalizzatoreUser.findUnique({ where: { username } });
+    const user = await prisma.adminUser.findUnique({ where: { username } });
     if (!user) return reply.status(401).send({ error: 'Credenziali non valide' });
 
     let isValid = false;
@@ -104,11 +112,11 @@ export async function authRoutes(app: FastifyInstance) {
     
     if (!isValid) return reply.status(401).send({ error: 'Credenziali non valide' });
 
-    const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role };
+    const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role, permissions: user.permissions, isRoot: user.isRoot };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
     // Aggiorna ultimo login in background per non bloccare la request
-    prisma.equalizzatoreUser.update({ where: { id: user.id }, data: { lastLogin: new Date() } }).catch(err => {
+    prisma.adminUser.update({ where: { id: user.id }, data: { lastLogin: new Date() } }).catch(err => {
       log.error('Failed to update last login', { error: err, module: 'api-gateway:auth' });
     });
 
@@ -118,7 +126,8 @@ export async function authRoutes(app: FastifyInstance) {
         id: user.id, 
         username: user.username, 
         role: user.role, 
-        displayName: user.displayName 
+        displayName: user.displayName,
+        permissions: user.permissions
       } 
     });
   });
@@ -131,7 +140,9 @@ export async function authRoutes(app: FastifyInstance) {
           user: z.object({
             userId: z.string(),
             username: z.string(),
-            role: z.string()
+            role: z.string(),
+            permissions: z.any().optional(),
+            isRoot: z.boolean().optional()
           })
         }),
         401: z.object({
@@ -155,6 +166,9 @@ export async function authRoutes(app: FastifyInstance) {
           displayName: z.string().nullable(),
           lastLogin: z.date().nullable(),
           createdAt: z.date(),
+          createdById: z.string().nullable(),
+          isRoot: z.boolean(),
+          permissions: z.any(),
           rawPassword: z.string().nullable()
         })),
         401: z.object({ error: z.string() }),
@@ -162,11 +176,37 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const users = await prisma.equalizzatoreUser.findMany({
-      select: { id: true, username: true, role: true, displayName: true, lastLogin: true, createdAt: true, rawPassword: true },
+    const caller = (request as any).user as JwtPayload;
+    
+    // Master vede tutti, Admin vede solo quelli che ha creato o che gli sono stati assegnati
+    const whereClause = caller.role === 'MASTER' ? {} : { createdById: caller.userId };
+
+    const users = await prisma.adminUser.findMany({
+      where: whereClause,
+      select: { id: true, username: true, role: true, displayName: true, lastLogin: true, createdAt: true, createdById: true, isRoot: true, permissions: true, encryptedPassword: true, encryptionIv: true },
       orderBy: { createdAt: 'desc' }
     });
-    return reply.status(200).send(users);
+    
+    const mappedUsers = users.map(u => {
+      let rawPassword = null;
+      if (u.encryptedPassword && u.encryptionIv) {
+         rawPassword = decryptPassword(u.encryptedPassword, u.encryptionIv);
+      }
+      return {
+        id: u.id,
+        username: u.username,
+        role: u.role,
+        displayName: u.displayName,
+        lastLogin: u.lastLogin,
+        createdAt: u.createdAt,
+        createdById: u.createdById,
+        isRoot: u.isRoot,
+        permissions: u.permissions || {},
+        rawPassword
+      };
+    });
+
+    return reply.status(200).send(mappedUsers);
   });
 
   fastify.post('/api/auth/users', { 
@@ -175,7 +215,9 @@ export async function authRoutes(app: FastifyInstance) {
       body: z.object({
         username: z.string().min(3),
         password: z.string().min(6),
-        displayName: z.string().optional()
+        displayName: z.string().optional(),
+        role: z.enum(['MASTER', 'ADMIN', 'OPERATOR', 'AGENT', 'VIEWER']),
+        permissions: z.any().optional()
       }),
       response: {
         200: z.object({
@@ -190,23 +232,115 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const { username, password, displayName } = request.body;
+    const caller = (request as any).user as JwtPayload;
+    const { username, password, displayName, role, permissions } = request.body;
 
-    const exists = await prisma.equalizzatoreUser.findUnique({ where: { username } });
+    // RBAC Validation
+    if (caller.role === 'ADMIN' && (role === 'MASTER' || role === 'ADMIN')) {
+      return reply.status(403).send({ error: 'Gli Admin possono creare solo Operatori, Agenti o Visitatori.' });
+    }
+
+    const exists = await prisma.adminUser.findUnique({ where: { username } });
     if (exists) return reply.status(400).send({ error: 'Username già in uso' });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.equalizzatoreUser.create({
+    const { encryptedPassword, encryptionIv } = encryptPassword(password);
+    
+    const user = await prisma.adminUser.create({
       data: {
         username,
         passwordHash,
-        rawPassword: password,
-        role: 'OPERATOR',
-        displayName: displayName || username
+        encryptedPassword,
+        encryptionIv,
+        role,
+        displayName: displayName || username,
+        createdById: caller.userId,
+        permissions: permissions || {}
       },
       select: { id: true, username: true, role: true, displayName: true }
     });
 
     return reply.status(200).send(user);
   });
+  
+  // Aggiungiamo anche il PUT e DELETE per completezza di gestione utenti
+  fastify.put('/api/auth/users/:id', {
+    preHandler: [requireAdmin],
+    schema: {
+      params: z.object({
+        id: z.string()
+      }),
+      body: z.object({
+        username: z.string().min(3).optional(),
+        password: z.string().min(6).optional(),
+        displayName: z.string().optional(),
+        role: z.enum(['MASTER', 'ADMIN', 'OPERATOR', 'AGENT', 'VIEWER']).optional(),
+        permissions: z.any().optional(),
+        createdById: z.string().optional().nullable()
+      })
+    }
+  }, async (request, reply) => {
+    const caller = (request as any).user as JwtPayload;
+    const { id } = request.params;
+    const updateData = request.body;
+    
+    const targetUser = await prisma.adminUser.findUnique({ where: { id } });
+    if (!targetUser) return reply.status(404).send({ error: 'Utente non trovato' });
+    
+    if (targetUser.isRoot && caller.userId !== targetUser.id) {
+       return reply.status(403).send({ error: 'Nessuno può modificare il Master Fondatore.' });
+    }
+    
+    if (caller.role === 'ADMIN' && targetUser.createdById !== caller.userId) {
+       return reply.status(403).send({ error: 'Puoi modificare solo gli utenti della tua squadra.' });
+    }
+    
+    if (caller.role === 'ADMIN' && updateData.role && (updateData.role === 'MASTER' || updateData.role === 'ADMIN')) {
+       return reply.status(403).send({ error: 'Non hai i permessi per assegnare questo ruolo.' });
+    }
+
+    const dataToUpdate: any = { ...updateData };
+    if (updateData.password) {
+       dataToUpdate.passwordHash = await bcrypt.hash(updateData.password, 10);
+       const { encryptedPassword, encryptionIv } = encryptPassword(updateData.password);
+       dataToUpdate.encryptedPassword = encryptedPassword;
+       dataToUpdate.encryptionIv = encryptionIv;
+       delete dataToUpdate.password;
+    }
+    
+    const updated = await prisma.adminUser.update({
+      where: { id },
+      data: dataToUpdate,
+      select: { id: true, username: true, role: true, displayName: true, permissions: true, createdById: true }
+    });
+    
+    return reply.status(200).send(updated);
+  });
+  
+  fastify.delete('/api/auth/users/:id', {
+    preHandler: [requireAdmin],
+    schema: {
+      params: z.object({
+        id: z.string()
+      })
+    }
+  }, async (request, reply) => {
+    const caller = (request as any).user as JwtPayload;
+    const { id } = request.params;
+    
+    const targetUser = await prisma.adminUser.findUnique({ where: { id } });
+    if (!targetUser) return reply.status(404).send({ error: 'Utente non trovato' });
+    
+    if (targetUser.isRoot) {
+       return reply.status(403).send({ error: 'Il Master Fondatore non può essere eliminato.' });
+    }
+    
+    if (caller.role === 'ADMIN' && targetUser.createdById !== caller.userId) {
+       return reply.status(403).send({ error: 'Puoi eliminare solo gli utenti della tua squadra.' });
+    }
+    
+    await prisma.adminUser.delete({ where: { id } });
+    return reply.status(200).send({ success: true });
+  });
 }
+
