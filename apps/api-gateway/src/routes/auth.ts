@@ -83,7 +83,14 @@ export async function authRoutes(app: FastifyInstance) {
     const { username: rawUsername, password } = request.body;
     const username = rawUsername.toLowerCase();
 
-    const user = await prisma.adminUser.findUnique({ where: { username } });
+    const user = await prisma.adminUser.findFirst({ 
+      where: { 
+        username: {
+          equals: username,
+          mode: 'insensitive'
+        }
+      } 
+    });
     if (!user) return reply.status(401).send({ error: 'Credenziali non valide' });
 
     let isValid = false;
