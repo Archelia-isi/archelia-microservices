@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 import Select from '../components/ui/Select';
+import Modal from '../components/ui/Modal';
 
 import { getUser } from '../utils/permissions';
 import type { UserState } from '../utils/permissions';
@@ -381,29 +382,22 @@ export default function UsersApp() {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
-        }}>
-          <div style={{
-            background: 'var(--color-background)',
-            width: '1200px', maxWidth: '95vw', height: '90vh',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex', flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-            border: '1px solid var(--color-border)',
-            overflow: 'hidden'
-          }}>
-            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 600 }}>{editingUser ? 'Modifica Utente' : 'Nuovo Utente'}</h2>
-            </div>
-            
-            <div style={{ padding: '2rem', flex: 1, overflowY: 'auto', display: 'flex', gap: '2rem' }}>
-              
-              {/* Colonna Sinistra: Dati Base */}
-              <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        size="full" 
+        title={editingUser ? 'Modifica Utente' : 'Nuovo Utente'}
+        footer={
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
+            <Button variant="primary" onClick={handleSubmit} icon={<Check size={16} />}>Salva Utente</Button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
+          
+          {/* Colonna Sinistra: Dati Base */}
+          <div style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', paddingRight: '1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <TextInput 
                     label="Nome" 
@@ -531,15 +525,8 @@ export default function UsersApp() {
                   </div>
                 </div>
               )}
-            </div>
-
-            <div style={{ padding: '1rem 2rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem', background: 'rgba(255,255,255,0.02)' }}>
-              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
-              <Button variant="primary" icon={<Check size={16} />} onClick={handleSubmit}>Salva Utente</Button>
-            </div>
-          </div>
         </div>
-      )}
+      </Modal>
 
       <style>{`
         .users-grid {
