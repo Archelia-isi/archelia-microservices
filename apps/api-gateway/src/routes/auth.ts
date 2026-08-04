@@ -46,6 +46,13 @@ export const requireAdmin = async (request: FastifyRequest, reply: FastifyReply)
 export async function authRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
 
+  fastify.get('/api/auth/debug-db', async () => {
+    return { 
+      url: process.env.DATABASE_URL?.substring(0, 40) + '...',
+      userCount: await prisma.adminUser.count()
+    };
+  });
+
   fastify.addHook('onReady', async () => {
     try {
       const adminExists = await prisma.adminUser.findUnique({ where: { username: 'Salvatore' } });
