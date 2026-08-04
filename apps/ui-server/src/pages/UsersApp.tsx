@@ -227,7 +227,7 @@ export default function UsersApp() {
     });
   };
 
-  const isRoleAdmin = currentUser?.role === 'ADMIN';
+  const isRoleAdmin = currentUser?.role === 'ADMIN' && !currentUser?.isRoot;
   const roleOptions = isRoleAdmin 
     ? [{ value: 'OPERATOR', label: 'Operatore' }, { value: 'AGENT', label: 'Agente' }, { value: 'VIEWER', label: 'Visitatore' }]
     : [

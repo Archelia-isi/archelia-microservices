@@ -127,7 +127,8 @@ export async function authRoutes(app: FastifyInstance) {
         username: user.username, 
         role: user.role, 
         displayName: user.displayName,
-        permissions: user.permissions
+        permissions: user.permissions,
+        isRoot: user.isRoot
       } 
     });
   });
