@@ -12,7 +12,7 @@ import Modal from '../components/ui/Modal';
 import { getUser } from '../utils/permissions';
 import type { UserState } from '../utils/permissions';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 interface UserData {
   id: string;

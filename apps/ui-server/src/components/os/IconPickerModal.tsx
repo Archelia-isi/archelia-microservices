@@ -61,7 +61,7 @@ export default function IconPickerModal({ appId, onClose }: Props) {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
+      const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
       
       const res = await fetch(`${API_URL}/api/admin/preferences`, {
         headers: { Authorization: `Bearer ${token}` }
