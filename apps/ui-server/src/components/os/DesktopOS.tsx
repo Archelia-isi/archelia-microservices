@@ -460,7 +460,7 @@ export default function DesktopOS() {
   }
 
   if (showIntro || showSwitchIntro) {
-    const videoSrc = showSwitchIntro && currentStore === 'B2B' ? './videos/intro-izzo.mp4' : './videos/intro.mp4';
+    const videoSrc = currentStore === 'B2B' ? './videos/intro-izzo.mp4' : './videos/intro.mp4';
     return (
       <div style={{ width: '100vw', height: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <video 

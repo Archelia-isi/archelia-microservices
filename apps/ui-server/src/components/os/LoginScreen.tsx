@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { soundEngine } from '../../utils/SoundEngine';
 import { User, Lock, ArrowRight, Loader } from 'lucide-react';
+import { useStoreContext } from '../../store/useStoreContext';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -13,6 +14,7 @@ export default function LoginScreen({ onLoginSuccess, wallpaper }: LoginScreenPr
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [time, setTime] = useState(new Date());
+  const { currentStore, setStore } = useStoreContext();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -112,6 +114,47 @@ export default function LoginScreen({ onLoginSuccess, wallpaper }: LoginScreenPr
           }}
         >
           <User size={64} color="white" strokeWidth={1.5} />
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', width: '300px' }}>
+          <button
+            type="button"
+            onClick={() => setStore('RETAIL')}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: currentStore === 'RETAIL' ? 'var(--color-primary, #0ea5e9)' : 'rgba(255,255,255,0.1)',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            ARCHELIA
+          </button>
+          <button
+            type="button"
+            onClick={() => setStore('B2B')}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: currentStore === 'B2B' ? '#00C800' : 'rgba(255,255,255,0.1)',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              transition: 'all 0.2s',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            IZZO B2B
+          </button>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '300px' }}>
