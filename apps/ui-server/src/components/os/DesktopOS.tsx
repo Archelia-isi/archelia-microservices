@@ -349,7 +349,7 @@ export default function DesktopOS() {
         const currentY = currentStore === 'B2B' ? (win as any).desktopY_B2B : win.desktopY;
 
         if (!win.isPinned && currentX !== undefined && currentY !== undefined && win.id !== appId) {
-          if (win.id === 'os-settings' || win.id === 'system-settings') return;
+          if (win.id === 'system-settings') return;
           if (win.id === 'roblox_game' && activeTheme !== 'roblox') return;
           const pos = pixelsToCell(currentX, currentY);
           existingItems.push({
@@ -422,10 +422,10 @@ export default function DesktopOS() {
     
     // Column 3 (Archelia)
     if (!windows['logs']) registerApp({ id: 'logs', title: 'System Logs', icon: getImg('./icons/logs_abstract.jpg'), color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 230, desktopY: 30, desktopX_B2B: 130, desktopY_B2B: 230 });
-    if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 230, desktopY: 130, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 230, desktopY: 230, desktopX_B2B: 130, desktopY_B2B: 330 });
-    if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 330, desktopX_B2B: 130, desktopY_B2B: 430 });
-    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 430, desktopX_B2B: 130, desktopY_B2B: 530 });
+    if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: undefined, desktopY: undefined, desktopX_B2B: undefined, desktopY_B2B: undefined });
+    if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 230, desktopY: 130, desktopX_B2B: 130, desktopY_B2B: 330 });
+    if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 230, desktopX_B2B: 130, desktopY_B2B: 430 });
+    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 330, desktopX_B2B: 130, desktopY_B2B: 530 });
   }, []);
 
   if (!isLoggedIn) {
@@ -486,7 +486,7 @@ export default function DesktopOS() {
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {Object.values(windows).map(app => {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
-            if (app.id === 'os-settings') return null;
+            // if (app.id === 'os-settings') return null;
             const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
             if (gridPos.x == null || gridPos.y == null) return null;
             
