@@ -36,7 +36,7 @@ interface WindowState {
   toggleMaximize: (id: string) => void;
   focusWindow: (id: string) => void;
   updatePosition: (id: string, x: number, y: number) => void;
-  updateDesktopPosition: (id: string, x: number, y: number, storeType?: string) => void;
+  updateDesktopPosition: (id: string, x: number | undefined, y: number | undefined, storeType?: string) => void;
   updateSize: (id: string, width: number | string, height: number | string) => void;
   setWallpaper: (url: string) => void;
   changeAppIcon: (id: string, iconPath: string) => void;
@@ -65,8 +65,8 @@ export const useWindowStore = create<WindowState>((set) => ({
     
     const isB2B = storeType === 'B2B';
     const isCurrentlyOnDesktop = isB2B 
-      ? (win.desktopX_B2B !== undefined && win.desktopY_B2B !== undefined)
-      : (win.desktopX !== undefined && win.desktopY !== undefined);
+      ? (win.desktopX_B2B != null && win.desktopY_B2B != null)
+      : (win.desktopX != null && win.desktopY != null);
 
     return {
       windows: {

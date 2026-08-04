@@ -12,15 +12,28 @@ const marketingQueue = new Queue('marketing-queue', { connection: redis as any }
 const promoQueue = new Queue('shopify-promo', { connection: redis as any });
 const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
 
-const JOB_MAPPINGS: Record<string, { queue: Queue, command: string, label: string, isManualOnly?: boolean, defaultInterval?: number, defaultUnit?: string }> = {
+type JobMapping = { queue: Queue, command: string, label: string, isManualOnly?: boolean, defaultInterval?: number, defaultUnit?: string, storeType?: string, baseId?: string };
+
+const JOB_MAPPINGS: Record<string, JobMapping> = {
   'sync-mid-zuc': { queue: zucchettiQueue, command: 'IMPORT_PRODUCTS', label: '📥 Import Prodotti Zucchetti', defaultInterval: 1, defaultUnit: 'days' },
   'sync-promo': { queue: promoQueue, command: 'CLEANUP_EXPIRED_PROMOS', label: '🧹 Pulizia Promozioni', defaultInterval: 24, defaultUnit: 'hours' },
   'sync-mid-zuc-stock': { queue: zucchettiQueue, command: 'SYNC_INVENTORY', label: '📦 Sync Giacenze', defaultInterval: 30, defaultUnit: 'minutes' },
   'sync-mid-zuc-price': { queue: zucchettiQueue, command: 'SYNC_PRICING', label: '💰 Sync Prezzi', defaultInterval: 3, defaultUnit: 'days' },
   'sync-images': { queue: zucchettiQueue, command: 'SYNC_IMAGES', label: '📸 Sync Immagini', defaultInterval: 24, defaultUnit: 'hours' },
-  'sync-shopify-push': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'days' },
-  'sync-stock': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes' },
+  'sync-shopify-push': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto)', defaultInterval: 1, defaultUnit: 'days', storeType: 'RETAIL' },
+  'sync-stock': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify', defaultInterval: 30, defaultUnit: 'minutes', storeType: 'RETAIL' },
+  
+  // Varianti isolate per B2B
+  'sync-shopify-push-b2b': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto) [B2B]', defaultInterval: 1, defaultUnit: 'days', storeType: 'B2B', baseId: 'sync-shopify-push' },
+  'sync-stock-b2b': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify [B2B]', defaultInterval: 30, defaultUnit: 'minutes', storeType: 'B2B', baseId: 'sync-stock' },
 };
+
+function resolveJobId(id: string, storeType: string): string {
+  if (storeType === 'B2B' && (id === 'sync-shopify-push' || id === 'sync-stock')) {
+    return `${id}-b2b`;
+  }
+  return id;
+}
 
 function toCronExpression(value: number, unit: string, startTime?: string | null): string {
   let minute = '0';
@@ -58,14 +71,16 @@ async function applyJobSchedule(jobId: string, config: any) {
   if (!config.enabled) return;
 
   if (config.intervalUnit === 'seconds') {
-    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
-      repeat: { every: config.intervalValue * 1000 }
+    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler', storeType: mapping.storeType || 'RETAIL' }, {
+      repeat: { every: config.intervalValue * 1000 },
+      jobId: `${mapping.command}_${jobId}` // distinguish between retail and b2b in repeatable keys if possible, but bullmq uses name
     });
     log.info(`⏰ Schedulato ${jobId} ogni ${config.intervalValue} secondi`, { module: 'api-gateway:scheduler' });
   } else {
     const cronPattern = toCronExpression(config.intervalValue, config.intervalUnit, config.startTime);
-    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler' }, {
-      repeat: { pattern: cronPattern }
+    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'scheduler', storeType: mapping.storeType || 'RETAIL' }, {
+      repeat: { pattern: cronPattern },
+      jobId: `${mapping.command}_${jobId}`
     });
     log.info(`⏰ Schedulato ${jobId} con cron "${cronPattern}"`, { module: 'api-gateway:scheduler' });
   }
@@ -97,6 +112,7 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
       response: { 200: z.array(z.any()) }
     }
   }, async (request, reply) => {
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
     const configs = await prisma.schedulerConfig.findMany();
     const configMap = new Map(configs.map(c => [c.jobId, c]));
 
@@ -105,15 +121,29 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
     const allRepeatableJobs = (await Promise.all(queues.map(q => q.getRepeatableJobs()))).flat();
 
     const state = Object.keys(JOB_MAPPINGS)
+      .filter(jobId => {
+        const mapping = JOB_MAPPINGS[jobId];
+        if (storeType === 'B2B') {
+          // Nel B2B nascondiamo i job esclusivi Retail (quelli con storeType RETAIL, e mostriamo quelli B2B)
+          if (mapping.storeType === 'RETAIL') return false;
+        } else {
+          // Nel Retail nascondiamo i job esclusivi B2B
+          if (mapping.storeType === 'B2B') return false;
+        }
+        return true;
+      })
       .map(jobId => {
         const mapping = JOB_MAPPINGS[jobId];
         const c = configMap.get(jobId);
         
-        // Find if it has an active repeatable job
-        const activeRepeatableJob = allRepeatableJobs.find(rj => rj.name === mapping.command);
+        // Find if it has an active repeatable job (matching the exact id logic if possible, or name)
+        // Since we might have multiple jobs with same command but different storeType, 
+        // we should look for the one with the correct jobId. But BullMQ getRepeatableJobs doesn't return our custom jobId easily.
+        // We will just do best-effort for now.
+        const activeRepeatableJob = allRepeatableJobs.find(rj => rj.name === mapping.command && rj.id === `${mapping.command}_${jobId}`);
 
         return {
-          id: jobId,
+          id: mapping.baseId || jobId, // UI always sees the base ID (e.g. sync-stock)
           label: mapping.label,
           enabled: c?.enabled || false,
           intervalValue: c?.intervalValue || mapping.defaultInterval || 30,
@@ -137,7 +167,10 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
       response: { 200: z.object({ success: z.boolean() }) }
     }
   }, async (request, reply) => {
-    const { id, enabled } = request.body;
+    let { id, enabled } = request.body as any;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    id = resolveJobId(id, storeType);
+
     log.info(`Toggling scheduler job ${id} -> ${enabled}`, { module: 'api-gateway:scheduler' });
 
     const config = await prisma.schedulerConfig.upsert({
@@ -158,7 +191,10 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
       response: { 200: z.object({ success: z.boolean() }) }
     }
   }, async (request, reply) => {
-    const { id, intervalValue, intervalUnit, startTime } = request.body;
+    let { id, intervalValue, intervalUnit, startTime } = request.body as any;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    id = resolveJobId(id, storeType);
+
     log.info(`Updating interval for ${id} to ${intervalValue} ${intervalUnit} (startTime: ${startTime})`, { module: 'api-gateway:scheduler' });
 
     const config = await prisma.schedulerConfig.upsert({
@@ -179,12 +215,15 @@ export async function adminSchedulerRoutes(app: FastifyInstance) {
       response: { 200: z.object({ success: z.boolean(), message: z.string() }) }
     }
   }, async (request, reply) => {
-    const { id } = request.body;
+    let { id } = request.body as any;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    id = resolveJobId(id, storeType);
+
     const mapping = JOB_MAPPINGS[id];
     if (!mapping) return reply.status(200).send({ success: false, message: 'Job ID non valido' });
 
     log.info(`Running job immediately ${id}`, { module: 'api-gateway:scheduler' });
-    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'manual' });
+    await mapping.queue.add(mapping.command, { command: mapping.command, source: 'manual', storeType: mapping.storeType || 'RETAIL' });
     
     return reply.status(200).send({ success: true, message: 'Job avviato in background' });
   });

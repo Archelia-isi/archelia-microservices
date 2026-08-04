@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import LogViewer, { type LogEntry } from '../components/ui/LogViewer';
 import { RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useStoreContext } from '../store/useStoreContext';
 
 const APPS_LIST = [
   { id: 'api-gateway', label: 'API Gateway' },
@@ -22,6 +23,7 @@ const APPS_LIST = [
 ];
 
 export default function LogsApp() {
+  const { currentStore } = useStoreContext();
   const [activeTab, setActiveTab] = useState(APPS_LIST[0].id);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,8 @@ export default function LogsApp() {
       // We will let the backend handle exact matches for now.
       const res = await fetch(`${API_URL}/api/admin/logs?category=${category}&limit=200`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Store-Context': currentStore
         }
       });
       if (!res.ok) {
@@ -55,7 +58,7 @@ export default function LogsApp() {
 
   useEffect(() => {
     fetchLogs(activeTab);
-  }, [activeTab]);
+  }, [activeTab, currentStore]);
 
   return (
     <div style={{

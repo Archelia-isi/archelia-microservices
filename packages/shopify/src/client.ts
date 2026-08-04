@@ -11,22 +11,36 @@ interface ShopifyTokenResponse {
 export class ShopifyAuthService {
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
+  private storeType: 'RETAIL' | 'B2B';
+
+  constructor(storeType: 'RETAIL' | 'B2B' = 'RETAIL') {
+    this.storeType = storeType;
+  }
 
   // Rinnova il token 1 ora prima della scadenza effettiva
   private readonly RENEWAL_BUFFER_MS = 60 * 60 * 1000;
 
   async getAccessToken(): Promise<string> {
-    if (process.env.SHOPIFY_ACCESS_TOKEN) {
-      return process.env.SHOPIFY_ACCESS_TOKEN;
+    const isB2B = this.storeType === 'B2B';
+    const envToken = isB2B ? process.env.SHOPIFY_B2B_ACCESS_TOKEN : process.env.SHOPIFY_ACCESS_TOKEN;
+    
+    if (envToken) {
+      return envToken;
     }
 
     if (this.accessToken && Date.now() < this.tokenExpiry - this.RENEWAL_BUFFER_MS) {
       return this.accessToken;
     }
 
-    log.info('Richiesta nuovo access token Shopify...', { module: 'shopify-sdk' });
+    log.info(`Richiesta nuovo access token Shopify (${this.storeType})...`, { module: 'shopify-sdk' });
 
-    const url = `https://${env.SHOPIFY_STORE_URL}/admin/oauth/access_token`;
+    const storeUrl = isB2B ? env.SHOPIFY_B2B_STORE_URL : env.SHOPIFY_STORE_URL;
+    const clientId = isB2B ? env.SHOPIFY_B2B_CLIENT_ID : env.SHOPIFY_CLIENT_ID;
+    const clientSecret = isB2B ? env.SHOPIFY_B2B_CLIENT_SECRET : env.SHOPIFY_CLIENT_SECRET;
+
+    if (!storeUrl) throw new Error(`Missing SHOPIFY_STORE_URL for ${this.storeType}`);
+
+    const url = `https://${storeUrl}/admin/oauth/access_token`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -34,8 +48,8 @@ export class ShopifyAuthService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: env.SHOPIFY_CLIENT_ID,
-        client_secret: env.SHOPIFY_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'client_credentials',
       }),
     });
@@ -59,8 +73,13 @@ export class ShopifyAuthService {
 
   async fetch(path: string, options: RequestInit = {}): Promise<Response> {
     const token = await this.getAccessToken();
+    const isB2B = this.storeType === 'B2B';
+    const storeUrl = isB2B ? env.SHOPIFY_B2B_STORE_URL : env.SHOPIFY_STORE_URL;
+    
+    if (!storeUrl) throw new Error(`Missing store URL for ${this.storeType}`);
+    
     // Path should start with a slash e.g. "/products.json"
-    const url = `https://${env.SHOPIFY_STORE_URL}/admin/api/${env.SHOPIFY_API_VERSION}${path}`;
+    const url = `https://${storeUrl}/admin/api/${env.SHOPIFY_API_VERSION}${path}`;
 
     const response = await fetch(url, {
       ...options,
@@ -140,4 +159,14 @@ export class ShopifyAuthService {
   }
 }
 
-export const shopifyClient = new ShopifyAuthService();
+export const shopifyClient = new ShopifyAuthService('RETAIL');
+
+// Cache instances
+const instances = {
+  RETAIL: shopifyClient,
+  B2B: new ShopifyAuthService('B2B')
+};
+
+export const getShopifyClient = (storeType: string = 'RETAIL') => {
+  return storeType === 'B2B' ? instances.B2B : instances.RETAIL;
+};

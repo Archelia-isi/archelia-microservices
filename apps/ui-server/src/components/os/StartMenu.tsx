@@ -130,10 +130,11 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
   // Convert windows object to array and filter by search query, removing os-settings
   const apps = useMemo(() => {
+    const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app'];
     let allApps = Object.values(windows).filter(app => {
       if (app.id === 'os-settings') return false;
       if (app.id === 'roblox_game' && theme !== 'roblox') return false;
-      if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return false;
+      if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
       return true;
     });
     if (!searchQuery.trim()) return allApps;
@@ -446,7 +447,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
             },
             {
               id: 'desktop',
-              label: (currentStore === 'B2B' ? (windows[contextMenu.appId] as any).desktopX_B2B : windows[contextMenu.appId].desktopX) !== undefined ? 'Rimuovi dal Desktop' : 'Aggiungi al Desktop',
+              label: (currentStore === 'B2B' ? (windows[contextMenu.appId] as any).desktopX_B2B : windows[contextMenu.appId].desktopX) != null ? 'Rimuovi dal Desktop' : 'Aggiungi al Desktop',
               onClick: () => {
                 toggleDesktopApp(contextMenu.appId, currentStore);
                 setContextMenu(null);

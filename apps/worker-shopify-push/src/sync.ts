@@ -1,6 +1,6 @@
 import { log, env } from '@archelia/core';
 import { prisma } from '@archelia/database';
-import { shopifyClient, shopifyGraphQL } from '@archelia/shopify';
+import { shopifyGraphQL } from '@archelia/shopify';
 import { parseTechnicalDesc } from './lookups.js';
 
 const SHOPIFY_LOCATION_PR = 'gid://shopify/Location/117697904904';
@@ -16,6 +16,12 @@ interface SyncResult {
 }
 
 export class ProductSyncService {
+  private storeType: string;
+
+  constructor(storeType: string = 'RETAIL') {
+    this.storeType = storeType;
+  }
+
   async syncProducts(): Promise<SyncResult> {
     const result: SyncResult = {
       total: 0,
@@ -84,7 +90,7 @@ export class ProductSyncService {
               productSet(input: $input) {
                 userErrors { message }
               }
-            }`, { input: { id: existingData.id, status: 'DRAFT' } });
+            }`, { input: { id: existingData.id, status: 'DRAFT' } }, this.storeType);
             log.info(`👻 Articolo ${bp.sku} convertito in DRAFT Shopify (incluso in Blacklist)`, { module: 'worker-shopify-push' });
             
             await prisma.product.update({
@@ -155,7 +161,7 @@ export class ProductSyncService {
                   { locationId: SHOPIFY_LOCATION_EK, inventoryItemId: existingProductData.inventoryItemId, quantity: product.stockEk || 0 }
                 ]
               }
-            });
+            }, this.storeType);
             result.updated++;
           } catch(e: any) {
             log.error(`Errore stock sync ${product.sku}: ${e.message}`);
@@ -244,7 +250,7 @@ export class ProductSyncService {
         if (mutationInputs.length > 0) {
            const query = `mutation { ${mutationInputs.join('\n')} }`;
            try {
-             const gqlRes = await shopifyGraphQL<any>(query);
+             const gqlRes = await shopifyGraphQL<any>(query, undefined, this.storeType);
              let batchHasErrors = false;
              for (const key of Object.keys(gqlRes)) {
                if (gqlRes[key]?.userErrors?.length > 0) {
@@ -351,7 +357,7 @@ export class ProductSyncService {
         if (mutationInputs.length > 0) {
            const query = `mutation { ${mutationInputs.join('\n')} }`;
            try {
-             const gqlRes = await shopifyGraphQL<any>(query);
+             const gqlRes = await shopifyGraphQL<any>(query, undefined, this.storeType);
              let batchHasErrors = false;
              for (const key of Object.keys(gqlRes)) {
                if (gqlRes[key]?.userErrors?.length > 0) {
@@ -406,7 +412,7 @@ export class ProductSyncService {
           }
         }
       `;
-      const res: any = await shopifyGraphQL<any>(query, { cursor });
+      const res: any = await shopifyGraphQL<any>(query, { cursor }, this.storeType);
       
       for (const node of res.products.nodes) {
         allProducts.push({
@@ -524,7 +530,7 @@ export class ProductSyncService {
       }
     }`;
 
-    const res: any = await shopifyGraphQL<any>(MUTATION, { input: productSetInput });
+    const res: any = await shopifyGraphQL<any>(MUTATION, { input: productSetInput }, this.storeType);
     
     if (res.productSet.userErrors.length > 0) {
       throw new Error(res.productSet.userErrors.map((e: any) => `${e.field?.join('.')}: ${e.message}`).join(', '));
@@ -615,7 +621,7 @@ export class ProductSyncService {
             }
           }
         }
-      }`, { productId });
+      }`, { productId }, this.storeType);
 
       const existingMedia = existingRes.product?.media?.edges?.map((e: any) => e.node) || [];
 
@@ -646,7 +652,7 @@ export class ProductSyncService {
           productDeleteMedia(productId: $productId, mediaIds: $mediaIds) {
             mediaUserErrors { message }
           }
-        }`, { productId, mediaIds: mediaIdsToDelete });
+        }`, { productId, mediaIds: mediaIdsToDelete }, this.storeType);
       }
 
       const mediaInputs = expectedOrderUrls.map(url => ({
@@ -671,4 +677,3 @@ export class ProductSyncService {
   }
 }
 
-export const productSyncService = new ProductSyncService();

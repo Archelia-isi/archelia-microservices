@@ -4,11 +4,13 @@ import StatCard from '../components/ui/StatCard';
 import FunnelBar from '../components/ui/FunnelBar';
 import LineChartGlass from '../components/ui/LineChartGlass';
 import toast from 'react-hot-toast';
+import { useStoreContext } from '../store/useStoreContext';
 import './AnalyticsApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function AnalyticsApp() {
+  const { currentStore } = useStoreContext();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,10 @@ export default function AnalyticsApp() {
         }
 
         const response = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+          headers: { 
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'X-Store-Context': currentStore
+          }
         });
         
         if (!response.ok) {
@@ -50,7 +55,7 @@ export default function AnalyticsApp() {
     };
     
     fetchData();
-  }, [period]);
+  }, [period, currentStore]);
 
   const handleGenerateReport = async () => {
     try {
@@ -60,7 +65,10 @@ export default function AnalyticsApp() {
       
       const response = await fetch(`${API_URL}/api/admin/analytics/report`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore
+        }
       });
       
       const json = await response.json();

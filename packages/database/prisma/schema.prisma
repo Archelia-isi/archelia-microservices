@@ -591,6 +591,8 @@ model LogEntry {
   id       String @id @default(cuid())
   /// Livello: info, warn, error, fatal
   level    String
+  /// Store/Azienda che ha generato il log
+  storeType StoreType @default(RETAIL)
   /// Categoria: middleware, database, sync, images, admin, system
   category String
   /// Messaggio di log

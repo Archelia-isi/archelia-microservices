@@ -1,7 +1,7 @@
 import { log, env } from '@archelia/core';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
-import { productSyncService } from './sync.js';
+import { ProductSyncService } from './sync.js';
 
 // Connessione a Redis
 const redisUrl = env.REDIS_URL;
@@ -14,7 +14,10 @@ log.info('🚀 worker-shopify-push in avvio...', { module: 'worker-shopify-push'
 const worker = new Worker(
   'shopify-commands',
   async (job: Job) => {
-    log.info(`Ricevuto job ${job.name} (ID: ${job.id})`, { module: 'worker-shopify-push', data: job.data });
+    const storeType = job.data?.storeType || 'RETAIL';
+    log.info(`Ricevuto job ${job.name} (ID: ${job.id}) [Store: ${storeType}]`, { module: 'worker-shopify-push', data: job.data });
+
+    const productSyncService = new ProductSyncService(storeType);
 
     switch (job.name) {
       case 'SYNC_ALL_PRODUCTS':

@@ -8,11 +8,13 @@ import ActionCard from '../components/ui/ActionCard';
 import Badge from '../components/ui/Badge';
 import Switch from '../components/ui/Switch';
 import AppSplashScreen from '../components/os/AppSplashScreen';
+import { useStoreContext } from '../store/useStoreContext';
 import './Settings.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 export default function Settings() {
+  const { currentStore } = useStoreContext();
   const [jobs, setJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('manual');
@@ -22,12 +24,19 @@ export default function Settings() {
   const loadScheduler = async () => {
     try {
       const res = await fetch(`${API_URL}/api/v1/admin/scheduler`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore 
+        }
       });
       if (!res.ok) throw new Error(await res.text());
       let data = await res.json();
       // Nascondiamo i job di Typesense da qui perché ora hanno la loro app dedicata (TypesenseApp.tsx)
       data = data.filter((j: any) => j.id !== 'sync-typesense' && j.id !== 'sync-typesense-promo');
+      // Filtriamo Pulizia Promozioni per B2B
+      if (currentStore === 'B2B') {
+        data = data.filter((j: any) => j.id !== 'sync-promo');
+      }
       setJobs(data);
       const newLocalVals: any = {};
       data.forEach((j: any) => {
@@ -47,7 +56,7 @@ export default function Settings() {
       setTimeout(() => setIsAppReady(true), 400);
     };
     init();
-  }, []);
+  }, [currentStore]);
 
   const toggleJob = async (id: string, enabled: boolean) => {
     try {
@@ -55,6 +64,7 @@ export default function Settings() {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id, enabled })
@@ -73,6 +83,7 @@ export default function Settings() {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id, intervalValue, intervalUnit, startTime })
@@ -91,6 +102,7 @@ export default function Settings() {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'X-Store-Context': currentStore,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id })

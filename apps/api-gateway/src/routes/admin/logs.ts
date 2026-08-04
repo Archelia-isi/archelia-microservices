@@ -35,8 +35,9 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category, level, limit, search } = request.query;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
 
-    const where: any = {};
+    const where: any = { storeType };
     if (category) where.category = category;
     // Nascondiamo i log molto voluminosi di infinity_db dalla vista globale se non filtrati
     else where.category = { not: 'infinity_db' };
@@ -62,8 +63,9 @@ export async function adminLogsRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
     const entries = await prisma.logEntry.findMany({
-      where: { level: 'error' },
+      where: { level: 'error', storeType },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
@@ -94,8 +96,9 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category, level, page, limit, search, from, to } = request.query;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
 
-    const where: any = {};
+    const where: any = { storeType };
     if (category) where.category = category;
     if (level) where.level = level;
     if (search) where.message = { contains: search, mode: 'insensitive' };
@@ -138,6 +141,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
 
     if (isNaN(startOfDay.getTime())) {
       return reply.status(400).send({ error: 'Data non valida' });
@@ -145,6 +149,7 @@ export async function adminLogsRoutes(app: FastifyInstance) {
 
     const logs = await prisma.logEntry.findMany({
       where: {
+        storeType,
         createdAt: { gte: startOfDay, lte: endOfDay }
       },
       orderBy: { createdAt: 'asc' }
@@ -176,10 +181,12 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { category } = request.query;
+    const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
+    
     if (category) {
-      await prisma.logEntry.deleteMany({ where: { category } });
+      await prisma.logEntry.deleteMany({ where: { category, storeType } });
     } else {
-      await prisma.logEntry.deleteMany({});
+      await prisma.logEntry.deleteMany({ where: { storeType } });
     }
     return reply.status(200).send({ success: true, cleared: category || 'all' });
   });

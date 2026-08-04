@@ -150,9 +150,13 @@ export default function DesktopOS() {
             Object.entries(config.desktopIcons).forEach(([appId, pos]: [string, any]) => {
               if (pos.x !== undefined && pos.y !== undefined) {
                 updateDesktopPosition(appId, pos.x, pos.y, 'RETAIL');
+              } else {
+                updateDesktopPosition(appId, undefined, undefined, 'RETAIL');
               }
               if (pos.xB2B !== undefined && pos.yB2B !== undefined) {
                 updateDesktopPosition(appId, pos.xB2B, pos.yB2B, 'B2B');
+              } else {
+                updateDesktopPosition(appId, undefined, undefined, 'B2B');
               }
               if (pos.isPinned && useWindowStore.getState().windows[appId] && !useWindowStore.getState().windows[appId].isPinned) {
                 togglePinApp(appId);
@@ -223,11 +227,11 @@ export default function DesktopOS() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const desktopIcons: Record<string, { x: number, y: number, xB2B?: number, yB2B?: number, isPinned: boolean, iconPath?: string }> = {};
+    const desktopIcons: Record<string, { x?: number, y?: number, xB2B?: number, yB2B?: number, isPinned: boolean, iconPath?: string }> = {};
     Object.values(windows).forEach(win => {
       desktopIcons[win.id] = {
-        x: win.desktopX ?? 30,
-        y: win.desktopY ?? 30,
+        ...(win.desktopX !== undefined && { x: win.desktopX }),
+        ...(win.desktopY !== undefined && { y: win.desktopY }),
         ...(win.desktopX_B2B !== undefined && { xB2B: win.desktopX_B2B }),
         ...(win.desktopY_B2B !== undefined && { yB2B: win.desktopY_B2B }),
         isPinned: win.isPinned,
@@ -512,8 +516,10 @@ export default function DesktopOS() {
             if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
             if (app.id === 'os-settings') return null;
             const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
-            if (gridPos.x === undefined || gridPos.y === undefined) return null;
-            if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(app.id)) return null;
+            if (gridPos.x == null || gridPos.y == null) return null;
+            
+            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app'];
+            if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return null;
             
             const themeIconPath = getThemeIconPath(app.id, activeTheme);
             const finalIconPath = themeIconPath || app.iconPath;
@@ -531,8 +537,8 @@ export default function DesktopOS() {
               onDragEnd={handleDragEndDesktopIcon}
               style={{
                 position: 'absolute',
-                left: pixelsToCell(app.desktopX ?? 0, 0).col * CELL_WIDTH,
-                top: pixelsToCell(0, app.desktopY ?? 0).row * CELL_HEIGHT,
+                left: pixelsToCell(gridPos.x ?? 0, 0).col * CELL_WIDTH,
+                top: pixelsToCell(0, gridPos.y ?? 0).row * CELL_HEIGHT,
                 pointerEvents: 'auto',
                 opacity: draggingAppId === app.id ? 0 : 1
               }}
@@ -577,7 +583,8 @@ export default function DesktopOS() {
         )}
 
         {Object.values(windows).map(win => {
-          if (currentStore === 'B2B' && ['equalizzatore', 'marketing', 'promo-manual', 'promo-auto', 'email-builder'].includes(win.id)) return null;
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app'];
+          if (currentStore === 'B2B' && !b2bAllowedApps.includes(win.id)) return null;
           return <WindowComponent key={win.id} id={win.id} />;
         })}
       </div>
@@ -603,7 +610,7 @@ export default function DesktopOS() {
             {
               id: 'remove-desktop',
               label: 'Rimuovi dal Desktop',
-              onClick: () => toggleDesktopApp(contextMenu.appId)
+              onClick: () => toggleDesktopApp(contextMenu.appId, currentStore)
             },
             {
               id: 'change-icon',

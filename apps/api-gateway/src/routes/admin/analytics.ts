@@ -26,6 +26,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { startDate, endDate } = request.query as { startDate?: string, endDate?: string };
+      const storeType = (request.headers['x-store-context'] as string) || 'RETAIL';
       
       const dateFilter: any = {};
       if (startDate) {
@@ -36,11 +37,15 @@ export async function analyticsRoutes(app: FastifyInstance) {
       }
 
       // 1. Visite Reali dal DB (TrackingSession)
+      // (TrackingSession non ha storeType al momento, quindi le visite sono globali, ma gli ordini saranno isolati)
       const trackingFilter = Object.keys(dateFilter).length > 0 ? { startedAt: dateFilter } : {};
       const visits = await prisma.trackingSession.count({ where: trackingFilter });
 
       // 2. Ordini Reali dal DB (ZelZucchettiOrderQueue)
-      const orderFilter = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
+      const orderFilter: any = { storeType };
+      if (Object.keys(dateFilter).length > 0) {
+        orderFilter.createdAt = dateFilter;
+      }
       
       const [totalOrders, revenueAgg] = await Promise.all([
         prisma.zelZucchettiOrderQueue.count({ where: orderFilter }),
@@ -76,7 +81,7 @@ export async function analyticsRoutes(app: FastifyInstance) {
           select: { startedAt: true }
         }),
         prisma.zelZucchettiOrderQueue.findMany({
-          where: { createdAt: { gte: sevenDaysAgo, lte: endD } },
+          where: { storeType, createdAt: { gte: sevenDaysAgo, lte: endD } },
           select: { createdAt: true, totalPrice: true }
         })
       ]);
@@ -98,9 +103,9 @@ export async function analyticsRoutes(app: FastifyInstance) {
       }));
 
       // 5. Ripristina Carrelli (per il Funnel)
-      const abandonedCarts = await prisma.cartSyncQueue.count({ where: { status: 'PENDING' } });
-      const recoveredCarts = await prisma.cartSyncQueue.count({ where: { status: 'SYNCED' } });
-      const emptyCarts = await prisma.cartSyncQueue.count({ where: { status: 'EMPTY' } });
+      const abandonedCarts = await prisma.cartSyncQueue.count({ where: { storeType, status: 'PENDING' } });
+      const recoveredCarts = await prisma.cartSyncQueue.count({ where: { storeType, status: 'SYNCED' } });
+      const emptyCarts = await prisma.cartSyncQueue.count({ where: { storeType, status: 'EMPTY' } });
       const totalCarts = abandonedCarts + recoveredCarts + emptyCarts;
 
       const response = {
