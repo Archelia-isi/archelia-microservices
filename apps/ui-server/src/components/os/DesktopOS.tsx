@@ -35,7 +35,7 @@ import NotesApp from '../../pages/NotesApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
 import UsersApp from '../../pages/UsersApp';
 import * as FcIcons from 'react-icons/fc';
-import { Terminal } from 'lucide-react';
+
 
 const DynamicFcIcon = ({ name, size = 40 }: { name: string, size?: number }) => {
   const IconComponent = (FcIcons as any)[name];
@@ -402,62 +402,27 @@ export default function DesktopOS() {
   useEffect(() => {
     // Registra le app all'avvio se non presenti (check per singola app invece che globalmente vuoto)
     const getImg = (src: string) => <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Icon" />;
-    if (!windows['dashboard']) {
-      registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
-    }
-    if (!windows['orders']) {
-      registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('./icons/orders.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
-    }
-    if (!windows['products']) {
-      registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('./icons/products.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
-    }
-    if (!windows['settings']) {
-      registerApp({ id: 'settings', title: 'Centro Sincronizzazione', icon: getImg('./icons/settings.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
-    }
-    if (!windows['equalizzatore']) {
-      registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 130, desktopY: 30 });
-    }
-    if (!windows['marketing']) {
-      registerApp({ id: 'marketing', title: 'Centro Marketing', icon: getImg('./icons/marketing.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 130, desktopY: 130 });
-    }
-    if (!windows['email_builder']) {
-      registerApp({ id: 'email_builder', title: 'Generatore Email', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 130, desktopY: 230 });
-    }
-    if (!windows['promo_manual']) {
-      registerApp({ id: 'promo-manual', title: 'Promozioni AI (Manuale)', icon: <DynamicFcIcon name="FcBullish" />, color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 230, desktopY: 230 });
-    }
     
-    if (!windows['os-settings']) {
-      registerApp({ id: 'os-settings', title: 'Impostazioni', icon: <DynamicFcIcon name="FcSettings" />, color: 'transparent', component: <OSSettingsApp />, x: 100, y: 100, width: 900, height: 700 });
-    }
-
-    if (!windows['promo_auto']) {
-      registerApp({ id: 'promo_auto', title: 'Sconti Automatici', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 230, desktopY: 130 });
-    }
-    if (!windows['infinity']) {
-      registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 230, desktopY: 230 });
-    }
-    if (!windows['images']) {
-      registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 230, desktopY: 330 });
-    }
-    if (!windows['typesense']) {
-      registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 330, desktopY: 30 });
-    }
-    if (!windows['analytics']) {
-      registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/dashboard.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 330, desktopY: 130 });
-    }
-    if (!windows['logs']) {
-      const TerminalIconWidget = () => (
-        <div style={{ width: '100%', height: '100%', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
-          <Terminal color="#10b981" size={40} />
-        </div>
-      );
-      registerApp({ id: 'logs', title: 'System Logs', icon: <TerminalIconWidget />, color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 330, desktopY: 230 });
-      registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 430, desktopY: 30 });
-      registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 430, desktopY: 130 });
-      registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 430, desktopY: 230 });
-      registerApp({ id: 'users_management', title: 'Gestione Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 530, desktopY: 30 });
-    }
+    if (!windows['dashboard']) registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('./icons/dashboard_abstract.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30 });
+    if (!windows['orders']) registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('./icons/orders_abstract.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130 });
+    if (!windows['products']) registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('./icons/products_abstract.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230 });
+    if (!windows['settings']) registerApp({ id: 'settings', title: 'Centro Sync', icon: getImg('./icons/settings_abstract.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330 });
+    if (!windows['equalizzatore']) registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('./icons/equalizzatore_abstract.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 30, desktopY: 430 });
+    if (!windows['marketing']) registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('./icons/marketing_abstract.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 30, desktopY: 530 });
+    if (!windows['email_builder']) registerApp({ id: 'email_builder', title: 'Email Builder', icon: getImg('./icons/email_builder_abstract.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 30, desktopY: 630 });
+    if (!windows['promo_manual']) registerApp({ id: 'promo-manual', title: 'Promo (Manuale)', icon: getImg('./icons/promo_manual_abstract.jpg'), color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 30, desktopY: 730 });
+    if (!windows['os-settings']) registerApp({ id: 'os-settings', title: 'Impostazioni', icon: <DynamicFcIcon name="FcSettings" />, color: 'transparent', component: <OSSettingsApp />, x: 100, y: 100, width: 900, height: 700, desktopX: 30, desktopY: 830 });
+    
+    if (!windows['promo_auto']) registerApp({ id: 'promo_auto', title: 'Sconti Auto', icon: getImg('./icons/promo_auto_abstract.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 130, desktopY: 30 });
+    if (!windows['infinity']) registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('./icons/infinity_abstract.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 130, desktopY: 130 });
+    if (!windows['images']) registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/images_abstract.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 130, desktopY: 230 });
+    if (!windows['typesense']) registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/typesense_abstract.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 130, desktopY: 330 });
+    if (!windows['analytics']) registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/analytics_abstract.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 130, desktopY: 430 });
+    if (!windows['logs']) registerApp({ id: 'logs', title: 'System Logs', icon: getImg('./icons/logs_abstract.jpg'), color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 130, desktopY: 530 });
+    if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: 130, desktopY: 630 });
+    if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 130, desktopY: 730 });
+    if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 130, desktopY: 830 });
+    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 30 });
   }, []);
 
   if (!isLoggedIn) {

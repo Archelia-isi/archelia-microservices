@@ -82,7 +82,7 @@ export const useWindowStore = create<WindowState>((set) => ({
     };
   }),
   toggleChatbot: () => set((state) => ({ isChatbotOpen: !state.isChatbotOpen })),
-  wallpaper: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2940&auto=format&fit=crop', // Apple style abstract default
+  wallpaper: 'https://images.unsplash.com/photo-1518098268026-4e89f1a2cd8e?q=80&w=2874&auto=format&fit=crop', // Collinare default
   
   registerApp: (app) => set((state) => ({
     windows: {
