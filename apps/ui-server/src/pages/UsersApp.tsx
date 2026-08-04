@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, ShieldAlert, KeyRound, Plus, Trash2, Edit2, Check, X, Shield, RefreshCw } from 'lucide-react';
+import { Users, ShieldAlert, KeyRound, Plus, Trash2, Edit2, Check, Shield, AppWindow } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
@@ -8,10 +8,9 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 import Select from '../components/ui/Select';
-import Switch from '../components/ui/Switch';
 import Modal from '../components/ui/Modal';
-import { getUser, UserState } from '../utils/permissions';
-import './UsersApp.css';
+import { getUser } from '../utils/permissions';
+import type { UserState } from '../utils/permissions';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api-gateway-production-2ec6.up.railway.app';
 
@@ -24,6 +23,7 @@ interface UserData {
   createdAt: string;
   isRoot: boolean;
   permissions: any;
+  createdById: string | null;
   rawPassword?: string | null;
 }
 
@@ -242,14 +242,14 @@ export default function UsersApp() {
     <>
       <AppSplashScreen isLoading={!isAppReady} appName="Gestione Utenti" icon={<Users size={48} color="white" />} />
       <div className="users-app-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--color-background)' }}>
-        <StickyHeader 
-          title="Gestione Sistema e Accessi" 
-          rightContent={
-             <Button variant="primary" icon={<Plus size={16} />} onClick={openCreateModal}>
-               Nuovo Utente
-             </Button>
-          }
-        />
+        <StickyHeader>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 1rem' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>Gestione Sistema e Accessi</div>
+            <Button variant="primary" icon={<Plus size={16} />} onClick={openCreateModal}>
+              Nuovo Utente
+            </Button>
+          </div>
+        </StickyHeader>
         
         <div style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
           {loading ? (
@@ -257,7 +257,7 @@ export default function UsersApp() {
           ) : (
             <div className="users-grid">
               {users.map(u => (
-                <GlassPanel key={u.id} className="user-card" padding="1.5rem">
+                <GlassPanel key={u.id} className="user-card" padding="md">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <div style={{ 
@@ -289,11 +289,11 @@ export default function UsersApp() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
-                    <Button variant="secondary" size="small" icon={<Edit2 size={14} />} onClick={() => openEditModal(u)} style={{ flex: 1 }}>
+                    <Button variant="secondary" size="sm" icon={<Edit2 size={14} />} onClick={() => openEditModal(u)} style={{ flex: 1 }}>
                       Modifica
                     </Button>
                     {!u.isRoot && (currentUser?.role === 'MASTER' || (currentUser?.role === 'ADMIN' && u.createdById === currentUser.id)) && (
-                      <Button variant="danger" size="small" icon={<Trash2 size={14} />} onClick={() => handleDeleteUser(u.id, u.username)} />
+                      <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => handleDeleteUser(u.id, u.username)} />
                     )}
                   </div>
                 </GlassPanel>
@@ -322,12 +322,14 @@ export default function UsersApp() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Select 
-              label="Ruolo"
-              value={formData.role}
-              onChange={e => setFormData({...formData, role: e.target.value})}
-              options={roleOptions}
-            />
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo</label>
+              <Select 
+                value={formData.role}
+                onChange={e => setFormData({...formData, role: e.target.value})}
+                options={roleOptions}
+              />
+            </div>
             <TextInput 
               label={editingUser ? "Nuova Password (lascia vuoto per non cambiare)" : "Password"} 
               type="password"
