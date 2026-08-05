@@ -15,31 +15,32 @@ export default async function customersRoutes(app: FastifyInstance) {
     if (search) {
       where.OR = [
         { email: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { zucchettiCode: { contains: search, mode: 'insensitive' } },
-        { shopifyCustomerId: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { zucchettiArcId: { contains: search, mode: 'insensitive' } },
+        { shopifyId: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const [customers, total] = await Promise.all([
-      prisma.customerMapping.findMany({
+      prisma.zelShopifyCustomer.findMany({
         where,
         orderBy: { updatedAt: 'desc' },
         skip,
         take,
       }),
-      prisma.customerMapping.count({ where }),
+      prisma.zelShopifyCustomer.count({ where }),
     ]);
 
     return {
       success: true,
       data: customers.map(c => ({
-        shopifyId: c.shopifyCustomerId,
-        zucchettiArcId: c.zucchettiCode,
+        shopifyId: c.shopifyId,
+        zucchettiArcId: c.zucchettiArcId,
         email: c.email,
-        firstName: c.fullName?.split(' ')[0] || '',
-        lastName: c.fullName?.split(' ').slice(1).join(' ') || '',
-        phone: null,
+        firstName: c.firstName || '',
+        lastName: c.lastName || '',
+        phone: c.phone,
         updatedAt: c.updatedAt
       })),
       meta: {
@@ -59,56 +60,113 @@ export default async function customersRoutes(app: FastifyInstance) {
     const { id } = request.params;
     
     // Il cliente nel DB v2-development
-    const customer = await prisma.customerMapping.findUnique({
-      where: { shopifyCustomerId: id }
+    const customer = await prisma.zelShopifyCustomer.findUnique({
+      where: { shopifyId: id }
     });
 
     if (!customer) {
       return reply.status(404).send({ success: false, error: 'Customer not found' });
     }
 
-    // Ricerca ordini
+    // Ricerca TUTTI gli ordini (senza limite)
     const orders = await prisma.orderQueue.findMany({
       where: {
         payload: {
           path: ['customer', 'id'],
-          equals: parseInt(customer.shopifyCustomerId)
+          equals: parseInt(customer.shopifyId)
         }
       },
-      orderBy: { createdAt: 'desc' },
-      take: 10
+      orderBy: { createdAt: 'desc' }
     });
 
     // Cerca eventuali carrelli abbandonati in CartSyncQueue
     const cart = await prisma.cartSyncQueue.findUnique({
-      where: { customerId: customer.shopifyCustomerId }
+      where: { customerId: customer.shopifyId }
     });
+
+    // Cerca le notifiche marketing se ha un'email
+    let emailNotifications: any[] = [];
+    let pushNotifications: any[] = [];
+    
+    if (customer.email) {
+      emailNotifications = await prisma.marketingJob.findMany({
+        where: {
+          event: {
+            customerEmail: customer.email
+          }
+        },
+        include: {
+          template: true
+        },
+        orderBy: { scheduledFor: 'desc' }
+      });
+
+      // Trova i device id dalla tracking session
+      const sessions = await prisma.trackingSession.findMany({
+        where: { customerEmail: customer.email },
+        select: { deviceId: true }
+      });
+      const deviceIds = sessions.map(s => s.deviceId);
+
+      if (deviceIds.length > 0) {
+        pushNotifications = await prisma.pushJob.findMany({
+          where: {
+            deviceId: { in: deviceIds }
+          },
+          orderBy: { scheduledFor: 'desc' }
+        });
+      }
+    }
 
     return {
       success: true,
       data: {
         customer: {
-          shopifyId: customer.shopifyCustomerId,
-          zucchettiArcId: customer.zucchettiCode,
+          shopifyId: customer.shopifyId,
+          zucchettiArcId: customer.zucchettiArcId,
           email: customer.email,
-          firstName: customer.fullName?.split(' ')[0] || '',
-          lastName: customer.fullName?.split(' ').slice(1).join(' ') || '',
-          phone: null,
+          firstName: customer.firstName || '',
+          lastName: customer.lastName || '',
+          phone: customer.phone,
+          billingAddress: customer.billingAddress,
+          addresses: customer.addresses,
+          fiscalData: customer.fiscalData,
           updatedAt: customer.updatedAt
         },
-        recentOrders: orders.map(o => ({
+        orders: orders.map(o => ({
           id: o.id,
           shopifyOrderName: o.shopifyOrderName,
           status: o.status,
           totalPrice: o.totalPrice,
           createdAt: o.createdAt,
+          payload: o.payload,
           lastError: o.lastError
         })),
         abandonedCart: cart ? {
           status: cart.status,
           updatedAt: cart.updatedAt,
           payload: cart.cartPayload
-        } : null
+        } : null,
+        notifications: [
+          ...emailNotifications.map(n => ({
+            id: n.id,
+            type: 'EMAIL',
+            jobType: n.jobType,
+            status: n.status,
+            scheduledFor: n.scheduledFor,
+            templateName: n.template?.name,
+            templateSubject: n.template?.subject,
+            htmlContent: n.template?.htmlContent,
+          })),
+          ...pushNotifications.map(p => ({
+            id: p.id,
+            type: 'PUSH',
+            jobType: p.jobType,
+            status: p.status,
+            scheduledFor: p.scheduledFor,
+            payload: p.payload
+          }))
+        ].sort((a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime())
       }
     };
   });
