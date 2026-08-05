@@ -159,4 +159,106 @@ export async function adminCustomersRoutes(app: FastifyInstance) {
       count: count.count 
     });
   });
+  // Dettaglio 360°
+  fastify.get('/api/admin/customers/:shopifyId/details', { 
+    preHandler: [requireAdmin],
+  }, async (request, reply) => {
+    const { shopifyId } = request.params as { shopifyId: string };
+    
+    const customer = await prisma.zelShopifyCustomer.findUnique({
+      where: { shopifyId },
+      include: { zucchettiQueue: true }
+    });
+
+    if (!customer) {
+      return reply.status(404).send({ success: false, error: 'Customer not found' });
+    }
+
+    // Ricerca ordini
+    const orders = await prisma.zelShopifyOrder.findMany({
+      where: { shopifyCustomerId: shopifyId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: { zucchettiQueue: true }
+    });
+
+    // Cerca eventuali carrelli abbandonati (se la tabella CartSyncQueue ha il customerId che match)
+    // Dato che CartSyncQueue usa customerId stringa, facciamo un findFirst.
+    const cart = await prisma.cartSyncQueue.findFirst({
+      where: { customerId: shopifyId }
+    });
+
+    return reply.status(200).send({
+      success: true,
+      data: {
+        customer,
+        recentOrders: orders,
+        abandonedCart: cart
+      }
+    });
+  });
+
+  // Crea/Aggiorna localmente
+  fastify.post('/api/admin/customers', { 
+    preHandler: [requireAdmin],
+    schema: {
+      body: z.object({
+        shopifyId: z.string(),
+        zucchettiArcId: z.string().optional(),
+        email: z.string().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    const { shopifyId, zucchettiArcId, email, firstName, lastName } = request.body as any;
+
+    const customer = await prisma.zelShopifyCustomer.upsert({
+      where: { shopifyId },
+      update: {
+        zucchettiArcId: zucchettiArcId || null,
+        email: email || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+      },
+      create: {
+        shopifyId,
+        zucchettiArcId: zucchettiArcId || null,
+        email: email || null,
+        firstName: firstName || null,
+        lastName: lastName || null,
+      }
+    });
+
+    return reply.status(200).send({ success: true, data: customer });
+  });
+
+  // Aggiorna cliente esistente localmente
+  fastify.put('/api/admin/customers/:shopifyId', { 
+    preHandler: [requireAdmin],
+    schema: {
+      body: z.object({
+        zucchettiArcId: z.string().optional(),
+        email: z.string().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    const { shopifyId } = request.params as { shopifyId: string };
+    const { zucchettiArcId, email, firstName, lastName } = request.body as any;
+
+    const data: any = {};
+    if (zucchettiArcId !== undefined) data.zucchettiArcId = zucchettiArcId;
+    if (email !== undefined) data.email = email;
+    if (firstName !== undefined) data.firstName = firstName;
+    if (lastName !== undefined) data.lastName = lastName;
+
+    const customer = await prisma.zelShopifyCustomer.update({
+      where: { shopifyId },
+      data
+    });
+
+    return reply.status(200).send({ success: true, data: customer });
+  });
 }

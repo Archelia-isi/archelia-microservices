@@ -19,6 +19,7 @@ import Settings from '../../pages/Settings';
 import { EmailBuilderApp } from '../../pages/EmailBuilderApp';
 import PromoManualApp from '../../pages/PromoManualApp';
 import PromoAutoApp from '../../pages/PromoAutoApp';
+import CustomersApp from '../../pages/CustomersApp';
 import AiChatbotApp from '../ai/AiChatbotApp';
 import LoginScreen from './LoginScreen';
 import MouseTrail from './MouseTrail';
@@ -427,6 +428,8 @@ export default function DesktopOS() {
     if (!windows['images']) registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/images_abstract.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600 });
     if (!windows['typesense']) registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/typesense_abstract.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800 });
     if (!windows['analytics']) registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/analytics_abstract.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800 });
+    if (!windows['customers']) registerApp({ id: 'customers', title: 'Gestione Clienti', icon: getImg('./icons/icon_customers_macos.jpg'), color: 'transparent', component: <CustomersApp />, x: 150, y: 150, width: 1000, height: 700 });
+
     
     // Column 3 (Archelia)
     if (!windows['logs']) registerApp({ id: 'logs', title: 'System Logs', icon: getImg('./icons/logs_abstract.jpg'), color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750 });
