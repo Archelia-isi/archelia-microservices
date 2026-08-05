@@ -1,6 +1,13 @@
-import { prisma } from './index.ts';
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
 async function main() {
-  const config = await prisma.marketingSettings.findUnique({ where: { id: "marketing_config" } });
-  console.log(JSON.stringify(config, null, 2));
+  const c = await prisma.customerMapping.count();
+  console.log('Total customers in db:', c);
+  
+  const cList = await prisma.customerMapping.findMany({ take: 2 });
+  console.log('Sample:', cList);
 }
-main().catch(console.error).finally(() => prisma.$disconnect());
+
+main().catch(console.error).finally(() => process.exit(0));

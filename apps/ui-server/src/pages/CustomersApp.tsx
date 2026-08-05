@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, ShoppingCart, RefreshCw, X } from 'lucide-react';
+import { Search, User, ShoppingCart, RefreshCw, X } from 'lucide-react';
 import StickyHeader from '../components/ui/StickyHeader';
 import GlassPanel from '../components/ui/GlassPanel';
 import Badge from '../components/ui/Badge';
@@ -33,17 +33,20 @@ export default function CustomersApp() {
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // Form Modale Inserimento/Modifica
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Customer>>({});
+  const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
   const fetchCustomers = async (pageNum = 1, searchQuery = '') => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/admin/customers?page=${pageNum}&limit=20&search=${searchQuery}`);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/customers?page=${pageNum}&limit=20&search=${searchQuery}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
-      setCustomers(data.data);
-      setTotalPages(data.totalPages);
+      setCustomers(data.data || []);
+      setTotalPages(data.totalPages || 1);
       setPage(pageNum);
     } catch (e) {
       console.error(e);
@@ -63,7 +66,12 @@ export default function CustomersApp() {
     setSelectedCustomer(shopifyId);
     setDetailsLoading(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/admin/customers/${shopifyId}/details`);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/customers/${shopifyId}/details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (data.success) {
         setCustomerDetails(data.data);
@@ -73,41 +81,6 @@ export default function CustomersApp() {
     } finally {
       setDetailsLoading(false);
     }
-  };
-
-  const handleSaveCustomer = async () => {
-    try {
-      const isUpdate = customers.some(c => c.shopifyId === editForm.shopifyId);
-      const url = isUpdate 
-        ? `http://localhost:3000/api/admin/customers/${editForm.shopifyId}`
-        : `http://localhost:3000/api/admin/customers`;
-        
-      const method = isUpdate ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsEditModalOpen(false);
-        fetchCustomers(page, search);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const openNewCustomer = () => {
-    setEditForm({
-      shopifyId: '',
-      zucchettiArcId: '',
-      email: '',
-      firstName: '',
-      lastName: ''
-    });
-    setIsEditModalOpen(true);
   };
 
   return (
@@ -127,9 +100,6 @@ export default function CustomersApp() {
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <Button variant="secondary" size="sm" onClick={() => fetchCustomers(page, search)}>
               <RefreshCw size={14} /> Aggiorna
-            </Button>
-            <Button variant="primary" size="sm" onClick={openNewCustomer}>
-              <Plus size={14} /> Nuovo Cliente
             </Button>
           </div>
         </GlassPanel>
@@ -237,43 +207,6 @@ export default function CustomersApp() {
         </div>
       )}
 
-      {/* MODALE INSERIMENTO / MODIFICA */}
-      {isEditModalOpen && (
-        <div className="customers-modal-backdrop" onClick={() => setIsEditModalOpen(false)}>
-          <div className="customers-modal-content glass-panel" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{customers.some(c => c.shopifyId === editForm.shopifyId) ? 'Modifica Cliente' : 'Nuovo Cliente'}</h3>
-              <button className="close-btn" onClick={() => setIsEditModalOpen(false)}><X size={20}/></button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="form-group">
-                <label>ID Shopify *</label>
-                <input type="text" value={editForm.shopifyId || ''} onChange={e => setEditForm({...editForm, shopifyId: e.target.value})} disabled={customers.some(c => c.shopifyId === editForm.shopifyId)} />
-              </div>
-              <div className="form-group">
-                <label>Codice Zucchetti</label>
-                <input type="text" value={editForm.zucchettiArcId || ''} onChange={e => setEditForm({...editForm, zucchettiArcId: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Nome</label>
-                <input type="text" value={editForm.firstName || ''} onChange={e => setEditForm({...editForm, firstName: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Cognome</label>
-                <input type="text" value={editForm.lastName || ''} onChange={e => setEditForm({...editForm, lastName: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} />
-              </div>
-            </div>
-            <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <Button variant="secondary" onClick={() => setIsEditModalOpen(false)}>Annulla</Button>
-              <Button variant="primary" onClick={handleSaveCustomer}>Salva nel DB (V2)</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -33,7 +33,15 @@ export default async function customersRoutes(app: FastifyInstance) {
 
     return {
       success: true,
-      data: customers,
+      data: customers.map(c => ({
+        shopifyId: c.shopifyCustomerId,
+        zucchettiArcId: c.zucchettiCode,
+        email: c.email,
+        firstName: c.fullName?.split(' ')[0] || '',
+        lastName: c.fullName?.split(' ').slice(1).join(' ') || '',
+        phone: null,
+        updatedAt: c.updatedAt
+      })),
       meta: {
         total,
         page: parseInt(page),
@@ -52,7 +60,7 @@ export default async function customersRoutes(app: FastifyInstance) {
     
     // Il cliente nel DB v2-development
     const customer = await prisma.customerMapping.findUnique({
-      where: { id }
+      where: { shopifyCustomerId: id }
     });
 
     if (!customer) {
@@ -79,7 +87,15 @@ export default async function customersRoutes(app: FastifyInstance) {
     return {
       success: true,
       data: {
-        customer,
+        customer: {
+          shopifyId: customer.shopifyCustomerId,
+          zucchettiArcId: customer.zucchettiCode,
+          email: customer.email,
+          firstName: customer.fullName?.split(' ')[0] || '',
+          lastName: customer.fullName?.split(' ').slice(1).join(' ') || '',
+          phone: null,
+          updatedAt: customer.updatedAt
+        },
         recentOrders: orders.map(o => ({
           id: o.id,
           shopifyOrderName: o.shopifyOrderName,
