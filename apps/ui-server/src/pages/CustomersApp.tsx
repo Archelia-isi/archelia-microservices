@@ -3,7 +3,6 @@ import { Search, User, ShoppingCart, RefreshCw, Users, Inbox } from 'lucide-reac
 import StickyHeader from '../components/ui/StickyHeader';
 import GlassPanel from '../components/ui/GlassPanel';
 import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Tabs from '../components/ui/Tabs';
 import Loader from '../components/ui/Loader';
