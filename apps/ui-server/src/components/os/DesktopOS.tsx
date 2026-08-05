@@ -63,6 +63,13 @@ export default function DesktopOS() {
   const [desktopContextMenu, setDesktopContextMenu] = useState<{ x: number, y: number } | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [isReady, setIsReady] = useState(false);
+  const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
+
+  useEffect(() => {
+    const handleResize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -403,29 +410,29 @@ export default function DesktopOS() {
     // Registra le app all'avvio se non presenti (check per singola app invece che globalmente vuoto)
     const getImg = (src: string) => <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Icon" />;
     
-    if (!windows['dashboard']) registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('./icons/dashboard_abstract.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650, desktopX: 30, desktopY: 30, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['orders']) registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('./icons/orders_abstract.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600, desktopX: 30, desktopY: 130, desktopX_B2B: 30, desktopY_B2B: 30 });
-    if (!windows['products']) registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('./icons/products_abstract.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600, desktopX: 30, desktopY: 230, desktopX_B2B: 30, desktopY_B2B: 130 });
-    if (!windows['settings']) registerApp({ id: 'settings', title: 'Centro Sync', icon: getImg('./icons/settings_abstract.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400, desktopX: 30, desktopY: 330, desktopX_B2B: 30, desktopY_B2B: 230 });
-    if (!windows['equalizzatore']) registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('./icons/equalizzatore_abstract.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750, desktopX: 30, desktopY: 430, desktopX_B2B: 30, desktopY_B2B: 330 });
-    if (!windows['marketing']) registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('./icons/marketing_abstract.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800, desktopX: 30, desktopY: 530, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['email_builder']) registerApp({ id: 'email_builder', title: 'Email Builder', icon: getImg('./icons/email_builder_abstract.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800, desktopX: 30, desktopY: 630, desktopX_B2B: undefined, desktopY_B2B: undefined });
+    if (!windows['dashboard']) registerApp({ id: 'dashboard', title: 'Dashboard Archelia', icon: getImg('./icons/dashboard_abstract.jpg'), color: 'transparent', component: <Dashboard />, x: 100, y: 50, width: 1000, height: 650 });
+    if (!windows['orders']) registerApp({ id: 'orders', title: 'Gestione Ordini', icon: getImg('./icons/orders_abstract.jpg'), color: 'transparent', component: <Orders />, x: 150, y: 100, width: 900, height: 600 });
+    if (!windows['products']) registerApp({ id: 'products', title: 'Catalogo Prodotti', icon: getImg('./icons/products_abstract.jpg'), color: 'transparent', component: <Products />, x: 200, y: 150, width: 900, height: 600 });
+    if (!windows['settings']) registerApp({ id: 'settings', title: 'Centro Sync', icon: getImg('./icons/settings_abstract.jpg'), color: 'transparent', component: <Settings />, x: 250, y: 200, width: 600, height: 400 });
+    if (!windows['equalizzatore']) registerApp({ id: 'equalizzatore', title: 'Equalizzatore', icon: getImg('./icons/equalizzatore_abstract.jpg'), color: 'transparent', component: <EqualizzatoreApp />, x: 100, y: 100, width: 1100, height: 750 });
+    if (!windows['marketing']) registerApp({ id: 'marketing', title: 'Marketing', icon: getImg('./icons/marketing_abstract.jpg'), color: 'transparent', component: <MarketingApp />, x: 120, y: 120, width: 1200, height: 800 });
+    if (!windows['email_builder']) registerApp({ id: 'email_builder', title: 'Email Builder', icon: getImg('./icons/email_builder_abstract.jpg'), color: 'transparent', component: <EmailBuilderApp />, x: 140, y: 140, width: 1200, height: 800 });
     
     // Column 2 (Archelia)
-    if (!windows['promo_manual']) registerApp({ id: 'promo-manual', title: 'Promo (Manuale)', icon: getImg('./icons/promo_manual_abstract.jpg'), color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600, desktopX: 130, desktopY: 30, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['os-settings']) registerApp({ id: 'os-settings', title: 'Impostazioni', icon: <DynamicFcIcon name="FcSettings" />, color: 'transparent', component: <OSSettingsApp />, x: 100, y: 100, width: 900, height: 700, desktopX: undefined, desktopY: undefined, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['promo_auto']) registerApp({ id: 'promo_auto', title: 'Sconti Auto', icon: getImg('./icons/promo_auto_abstract.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800, desktopX: 130, desktopY: 130, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['infinity']) registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('./icons/infinity_abstract.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800, desktopX: 130, desktopY: 230, desktopX_B2B: 30, desktopY_B2B: 430 });
-    if (!windows['images']) registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/images_abstract.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600, desktopX: 130, desktopY: 330, desktopX_B2B: 30, desktopY_B2B: 530 });
-    if (!windows['typesense']) registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/typesense_abstract.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800, desktopX: 130, desktopY: 430, desktopX_B2B: 30, desktopY_B2B: 630 });
-    if (!windows['analytics']) registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/analytics_abstract.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800, desktopX: 130, desktopY: 530, desktopX_B2B: 130, desktopY_B2B: 30 });
+    if (!windows['promo_manual']) registerApp({ id: 'promo-manual', title: 'Promo (Manuale)', icon: getImg('./icons/promo_manual_abstract.jpg'), color: 'transparent', component: <PromoManualApp />, x: 60, y: 60, width: 900, height: 600 });
+    if (!windows['os-settings']) registerApp({ id: 'os-settings', title: 'Impostazioni', icon: <DynamicFcIcon name="FcSettings" />, color: 'transparent', component: <OSSettingsApp />, x: 100, y: 100, width: 900, height: 700 });
+    if (!windows['promo_auto']) registerApp({ id: 'promo_auto', title: 'Sconti Auto', icon: getImg('./icons/promo_auto_abstract.jpg'), color: 'transparent', component: <PromoAutoApp />, x: 180, y: 180, width: 1100, height: 800 });
+    if (!windows['infinity']) registerApp({ id: 'infinity', title: 'Infinity', icon: getImg('./icons/infinity_abstract.jpg'), color: 'transparent', component: <InfinityApp />, x: 200, y: 200, width: 1100, height: 800 });
+    if (!windows['images']) registerApp({ id: 'images', title: 'Immagini Asset', icon: getImg('./icons/images_abstract.jpg'), color: 'transparent', component: <ImagesApp />, x: 250, y: 150, width: 900, height: 600 });
+    if (!windows['typesense']) registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/typesense_abstract.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800 });
+    if (!windows['analytics']) registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/analytics_abstract.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800 });
     
     // Column 3 (Archelia)
-    if (!windows['logs']) registerApp({ id: 'logs', title: 'System Logs', icon: getImg('./icons/logs_abstract.jpg'), color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750, desktopX: 130, desktopY: 630, desktopX_B2B: 130, desktopY_B2B: 130 });
-    if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600, desktopX: undefined, desktopY: undefined, desktopX_B2B: undefined, desktopY_B2B: undefined });
-    if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700, desktopX: 230, desktopY: 30, desktopX_B2B: 130, desktopY_B2B: 230 });
-    if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 130, desktopX_B2B: 130, desktopY_B2B: 330 });
-    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700, desktopX: 230, desktopY: 230, desktopX_B2B: 130, desktopY_B2B: 430 });
+    if (!windows['logs']) registerApp({ id: 'logs', title: 'System Logs', icon: getImg('./icons/logs_abstract.jpg'), color: 'transparent', component: <LogsApp />, x: 120, y: 120, width: 1000, height: 750 });
+    if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600 });
+    if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700 });
+    if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700 });
+    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700 });
   }, []);
 
   if (!isLoggedIn) {
@@ -484,40 +491,111 @@ export default function DesktopOS() {
       >
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-          {Object.values(windows).map(app => {
-            if (app.id === 'roblox_game' && activeTheme !== 'roblox') return null;
-            if (app.id === 'os-settings') return null;
-            const gridPos = currentStore === 'B2B' ? { x: (app as any).desktopX_B2B, y: (app as any).desktopY_B2B } : { x: app.desktopX, y: app.desktopY };
-            if (gridPos.x == null || gridPos.y == null) return null;
-            
+          {(() => {
             const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
-            if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return null;
-            if (!canViewApp(app.id, currentStore)) return null;
             
-            const themeIconPath = getThemeIconPath(app.id, activeTheme);
-            const finalIconPath = themeIconPath || app.iconPath;
-            return (
-            <div 
-              key={`shortcut-${app.id}`} 
-              className="desktop-icon-wrapper"
-              onClick={() => openWindow(app.id)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, appId: app.id });
-              }}
-              draggable={true}
-              onDragStart={(e) => handleDragStartDesktopIcon(e, app.id)}
-              onDragEnd={handleDragEndDesktopIcon}
-              style={{
-                position: 'absolute',
-                left: pixelsToCell(gridPos.x ?? 0, 0).col * CELL_WIDTH,
-                top: pixelsToCell(0, gridPos.y ?? 0).row * CELL_HEIGHT,
-                pointerEvents: 'auto',
-                opacity: draggingAppId === app.id ? 0 : 1
-              }}
-            >
-              <div className="desktop-icon flex-center" style={{ background: app.color }}>
-                {finalIconPath ? (
+            // 1. Filtra le app effettivamente visibili
+            const visibleApps = Object.values(windows).filter(app => {
+              if (app.id === 'roblox_game' && activeTheme !== 'roblox') return false;
+              if (app.id === 'os-settings') return false;
+              if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
+              if (!canViewApp(app.id, currentStore)) return false;
+              return true;
+            });
+
+            // 2. Prepara la griglia di occupazione
+            const occupied = new Set<string>();
+            const dynamicPositions: Record<string, { x: number, y: number }> = {};
+            const iconDim = getIconDimensions(); // { colSpan: 80, rowSpan: 100 }
+            
+            // Margine di spaziatura della griglia
+            const gridMarginX = 30;
+            const gridMarginY = 30;
+            const stepX = iconDim.colSpan + 20; // 100px circa
+            const stepY = iconDim.rowSpan; // 100px circa
+
+            // Calcola il numero massimo di righe in base all'altezza disponibile
+            const availableHeight = windowSize.h - 80; // 80px per la taskbar
+            const maxRows = Math.max(1, Math.floor((availableHeight - gridMarginY) / stepY));
+
+            // Segna i widget come occupati (Omitted for simplicity)
+
+            // 3. Posiziona le app "Fissate" (manuali) e segnale come occupate
+            visibleApps.forEach(app => {
+              const savedX = currentStore === 'B2B' ? (app as any).desktopX_B2B : app.desktopX;
+              const savedY = currentStore === 'B2B' ? (app as any).desktopY_B2B : app.desktopY;
+              
+              if (savedX !== undefined && savedY !== undefined) {
+                // Clamping per evitare che l'app esca dallo schermo se si rimpicciolisce
+                let clampedX = Math.max(0, Math.min(savedX, windowSize.w - iconDim.colSpan - 20));
+                let clampedY = Math.max(0, Math.min(savedY, availableHeight - iconDim.rowSpan));
+                
+                dynamicPositions[app.id] = { x: clampedX, y: clampedY };
+                
+                // Segna le celle occupate
+                const r = Math.floor(clampedY / stepY);
+                const c = Math.floor(clampedX / stepX);
+                occupied.add(`${c},${r}`);
+              }
+            });
+
+            // 4. Posiziona automaticamente le app rimanenti
+            let currentCol = 0;
+            let currentRow = 0;
+
+            visibleApps.forEach(app => {
+              if (dynamicPositions[app.id]) return; // Già posizionata manualmente
+
+              // Cerca il prossimo slot libero
+              while (occupied.has(`${currentCol},${currentRow}`)) {
+                currentRow++;
+                if (currentRow >= maxRows) {
+                  currentRow = 0;
+                  currentCol++;
+                }
+              }
+
+              dynamicPositions[app.id] = { 
+                x: gridMarginX + currentCol * stepX, 
+                y: gridMarginY + currentRow * stepY 
+              };
+              occupied.add(`${currentCol},${currentRow}`);
+              
+              currentRow++;
+              if (currentRow >= maxRows) {
+                currentRow = 0;
+                currentCol++;
+              }
+            });
+
+            return visibleApps.map(app => {
+              const gridPos = dynamicPositions[app.id];
+              const themeIconPath = getThemeIconPath(app.id, activeTheme);
+              const finalIconPath = themeIconPath || app.iconPath;
+              
+              return (
+              <div 
+                key={`shortcut-${app.id}`} 
+                className="desktop-icon-wrapper"
+                onClick={() => openWindow(app.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, appId: app.id });
+                }}
+                draggable={true}
+                onDragStart={(e) => handleDragStartDesktopIcon(e, app.id)}
+                onDragEnd={handleDragEndDesktopIcon}
+                style={{
+                  position: 'absolute',
+                  left: gridPos.x,
+                  top: gridPos.y,
+                  transition: 'left 0.3s ease, top 0.3s ease', // Aggiunge animazione fluida al resize
+                  pointerEvents: 'auto',
+                  opacity: draggingAppId === app.id ? 0 : 1
+                }}
+              >
+                <div className="desktop-icon flex-center" style={{ background: app.color }}>
+                  {finalIconPath ? (
                   finalIconPath.startsWith('fc:') ? (
                     <DynamicFcIcon name={finalIconPath.split(':')[1]} />
                   ) : (
@@ -530,7 +608,8 @@ export default function DesktopOS() {
               <span className="desktop-icon-label">{app.title}</span>
             </div>
             );
-          })}
+            });
+          })()}
         </div>
 
         {/* Livello Widget Desktop */}
