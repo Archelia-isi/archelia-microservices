@@ -56,7 +56,8 @@ export default function DesktopOS() {
   const { widgets } = useWidgetStore();
   const settings = useSettingsStore();
   const { currentStore } = useStoreContext();
-  const { desktopSnapEnabled, desktopSnapRadius, desktopMargin } = settings;
+  const { desktopSnapEnabled, desktopSnapRadius, desktopMargin, desktopSortMode } = settings;
+  const { setDesktopSnapEnabled, setDesktopSortMode } = settings;
 
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, appId: string } | null>(null);
@@ -495,13 +496,18 @@ export default function DesktopOS() {
             const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
             
             // 1. Filtra le app effettivamente visibili
-            const visibleApps = Object.values(windows).filter(app => {
+            let visibleApps = Object.values(windows).filter(app => {
               if (app.id === 'roblox_game' && activeTheme !== 'roblox') return false;
               if (app.id === 'os-settings') return false;
               if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
               if (!canViewApp(app.id, currentStore)) return false;
               return true;
             });
+            
+            // Ordina se necessario
+            if (desktopSortMode === 'name') {
+              visibleApps = visibleApps.sort((a, b) => a.title.localeCompare(b.title));
+            }
 
             // 2. Prepara la griglia di occupazione
             const occupied = new Set<string>();
@@ -689,20 +695,55 @@ export default function DesktopOS() {
           onClose={() => setDesktopContextMenu(null)}
           items={[
             {
+              id: 'arrange-icons',
+              label: 'Disponi icone',
+              submenu: [
+                {
+                  id: 'auto-arrange',
+                  label: 'Disposizione automatica',
+                  onClick: () => {
+                    // Reset all pinned apps
+                    const b2b = currentStore === 'B2B';
+                    Object.values(windows).forEach(win => {
+                      if (b2b && (win as any).desktopX_B2B !== undefined) {
+                        useWindowStore.getState().updateDesktopPosition(win.id, undefined, undefined, 'B2B');
+                      } else if (!b2b && win.desktopX !== undefined) {
+                        useWindowStore.getState().updateDesktopPosition(win.id, undefined, undefined);
+                      }
+                    });
+                  }
+                },
+                {
+                  id: 'align-grid',
+                  label: 'Allinea alla griglia',
+                  icon: desktopSnapEnabled ? '✓' : undefined,
+                  onClick: () => {
+                    setDesktopSnapEnabled(!desktopSnapEnabled);
+                  }
+                },
+                {
+                  id: 'sort-name',
+                  label: 'Ordina per nome',
+                  icon: desktopSortMode === 'name' ? '✓' : undefined,
+                  onClick: () => {
+                    setDesktopSortMode(desktopSortMode === 'name' ? 'default' : 'name');
+                  }
+                }
+              ]
+            },
+            {
               id: 'manage-widgets',
               label: 'Gestione Widgets',
+              dividerBefore: true,
               onClick: () => {
                 toggleWidgetManager();
-                setDesktopContextMenu(null);
               }
             },
             {
               id: 'system-settings',
               label: 'Impostazioni di Sistema',
-              dividerBefore: true,
               onClick: () => {
                 openWindow('os-settings');
-                setDesktopContextMenu(null);
               }
             }
           ]}

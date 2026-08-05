@@ -23,6 +23,7 @@ export interface OSSettingsState {
   desktopSnapEnabled: boolean;
   desktopSnapRadius: number;
   desktopMargin: number;
+  desktopSortMode: 'default' | 'name';
 
   setTheme: (theme: Theme) => void;
   setAccentColor: (color: string) => void;
@@ -42,6 +43,7 @@ export interface OSSettingsState {
   setDesktopSnapEnabled: (enabled: boolean) => void;
   setDesktopSnapRadius: (radius: number) => void;
   setDesktopMargin: (margin: number) => void;
+  setDesktopSortMode: (mode: 'default' | 'name') => void;
   
   hydrate: (settings: Partial<OSSettingsState>) => void;
 }
@@ -67,6 +69,7 @@ export const useSettingsStore = create<OSSettingsState>()(
       desktopSnapEnabled: true,
       desktopSnapRadius: 16,
       desktopMargin: 16,
+      desktopSortMode: 'default',
 
       setTheme: (theme) => set({ theme }),
       setAccentColor: (accentColor) => set({ accentColor }),
@@ -86,6 +89,7 @@ export const useSettingsStore = create<OSSettingsState>()(
       setDesktopSnapEnabled: (desktopSnapEnabled) => set({ desktopSnapEnabled }),
       setDesktopSnapRadius: (desktopSnapRadius) => set({ desktopSnapRadius }),
       setDesktopMargin: (desktopMargin) => set({ desktopMargin }),
+      setDesktopSortMode: (desktopSortMode) => set({ desktopSortMode }),
       
       hydrate: (settings) => set(settings)
     }),

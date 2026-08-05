@@ -8,8 +8,9 @@ export interface ContextMenuItem {
   icon?: React.ReactNode;
   variant?: 'primary' | 'danger' | 'warning' | 'default';
   disabled?: boolean;
-  onClick: () => void;
+  onClick?: () => void; // Made optional since submenu items might not have a direct onClick
   dividerBefore?: boolean;
+  submenu?: ContextMenuItem[];
 }
 
 interface ContextMenuProps {
@@ -21,6 +22,7 @@ interface ContextMenuProps {
 
 export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [activeSubmenuId, setActiveSubmenuId] = React.useState<string | number | null>(null);
 
   // Chiudi cliccando fuori
   useEffect(() => {
@@ -48,8 +50,6 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
   let adjustedX = x;
   let adjustedY = y;
   
-  // Stima della larghezza/altezza. Potremmo usare un useLayoutEffect, 
-  // ma per un context menu semplice una stima o un ricalcolo rapido va bene.
   const menuWidth = 200;
   const menuHeight = items.length * 36 + 16; // approx
 
@@ -60,6 +60,62 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
     adjustedY = window.innerHeight - menuHeight - 8;
   }
 
+  const handleMouseEnter = (item: ContextMenuItem) => {
+    if (item.submenu && item.submenu.length > 0) {
+      setActiveSubmenuId(item.id);
+    } else {
+      setActiveSubmenuId(null);
+    }
+  };
+
+  const renderSubmenu = (parentItem: ContextMenuItem) => {
+    if (!parentItem.submenu || parentItem.submenu.length === 0) return null;
+    
+    // Determine if submenu should open to the left or right
+    // Standard is right (100%), if no space, left (-100%)
+    const parentNode = menuRef.current;
+    let openLeft = false;
+    
+    if (parentNode) {
+      const rect = parentNode.getBoundingClientRect();
+      const submenuWidth = 200; // estimated
+      if (rect.right + submenuWidth > window.innerWidth) {
+        openLeft = true;
+      }
+    }
+
+    return (
+      <div 
+        className="ui-context-submenu"
+        style={{
+          left: openLeft ? 'auto' : '100%',
+          right: openLeft ? '100%' : 'auto',
+          top: 0
+        }}
+      >
+        {parentItem.submenu.map((subItem) => (
+          <React.Fragment key={subItem.id}>
+            {subItem.dividerBefore && <div className="ui-context-divider"></div>}
+            <button
+              className={`ui-context-item ${subItem.variant || 'default'}`}
+              disabled={subItem.disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (subItem.onClick) subItem.onClick();
+                onClose();
+              }}
+            >
+              <div className="ui-context-item-content">
+                {subItem.icon && <span className="ui-context-item-icon">{subItem.icon}</span>}
+                {subItem.label}
+              </div>
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+    );
+  };
+
   return createPortal(
     <div 
       className="ui-context-menu" 
@@ -68,21 +124,29 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
       {items.map((item) => (
-        <React.Fragment key={item.id}>
+        <div 
+          key={item.id} 
+          style={{ position: 'relative' }}
+          onMouseEnter={() => handleMouseEnter(item)}
+        >
           {item.dividerBefore && <div className="ui-context-divider"></div>}
           <button
             className={`ui-context-item ${item.variant || 'default'}`}
             disabled={item.disabled}
             onClick={(e) => {
               e.stopPropagation();
-              item.onClick();
-              onClose();
+              if (item.onClick) item.onClick();
+              if (!item.submenu) onClose();
             }}
           >
-            {item.icon && <span className="ui-context-item-icon">{item.icon}</span>}
-            {item.label}
+            <div className="ui-context-item-content">
+              {item.icon && <span className="ui-context-item-icon">{item.icon}</span>}
+              {item.label}
+              {item.submenu && <span className="ui-context-item-chevron">▶</span>}
+            </div>
           </button>
-        </React.Fragment>
+          {activeSubmenuId === item.id && renderSubmenu(item)}
+        </div>
       ))}
     </div>,
     document.body
