@@ -188,13 +188,57 @@ export async function adminCustomersRoutes(app: FastifyInstance) {
       where: { customerId: shopifyId }
     });
 
+    // Ricerca notifiche (Marketing Emails & Web Push)
+    let emailJobs: any[] = [];
+    let pushJobs: any[] = [];
+    
+    if (customer.email) {
+      emailJobs = await prisma.marketingJob.findMany({
+        where: { event: { customerEmail: customer.email } },
+        include: { template: true },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+      });
+
+      const devices = await prisma.webPushSubscription.findMany({
+        where: { customerEmail: customer.email }
+      });
+      
+      const deviceIds = devices.map(d => d.deviceId);
+      
+      if (deviceIds.length > 0) {
+        pushJobs = await prisma.pushJob.findMany({
+          where: { deviceId: { in: deviceIds } },
+          orderBy: { createdAt: 'desc' },
+          take: 5
+        });
+      }
+    }
+
+    const notifications = [
+      ...emailJobs.map(job => ({
+        id: job.id,
+        type: 'EMAIL',
+        title: job.template?.subject || job.jobType,
+        status: job.status,
+        date: job.createdAt
+      })),
+      ...pushJobs.map(job => ({
+        id: job.id,
+        type: 'PUSH',
+        title: job.jobType,
+        status: job.status,
+        date: job.createdAt
+      }))
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
     return reply.status(200).send({
       success: true,
       data: {
         customer,
         orders: orders,
         abandonedCart: cart,
-        notifications: [] // TODO: recuperare notifiche web push/marketing in futuro
+        notifications: notifications
       }
     });
   });
