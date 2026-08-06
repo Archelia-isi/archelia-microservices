@@ -177,29 +177,30 @@ export default function CustomersApp() {
 
   const renderOrdersTab = () => {
     if (selectedOrder) {
-      const items = selectedOrder.payload?.line_items || [];
+      const payload = selectedOrder.zucchettiQueue?.payload || {};
+      const items = payload.line_items || [];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Button variant="secondary" onClick={() => setSelectedOrder(null)}><ChevronLeft size={16}/> Indietro</Button>
-            <h3 style={{ margin: 0 }}>Ordine: {selectedOrder.shopifyOrderName}</h3>
-            {getOrderStatusBadge(selectedOrder.status)}
+            <h3 style={{ margin: 0 }}>Ordine: {selectedOrder.orderNumber}</h3>
+            {getOrderStatusBadge(selectedOrder.zucchettiQueue?.status || 'PENDING')}
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <GlassPanel padding="md">
               <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Dettagli Economici</strong>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Subtotale:</span> <span>€{selectedOrder.payload?.current_subtotal_price || '0.00'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Sconti:</span> <span>-€{selectedOrder.payload?.current_total_discounts || '0.00'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Tasse:</span> <span>€{selectedOrder.payload?.current_total_tax || '0.00'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}><span>Totale:</span> <span>€{selectedOrder.payload?.current_total_price || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Subtotale:</span> <span>€{payload.current_subtotal_price || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Sconti:</span> <span>-€{payload.current_total_discounts || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Tasse:</span> <span>€{payload.current_total_tax || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}><span>Totale:</span> <span>€{payload.current_total_price || selectedOrder.totalPrice?.toFixed(2) || '0.00'}</span></div>
             </GlassPanel>
             <GlassPanel padding="md">
               <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Altre Info</strong>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Data:</span> <span>{new Date(selectedOrder.createdAt).toLocaleString()}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Num. Ordine:</span> <span>{selectedOrder.payload?.order_number || selectedOrder.shopifyOrderName}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Pagamento:</span> <span>{selectedOrder.payload?.payment_gateway_names?.join(', ') || '-'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Status Finanziario:</span> <span><Badge variant="neutral">{selectedOrder.payload?.financial_status || '-'}</Badge></span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Num. Ordine:</span> <span>{payload.order_number || selectedOrder.orderNumber}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Pagamento:</span> <span>{payload.payment_gateway_names?.join(', ') || '-'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Status Finanziario:</span> <span><Badge variant="neutral">{payload.financial_status || '-'}</Badge></span></div>
             </GlassPanel>
           </div>
 
@@ -238,7 +239,9 @@ export default function CustomersApp() {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {customerDetails!.orders.map(o => (
+        {customerDetails!.orders.map(o => {
+          const p = o.zucchettiQueue?.payload || {};
+          return (
           <GlassPanel 
             key={o.id} 
             padding="md"
@@ -249,16 +252,16 @@ export default function CustomersApp() {
                <ShoppingCart size={20} color="var(--color-primary)" />
             </div>
             <div>
-              <strong style={{ display: 'block', fontSize: '1.1rem' }}>Ordine: {o.shopifyOrderName}</strong>
+              <strong style={{ display: 'block', fontSize: '1.1rem' }}>Ordine: {o.orderNumber || '-'}</strong>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
-                {new Date(o.createdAt).toLocaleDateString()} · Numero Ordine: {o.payload?.order_number || o.shopifyOrderName} · Totale: €{o.payload?.current_total_price || o.totalPrice?.toFixed(2) || '0.00'}
+                {new Date(o.createdAt).toLocaleDateString()} · Numero Ordine: {p.order_number || o.orderNumber || '-'} · Totale: €{p.current_total_price || o.totalPrice?.toFixed(2) || '0.00'}
               </span>
             </div>
             <div style={{ marginLeft: 'auto' }}>
-              {getOrderStatusBadge(o.status)}
+              {getOrderStatusBadge(o.zucchettiQueue?.status || 'PENDING')}
             </div>
           </GlassPanel>
-        ))}
+        )})}
       </div>
     );
   };
