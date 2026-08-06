@@ -2,6 +2,7 @@ import { Search, RefreshCw, Filter, PackageOpen, MoreVertical, ImageOff } from '
 import { useState, useEffect } from 'react';
 
 import { useStoreContext } from '../store/useStoreContext';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 interface Product {
   id: string;
@@ -22,6 +23,7 @@ export default function Products() {
   const [statusMsg, setStatusMsg] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -66,6 +68,7 @@ export default function Products() {
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
+      setIsAppReady(true);
     }
   };
 
@@ -100,8 +103,14 @@ export default function Products() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header & Actions */}
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Prodotti" 
+        icon={<PackageOpen size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''} animate-fade-in`} style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1rem', overflowY: 'auto' }}>
+        {/* Header & Actions */}
       <div className="flex-between" style={{ marginBottom: '1.5rem', flexShrink: 0 }}>
         <h2 className="text-h2" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <PackageOpen size={24} color="var(--color-primary)" />
@@ -218,6 +227,7 @@ export default function Products() {
             </tbody>
           </table>
         )}
+      </div>
       </div>
     </div>
   );

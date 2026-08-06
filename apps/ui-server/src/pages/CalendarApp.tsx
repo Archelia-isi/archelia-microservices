@@ -8,6 +8,7 @@ import StickyHeader from '../components/ui/StickyHeader';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import TextInput from '../components/ui/TextInput';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -27,6 +28,7 @@ const localizer = dateFnsLocalizer({
 export default function CalendarApp() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -60,6 +62,7 @@ export default function CalendarApp() {
       console.error(e);
     } finally {
       setLoading(false);
+      setIsAppReady(true);
     }
   };
 
@@ -151,7 +154,13 @@ export default function CalendarApp() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Calendario Eventi" 
+        icon={<CalendarIcon size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
       <StickyHeader paddingY="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-glass)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <CalendarIcon size={24} color="var(--color-primary)" />
@@ -357,6 +366,7 @@ export default function CalendarApp() {
           />
         </div>
       </Modal>
+      </div>
     </div>
   );
 }

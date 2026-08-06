@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Package, ShoppingCart, Users, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { useStoreContext } from '../store/useStoreContext';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 interface StatsResponse {
   stats: {
@@ -67,8 +68,8 @@ export default function Dashboard() {
         if (logsRes.ok) {
           setLogs(await logsRes.json());
         }
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
+      } catch (e) {
+        console.error('Errore caricamento statistiche', e);
       } finally {
         setLoading(false);
       }
@@ -78,14 +79,6 @@ export default function Dashboard() {
     const interval = setInterval(fetchDashboardData, 30000); // Polling every 30s
     return () => clearInterval(interval);
   }, [currentStore]);
-
-  if (loading && !stats) {
-    return (
-      <div className="flex-center" style={{ height: '100%', width: '100%' }}>
-        <div className="spinner"></div>
-      </div>
-    );
-  }
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(val);
@@ -100,7 +93,15 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
+    <div className={`${loading || !stats ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={loading || !stats} 
+        appName="Dashboard" 
+        icon={<Activity size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${!loading && stats ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        {stats && (
+          <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h2 className="text-h1">Panoramica</h2>
         <p className="text-small">Tieni sotto controllo le metriche vitali in tempo reale.</p>
@@ -198,6 +199,9 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+      </div>
+          </div>
+        )}
       </div>
     </div>
   );

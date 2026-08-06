@@ -5,6 +5,7 @@ import FunnelBar from '../components/ui/FunnelBar';
 import LineChartGlass from '../components/ui/LineChartGlass';
 import toast from 'react-hot-toast';
 import { useStoreContext } from '../store/useStoreContext';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 import './AnalyticsApp.css';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -84,15 +85,6 @@ export default function AnalyticsApp() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="analytics-loading">
-        <div className="analytics-spinner" />
-        <p>Analisi in corso...</p>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="analytics-loading" style={{ color: '#ef4444' }}>
@@ -102,7 +94,15 @@ export default function AnalyticsApp() {
   }
 
   return (
-    <div className="analytics-container">
+    <div className={`${loading || !data ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={loading || !data} 
+        appName="Centro Analisi" 
+        icon={<TrendingUp size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${!loading && data ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+        {data && (
+          <div className="analytics-container">
       
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--spacing-md)' }}>
         <select 
@@ -189,6 +189,9 @@ export default function AnalyticsApp() {
         </div>
       </div>
       
+    </div>
+        )}
+      </div>
     </div>
   );
 }

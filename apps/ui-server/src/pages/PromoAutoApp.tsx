@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Bot } from 'lucide-react';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import Switch from '../components/ui/Switch';
@@ -12,7 +14,13 @@ type LaunchItem = {
 };
 
 export default function PromoAutoApp() {
+  const [isAppReady, setIsAppReady] = useState(false);
   const [masterActive, setMasterActive] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsAppReady(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
   
   const [activeTab, setActiveTab] = useState<'daily'|'flash'|'std'|'timeline'>('daily');
 
@@ -123,7 +131,13 @@ export default function PromoAutoApp() {
   };
 
   return (
-    <div className="app-container" style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Brain Promozioni (Auto)" 
+        icon={<Bot size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''} app-container`} style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
       {/* --- PARTE SUPERIORE FISSA --- */}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -349,7 +363,7 @@ export default function PromoAutoApp() {
         )}
 
       </GlassPanel>
-
+      </div>
     </div>
   );
 }

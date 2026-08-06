@@ -7,6 +7,7 @@ import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import Tabs from '../components/ui/Tabs';
 import Loader from '../components/ui/Loader';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 interface Customer {
   shopifyId: string;
@@ -34,6 +35,7 @@ export default function CustomersApp() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isAppReady, setIsAppReady] = useState(false);
   
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails | null>(null);
@@ -89,6 +91,7 @@ export default function CustomersApp() {
       console.error(e);
     } finally {
       setLoading(false);
+      setIsAppReady(true);
     }
   };
 
@@ -416,7 +419,13 @@ export default function CustomersApp() {
   };
 
   return (
-    <div style={{ padding: '0', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Clienti" 
+        icon={<Users size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ padding: '0', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <StickyHeader paddingY="md" backgroundOpacity={0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
           <Tabs 
@@ -588,6 +597,7 @@ export default function CustomersApp() {
           </div>
         ) : null}
       </Modal>
+      </div>
     </div>
   );
 }

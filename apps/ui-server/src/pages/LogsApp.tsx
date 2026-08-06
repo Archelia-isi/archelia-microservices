@@ -7,6 +7,7 @@ import LogViewer, { type LogEntry } from '../components/ui/LogViewer';
 import { RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useStoreContext } from '../store/useStoreContext';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 const APPS_LIST = [
   { id: 'api-gateway', label: 'API Gateway' },
@@ -27,6 +28,7 @@ export default function LogsApp() {
   const [activeTab, setActiveTab] = useState(APPS_LIST[0].id);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
   const fetchLogs = async (category: string) => {
@@ -53,6 +55,7 @@ export default function LogsApp() {
       setLogs([]);
     } finally {
       setLoading(false);
+      setIsAppReady(true);
     }
   };
 
@@ -61,13 +64,19 @@ export default function LogsApp() {
   }, [activeTab, currentStore]);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      backgroundColor: 'transparent'
-    }}>
-      <StickyHeader paddingY="sm" backgroundOpacity={0}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Log di Sistema" 
+        icon={<RefreshCcw size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        backgroundColor: 'transparent'
+      }}>
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
         <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <GlassPanel padding="sm" radius="lg" style={{ display: 'flex', alignItems: 'center', flex: 1, overflowX: 'auto', marginRight: 'var(--spacing-md)' }}>
             <Tabs
@@ -100,6 +109,7 @@ export default function LogsApp() {
           loading={loading} 
           emptyMessage={`Nessun log recente trovato per il microservizio: ${activeTab}`} 
         />
+      </div>
       </div>
     </div>
   );

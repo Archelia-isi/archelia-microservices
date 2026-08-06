@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
+import { Wand2 } from 'lucide-react';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
@@ -8,6 +10,13 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 
 
 export default function PromoManualApp() {
+  const [isAppReady, setIsAppReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsAppReady(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     tipo_promozione: '',
@@ -112,7 +121,13 @@ export default function PromoManualApp() {
   );
 
   return (
-    <div className="app-container" style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Generatore Promo (Manuale)" 
+        icon={<Wand2 size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''} app-container`} style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
       {renderStepNav()}
 
       {message && (
@@ -417,6 +432,7 @@ export default function PromoManualApp() {
 
         </GlassPanel>
       </form>
+      </div>
     </div>
   );
 }

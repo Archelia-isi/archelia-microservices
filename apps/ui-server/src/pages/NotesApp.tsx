@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { Plus, Trash2, StickyNote, Bold, Italic, List, ListOrdered, Save } from 'lucide-react';
 import StickyHeader from '../components/ui/StickyHeader';
 import Button from '../components/ui/Button';
+import AppSplashScreen from '../components/os/AppSplashScreen';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -11,6 +12,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 export default function NotesApp() {
   const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   
   const [title, setTitle] = useState('');
@@ -43,6 +45,7 @@ export default function NotesApp() {
       console.error(e);
     } finally {
       setLoading(false);
+      setIsAppReady(true);
     }
   };
 
@@ -120,7 +123,13 @@ export default function NotesApp() {
   ];
 
   return (
-    <div style={{ display: 'flex', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+      <AppSplashScreen 
+        isLoading={!isAppReady} 
+        appName="Note" 
+        icon={<StickyNote size={56} color="white" />} 
+      />
+      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ display: 'flex', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
       
       {/* SIDEBAR */}
       <div style={{ 
@@ -315,6 +324,7 @@ export default function NotesApp() {
             <EditorContent editor={editor} />
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
