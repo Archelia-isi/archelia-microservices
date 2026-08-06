@@ -177,28 +177,29 @@ export default function CustomersApp() {
 
   const renderOrdersTab = () => {
     if (selectedOrder) {
-      const items = selectedOrder.payload.line_items || [];
+      const items = selectedOrder.payload?.line_items || [];
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <Button variant="secondary" onClick={() => setSelectedOrder(null)}><ChevronLeft size={16}/> Indietro</Button>
-            <h3 style={{ margin: 0 }}>Ordine {selectedOrder.shopifyOrderName}</h3>
+            <h3 style={{ margin: 0 }}>Ordine: {selectedOrder.shopifyOrderName}</h3>
             {getOrderStatusBadge(selectedOrder.status)}
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <GlassPanel padding="md">
               <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Dettagli Economici</strong>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Subtotale:</span> <span>€{selectedOrder.payload.current_subtotal_price}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Sconti:</span> <span>-€{selectedOrder.payload.current_total_discounts}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Tasse:</span> <span>€{selectedOrder.payload.current_total_tax}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}><span>Totale:</span> <span>€{selectedOrder.payload.current_total_price}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Subtotale:</span> <span>€{selectedOrder.payload?.current_subtotal_price || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Sconti:</span> <span>-€{selectedOrder.payload?.current_total_discounts || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Tasse:</span> <span>€{selectedOrder.payload?.current_total_tax || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}><span>Totale:</span> <span>€{selectedOrder.payload?.current_total_price || '0.00'}</span></div>
             </GlassPanel>
             <GlassPanel padding="md">
               <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Altre Info</strong>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Data:</span> <span>{new Date(selectedOrder.createdAt).toLocaleString()}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Gateway Pagamento:</span> <span>{selectedOrder.payload.payment_gateway_names?.join(', ') || '-'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Financial Status:</span> <span><Badge variant="neutral">{selectedOrder.payload.financial_status}</Badge></span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Num. Ordine:</span> <span>{selectedOrder.payload?.order_number || selectedOrder.shopifyOrderName}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Pagamento:</span> <span>{selectedOrder.payload?.payment_gateway_names?.join(', ') || '-'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Status Finanziario:</span> <span><Badge variant="neutral">{selectedOrder.payload?.financial_status || '-'}</Badge></span></div>
             </GlassPanel>
           </div>
 
@@ -236,25 +237,27 @@ export default function CustomersApp() {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {customerDetails!.orders.map(o => (
-          <div 
+          <GlassPanel 
             key={o.id} 
+            padding="md"
             onClick={() => setSelectedOrder(o)}
-            style={{ background: 'var(--color-bg-alt)', padding: '1rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', transition: 'background 0.2s' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-alt)')}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem' }}
           >
-            <ShoppingCart size={20} color="var(--color-text-muted)" />
-            <div>
-              <strong style={{ display: 'block', fontSize: '1.1rem' }}>{o.shopifyOrderName}</strong>
-              <small style={{ color: 'var(--color-text-muted)' }}><Calendar size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-top' }}/>{new Date(o.createdAt).toLocaleString('it-IT')}</small>
+            <div style={{ background: 'var(--color-bg-alt)', padding: '0.75rem', borderRadius: '50%' }}>
+               <ShoppingCart size={20} color="var(--color-primary)" />
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>€{o.totalPrice?.toFixed(2) || '0.00'}</span>
+            <div>
+              <strong style={{ display: 'block', fontSize: '1.1rem' }}>Ordine: {o.shopifyOrderName}</strong>
+              <span style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                {new Date(o.createdAt).toLocaleDateString()} · Numero Ordine: {o.payload?.order_number || o.shopifyOrderName} · Totale: €{o.payload?.current_total_price || o.totalPrice?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
               {getOrderStatusBadge(o.status)}
             </div>
-          </div>
+          </GlassPanel>
         ))}
       </div>
     );
@@ -460,7 +463,7 @@ export default function CustomersApp() {
       <Modal
         isOpen={!!selectedCustomer}
         onClose={() => setSelectedCustomer(null)}
-        title={customerDetails ? `Dettaglio a 360°: ${customerDetails.customer.firstName} ${customerDetails.customer.lastName}` : "Caricamento dettagli..."}
+        title={customerDetails ? `${customerDetails.customer.firstName} ${customerDetails.customer.lastName}` : "Caricamento dettagli..."}
         size="full"
       >
         {detailsLoading ? (
