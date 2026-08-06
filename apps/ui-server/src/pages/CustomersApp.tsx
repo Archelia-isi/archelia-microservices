@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, User, ShoppingCart, RefreshCw, Users, Inbox, Bell, MapPin, FileText, ChevronLeft, Calendar, Package } from 'lucide-react';
+import { Search, User, ShoppingCart, RefreshCw, Users, Inbox, Bell, MapPin, FileText, ChevronLeft, Package } from 'lucide-react';
 import StickyHeader from '../components/ui/StickyHeader';
 import GlassPanel from '../components/ui/GlassPanel';
 import Badge from '../components/ui/Badge';
