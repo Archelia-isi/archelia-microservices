@@ -187,14 +187,16 @@ export default function CustomersApp() {
             tabs={[
               { id: 'orders', label: `Ordini (${(customerDetails.orders || []).length})`, icon: <ShoppingCart size={14} /> },
               { id: 'cart', label: 'Carrello Abbandonato', icon: <Package size={14} /> },
-              { id: 'notifications', label: `Notifiche (${(customerDetails.notifications || []).length})`, icon: <Bell size={14} /> }
+              { id: 'emails', label: `Email (${(customerDetails.notifications || []).filter((n: any) => n.type === 'EMAIL').length})`, icon: <FileText size={14} /> },
+              { id: 'push', label: `Notifiche Push (${(customerDetails.notifications || []).filter((n: any) => n.type === 'PUSH').length})`, icon: <Bell size={14} /> }
             ]}
         />
         
         <div style={{ marginTop: '1.5rem', flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
           {modalActiveTab === 'orders' && renderOrdersTab()}
           {modalActiveTab === 'cart' && renderCartTab()}
-          {modalActiveTab === 'notifications' && renderNotificationsTab()}
+          {modalActiveTab === 'emails' && renderNotificationsTab('EMAIL')}
+          {modalActiveTab === 'push' && renderNotificationsTab('PUSH')}
         </div>
       </div>
     )
@@ -340,13 +342,13 @@ export default function CustomersApp() {
     );
   };
 
-  const renderNotificationsTab = () => {
+  const renderNotificationsTab = (type: 'EMAIL' | 'PUSH') => {
     if (selectedNotification) {
        return (
          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Button variant="secondary" onClick={() => setSelectedNotification(null)}><ChevronLeft size={16}/> Indietro</Button>
-              <h3 style={{ margin: 0 }}>Dettaglio Notifica</h3>
+              <h3 style={{ margin: 0 }}>Dettaglio {selectedNotification.type === 'EMAIL' ? 'Email' : 'Notifica'}</h3>
               <Badge variant={selectedNotification.type === 'EMAIL' ? 'primary' : 'warning'}>{selectedNotification.type}</Badge>
               <Badge variant={selectedNotification.status === 'COMPLETED' ? 'success' : 'neutral'}>{selectedNotification.status}</Badge>
            </div>
@@ -354,11 +356,11 @@ export default function CustomersApp() {
            <GlassPanel padding="md">
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Job Type</strong> <span>{selectedNotification.jobType}</span></div>
-               <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Data Schedulata</strong> <span>{new Date(selectedNotification.scheduledFor).toLocaleString()}</span></div>
+               <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Data Schedulata</strong> <span>{new Date(selectedNotification.scheduledFor || selectedNotification.date).toLocaleString()}</span></div>
                {selectedNotification.type === 'EMAIL' && (
                  <>
                    <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Template</strong> <span>{selectedNotification.templateName || '-'}</span></div>
-                   <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Oggetto</strong> <span>{selectedNotification.templateSubject || '-'}</span></div>
+                   <div><strong style={{ color: 'var(--color-text-muted)', display: 'block' }}>Oggetto</strong> <span>{selectedNotification.templateSubject || selectedNotification.title || '-'}</span></div>
                  </>
                )}
              </div>
@@ -369,7 +371,7 @@ export default function CustomersApp() {
                 <div style={{ width: '100%', height: '100%', overflowY: 'auto', color: '#000' }} dangerouslySetInnerHTML={{ __html: selectedNotification.htmlContent || 'Nessun contenuto HTML disponibile' }} />
              ) : (
                 <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#000' }}>
-                  {JSON.stringify(selectedNotification.payload, null, 2)}
+                  {JSON.stringify(selectedNotification.payload || 'Nessun payload', null, 2)}
                 </pre>
              )}
            </div>
@@ -377,13 +379,15 @@ export default function CustomersApp() {
        );
     }
 
-    if (!(customerDetails!.notifications || []).length) {
-       return <div style={{ color: 'var(--color-text-muted)' }}>Nessuna notifica presente per questo cliente.</div>;
+    const filteredNotifications = (customerDetails!.notifications || []).filter((n: any) => n.type === type);
+    
+    if (!filteredNotifications.length) {
+       return <div style={{ color: 'var(--color-text-muted)' }}>Nessuna {type === 'EMAIL' ? 'email' : 'notifica push'} presente per questo cliente.</div>;
     }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {(customerDetails!.notifications || []).map(n => (
+        {filteredNotifications.map((n: any) => (
           <div 
             key={n.id} 
             onClick={() => setSelectedNotification(n)}
@@ -427,10 +431,10 @@ export default function CustomersApp() {
               <Search size={16} color="var(--color-text-muted)" />
               <input 
                 type="text" 
-                placeholder="Cerca per nome, email..." 
+                placeholder="Cerca nome, email, cod, #ordine..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', fontSize: '14px', width: '200px' }}
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'inherit', fontSize: '14px', width: '250px' }}
               />
             </div>
             <Button variant="secondary" onClick={() => fetchCustomers(page, search)}>

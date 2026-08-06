@@ -39,6 +39,25 @@ export async function adminCustomersRoutes(app: FastifyInstance) {
         { shopifyId: { contains: search, mode: 'insensitive' } },
         { zucchettiArcId: { contains: search, mode: 'insensitive' } }
       ];
+
+      // Ricerca intelligente anche per numero d'ordine o ID ordine
+      const cleanSearch = search.trim();
+      const matchedOrders = await prisma.zelShopifyOrder.findMany({
+        where: { 
+          OR: [
+            { orderNumber: { contains: cleanSearch, mode: 'insensitive' } },
+            { orderNumber: { contains: cleanSearch.replace('#', ''), mode: 'insensitive' } },
+            { shopifyOrderId: { contains: cleanSearch, mode: 'insensitive' } }
+          ]
+        },
+        select: { shopifyCustomerId: true },
+        take: 20
+      });
+      
+      const customerIdsFromOrders = matchedOrders.map(o => o.shopifyCustomerId).filter(Boolean) as string[];
+      if (customerIdsFromOrders.length > 0) {
+        where.OR.push({ shopifyId: { in: customerIdsFromOrders } });
+      }
     }
 
     const [data, total] = await Promise.all([
