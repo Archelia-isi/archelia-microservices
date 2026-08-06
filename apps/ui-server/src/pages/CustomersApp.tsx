@@ -51,15 +51,20 @@ export default function CustomersApp() {
 
   const handleProductClick = async (sku: string) => {
     if (!sku) return;
-    setSelectedProduct(null);
     setLoadingProduct(true);
+    setSelectedProduct({ sku });
     try {
+      const encodedSku = encodeURIComponent(sku);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/products/${sku}/details`, {
+      const res = await fetch(`${API_URL}/api/admin/products/by-sku/${encodedSku}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      setSelectedProduct(data.data || { error: 'Prodotto non trovato o non sincronizzato.' });
+      if (res.ok) {
+        const productData = await res.json();
+        setSelectedProduct(productData);
+      } else {
+        setSelectedProduct({ error: 'Prodotto non trovato o non sincronizzato.' });
+      }
     } catch (e) {
       setSelectedProduct({ error: 'Errore durante la ricerca del prodotto.' });
     } finally {
