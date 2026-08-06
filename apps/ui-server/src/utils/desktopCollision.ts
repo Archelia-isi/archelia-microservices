@@ -80,14 +80,22 @@ export function findNearestFreeCell(
 }
 
 export function getWidgetDimensions(_type: string, size: string = 'small') {
-  if (size === 'small') return { colSpan: 160, rowSpan: 160 };
-  if (size === 'medium') return { colSpan: 320, rowSpan: 160 };
-  if (size === 'large') return { colSpan: 320, rowSpan: 320 };
-  return { colSpan: 160, rowSpan: 160 };
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const isTablet = typeof window !== 'undefined' && window.innerWidth <= 1024 && window.innerWidth > 768;
+  const scale = isMobile ? 0.6 : (isTablet ? 0.8 : 1);
+
+  if (size === 'small') return { colSpan: Math.round(160 * scale), rowSpan: Math.round(160 * scale) };
+  if (size === 'medium') return { colSpan: Math.round(320 * scale), rowSpan: Math.round(160 * scale) };
+  if (size === 'large') return { colSpan: Math.round(320 * scale), rowSpan: Math.round(320 * scale) };
+  return { colSpan: Math.round(160 * scale), rowSpan: Math.round(160 * scale) };
 }
 
 export function getIconDimensions() {
-  return { colSpan: 80, rowSpan: 100 };
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const isTablet = typeof window !== 'undefined' && window.innerWidth <= 1024 && window.innerWidth > 768;
+  const scale = isMobile ? 0.7 : (isTablet ? 0.85 : 1);
+
+  return { colSpan: Math.round(80 * scale), rowSpan: Math.round(100 * scale) };
 }
 
 // Algoritmo di Snapping Magnetico
