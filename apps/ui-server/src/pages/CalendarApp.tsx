@@ -62,7 +62,7 @@ export default function CalendarApp() {
       console.error(e);
     } finally {
       setLoading(false);
-      setIsAppReady(true);
+      setTimeout(() => setIsAppReady(true), 400);
     }
   };
 

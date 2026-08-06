@@ -55,7 +55,7 @@ export default function LogsApp() {
       setLogs([]);
     } finally {
       setLoading(false);
-      setIsAppReady(true);
+      setTimeout(() => setIsAppReady(true), 400);
     }
   };
 

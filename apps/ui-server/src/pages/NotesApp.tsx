@@ -45,7 +45,7 @@ export default function NotesApp() {
       console.error(e);
     } finally {
       setLoading(false);
-      setIsAppReady(true);
+      setTimeout(() => setIsAppReady(true), 400);
     }
   };
 

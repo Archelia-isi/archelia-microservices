@@ -91,7 +91,7 @@ export default function CustomersApp() {
       console.error(e);
     } finally {
       setLoading(false);
-      setIsAppReady(true);
+      setTimeout(() => setIsAppReady(true), 400);
     }
   };
 

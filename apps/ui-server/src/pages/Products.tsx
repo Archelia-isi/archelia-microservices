@@ -68,7 +68,7 @@ export default function Products() {
       console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
-      setIsAppReady(true);
+      setTimeout(() => setIsAppReady(true), 400);
     }
   };
 

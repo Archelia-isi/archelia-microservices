@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -72,6 +73,7 @@ export default function Dashboard() {
         console.error('Errore caricamento statistiche', e);
       } finally {
         setLoading(false);
+        setTimeout(() => setIsAppReady(true), 400);
       }
     };
 
@@ -93,13 +95,13 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`${loading || !stats ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
       <AppSplashScreen 
-        isLoading={loading || !stats} 
+        isLoading={!isAppReady} 
         appName="Dashboard" 
         icon={<Activity size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${!loading && stats ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div className={`eq-app-entry ${isAppReady && stats ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         {stats && (
           <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div style={{ marginBottom: '2rem' }}>

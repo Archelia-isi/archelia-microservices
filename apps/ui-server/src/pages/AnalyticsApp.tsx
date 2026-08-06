@@ -14,6 +14,7 @@ export default function AnalyticsApp() {
   const { currentStore } = useStoreContext();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAppReady, setIsAppReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [period, setPeriod] = useState<string>('7d');
@@ -52,6 +53,7 @@ export default function AnalyticsApp() {
         setError(err.message);
       } finally {
         setLoading(false);
+        setTimeout(() => setIsAppReady(true), 400);
       }
     };
     
@@ -94,13 +96,13 @@ export default function AnalyticsApp() {
   }
 
   return (
-    <div className={`${loading || !data ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
       <AppSplashScreen 
-        isLoading={loading || !data} 
+        isLoading={!isAppReady} 
         appName="Centro Analisi" 
         icon={<TrendingUp size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${!loading && data ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div className={`eq-app-entry ${isAppReady && data ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         {data && (
           <div className="analytics-container">
       
