@@ -131,13 +131,20 @@ export default function PromoAutoApp() {
   };
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Brain Promozioni (Auto)" 
         icon={<Bot size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''} app-container`} style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
+      <div className="app-container" style={{ 
+        padding: '2rem', 
+        height: '100%', 
+        overflowY: 'auto',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
       {/* --- PARTE SUPERIORE FISSA --- */}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -364,6 +371,6 @@ export default function PromoAutoApp() {
 
       </GlassPanel>
       </div>
-    </div>
+    </>
   );
 }

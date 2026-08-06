@@ -96,13 +96,21 @@ export default function AnalyticsApp() {
   }
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Centro Analisi" 
         icon={<TrendingUp size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady && data ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        overflowY: 'auto',
+        opacity: isAppReady && data ? 1 : 0,
+        pointerEvents: isAppReady && data ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         {data && (
           <div className="analytics-container">
       
@@ -194,6 +202,6 @@ export default function AnalyticsApp() {
     </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

@@ -154,13 +154,24 @@ export default function CalendarApp() {
   };
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
-        appName="Calendario Eventi" 
+        appName="Calendario Promozioni" 
         icon={<CalendarIcon size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        padding: '0', 
+        background: 'transparent', 
+        position: 'relative', 
+        boxSizing: 'border-box',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
       <StickyHeader paddingY="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-glass)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <CalendarIcon size={24} color="var(--color-primary)" />
@@ -367,6 +378,6 @@ export default function CalendarApp() {
         </div>
       </Modal>
       </div>
-    </div>
+    </>
   );
 }

@@ -419,13 +419,22 @@ export default function CustomersApp() {
   };
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Clienti" 
         icon={<Users size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ padding: '0', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ 
+        padding: '0', 
+        height: '100%', 
+        overflowY: 'auto', 
+        display: 'flex', 
+        flexDirection: 'column',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
       <StickyHeader paddingY="md" backgroundOpacity={0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
           <Tabs 
@@ -598,6 +607,6 @@ export default function CustomersApp() {
         ) : null}
       </Modal>
       </div>
-    </div>
+    </>
   );
 }

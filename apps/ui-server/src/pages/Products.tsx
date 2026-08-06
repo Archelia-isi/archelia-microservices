@@ -103,13 +103,22 @@ export default function Products() {
   };
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Prodotti" 
         icon={<PackageOpen size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''} animate-fade-in`} style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '1rem', overflowY: 'auto' }}>
+      <div style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        padding: '1rem', 
+        overflowY: 'auto',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         {/* Header & Actions */}
       <div className="flex-between" style={{ marginBottom: '1.5rem', flexShrink: 0 }}>
         <h2 className="text-h2" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -229,6 +238,6 @@ export default function Products() {
         )}
       </div>
       </div>
-    </div>
+    </>
   );
 }

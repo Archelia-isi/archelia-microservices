@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Plus, Trash2, StickyNote, Bold, Italic, List, ListOrdered, Save } from 'lucide-react';
+import { FileText, Plus, Trash2, StickyNote, Bold, Italic, List, ListOrdered, Save } from 'lucide-react';
 import StickyHeader from '../components/ui/StickyHeader';
 import Button from '../components/ui/Button';
 import AppSplashScreen from '../components/os/AppSplashScreen';
@@ -123,13 +123,21 @@ export default function NotesApp() {
   ];
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
-        appName="Note" 
-        icon={<StickyNote size={56} color="white" />} 
+        appName="Gestione Note" 
+        icon={<FileText size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{ display: 'flex', height: '100%', width: '100%', backgroundColor: 'var(--color-background)' }}>
+      <div style={{ 
+        display: 'flex', 
+        height: '100%',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)',
+        width: '100%', 
+        backgroundColor: 'var(--color-background)' 
+      }}>
       
       {/* SIDEBAR */}
       <div style={{ 
@@ -326,6 +334,6 @@ export default function NotesApp() {
         </div>
       </div>
       </div>
-    </div>
+    </>
   );
 }

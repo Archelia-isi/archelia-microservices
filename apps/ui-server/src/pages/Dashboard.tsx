@@ -95,13 +95,21 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Dashboard" 
         icon={<Activity size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady && stats ? 'ready' : ''}`} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        overflowY: 'auto',
+        opacity: isAppReady && stats ? 1 : 0,
+        pointerEvents: isAppReady && stats ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         {stats && (
           <div className="animate-fade-in" style={{ paddingBottom: '2rem' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -205,6 +213,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

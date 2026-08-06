@@ -4,7 +4,7 @@ import Tabs from '../components/ui/Tabs';
 import GlassPanel from '../components/ui/GlassPanel';
 import Button from '../components/ui/Button';
 import LogViewer, { type LogEntry } from '../components/ui/LogViewer';
-import { RefreshCcw } from 'lucide-react';
+import { Terminal, RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useStoreContext } from '../store/useStoreContext';
 import AppSplashScreen from '../components/os/AppSplashScreen';
@@ -64,17 +64,20 @@ export default function LogsApp() {
   }, [activeTab, currentStore]);
 
   return (
-    <div className={`${!isAppReady ? 'eq-splash-active' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', background: 'transparent', overflow: 'hidden', position: 'relative', boxSizing: 'border-box' }}>
+    <>
       <AppSplashScreen 
         isLoading={!isAppReady} 
-        appName="Log di Sistema" 
-        icon={<RefreshCcw size={56} color="white" />} 
+        appName="System Logs" 
+        icon={<Terminal size={56} color="white" />} 
       />
-      <div className={`eq-app-entry ${isAppReady ? 'ready' : ''}`} style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        backgroundColor: 'transparent'
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        background: 'var(--color-bg)',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
         <StickyHeader paddingY="sm" backgroundOpacity={0}>
         <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -111,6 +114,6 @@ export default function LogsApp() {
         />
       </div>
       </div>
-    </div>
+    </>
   );
 }
