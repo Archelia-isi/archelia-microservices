@@ -13,7 +13,7 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 export default function AnalyticsApp() {
   const { currentStore } = useStoreContext();
   const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);

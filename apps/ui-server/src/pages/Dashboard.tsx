@@ -42,7 +42,7 @@ export default function Dashboard() {
   const { currentStore } = useStoreContext();
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
 
   useEffect(() => {
