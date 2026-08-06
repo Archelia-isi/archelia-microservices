@@ -192,8 +192,9 @@ export async function adminCustomersRoutes(app: FastifyInstance) {
       success: true,
       data: {
         customer,
-        recentOrders: orders,
-        abandonedCart: cart
+        orders: orders,
+        abandonedCart: cart,
+        notifications: [] // TODO: recuperare notifiche web push/marketing in futuro
       }
     });
   });

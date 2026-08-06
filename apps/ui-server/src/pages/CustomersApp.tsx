@@ -160,9 +160,9 @@ export default function CustomersApp() {
               setSelectedNotification(null);
             }}
             tabs={[
-              { id: 'orders', label: `Ordini (${customerDetails.orders.length})`, icon: <ShoppingCart size={14} /> },
+              { id: 'orders', label: `Ordini (${(customerDetails.orders || []).length})`, icon: <ShoppingCart size={14} /> },
               { id: 'cart', label: 'Carrello Abbandonato', icon: <Package size={14} /> },
-              { id: 'notifications', label: `Notifiche (${customerDetails.notifications.length})`, icon: <Bell size={14} /> }
+              { id: 'notifications', label: `Notifiche (${(customerDetails.notifications || []).length})`, icon: <Bell size={14} /> }
             ]}
         />
         
@@ -231,7 +231,7 @@ export default function CustomersApp() {
       );
     }
 
-    if (customerDetails!.orders.length === 0) {
+    if (!customerDetails!.orders || customerDetails!.orders.length === 0) {
        return <div style={{ color: 'var(--color-text-muted)' }}>Nessun ordine presente per questo cliente.</div>;
     }
 
@@ -339,13 +339,13 @@ export default function CustomersApp() {
        );
     }
 
-    if (customerDetails!.notifications.length === 0) {
-      return <div style={{ color: 'var(--color-text-muted)' }}>Nessuna notifica presente per questo cliente.</div>;
+    if (!(customerDetails!.notifications || []).length) {
+       return <div style={{ color: 'var(--color-text-muted)' }}>Nessuna notifica presente per questo cliente.</div>;
     }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {customerDetails!.notifications.map(n => (
+        {(customerDetails!.notifications || []).map(n => (
           <div 
             key={n.id} 
             onClick={() => setSelectedNotification(n)}
