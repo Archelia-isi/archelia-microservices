@@ -45,10 +45,20 @@ export default function WindowComponent({ id }: Props) {
     updatePosition(id, position.x, position.y);
   };
 
+  const screenW = typeof window !== 'undefined' ? window.innerWidth : 1000;
+  const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const taskbarH = 60;
+  
+  const w = typeof windowApp.width === 'number' ? Math.min(windowApp.width, screenW) : windowApp.width;
+  const h = typeof windowApp.height === 'number' ? Math.min(windowApp.height, screenH - taskbarH) : windowApp.height;
+  
+  const x = typeof windowApp.x === 'number' ? Math.max(0, Math.min(windowApp.x, screenW - (typeof w === 'number' ? w : parseInt(w as string) || 0))) : windowApp.x;
+  const y = typeof windowApp.y === 'number' ? Math.max(0, Math.min(windowApp.y, screenH - taskbarH - (typeof h === 'number' ? h : parseInt(h as string) || 0))) : windowApp.y;
+
   return (
     <Rnd
-      size={windowApp.isMaximized ? { width: '100%', height: '100%' } : { width: windowApp.width, height: windowApp.height }}
-      position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: windowApp.x, y: windowApp.y }}
+      size={windowApp.isMaximized ? { width: '100%', height: '100%' } : { width: w as string | number, height: h as string | number }}
+      position={windowApp.isMaximized ? { x: 0, y: 0 } : { x: x as number, y: y as number }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
       disableDragging={windowApp.isMaximized}
