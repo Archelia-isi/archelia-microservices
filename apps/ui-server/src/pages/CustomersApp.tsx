@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, User, ShoppingCart, RefreshCw, Users, Inbox, Bell, MapPin, FileText, ChevronLeft, Package } from 'lucide-react';
+import { Search, User, ShoppingCart, RefreshCw, Users, Inbox, Bell, MapPin, FileText, ChevronLeft, Package, AlertTriangle, ImageIcon, Box } from 'lucide-react';
 import StickyHeader from '../components/ui/StickyHeader';
 import GlassPanel from '../components/ui/GlassPanel';
 import Badge from '../components/ui/Badge';
@@ -44,8 +44,28 @@ export default function CustomersApp() {
 
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
+
+  const handleProductClick = async (sku: string) => {
+    if (!sku) return;
+    setSelectedProduct(null);
+    setLoadingProduct(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/products/${sku}/details`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setSelectedProduct(data.data || { error: 'Prodotto non trovato o non sincronizzato.' });
+    } catch (e) {
+      setSelectedProduct({ error: 'Errore durante la ricerca del prodotto.' });
+    } finally {
+      setLoadingProduct(false);
+    }
+  };
 
   const fetchCustomers = async (pageNum = 1, searchQuery = '') => {
     setLoading(true);
@@ -191,6 +211,7 @@ export default function CustomersApp() {
             <GlassPanel padding="md">
               <strong style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Dettagli Economici</strong>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Subtotale:</span> <span>€{payload.current_subtotal_price || '0.00'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Spedizione:</span> <span>€{payload.total_shipping_price_set?.shop_money?.amount || '0.00'}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Sconti:</span> <span>-€{payload.current_total_discounts || '0.00'}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}><span>Tasse:</span> <span>€{payload.current_total_tax || '0.00'}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '0.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem' }}><span>Totale:</span> <span>€{payload.current_total_price || selectedOrder.totalPrice?.toFixed(2) || '0.00'}</span></div>
@@ -218,9 +239,15 @@ export default function CustomersApp() {
               </thead>
               <tbody>
                 {items.map((item: any) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr 
+                    key={item.id} 
+                    style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                    onClick={() => handleProductClick(item.sku)}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-alt)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
                     <td style={{ padding: '0.75rem' }}>{item.title} {item.variant_title ? `- ${item.variant_title}` : ''}</td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.9rem' }}>{item.sku}</td>
+                    <td style={{ padding: '0.75rem', fontSize: '0.9rem', color: 'var(--color-primary)' }}>{item.sku}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>{item.quantity}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>€{parseFloat(item.price).toFixed(2)}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold' }}>€{(parseFloat(item.price) * item.quantity).toFixed(2)}</td>
@@ -479,6 +506,78 @@ export default function CustomersApp() {
         ) : (
            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-danger)' }}>Impossibile caricare i dati del cliente.</div>
         )}
+      </Modal>
+
+      {/* MODAL DETTAGLIO PRODOTTO */}
+      <Modal isOpen={!!selectedProduct} onClose={() => setSelectedProduct(null)} title="Scheda Prodotto">
+        {loadingProduct ? (
+          <div style={{ padding: '3rem', textAlign: 'center' }}><Loader size="md" /></div>
+        ) : selectedProduct?.error ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-danger)' }}>
+            <AlertTriangle size={32} style={{ margin: '0 auto 1rem auto' }} />
+            {selectedProduct.error}
+          </div>
+        ) : selectedProduct ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+              <div style={{ 
+                width: '120px', 
+                height: '120px', 
+                borderRadius: 'var(--radius-md)', 
+                background: 'var(--color-bg-alt)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0,
+                border: '1px solid var(--color-border)'
+              }}>
+                {selectedProduct.imageUrl ? (
+                  <img src={selectedProduct.imageUrl} alt={selectedProduct.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <ImageIcon size={32} color="var(--color-text-muted)" />
+                )}
+              </div>
+              
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem', lineHeight: 1.3 }}>
+                  {selectedProduct.title || selectedProduct.originalName}
+                </h3>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                  <Badge variant="neutral">SKU: {selectedProduct.sku}</Badge>
+                  <Badge variant="neutral">Marca: {selectedProduct.brand}</Badge>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                  €{selectedProduct.price?.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <GlassPanel padding="sm" style={{ background: 'var(--color-bg-alt)' }}>
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Box size={14} /> Magazzino I.S.I. srl (PR)
+                </h4>
+                <p style={{ fontSize: '1.2rem', fontWeight: 600 }}>{selectedProduct.stock} pz <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>(Disponibili)</span></p>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                  Giacenza reale: {selectedProduct.rawStock} pz <br/>
+                  Impegnata: {selectedProduct.committedStock} pz
+                </div>
+              </GlassPanel>
+
+              <GlassPanel padding="sm" style={{ background: 'var(--color-bg-alt)' }}>
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Box size={14} /> Magazzino Elmark (EK)
+                </h4>
+                <p style={{ fontSize: '1.2rem', fontWeight: 600 }}>{selectedProduct.stockEk} pz <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 400 }}>(Disponibili)</span></p>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                  Giacenza reale: {selectedProduct.rawStockEk} pz <br/>
+                  Impegnata: {selectedProduct.committedStockEk} pz
+                </div>
+              </GlassPanel>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
