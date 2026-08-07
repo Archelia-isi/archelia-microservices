@@ -49,11 +49,21 @@ export default function WindowComponent({ id }: Props) {
   const screenH = typeof window !== 'undefined' ? window.innerHeight : 800;
   const taskbarH = 60;
   
-  const w = typeof windowApp.width === 'number' ? Math.min(windowApp.width, screenW) : windowApp.width;
-  const h = typeof windowApp.height === 'number' ? Math.min(windowApp.height, screenH - taskbarH) : windowApp.height;
+  const parseSize = (val: string | number, max: number): number | string => {
+    if (typeof val === 'number') return Math.min(val, max);
+    if (typeof val === 'string' && val.endsWith('px')) return Math.min(parseInt(val, 10), max);
+    if (typeof val === 'string' && val.endsWith('%')) return val; // se è percentuale va bene
+    return val;
+  };
+
+  const w = parseSize(windowApp.width, screenW);
+  const h = parseSize(windowApp.height, screenH - taskbarH);
   
-  const x = typeof windowApp.x === 'number' ? Math.max(0, Math.min(windowApp.x, screenW - (typeof w === 'number' ? w : parseInt(w as string) || 0))) : windowApp.x;
-  const y = typeof windowApp.y === 'number' ? Math.max(0, Math.min(windowApp.y, screenH - taskbarH - (typeof h === 'number' ? h : parseInt(h as string) || 0))) : windowApp.y;
+  const wNum = typeof w === 'number' ? w : parseInt(w as string) || screenW;
+  const hNum = typeof h === 'number' ? h : parseInt(h as string) || (screenH - taskbarH);
+  
+  const x = typeof windowApp.x === 'number' ? Math.max(0, Math.min(windowApp.x, screenW - wNum)) : windowApp.x;
+  const y = typeof windowApp.y === 'number' ? Math.max(0, Math.min(windowApp.y, screenH - taskbarH - hNum)) : windowApp.y;
 
   return (
     <Rnd
