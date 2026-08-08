@@ -20,7 +20,8 @@ const APPS_LIST = [
   { id: 'worker-marketing', label: 'Marketing' },
   { id: 'worker-promo', label: 'Promo Brain' },
   { id: 'worker-analytics', label: 'Analytics' },
-  { id: 'ui-server', label: 'UI Server' }
+  { id: 'ui-server', label: 'UI Server' },
+  { id: 'worker-suppliers-pull', label: 'Fornitori Pull' }
 ];
 
 export default function LogsApp() {
