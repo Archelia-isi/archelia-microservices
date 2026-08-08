@@ -10,6 +10,7 @@ import { adminPreferencesRoutes } from './routes/admin/preferences.js';
 import { adminLogsRoutes } from './routes/admin/logs.js';
 import { adminStatsRoutes } from './routes/admin/stats.js';
 import { adminSyncRoutes } from './routes/admin/sync.js';
+import { adminSuppliersRoutes } from './routes/admin/suppliers.js';
 import { adminProductsRoutes } from './routes/admin/products.js';
 import { adminOrdersRoutes } from './routes/admin/orders.js';
 import { adminCustomersRoutes } from './routes/admin/customers.js';
@@ -57,6 +58,7 @@ async function buildApp() {
   await app.register(adminLogsRoutes);
   await app.register(adminStatsRoutes);
   await app.register(adminSyncRoutes);
+  await app.register(adminSuppliersRoutes);
   await app.register(adminProductsRoutes);
   await app.register(adminOrdersRoutes);
   await app.register(adminCustomersRoutes);

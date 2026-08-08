@@ -29,6 +29,7 @@ import './DesktopOS.css';
 import InfinityApp from '../../pages/InfinityApp';
 import TypesenseApp from '../../pages/TypesenseApp';
 import ImagesApp from '../../pages/ImagesApp';
+import SuppliersApp from '../../pages/SuppliersApp';
 import AnalyticsApp from '../../pages/AnalyticsApp';
 import LogsApp from '../../pages/LogsApp';
 import CalendarApp from '../../pages/CalendarApp';
@@ -429,6 +430,7 @@ export default function DesktopOS() {
     if (!windows['typesense']) registerApp({ id: 'typesense', title: 'Typesense', icon: getImg('./icons/typesense_abstract.jpg'), color: 'transparent', component: <TypesenseApp />, x: 220, y: 220, width: 1100, height: 800 });
     if (!windows['analytics']) registerApp({ id: 'analytics', title: 'Centro Analisi', icon: getImg('./icons/analytics_abstract.jpg'), color: 'transparent', component: <AnalyticsApp />, x: 100, y: 100, width: 1200, height: 800 });
     if (!windows['customers']) registerApp({ id: 'customers', title: 'Gestione Clienti', icon: getImg('./icons/icon_customers_macos.jpg'), color: 'transparent', component: <CustomersApp />, x: 150, y: 150, width: 1000, height: 700 });
+    if (!windows['suppliers']) registerApp({ id: 'suppliers', title: 'Fornitori Sync', icon: getImg('./icons/icon_suppliers_macos.jpg'), color: 'transparent', component: <SuppliersApp />, x: 180, y: 180, width: 1000, height: 750 });
 
     
     // Column 3 (Archelia)
