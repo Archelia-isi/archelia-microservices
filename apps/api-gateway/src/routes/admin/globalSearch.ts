@@ -30,6 +30,7 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { q, limit } = request.query;
+    const currentStore = (request.headers['x-store-context'] as 'RETAIL' | 'B2B') || 'RETAIL';
     const cleanSearch = q.trim();
     const results: any[] = [];
 
@@ -49,6 +50,7 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
         // Ricerca Prisma per gli Ordini
         prisma.zelShopifyOrder.findMany({
           where: {
+            storeType: currentStore,
             OR: [
               { orderNumber: { contains: cleanSearch, mode: 'insensitive' } },
               { orderNumber: { contains: cleanSearch.replace('#', ''), mode: 'insensitive' } },

@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, Package, User, ShoppingCart, Loader2, LayoutDashboard } from 'lucide-react';
 import GlassPanel from '../ui/GlassPanel';
 import { useWindowStore } from '../../store/useWindowStore';
+import { useStoreContext } from '../../store/useStoreContext';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { canViewApp } from '../../utils/permissions';
 import './TaskbarSearchPanel.css';
 
 interface SearchResult {
@@ -20,6 +23,8 @@ export default function TaskbarSearchPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { openAppWithContext, openWindow, windows } = useWindowStore();
+  const { currentStore } = useStoreContext();
+  const { theme } = useSettingsStore();
 
   useEffect(() => {
     // Close panel when clicking outside
@@ -65,7 +70,8 @@ export default function TaskbarSearchPanel() {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const res = await fetch(`${apiUrl}/api/admin/search/global?q=${encodeURIComponent(query)}&limit=10`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'x-store-context': currentStore
           }
         });
         if (res.ok) {
@@ -74,8 +80,17 @@ export default function TaskbarSearchPanel() {
           
           // Ricerca app locali
           const qLower = query.toLowerCase();
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+          
           const localApps: SearchResult[] = Object.values(windows)
-            .filter(app => app.title.toLowerCase().includes(qLower) || app.id.toLowerCase().includes(qLower))
+            .filter(app => {
+              if (app.id === 'os-settings') return false;
+              if (app.id === 'roblox_game' && theme !== 'roblox') return false;
+              if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;
+              if (!canViewApp(app.id, currentStore)) return false;
+              
+              return app.title.toLowerCase().includes(qLower) || app.id.toLowerCase().includes(qLower);
+            })
             .slice(0, 3)
             .map(app => ({
                type: 'APP',
