@@ -22,6 +22,7 @@ export interface WindowApp {
   desktopY?: number;
   desktopX_B2B?: number;
   desktopY_B2B?: number;
+  appContext?: any;
 }
 
 interface WindowState {
@@ -30,6 +31,7 @@ interface WindowState {
   wallpaper: string;
   registerApp: (app: Omit<WindowApp, 'isOpen' | 'isPinned' | 'isMinimized' | 'isMaximized' | 'zIndex'>) => void;
   openWindow: (id: string) => void;
+  openAppWithContext: (id: string, context: any) => void;
   togglePinApp: (id: string) => void;
   closeWindow: (id: string) => void;
   closeAllWindows: () => void;
@@ -99,11 +101,12 @@ export const useWindowStore = create<WindowState>((set) => ({
   })),
 
   openWindow: (id) => {
-    soundEngine.playOpenApp();
+    soundEngine.play('click');
     set((state) => {
       const win = state.windows[id];
       if (!win) return state;
-      highestZIndex++;
+
+      highestZIndex += 1;
       return {
         windows: {
           ...state.windows,
@@ -111,10 +114,33 @@ export const useWindowStore = create<WindowState>((set) => ({
             ...win,
             isOpen: true,
             isMinimized: false,
-            zIndex: highestZIndex
+            zIndex: highestZIndex,
           }
         },
-        activeWindowId: id
+        activeWindowId: id,
+      };
+    });
+  },
+
+  openAppWithContext: (id, context) => {
+    soundEngine.play('click');
+    set((state) => {
+      const win = state.windows[id];
+      if (!win) return state;
+
+      highestZIndex += 1;
+      return {
+        windows: {
+          ...state.windows,
+          [id]: {
+            ...win,
+            isOpen: true,
+            isMinimized: false,
+            zIndex: highestZIndex,
+            appContext: context
+          }
+        },
+        activeWindowId: id,
       };
     });
   },

@@ -28,6 +28,7 @@ import { adminCalendarRoutes } from './routes/admin/calendar.js';
 import { adminNotesRoutes } from './routes/admin/notes.js';
 import { adminAiWidgetsRoutes } from './routes/admin/ai_widgets.js';
 import { adminFinanceRoutes } from './routes/admin/finance.js';
+import { adminGlobalSearchRoutes } from './routes/admin/globalSearch.js';
 async function buildApp() {
   const app = Fastify({
     logger: false, // We use Pino from @archelia/core
@@ -74,6 +75,7 @@ async function buildApp() {
   await app.register(adminNotesRoutes);
   await app.register(adminAiWidgetsRoutes);
   await app.register(adminFinanceRoutes);
+  await app.register(adminGlobalSearchRoutes);
 
   return app;
 }

@@ -8,6 +8,7 @@ import Modal from '../components/ui/Modal';
 import Tabs from '../components/ui/Tabs';
 import Loader from '../components/ui/Loader';
 import AppSplashScreen from '../components/os/AppSplashScreen';
+import { useWindowStore } from '../store/useWindowStore';
 
 interface Customer {
   shopifyId: string;
@@ -32,6 +33,10 @@ interface CustomerDetails {
 export default function CustomersApp() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  const windowStore = useWindowStore();
+  const appContext = windowStore.windows['customers']?.appContext;
+  
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -94,6 +99,14 @@ export default function CustomersApp() {
       setTimeout(() => setIsAppReady(true), 400);
     }
   };
+
+  useEffect(() => {
+    if (appContext && appContext.search) {
+      setSearch(appContext.search);
+      // Clear context to prevent loop
+      windowStore.windows['customers'].appContext = undefined;
+    }
+  }, [appContext]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {

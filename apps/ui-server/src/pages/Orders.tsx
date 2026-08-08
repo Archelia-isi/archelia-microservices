@@ -10,6 +10,7 @@ import Tabs from '../components/ui/Tabs';
 import { Settings, Plus, Trash } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useStoreContext } from '../store/useStoreContext';
+import { useWindowStore } from '../store/useWindowStore';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
@@ -54,6 +55,9 @@ export default function Orders() {
     }
   };
 
+  const windowStore = useWindowStore();
+  const appContext = windowStore.windows['orders']?.appContext;
+
   useEffect(() => {
     fetchOrders(true);
     fetchSettings();
@@ -61,6 +65,21 @@ export default function Orders() {
     const interval = setInterval(() => fetchOrders(false), 30000);
     return () => clearInterval(interval);
   }, [currentStore]);
+
+  useEffect(() => {
+    if (appContext && appContext.search && orders.length > 0) {
+      const order = orders.find((o) => 
+         o.orderNumber?.includes(appContext.search) || 
+         o.shopifyOrderId?.includes(appContext.search)
+      );
+      if (order) {
+        setSelectedOrder(order);
+        setActiveTab('orders');
+        // Clear context so it doesn't reopen if closed
+        windowStore.windows['orders'].appContext = undefined;
+      }
+    }
+  }, [appContext, orders]);
 
   const fetchSettings = async () => {
     try {

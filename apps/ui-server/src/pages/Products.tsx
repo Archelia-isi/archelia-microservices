@@ -2,6 +2,7 @@ import { Search, RefreshCw, Filter, PackageOpen, MoreVertical, ImageOff } from '
 import { useState, useEffect } from 'react';
 
 import { useStoreContext } from '../store/useStoreContext';
+import { useWindowStore } from '../store/useWindowStore';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 
 interface Product {
@@ -24,6 +25,10 @@ export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
+  
+  const windowStore = useWindowStore();
+  const appContext = windowStore.windows['products']?.appContext;
+
   const [searchTerm, setSearchTerm] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
@@ -73,8 +78,14 @@ export default function Products() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [currentStore]);
+    if (appContext && appContext.search) {
+      setSearchTerm(appContext.search);
+      fetchProducts(appContext.search);
+      windowStore.windows['products'].appContext = undefined;
+    } else {
+      fetchProducts();
+    }
+  }, [currentStore, appContext]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

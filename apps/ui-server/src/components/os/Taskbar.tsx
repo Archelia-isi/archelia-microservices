@@ -3,6 +3,7 @@ import { useWindowStore } from '../../store/useWindowStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import StartMenu from './StartMenu';
 import ContextMenu from '../ui/ContextMenu';
+import TaskbarSearchPanel from './TaskbarSearchPanel';
 import { getThemeIconPath } from '../../utils/themeUtils';
 import { BrainCircuit, LogOut } from 'lucide-react';
 import * as FcIcons from 'react-icons/fc';
@@ -82,6 +83,7 @@ export default function Taskbar() {
           >
             {currentStore === 'B2B' ? 'IZZO DISTRIBUZIONE' : 'ARCHELIA'}
           </div>
+          <TaskbarSearchPanel />
         </div>
 
         {/* Centro: App pinnate o aperte */}

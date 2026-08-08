@@ -1,0 +1,136 @@
+.taskbar-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.taskbar-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 0 12px;
+  height: 32px;
+  width: 200px;
+  transition: all 0.2s ease;
+}
+
+.taskbar-search-input-wrapper:focus-within {
+  width: 300px;
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+
+.taskbar-search-icon {
+  color: var(--color-text-muted);
+  margin-right: 8px;
+}
+
+.taskbar-search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-main);
+  width: 100%;
+  font-size: 13px;
+}
+
+.taskbar-search-dropdown {
+  position: absolute;
+  bottom: 40px; /* Above taskbar */
+  left: 0;
+  width: 350px;
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  padding: 8px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.taskbar-search-loading, .taskbar-search-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.taskbar-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.taskbar-search-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  gap: 12px;
+}
+
+.taskbar-search-item:hover {
+  background: var(--color-surface-hover);
+}
+
+.taskbar-search-item-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-main);
+  flex-shrink: 0;
+}
+
+.taskbar-search-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.taskbar-search-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskbar-search-item-subtitle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskbar-search-item-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+}
