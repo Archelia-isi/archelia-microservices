@@ -7,6 +7,7 @@ import GlassPanel from '../components/ui/GlassPanel';
 import ActionCard from '../components/ui/ActionCard';
 import Badge from '../components/ui/Badge';
 import Switch from '../components/ui/Switch';
+import Button from '../components/ui/Button';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import { useStoreContext } from '../store/useStoreContext';
 import './Settings.css'; // Riutilizziamo lo stile del Centro Sync
@@ -78,10 +79,17 @@ export default function SuppliersApp() {
         icon={<Package size={56} color="white" />} 
       />
 
-      <div className={`scheduler-app-container eq-app-entry ${isAppReady ? 'ready' : ''}`}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         <StickyHeader paddingY="sm" backgroundOpacity={0}>
           <div style={{ padding: '0 var(--spacing-2xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <GlassPanel padding="sm" radius="lg" style={{ display: 'inline-block' }}>
+            <div style={{ flex: 1 }}>
               <Tabs 
                 tabs={[
                   { id: 'manual', label: 'Elmark (Manuale)' },
@@ -90,7 +98,7 @@ export default function SuppliersApp() {
                 activeTab={activeTab}
                 onChange={(val) => setActiveTab(val as string)}
               />
-            </GlassPanel>
+            </div>
           </div>
         </StickyHeader>
 
@@ -112,18 +120,28 @@ export default function SuppliersApp() {
                 title="Importazione Completa"
                 description="Scarica l'intero catalogo Elmark via XML, aggiornando prodotti, categorie, e creando le varianti mancanti. Operazione pesante."
                 action={
-                  <button className="btn btn-primary" onClick={() => triggerManualSync('FULL_SYNC')} disabled={isSyncing} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <Play size={16} /> Avvia Sync Totale
-                  </button>
+                  <Button 
+                    variant="primary" 
+                    onClick={() => triggerManualSync('FULL_SYNC')} 
+                    disabled={isSyncing} 
+                    icon={<Play size={16} />}
+                  >
+                    Avvia Sync Totale
+                  </Button>
                 }
               />
               <ActionCard 
                 title="Aggiornamento Rapido Stock e Prezzi"
                 description="Esegue una passata veloce solo per allineare le giacenze di magazzino e i listini prezzi correnti, senza ricreare prodotti."
                 action={
-                  <button className="btn btn-primary" onClick={() => triggerManualSync('STOCK_PRICES')} disabled={isSyncing} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'var(--color-primary-dark)' }}>
-                    <Play size={16} /> Sync Rapido
-                  </button>
+                  <Button 
+                    variant="primary" 
+                    onClick={() => triggerManualSync('STOCK_PRICES')} 
+                    disabled={isSyncing} 
+                    icon={<Play size={16} />}
+                  >
+                    Sync Rapido
+                  </Button>
                 }
               />
             </div>
