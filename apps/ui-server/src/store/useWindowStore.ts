@@ -101,7 +101,7 @@ export const useWindowStore = create<WindowState>((set) => ({
   })),
 
   openWindow: (id) => {
-    soundEngine.play('click');
+    soundEngine.playClick();
     set((state) => {
       const win = state.windows[id];
       if (!win) return state;
@@ -123,7 +123,7 @@ export const useWindowStore = create<WindowState>((set) => ({
   },
 
   openAppWithContext: (id, context) => {
-    soundEngine.play('click');
+    soundEngine.playClick();
     set((state) => {
       const win = state.windows[id];
       if (!win) return state;

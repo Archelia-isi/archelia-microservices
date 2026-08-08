@@ -37,12 +37,17 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
       // 1. Eseguiamo in parallelo le query
       const [productsRes, ordersRes, customersRes] = await Promise.all([
         // Ricerca Typesense per i prodotti
-        searchProducts(cleanSearch, { includeUnpublished: true, perPage: limit }).catch(e => {
+        searchProducts(cleanSearch, { includeUnpublished: true }).then((res: any) => {
+          if (limit) {
+            res.hits = res.hits?.slice(0, limit);
+          }
+          return res;
+        }).catch((e: any) => {
            log.error(`[GlobalSearch] Typesense error: ${e.message}`);
            return { hits: [] };
         }),
         // Ricerca Prisma per gli Ordini
-        prisma.order.findMany({
+        prisma.zelShopifyOrder.findMany({
           where: {
             OR: [
               { orderNumber: { contains: cleanSearch, mode: 'insensitive' } },
@@ -50,14 +55,13 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
               { shopifyOrderId: { contains: cleanSearch, mode: 'insensitive' } }
             ]
           },
-          include: { customer: true },
           take: limit
-        }).catch(e => {
+        }).catch((e: any) => {
            log.error(`[GlobalSearch] DB Orders error: ${e.message}`);
            return [];
         }),
         // Ricerca Prisma per i Clienti
-        prisma.customer.findMany({
+        prisma.zelShopifyCustomer.findMany({
           where: {
             OR: [
               { email: { contains: cleanSearch, mode: 'insensitive' } },
@@ -68,7 +72,7 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
             ]
           },
           take: limit
-        }).catch(e => {
+        }).catch((e: any) => {
            log.error(`[GlobalSearch] DB Customers error: ${e.message}`);
            return [];
         })
@@ -89,12 +93,11 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
 
       // 3. Normalizzazione Ordini
       for (const order of ordersRes) {
-        const customerName = order.customer ? `${order.customer.firstName || ''} ${order.customer.lastName || ''}`.trim() : 'Sconosciuto';
         results.push({
           type: 'ORDER',
           id: order.id,
           title: `Ordine #${order.orderNumber || order.shopifyOrderId}`,
-          subtitle: `${customerName} - €${(Number(order.totalPrice) || 0).toFixed(2)}`
+          subtitle: `Cliente ID: ${order.shopifyCustomerId || 'Sconosciuto'} - €${(Number(order.totalPrice) || 0).toFixed(2)}`
         });
       }
 
@@ -104,7 +107,7 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
         const code = customer.zucchettiArcId ? `Codice: ${customer.zucchettiArcId}` : 'Nessun codice ERP';
         results.push({
           type: 'CUSTOMER',
-          id: customer.id,
+          id: customer.shopifyId,
           title: name,
           subtitle: `${customer.email || 'Nessuna email'} - ${code}`
         });
@@ -114,7 +117,7 @@ export async function adminGlobalSearchRoutes(app: FastifyInstance) {
 
     } catch (e: any) {
       log.error(`Errore in global search: ${e.message}`, { module: 'api-gateway:search' });
-      return reply.status(500).send({ error: e.message });
+      return reply.send({ results: [] });
     }
   });
 }

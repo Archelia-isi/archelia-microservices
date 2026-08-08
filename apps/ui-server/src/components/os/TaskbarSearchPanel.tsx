@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Package, User, ShoppingCart, Loader2 } from 'lucide-react';
 import GlassPanel from '../ui/GlassPanel';
 import { useWindowStore } from '../../store/useWindowStore';
@@ -126,7 +126,7 @@ export default function TaskbarSearchPanel() {
       </div>
 
       {isOpen && (query || loading) && (
-        <GlassPanel className="taskbar-search-dropdown" blur="lg">
+        <GlassPanel className="taskbar-search-flyout">
           {loading && <div className="taskbar-search-loading"><Loader2 className="spinner" size={24} /></div>}
           
           {!loading && results.length === 0 && (
