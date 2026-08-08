@@ -1,15 +1,15 @@
 import { Worker, Queue } from 'bullmq';
 import { connection } from './config/redis.js';
-import { logger } from '@archelia/core';
+import { log as logger } from '@archelia/core';
 import { ElmarkStrategy } from './strategies/ElmarkStrategy.js';
 
 // Esempio coda base
 const QUEUE_NAME = 'suppliers-pull-queue';
 
 async function bootstrap() {
-  logger.info(`[Worker Suppliers Pull] Avvio in corso... Coda in ascolto: ${QUEUE_NAME}`, undefined, 'worker');
+  logger.info(`[Worker Suppliers Pull] Avvio in corso... Coda in ascolto: ${QUEUE_NAME}`, { module: 'worker' });
 
-  const pullQueue = new Queue(QUEUE_NAME, { connection });
+  const pullQueue = new Queue(QUEUE_NAME, { connection: connection as any });
 
   // Schedulazione Cron Job: ogni notte alle 02:00 per Elmark
   await pullQueue.add('pull-elmark-nightly', { supplier: 'ELMARK', action: 'FULL_SYNC' }, {
@@ -20,7 +20,7 @@ async function bootstrap() {
   const worker = new Worker(
     QUEUE_NAME,
     async (job) => {
-      logger.info(`[Worker Suppliers Pull] Inizio elaborazione Job ${job.id} - ${job.name}`, { data: job.data }, 'worker');
+      logger.info(`[Worker Suppliers Pull] Inizio elaborazione Job ${job.id} - ${job.name}`, { data: job.data, module: 'worker' });
       
       const { supplier, action } = job.data;
       
@@ -36,7 +36,7 @@ async function bootstrap() {
           throw new Error(`Strategia non trovata per il fornitore: ${supplier}`);
         }
 
-        logger.info(`[Worker Suppliers Pull] Esecuzione strategia per il fornitore: ${supplier}`, undefined, 'worker');
+        logger.info(`[Worker Suppliers Pull] Esecuzione strategia per il fornitore: ${supplier}`, { module: 'worker' });
         
         // Se non è specificata un'azione o è FULL_SYNC, esegue tutto in catena
         if (!action || action === 'FULL_SYNC') {
@@ -53,27 +53,27 @@ async function bootstrap() {
         
         return { success: true, supplier, action };
       } catch (error: any) {
-        logger.error(`[Worker Suppliers Pull] Errore nel job ${job.id}: ${error.message}`, { error }, 'worker');
+        logger.error(`[Worker Suppliers Pull] Errore nel job ${job.id}: ${error.message}`, { error, module: 'worker' });
         throw error;
       }
     },
     { 
-      connection,
+      connection: connection as any,
       concurrency: 1 // Evita conflitti sul DB per il pull massivo
     }
   );
 
   worker.on('completed', (job) => {
-    logger.info(`[Worker Suppliers Pull] Job ${job.id} completato con successo.`, undefined, 'worker');
+    logger.info(`[Worker Suppliers Pull] Job ${job.id} completato con successo.`, { module: 'worker' });
   });
 
   worker.on('failed', (job, err) => {
-    logger.error(`[Worker Suppliers Pull] Job ${job?.id} fallito: ${err.message}`, { error: err }, 'worker');
+    logger.error(`[Worker Suppliers Pull] Job ${job?.id} fallito: ${err.message}`, { error: err, module: 'worker' });
   });
   
   // Gestione chiusura graziosa
   process.on('SIGINT', async () => {
-    logger.info('[Worker Suppliers Pull] Chiusura in corso...');
+    logger.info('[Worker Suppliers Pull] Chiusura in corso...', { module: 'worker' });
     await worker.close();
     await connection.quit();
     process.exit(0);
@@ -81,6 +81,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch(err => {
-  logger.error('[Worker Suppliers Pull] Fatal error in bootstrap', { error: err }, 'worker');
+  logger.error('[Worker Suppliers Pull] Fatal error in bootstrap', { error: err, module: 'worker' });
   process.exit(1);
 });

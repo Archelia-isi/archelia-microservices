@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { env } from '@archelia/core';
 
 const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
@@ -9,7 +9,7 @@ export const connection = new Redis(redisUrl, {
 });
 
 // Gestione errori Redis
-connection.on('error', (err) => {
+connection.on('error', (err: any) => {
   console.error('[Redis] Errore connessione:', err);
 });
 

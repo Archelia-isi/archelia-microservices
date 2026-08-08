@@ -1,11 +1,9 @@
 import { Job } from 'bullmq';
 import { ISupplierStrategy } from './ISupplierStrategy.js';
-import { logger } from '@archelia/core';
 import { prisma } from '@archelia/database';
 import { zucchettiClient, zucchettiAuth } from '@archelia/zucchetti';
-import { env } from '@archelia/core';
+import { env, log as logger, imageService } from '@archelia/core';
 import { v2 as cloudinary } from 'cloudinary';
-import { imageService } from '@archelia/core';
 // @ts-ignore
 import sax from 'sax';
 
@@ -15,7 +13,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
   }
 
   async importCatalog(job: Job): Promise<void> {
-    logger.info('[ElmarkStrategy] Inizio importazione catalogo (XML Stream)...', undefined, 'sync');
+    logger.info('[ElmarkStrategy] Inizio importazione catalogo (XML Stream)...', { module: 'sync' });
     
     // Step 1: Download XML (usiamo l'API Elmark ufficiale)
     const response = await fetch('https://api.elmarkgroup.eu/api/Elmark/GetItems', {
@@ -28,6 +26,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
       throw new Error(`Failed to fetch Elmark API: ${response.statusText}`);
     }
 
+    const rawText = await response.text();
     let xmlString: string = '';
     try {
       xmlString = JSON.parse(rawText);
@@ -35,7 +34,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
       xmlString = rawText;
     }
 
-    logger.info(`[ElmarkStrategy] XML ottenuto. Lunghezza: ${xmlString.length} caratteri. Avvio parsing...`, undefined, 'sync');
+    logger.info(`[ElmarkStrategy] XML ottenuto. Lunghezza: ${xmlString.length} caratteri. Avvio parsing...`, { module: 'sync' });
 
     // Parse stream and batch insert
     const saxStream = sax.createStream(true, { trim: true });
@@ -74,7 +73,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
         for (const item of batch) {
           try {
             const elmarkId = item.id;
-            const sku = \`ELM.\${elmarkId}\`;
+            const sku = `ELM.${elmarkId}`;
             
             // Calcolo giacenza
             const qties = item.quantities;
@@ -126,14 +125,14 @@ export class ElmarkStrategy implements ISupplierStrategy {
               }
             });
           } catch (e: any) {
-            logger.warn(\`[ElmarkStrategy] Errore inserimento Product skeleton per \${item.id}: \${e.message}\`);
+            logger.warn(`[ElmarkStrategy] Errore inserimento Product skeleton per ${item.id}: ${e.message}`);
           }
         }
 
         processedCount += batch.length;
-        logger.info(\`[ElmarkStrategy] Inserito batch di \${batch.length} record. Totale: \${processedCount}\`, undefined, 'sync');
+        logger.info(`[ElmarkStrategy] Inserito batch di ${batch.length} record. Totale: ${processedCount}`, { module: 'sync' });
       } catch (e: any) {
-        logger.error(`[ElmarkStrategy] Errore inserimento batch raw: ${e.message}`, { error: e }, 'sync');
+        logger.error(`[ElmarkStrategy] Errore inserimento batch raw: ${e.message}`, { error: e, module: 'sync' });
       }
     };
 
@@ -217,11 +216,11 @@ export class ElmarkStrategy implements ISupplierStrategy {
     });
     
     await job.updateProgress(100);
-    logger.info(`[ElmarkStrategy] Importazione catalogo completata con successo. Totale record processati: ${processedCount}`, undefined, 'sync');
+    logger.info(`[ElmarkStrategy] Importazione catalogo completata con successo. Totale record processati: ${processedCount}`, { module: 'sync' });
   }
 
   async syncStockAndPrices(job: Job): Promise<void> {
-    logger.info('[ElmarkStrategy] Sincronizzazione Stock verso Zucchetti in corso...', undefined, 'sync');
+    logger.info('[ElmarkStrategy] Sincronizzazione Stock verso Zucchetti in corso...', { module: 'sync' });
     
     try {
       const limit = 500;
@@ -257,7 +256,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
         }
 
         xmlLines.push(`</ADHOC_SALDI>`);
-        const xmlPayload = xmlLines.join("\\n");
+        const xmlPayload = xmlLines.join('\n');
 
         await zucchettiClient.importData(token, xmlPayload, 'SERVLET');
         
@@ -267,16 +266,16 @@ export class ElmarkStrategy implements ISupplierStrategy {
         await job.updateProgress(Math.min(99, Math.floor((totalSent / 14000) * 100)));
       }
 
-      logger.info('[ElmarkStrategy] Sincronizzazione Stock verso Zucchetti completata.', undefined, 'sync');
+      logger.info('[ElmarkStrategy] Sincronizzazione Stock verso Zucchetti completata.', { module: 'sync' });
       await job.updateProgress(100);
     } catch (e: any) {
-      logger.error(`[ElmarkStrategy] Errore syncStockAndPrices: ${e.message}`, { error: e }, 'sync');
+      logger.error(`[ElmarkStrategy] Errore syncStockAndPrices: ${e.message}`, { error: e, module: 'sync' });
       throw e;
     }
   }
 
   async syncImages(job: Job): Promise<void> {
-    logger.info('[ElmarkStrategy] Sincronizzazione Immagini su Cloudinary in corso...', undefined, 'sync');
+    logger.info('[ElmarkStrategy] Sincronizzazione Immagini su Cloudinary in corso...', { module: 'sync' });
     
     try {
       const limit = 50; // Batch piccolo perché l'upload è lento
@@ -333,10 +332,10 @@ export class ElmarkStrategy implements ISupplierStrategy {
         await job.updateProgress(Math.min(99, Math.floor((totalUploaded / 14000) * 100)));
       }
 
-      logger.info('[ElmarkStrategy] Sincronizzazione Immagini completata.', undefined, 'sync');
+      logger.info('[ElmarkStrategy] Sincronizzazione Immagini completata.', { module: 'sync' });
       await job.updateProgress(100);
     } catch (e: any) {
-      logger.error(`[ElmarkStrategy] Errore syncImages: ${e.message}`, { error: e }, 'sync');
+      logger.error(`[ElmarkStrategy] Errore syncImages: ${e.message}`, { error: e, module: 'sync' });
       throw e;
     }
   }
