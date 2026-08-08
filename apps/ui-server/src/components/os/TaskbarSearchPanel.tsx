@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Package, User, ShoppingCart, Loader2 } from 'lucide-react';
+import { Search, Package, User, ShoppingCart, Loader2, LayoutDashboard } from 'lucide-react';
 import GlassPanel from '../ui/GlassPanel';
 import { useWindowStore } from '../../store/useWindowStore';
 import './TaskbarSearchPanel.css';
 
 interface SearchResult {
-  type: 'PRODUCT' | 'ORDER' | 'CUSTOMER';
+  type: 'PRODUCT' | 'ORDER' | 'CUSTOMER' | 'APP';
   id: string;
   title: string;
   subtitle: string;
@@ -19,7 +19,7 @@ export default function TaskbarSearchPanel() {
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const { openAppWithContext } = useWindowStore();
+  const { openAppWithContext, openWindow, windows } = useWindowStore();
 
   useEffect(() => {
     // Close panel when clicking outside
@@ -70,7 +70,21 @@ export default function TaskbarSearchPanel() {
         });
         if (res.ok) {
           const data = await res.json();
-          setResults(data.results || []);
+          const allResults = data.results || [];
+          
+          // Ricerca app locali
+          const qLower = query.toLowerCase();
+          const localApps: SearchResult[] = Object.values(windows)
+            .filter(app => app.title.toLowerCase().includes(qLower) || app.id.toLowerCase().includes(qLower))
+            .slice(0, 3)
+            .map(app => ({
+               type: 'APP',
+               id: app.id,
+               title: app.title,
+               subtitle: 'Applicazione di sistema'
+            }));
+            
+          setResults([...localApps, ...allResults]);
         }
       } catch (err) {
         console.error('Search error:', err);
@@ -87,6 +101,7 @@ export default function TaskbarSearchPanel() {
       case 'PRODUCT': return <Package size={16} />;
       case 'ORDER': return <ShoppingCart size={16} />;
       case 'CUSTOMER': return <User size={16} />;
+      case 'APP': return <LayoutDashboard size={16} />;
       default: return <Search size={16} />;
     }
   };
@@ -104,6 +119,9 @@ export default function TaskbarSearchPanel() {
         break;
       case 'PRODUCT':
         openAppWithContext('products', { search: result.title });
+        break;
+      case 'APP':
+        openWindow(result.id);
         break;
     }
   };
