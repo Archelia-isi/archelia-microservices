@@ -126,7 +126,7 @@ export default function TaskbarSearchPanel() {
       </div>
 
       {isOpen && (query || loading) && (
-        <GlassPanel className="taskbar-search-flyout">
+        <GlassPanel variant="heavy" className="taskbar-search-dropdown">
           {loading && <div className="taskbar-search-loading"><Loader2 className="spinner" size={24} /></div>}
           
           {!loading && results.length === 0 && (
