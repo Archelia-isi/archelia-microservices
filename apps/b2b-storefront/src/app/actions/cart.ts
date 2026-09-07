@@ -10,7 +10,7 @@ export async function addToCart(formData: FormData) {
   const sku = formData.get('sku') as string;
   const quantity = parseInt((formData.get('quantity') as string) || '1', 10);
 
-  if (!sku || quantity <= 0) return { error: 'Dati non validi' };
+  if (!sku || quantity <= 0) return;
 
   const cart = await getCart();
   const existingItem = cart.items.find(item => item.sku === sku);

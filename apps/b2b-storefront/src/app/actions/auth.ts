@@ -9,7 +9,7 @@ export async function login(formData: FormData) {
   const password = formData.get('password') as string;
 
   if (!email || !password) {
-    return { error: 'Inserisci email e password.' };
+    redirect('/login?error=missing');
   }
 
   // Find user
@@ -18,12 +18,12 @@ export async function login(formData: FormData) {
   });
 
   if (!user) {
-    return { error: 'Credenziali non valide.' };
+    redirect('/login?error=invalid');
   }
 
   // Extremely simple password check (TODO: Replace with bcrypt)
   if (user.passwordHash !== password) {
-    return { error: 'Credenziali non valide.' };
+    redirect('/login?error=invalid');
   }
 
   await createSession(user.id);
