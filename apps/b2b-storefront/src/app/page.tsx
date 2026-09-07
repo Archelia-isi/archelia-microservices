@@ -15,181 +15,115 @@ export default async function Home() {
   const battProducts = getTop4(battRes);
   const eletProducts = getTop4(eletRes);
   const civileProducts = getTop4(civileRes);
+
+  const renderCategoryCard = (title: string, products: any[], link: string) => (
+    <div className="bg-white shadow-sm flex flex-col h-full relative border border-gray-100 rounded-sm">
+      <h3 className="font-bold text-gray-900 text-[15px] p-4 pb-2">{title}</h3>
+      <div className="grid grid-cols-2 gap-[1px] bg-gray-100 flex-grow border-t border-b border-gray-100">
+        {products.map((prod: any, idx: number) => (
+          <div key={idx} className="bg-white flex flex-col items-center p-3 relative group">
+            <div className="absolute top-2 right-2 w-6 h-6 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer">
+              <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            </div>
+            <div className="w-full aspect-square flex items-center justify-center mb-2 overflow-hidden">
+              {prod.image_url ? (
+                <img src={prod.image_url} alt={prod.title} className="max-w-[80%] max-h-[80%] object-contain group-hover:scale-105 transition-transform duration-300" />
+              ) : (
+                <div className="w-[80%] h-[80%] bg-gray-50 rounded"></div>
+              )}
+            </div>
+            <div className="text-[10px] text-gray-500 text-center line-clamp-1 w-full px-1" title={prod.title || prod.original_name}>{prod.title || prod.original_name || 'Prodotto'}</div>
+          </div>
+        ))}
+      </div>
+      <div className="p-4 pt-3 pb-3 bg-white">
+        <Link href={link} className="text-[#3296c8] font-medium text-xs hover:underline flex items-center">
+          Scopri tutto &rsaquo;
+        </Link>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="w-full flex flex-col gap-12 pb-16">
+    <div className="w-[100vw] relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] flex flex-col pb-16 bg-[#f9f5f0]">
       
       {/* HERO SECTION WITH OVERLAPPING CARDS */}
-      <section className="relative w-full rounded-2xl overflow-hidden mt-4 bg-zinc-900 border border-zinc-800">
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-zinc-900 to-zinc-900 z-10"></div>
-        {/* Placeholder per un'eventuale immagine di sfondo */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8ed7c663be?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20"></div>
+      <section className="relative w-full overflow-visible bg-black h-[480px] flex justify-center">
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2a2a2a] to-black z-10"></div>
         
-        <div className="relative z-20 px-8 pt-16 pb-32 md:pb-48 md:pt-24 max-w-4xl">
-          <div className="inline-block px-3 py-1 bg-green-500/20 text-green-400 font-semibold text-sm rounded-full mb-6 border border-green-500/30">
-            Piattaforma B2B Riservata
+        {/* Pattern/Image bg like archelia */}
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8ed7c663be?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay z-0"></div>
+        
+        <div className="relative z-20 max-w-7xl w-full px-4 pt-16 md:pt-24 h-full flex flex-col items-start">
+          <div className="bg-white/95 backdrop-blur rounded p-8 shadow-xl w-full max-w-sm border-l-4 border-green-500">
+            <h1 className="text-2xl font-bold tracking-tight mb-2 text-gray-900">
+              Distribuzione B2B
+            </h1>
+            <p className="text-sm text-gray-600 mb-0">
+              Accesso esclusivo al catalogo ingrosso. Giacenze in tempo reale, listini personalizzati e riordino istantaneo.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 text-white">
-            Distribuzione all'Ingrosso <br className="hidden md:block" />
-            <span className="text-green-500">Semplice e Veloce.</span>
-          </h1>
-          <p className="text-lg text-gray-400 mb-8 max-w-xl leading-relaxed">
-            Scopri il catalogo completo dedicato ai rivenditori. Giacenze in tempo reale, listini personalizzati e riordino istantaneo in un'unica piattaforma.
-          </p>
         </div>
       </section>
 
       {/* OVERLAPPING CATEGORY CARDS */}
-      <section className="relative z-30 px-4 -mt-24 md:-mt-40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        
-        {/* Card: Illuminazione LED */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-5 flex flex-col h-full hover:-translate-y-1 transition-transform">
-          <h3 className="font-bold text-gray-900 text-lg mb-4">Illuminazione LED</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6 flex-grow">
-            {illumProducts.map((prod: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 rounded aspect-square flex items-center justify-center p-2 border border-gray-100 relative group overflow-hidden">
-                {prod.image_url ? (
-                  <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 rounded"></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <Link href="/catalog?q=illuminazione" className="text-green-600 font-medium text-sm hover:text-green-700 mt-auto inline-flex items-center">
-            Scopri tutto <span className="ml-1 text-lg leading-none">&rsaquo;</span>
-          </Link>
-        </div>
-
-        {/* Card: Pile e Batterie */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-5 flex flex-col h-full hover:-translate-y-1 transition-transform">
-          <h3 className="font-bold text-gray-900 text-lg mb-4">Pile e Batterie</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6 flex-grow">
-            {battProducts.map((prod: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 rounded aspect-square flex items-center justify-center p-2 border border-gray-100 relative group overflow-hidden">
-                {prod.image_url ? (
-                  <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 rounded"></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <Link href="/catalog?q=batterie" className="text-green-600 font-medium text-sm hover:text-green-700 mt-auto inline-flex items-center">
-            Scopri tutto <span className="ml-1 text-lg leading-none">&rsaquo;</span>
-          </Link>
-        </div>
-
-        {/* Card: Materiale Elettrico */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-5 flex flex-col h-full hover:-translate-y-1 transition-transform">
-          <h3 className="font-bold text-gray-900 text-lg mb-4">Materiale Elettrico</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6 flex-grow">
-            {eletProducts.map((prod: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 rounded aspect-square flex items-center justify-center p-2 border border-gray-100 relative group overflow-hidden">
-                {prod.image_url ? (
-                  <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 rounded"></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <Link href="/catalog?q=elettrico" className="text-green-600 font-medium text-sm hover:text-green-700 mt-auto inline-flex items-center">
-            Scopri tutto <span className="ml-1 text-lg leading-none">&rsaquo;</span>
-          </Link>
-        </div>
-
-        {/* Card: Serie Civile */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-5 flex flex-col h-full hover:-translate-y-1 transition-transform">
-          <h3 className="font-bold text-gray-900 text-lg mb-4">Serie Civile</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6 flex-grow">
-            {civileProducts.map((prod: any, idx: number) => (
-              <div key={idx} className="bg-gray-50 rounded aspect-square flex items-center justify-center p-2 border border-gray-100 relative group overflow-hidden">
-                {prod.image_url ? (
-                  <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
-                ) : (
-                  <div className="w-full h-full bg-gray-100 rounded"></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <Link href="/catalog?q=serie+civile" className="text-green-600 font-medium text-sm hover:text-green-700 mt-auto inline-flex items-center">
-            Scopri tutto <span className="ml-1 text-lg leading-none">&rsaquo;</span>
-          </Link>
-        </div>
-
+      <section className="relative z-30 max-w-7xl mx-auto w-full px-4 -mt-40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {renderCategoryCard('Illuminazione', illumProducts, '/catalog?q=illuminazione')}
+        {renderCategoryCard('Utensili', battProducts, '/catalog?q=utensili')}
+        {renderCategoryCard('Serie Civile', civileProducts, '/catalog?q=serie+civile')}
+        {renderCategoryCard('Elettricità', eletProducts, '/catalog?q=elettrico')}
       </section>
 
       {/* VANTAGGI B2B COMPATTI */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 px-4">
-        <div className="bg-black text-white p-6 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-900/50 text-green-500 rounded-full flex items-center justify-center shrink-0 border border-green-500/30">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
+      <section className="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 px-4">
+        <div className="bg-white border border-gray-200 text-gray-900 p-6 rounded shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
           </div>
           <div>
             <h3 className="font-bold mb-1">Listini Dedicati</h3>
-            <p className="text-gray-400 text-sm">Condizioni commerciali riservate al tuo account.</p>
+            <p className="text-gray-500 text-sm">Condizioni riservate al tuo account.</p>
           </div>
         </div>
         
-        <div className="bg-black text-white p-6 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-900/50 text-green-500 rounded-full flex items-center justify-center shrink-0 border border-green-500/30">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
+        <div className="bg-white border border-gray-200 text-gray-900 p-6 rounded shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
           </div>
           <div>
-            <h3 className="font-bold mb-1">Stock in Tempo Reale</h3>
-            <p className="text-gray-400 text-sm">Giacenze reali sincronizzate con il nostro magazzino.</p>
+            <h3 className="font-bold mb-1">Stock Reale</h3>
+            <p className="text-gray-500 text-sm">Giacenze sincronizzate col magazzino.</p>
           </div>
         </div>
         
-        <div className="bg-black text-white p-6 rounded-xl flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-900/50 text-green-500 rounded-full flex items-center justify-center shrink-0 border border-green-500/30">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+        <div className="bg-white border border-gray-200 text-gray-900 p-6 rounded shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           </div>
           <div>
             <h3 className="font-bold mb-1">Riordino Veloce</h3>
-            <p className="text-gray-400 text-sm">Inserimento massivo e carrelli multi-prodotto.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* MARCHI TRATTATI */}
-      <section className="mt-6 bg-white border border-gray-100 rounded-xl p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">I Nostri Top Brand</h2>
-            <p className="text-gray-500 text-sm">Siamo distributori ufficiali</p>
-          </div>
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-60 grayscale">
-            <div className="text-xl font-black font-sans tracking-tighter">V-TAC</div>
-            <div className="text-xl font-bold font-serif tracking-widest">DURACELL</div>
-            <div className="text-xl font-bold italic">Energizer</div>
-            <div className="text-xl font-bold text-gray-800">Philips</div>
-            <div className="text-xl font-extrabold uppercase">Beghelli</div>
+            <p className="text-gray-500 text-sm">Inserimento massivo e carrelli multi-prodotto.</p>
           </div>
         </div>
       </section>
 
       {/* CTA BOTTOM */}
-      <section className="mt-6 bg-green-600 rounded-xl p-8 md:p-12 text-center shadow-lg relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-left">
-            <h2 className="text-2xl font-bold text-black mb-2">Sei già un nostro cliente?</h2>
-            <p className="text-green-950 max-w-xl">
-              Accedi subito all'area riservata per consultare i tuoi listini personalizzati ed effettuare nuovi ordini.
-            </p>
+      <section className="max-w-7xl mx-auto w-full mt-12 px-4">
+        <div className="bg-green-600 rounded p-8 md:p-12 text-center relative overflow-hidden shadow-md">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-left">
+              <h2 className="text-2xl font-bold text-black mb-2">Sei già un nostro cliente?</h2>
+              <p className="text-green-950 max-w-xl text-sm">
+                Accedi subito all'area riservata per consultare i tuoi listini personalizzati ed effettuare nuovi ordini.
+              </p>
+            </div>
+            <Link 
+              href="/login" 
+              className="shrink-0 bg-black hover:bg-zinc-800 text-white font-bold py-3 px-8 rounded transition-colors text-sm"
+            >
+              Accedi all'Area B2B
+            </Link>
           </div>
-          <Link 
-            href="/login" 
-            className="shrink-0 bg-black hover:bg-zinc-800 text-white font-bold py-3 px-8 rounded-md transition-colors text-lg"
-          >
-            Accedi all'Area B2B
-          </Link>
         </div>
       </section>
 
