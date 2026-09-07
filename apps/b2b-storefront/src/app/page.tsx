@@ -51,6 +51,9 @@ export default async function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#ffe4e1] to-[#ffb6c1] opacity-50 z-0"></div>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8ed7c663be?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-multiply z-0"></div>
         
+        {/* Bottom fade into page background */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-50 to-transparent z-10"></div>
+        
         <div className="relative z-20 w-full pt-12 h-full flex flex-col items-start px-8">
           <div className="bg-white/95 backdrop-blur rounded shadow-md w-full max-w-sm p-6">
             <h1 className="text-xl font-bold tracking-tight mb-2 text-gray-900">
