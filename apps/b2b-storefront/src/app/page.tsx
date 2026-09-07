@@ -4,14 +4,20 @@ import HeroCarousel from '../components/HeroCarousel';
 import ProductCarousel from '../components/ProductCarousel';
 
 export default async function Home() {
-  const illumReq = searchProducts('illuminazione', { b2bMode: true });
-  const battReq = searchProducts('batterie', { b2bMode: true });
-  const eletReq = searchProducts('elettrico', { b2bMode: true });
-  const civileReq = searchProducts('serie civile', { b2bMode: true });
-  const novitaReq = searchProducts('*', { b2bMode: true, sortBy: 'published_at:desc' }); // O un query generica se sortBy fallisce
-  const promoReq = searchProducts('led', { b2bMode: true });
+  let illumRes, battRes, eletRes, civileRes, novitaRes, promoRes;
   
-  const [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([illumReq, battReq, eletReq, civileReq, novitaReq, promoReq]);
+  try {
+    const illumReq = searchProducts('illuminazione', { b2bMode: true });
+    const battReq = searchProducts('batterie', { b2bMode: true });
+    const eletReq = searchProducts('elettrico', { b2bMode: true });
+    const civileReq = searchProducts('serie civile', { b2bMode: true });
+    const novitaReq = searchProducts('*', { b2bMode: true }); // Removed invalid sortBy
+    const promoReq = searchProducts('led', { b2bMode: true });
+    
+    [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([illumReq, battReq, eletReq, civileReq, novitaReq, promoReq]);
+  } catch (error) {
+    console.error('Failed to fetch home page products:', error);
+  }
   
   const getTop4 = (res: any) => res?.hits?.slice(0, 4).map((h: any) => h.document) || [];
   const getTop10 = (res: any) => res?.hits?.slice(0, 10).map((h: any) => h.document) || [];
