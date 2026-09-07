@@ -1,20 +1,28 @@
 import Link from 'next/link';
 import { searchProducts } from '@archelia/typesense/dist/search.js';
 import HeroCarousel from '../components/HeroCarousel';
+import ProductCarousel from '../components/ProductCarousel';
 
 export default async function Home() {
   const illumReq = searchProducts('illuminazione', { b2bMode: true });
   const battReq = searchProducts('batterie', { b2bMode: true });
   const eletReq = searchProducts('elettrico', { b2bMode: true });
   const civileReq = searchProducts('serie civile', { b2bMode: true });
+  const novitaReq = searchProducts('*', { b2bMode: true, sortBy: 'published_at:desc' }); // O un query generica se sortBy fallisce
+  const promoReq = searchProducts('led', { b2bMode: true });
   
-  const [illumRes, battRes, eletRes, civileRes] = await Promise.all([illumReq, battReq, eletReq, civileReq]);
+  const [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([illumReq, battReq, eletReq, civileReq, novitaReq, promoReq]);
   
   const getTop4 = (res: any) => res?.hits?.slice(0, 4).map((h: any) => h.document) || [];
+  const getTop10 = (res: any) => res?.hits?.slice(0, 10).map((h: any) => h.document) || [];
+  
   const illumProducts = getTop4(illumRes);
   const battProducts = getTop4(battRes);
   const eletProducts = getTop4(eletRes);
   const civileProducts = getTop4(civileRes);
+  
+  const novitaProducts = getTop10(novitaRes);
+  const promoProducts = getTop10(promoRes);
 
   const renderCategoryCard = (title: string, products: any[], link: string) => (
     <div className="bg-white shadow-sm flex flex-col h-full hover:shadow-md transition-shadow rounded-sm relative">
@@ -56,6 +64,47 @@ export default async function Home() {
         {renderCategoryCard('Serie Civile', civileProducts, '/catalog?q=serie+civile')}
         {renderCategoryCard('Elettricità', eletProducts, '/catalog?q=elettrico')}
       </section>
+
+      {/* PRODUCT SLIDERS (B2B CAROUSELS) */}
+      <ProductCarousel title="Scelti per te" products={novitaProducts} viewAllLink="/catalog" />
+      
+      {/* BENTO BOX NAVIGAZIONE B2B */}
+      <section className="w-full px-4 mt-8 mb-12">
+        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-[#00C800] pl-3 mb-6">Mondi Izzo Distribuzione</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-auto md:h-[400px]">
+          {/* Main big box */}
+          <Link href="/catalog?q=illuminazione" className="md:col-span-2 md:row-span-2 relative rounded overflow-hidden group shadow-sm">
+            <img src="/slider/led.jpg" alt="Illuminazione" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-6 left-6 right-6">
+              <h3 className="text-2xl font-bold text-white mb-2">Illuminazione e LED</h3>
+              <p className="text-gray-200 text-sm mb-4 max-w-md">Tutto il necessario per progetti illuminotecnici, dai faretti ai pannelli ad alta efficienza.</p>
+              <span className="inline-block px-4 py-2 bg-[#00C800] text-white font-bold text-xs rounded">Scopri il Catalogo</span>
+            </div>
+          </Link>
+          
+          {/* Small boxes */}
+          <Link href="/catalog?q=utensili" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
+            <img src="/slider/elettroutensili.jpg" alt="Utensili" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-4 left-4 right-4">
+              <h3 className="text-lg font-bold text-white mb-1">Elettroutensili</h3>
+              <span className="text-[#00C800] font-bold text-xs hover:underline">Esplora &gt;</span>
+            </div>
+          </Link>
+
+          <Link href="/catalog?q=antinfortunistica" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
+            <img src="/slider/antinfortunistica.jpg" alt="Antinfortunistica" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            <div className="absolute bottom-4 left-4 right-4">
+              <h3 className="text-lg font-bold text-white mb-1">Antinfortunistica</h3>
+              <span className="text-[#00C800] font-bold text-xs hover:underline">Esplora &gt;</span>
+            </div>
+          </Link>
+        </div>
+      </section>
+
+      <ProductCarousel title="In Promozione" products={promoProducts} viewAllLink="/catalog?q=promo" />
 
       {/* VANTAGGI B2B COMPATTI */}
       <section className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 px-4">
