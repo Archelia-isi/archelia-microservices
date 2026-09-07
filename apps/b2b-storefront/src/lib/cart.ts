@@ -1,4 +1,4 @@
-import { redis } from '@archelia/core';
+import { redis } from './redis';
 import { verifySession } from './session';
 
 export interface CartItem {
