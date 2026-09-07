@@ -1,10 +1,15 @@
 import './globals.css';
 import { Assistant } from 'next/font/google';
 import Link from 'next/link';
+import { verifySession } from '@/lib/session';
+import { logout } from './actions/auth';
 
 const assistant = Assistant({ subsets: ['latin'] });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await verifySession();
+  const isAuthenticated = !!session;
+
   return (
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col`}>
@@ -13,8 +18,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/catalog" className="text-2xl font-bold tracking-wider">IZZO DISTRIBUZIONE</Link>
             <nav className="flex space-x-6 items-center">
               <Link href="/catalog" className="hover:text-blue-200">Catalogo</Link>
-              <Link href="/cart" className="hover:text-blue-200">Carrello</Link>
-              <Link href="/login" className="hover:text-blue-200">Area Clienti</Link>
+              {isAuthenticated ? (
+                <>
+                  <Link href="/cart" className="hover:text-blue-200">Carrello</Link>
+                  <form action={logout}>
+                    <button type="submit" className="hover:text-blue-200">Esci</button>
+                  </form>
+                </>
+              ) : (
+                <Link href="/login" className="hover:text-blue-200 font-medium">Area Clienti</Link>
+              )}
             </nav>
           </div>
         </header>

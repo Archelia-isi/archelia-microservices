@@ -1,7 +1,7 @@
 import { searchProducts } from '@archelia/typesense/dist/search.js';
 import { verifySession } from '@/lib/session';
-import { redirect } from 'next/navigation';
 import { addToCart } from '../actions/cart';
+import Link from 'next/link';
 
 export default async function CatalogPage({
   searchParams,
@@ -9,10 +9,7 @@ export default async function CatalogPage({
   searchParams: { q?: string };
 }) {
   const session = await verifySession();
-  
-  if (!session) {
-    redirect('/login');
-  }
+  const isAuthenticated = !!session;
 
   const query = searchParams.q || '*';
   const results = await searchProducts(query);
@@ -25,9 +22,15 @@ export default async function CatalogPage({
       <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Catalogo Prodotti</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Ciao, <span className="font-semibold text-gray-700">{session.user.firstName || session.user.email}</span>. Ordina i tuoi prodotti velocemente.
-          </p>
+          {isAuthenticated ? (
+            <p className="text-sm text-gray-500 mt-1">
+              Ciao, <span className="font-semibold text-gray-700">{session.user.firstName || session.user.email}</span>. Ordina i tuoi prodotti velocemente.
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 mt-1">
+              Catalogo pubblico. <Link href="/login" className="text-blue-600 hover:underline">Accedi</Link> per visualizzare i prezzi e acquistare.
+            </p>
+          )}
         </div>
         
         <form className="flex w-full md:w-1/2 gap-2">
@@ -83,31 +86,41 @@ export default async function CatalogPage({
                 </h3>
                 
                 <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                  <div className="text-xl font-bold text-blue-900">
-                    € {Number(product.price).toFixed(2).replace('.', ',')}
-                  </div>
-                  <form action={addToCart} className="flex gap-2">
-                    <input type="hidden" name="sku" value={product.sku} />
-                    <input 
-                      type="number" 
-                      name="quantity" 
-                      defaultValue="1" 
-                      min="1" 
-                      max={product.stock || 1}
-                      className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={isOutOfStock}
-                      className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                        isOutOfStock 
-                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                          : 'bg-blue-800 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      {isOutOfStock ? 'Esaurito' : 'Aggiungi'}
-                    </button>
-                  </form>
+                  {isAuthenticated ? (
+                    <>
+                      <div className="text-xl font-bold text-blue-900">
+                        € {Number(product.price).toFixed(2).replace('.', ',')}
+                      </div>
+                      <form action={addToCart} className="flex gap-2">
+                        <input type="hidden" name="sku" value={product.sku} />
+                        <input 
+                          type="number" 
+                          name="quantity" 
+                          defaultValue="1" 
+                          min="1" 
+                          max={product.stock || 1}
+                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        />
+                        <button 
+                          type="submit" 
+                          disabled={isOutOfStock}
+                          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                            isOutOfStock 
+                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                              : 'bg-blue-800 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {isOutOfStock ? 'Esaurito' : 'Aggiungi'}
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="w-full text-center">
+                      <Link href="/login" className="text-sm font-medium text-blue-600 hover:text-blue-800 block w-full bg-blue-50 rounded py-2 transition-colors">
+                        Accedi per i prezzi
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
