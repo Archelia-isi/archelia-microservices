@@ -14,7 +14,7 @@ export default async function CartPage() {
     <div className="w-full">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Il tuo Carrello B2B</h1>
-        <Link href="/catalog" className="text-blue-600 hover:text-blue-800 font-medium text-sm">
+        <Link href="/catalog" className="text-green-600 hover:text-green-600 font-medium text-sm">
           &larr; Torna al Catalogo
         </Link>
       </div>
@@ -27,7 +27,7 @@ export default async function CartPage() {
             </svg>
             <p className="text-lg font-medium text-gray-900 mb-1">Il carrello è vuoto</p>
             <p className="mb-4">Non hai ancora aggiunto nessun prodotto al tuo ordine.</p>
-            <Link href="/catalog" className="inline-block px-4 py-2 bg-blue-800 text-white font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm">
+            <Link href="/catalog" className="inline-block px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors shadow-sm">
               Inizia gli acquisti
             </Link>
           </div>
@@ -68,7 +68,7 @@ export default async function CartPage() {
               <form action={checkout}>
                 <button 
                   type="submit"
-                  className="w-full sm:w-auto px-8 py-3 bg-blue-800 text-white font-bold rounded-md hover:bg-blue-700 transition-colors shadow-sm text-lg"
+                  className="w-full sm:w-auto px-8 py-3 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 transition-colors shadow-sm text-lg"
                 >
                   Conferma Ordine B2B
                 </button>

@@ -28,7 +28,7 @@ export default async function CatalogPage({
             </p>
           ) : (
             <p className="text-sm text-gray-500 mt-1">
-              Catalogo pubblico. <Link href="/login" className="text-blue-600 hover:underline">Accedi</Link> per visualizzare i prezzi e acquistare.
+              Catalogo pubblico. <Link href="/login" className="text-green-600 hover:underline">Accedi</Link> per visualizzare i prezzi e acquistare.
             </p>
           )}
         </div>
@@ -39,11 +39,11 @@ export default async function CatalogPage({
             name="q"
             defaultValue={query === '*' ? '' : query}
             placeholder="Cerca per SKU, nome, o tag..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-sm"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all shadow-sm"
           />
           <button 
             type="submit" 
-            className="px-6 py-2 bg-blue-800 text-white font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+            className="px-6 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors shadow-sm"
           >
             Cerca
           </button>
@@ -88,7 +88,7 @@ export default async function CatalogPage({
                 <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
                   {isAuthenticated ? (
                     <>
-                      <div className="text-xl font-bold text-blue-900">
+                      <div className="text-xl font-bold text-green-700">
                         € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
                       </div>
                       <form action={addToCart} className="flex gap-2">
@@ -99,7 +99,7 @@ export default async function CatalogPage({
                           defaultValue="1" 
                           min="1" 
                           max={product.stock || 1}
-                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 outline-none"
                         />
                         <button 
                           type="submit" 
@@ -107,7 +107,7 @@ export default async function CatalogPage({
                           className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                             isOutOfStock 
                               ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                              : 'bg-blue-800 text-white hover:bg-blue-700'
+                              : 'bg-green-600 text-white hover:bg-green-700'
                           }`}
                         >
                           {isOutOfStock ? 'Esaurito' : 'Aggiungi'}
@@ -116,7 +116,7 @@ export default async function CatalogPage({
                     </>
                   ) : (
                     <div className="w-full text-center">
-                      <Link href="/login" className="text-sm font-medium text-blue-600 hover:text-blue-800 block w-full bg-blue-50 rounded py-2 transition-colors">
+                      <Link href="/login" className="text-sm font-medium text-green-600 hover:text-green-600 block w-full bg-green-50 rounded py-2 transition-colors">
                         Accedi per i prezzi
                       </Link>
                     </div>
