@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { searchProducts } from '@archelia/typesense/dist/search.js';
+import HeroCarousel from '../components/HeroCarousel';
 
 export default async function Home() {
   const illumReq = searchProducts('illuminazione', { b2bMode: true });
@@ -46,25 +47,7 @@ export default async function Home() {
   return (
     <div className="w-full flex flex-col pb-16">
       
-      {/* HERO SECTION WITH OVERLAPPING CARDS */}
-      <section className="relative w-full overflow-hidden bg-[#fafafa] h-[360px] flex justify-center mb-4">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#ffe4e1] to-[#ffb6c1] opacity-50 z-0"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8ed7c663be?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-multiply z-0"></div>
-        
-        {/* Bottom fade into page background */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-50 to-transparent z-10"></div>
-        
-        <div className="relative z-20 w-full pt-12 h-full flex flex-col items-start px-8">
-          <div className="bg-white/95 backdrop-blur rounded shadow-md w-full max-w-sm p-6">
-            <h1 className="text-xl font-bold tracking-tight mb-2 text-gray-900">
-              Distribuzione B2B
-            </h1>
-            <p className="text-xs text-gray-600 mb-0">
-              Accesso esclusivo al catalogo ingrosso. Giacenze in tempo reale, listini personalizzati.
-            </p>
-          </div>
-        </div>
-      </section>
+      <HeroCarousel />
 
       {/* OVERLAPPING CATEGORY CARDS */}
       <section className="relative z-30 w-full px-4 -mt-[160px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
