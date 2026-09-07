@@ -7,35 +7,8 @@ export default async function Home() {
   const battReq = searchProducts('batterie', { b2bMode: true });
   const eletReq = searchProducts('elettrico', { b2bMode: true });
   const civileReq = searchProducts('serie civile', { b2bMode: true });
-  const antinfortunisticaReq = searchProducts('antinfortunistica scarpe guanti', { b2bMode: true });
-  const domoticaReq = searchProducts('domotica smart', { b2bMode: true });
-  const arredoReq = searchProducts('arredo', { b2bMode: true });
-  const utensiliReq = searchProducts('utensile cacciavite', { b2bMode: true });
-  const giardinoReq = searchProducts('giardino', { b2bMode: true });
-  const rackReq = searchProducts('rack armadio', { b2bMode: true });
   
-  const [
-    illumRes, battRes, eletRes, civileRes, 
-    antinfortunisticaRes, domoticaRes, arredoRes, utensiliRes, giardinoRes, rackRes
-  ] = await Promise.all([
-    illumReq, battReq, eletReq, civileReq, 
-    antinfortunisticaReq, domoticaReq, arredoReq, utensiliReq, giardinoReq, rackReq
-  ]);
-  
-  const getTop1 = (res: any) => res?.hits?.[0]?.document?.image_url;
-  
-  const categoryImages = {
-    1: getTop1(rackRes) || getTop1(battRes), // Fallback B2B general to rack/batt
-    2: getTop1(rackRes),
-    3: getTop1(battRes), // Elettroutensili
-    4: getTop1(illumRes),
-    5: getTop1(eletRes),
-    6: getTop1(antinfortunisticaRes),
-    7: getTop1(domoticaRes),
-    8: getTop1(arredoRes),
-    9: getTop1(utensiliRes),
-    10: getTop1(giardinoRes),
-  };
+  const [illumRes, battRes, eletRes, civileRes] = await Promise.all([illumReq, battReq, eletReq, civileReq]);
   
   const getTop4 = (res: any) => res?.hits?.slice(0, 4).map((h: any) => h.document) || [];
   const illumProducts = getTop4(illumRes);
@@ -74,7 +47,7 @@ export default async function Home() {
   return (
     <div className="w-full flex flex-col pb-16">
       
-      <HeroCarousel categoryImages={categoryImages as any} />
+      <HeroCarousel />
 
       {/* OVERLAPPING CATEGORY CARDS */}
       <section className="relative z-30 w-full px-4 -mt-[160px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

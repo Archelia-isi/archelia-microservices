@@ -5,85 +5,79 @@ import { useState, useEffect } from 'react';
 const slides = [
   {
     id: 1,
-    imageUrl: 'https://images.unsplash.com/photo-1586528116311-ad8ed7c663be?q=80&w=2070&auto=format&fit=crop',
+    imageUrl: 'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?q=80&w=1200&auto=format&fit=crop', // Warehouse boxes
     gradient: 'from-[#ffe4e1] to-[#ffb6c1]', // Pink
     title: 'Distribuzione B2B',
     description: 'Accesso esclusivo al catalogo ingrosso. Giacenze in tempo reale, listini personalizzati.',
   },
   {
     id: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2034&auto=format&fit=crop', // Servers / tech
+    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop', // Servers / tech
     gradient: 'from-[#e0f2fe] to-[#bae6fd]', // Light blue
     title: 'Informatica e Rack',
     description: 'Armadi di rete, cavi e componenti di alta qualità per la tua infrastruttura aziendale.',
   },
   {
     id: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop', // Workshop/tools
+    imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=1200&auto=format&fit=crop', // Drill/tools
     gradient: 'from-[#fef08a] to-[#fde047]', // Yellow
     title: 'Elettroutensili',
     description: 'Trapani, avvitatori e strumenti professionali per ogni esigenza in cantiere.',
   },
   {
     id: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?q=80&w=2070&auto=format&fit=crop', // Lighting
+    imageUrl: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?q=80&w=1200&auto=format&fit=crop', // Lighting
     gradient: 'from-[#dcfce7] to-[#86efac]', // Green
     title: 'Illuminazione LED',
     description: 'Pannelli, strisce e faretti ad alta efficienza energetica in pronta consegna.',
   },
   {
     id: 5,
-    imageUrl: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?q=80&w=2070&auto=format&fit=crop', // Electric
+    imageUrl: 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?q=80&w=1200&auto=format&fit=crop', // Cables / electric
     gradient: 'from-[#ffedd5] to-[#fdba74]', // Orange
     title: 'Materiale Elettrico',
     description: 'Cavi, quadri elettrici e serie civile delle migliori marche sul mercato per impianti sicuri.',
   },
   {
     id: 6,
-    imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070&auto=format&fit=crop', // Industry
+    imageUrl: 'https://images.unsplash.com/photo-1621252179027-94459d278660?q=80&w=1200&auto=format&fit=crop', // Safety
     gradient: 'from-[#f3e8ff] to-[#d8b4fe]', // Purple
     title: 'Antinfortunistica',
     description: 'Dispositivi di Protezione Individuale per la sicurezza del tuo team sul lavoro.',
   },
   {
     id: 7,
-    imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop', // Smart home
+    imageUrl: 'https://images.unsplash.com/photo-1558002038-1055907df827?q=80&w=1200&auto=format&fit=crop', // Smart thermostat
     gradient: 'from-[#e2e8f0] to-[#cbd5e1]', // Slate
     title: 'Smart Home & Domotica',
     description: 'Sistemi di automazione intelligenti per gestire energia e sicurezza.',
   },
   {
     id: 8,
-    imageUrl: 'https://images.unsplash.com/photo-1616423528224-2c0b62e430d4?q=80&w=200&auto=format&fit=crop', // Decor/Interior
+    imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1200&auto=format&fit=crop', // Interior
     gradient: 'from-[#fce7f3] to-[#f9a8d4]', // Pink bright
     title: 'Arredo e Complementi',
     description: 'Dettagli di stile ed accessori essenziali per l\'edilizia moderna ed il design d\'interni.',
   },
   {
     id: 9,
-    imageUrl: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?q=80&w=200&auto=format&fit=crop', // Tools
+    imageUrl: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?q=80&w=1200&auto=format&fit=crop', // Hand tools
     gradient: 'from-[#ccfbf1] to-[#5eead4]', // Teal
     title: 'Utensili Manuali',
     description: 'Chiavi, cacciaviti e pinze forgiate in acciaio resistente per ogni professionista.',
   },
   {
     id: 10,
-    imageUrl: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?q=80&w=2070&auto=format&fit=crop', // Garden / outdoor
+    imageUrl: 'https://images.unsplash.com/photo-1589927986089-35812388d1f4?q=80&w=1200&auto=format&fit=crop', // Garden
     gradient: 'from-[#ecfccb] to-[#bef264]', // Lime
     title: 'Giardinaggio ed Esterni',
     description: 'Tutto il necessario per la cura del verde, l\'irrigazione e l\'arredo degli spazi esterni.',
   }
 ];
 
-export default function HeroCarousel({ categoryImages }: { categoryImages?: Record<number, string> }) {
+export default function HeroCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-
-  // Update slides with dynamic images if provided
-  const currentSlides = slides.map(slide => ({
-    ...slide,
-    imageUrl: categoryImages?.[slide.id] || slide.imageUrl
-  }));
 
   useEffect(() => {
     if (isPaused) return;
@@ -93,16 +87,16 @@ export default function HeroCarousel({ categoryImages }: { categoryImages?: Reco
     }, 5000); // 5 seconds
     
     return () => clearInterval(interval);
-  }, [isPaused, currentSlides.length]);
+  }, [isPaused]);
 
-  const slide = currentSlides[currentIndex];
+  const slide = slides[currentIndex];
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? currentSlides.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev === currentSlides.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -115,11 +109,11 @@ export default function HeroCarousel({ categoryImages }: { categoryImages?: Reco
       
       {/* Dynamic Background Image (On Top, Right Side) */}
       <div 
-        className="absolute inset-y-0 right-8 w-1/2 bg-contain bg-no-repeat bg-right z-0 transition-all duration-1000 ease-in-out mix-blend-multiply"
+        className="absolute inset-y-0 right-0 w-2/3 md:w-3/4 bg-cover bg-center z-0 transition-all duration-1000 ease-in-out"
         style={{ 
           backgroundImage: `url('${slide.imageUrl}')`,
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%)',
-          maskImage: 'linear-gradient(to right, transparent, black 10%)'
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%)',
+          maskImage: 'linear-gradient(to right, transparent, black 30%)'
         }}
       ></div>
       
@@ -169,7 +163,7 @@ export default function HeroCarousel({ categoryImages }: { categoryImages?: Reco
 
       {/* Slide Indicators */}
       <div className="absolute bottom-[170px] left-8 z-30 flex gap-2">
-        {currentSlides.map((s, i) => (
+        {slides.map((s, i) => (
           <button 
             key={s.id} 
             onClick={() => setCurrentIndex(i)}
