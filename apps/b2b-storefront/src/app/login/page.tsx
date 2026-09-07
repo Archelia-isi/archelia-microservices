@@ -12,7 +12,7 @@ export default async function LoginPage() {
     <div className="flex flex-col items-center justify-center py-24">
       <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-blue-900 tracking-wide">ARCHELIA B2B</h1>
+          <h1 className="text-2xl font-bold text-blue-900 tracking-wide">IZZO DISTRIBUZIONE</h1>
           <p className="text-sm text-gray-500 mt-2">Accedi alla tua area riservata per visualizzare il catalogo e i listini personalizzati.</p>
         </div>
         

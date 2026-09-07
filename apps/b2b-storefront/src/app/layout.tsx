@@ -10,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col`}>
         <header className="bg-blue-800 text-white shadow-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link href="/catalog" className="text-2xl font-bold tracking-wider">ARCHELIA B2B</Link>
+            <Link href="/catalog" className="text-2xl font-bold tracking-wider">IZZO DISTRIBUZIONE</Link>
             <nav className="flex space-x-6 items-center">
               <Link href="/catalog" className="hover:text-blue-200">Catalogo</Link>
               <Link href="/cart" className="hover:text-blue-200">Carrello</Link>
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <footer className="bg-gray-800 text-white text-center py-6 mt-12">
-          <p>&copy; {new Date().getFullYear()} Archelia S.r.l. - Portale B2B</p>
+          <p>&copy; {new Date().getFullYear()} Izzo Distribuzione S.r.l. - Portale B2B</p>
         </footer>
       </body>
     </html>
