@@ -102,19 +102,23 @@ export default function HeroCarousel() {
   return (
     <section className="relative w-full overflow-hidden bg-[#fafafa] h-[360px] flex justify-center mb-4 group transition-colors duration-1000">
       
-      {/* Dynamic Background Gradient */}
+      {/* Dynamic Background Gradient (Base) */}
       <div 
-        className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} opacity-50 z-0 transition-all duration-1000 ease-in-out`}
+        className={`absolute inset-0 bg-gradient-to-r ${slide.gradient} z-0 transition-all duration-1000 ease-in-out`}
       ></div>
       
-      {/* Dynamic Background Image */}
+      {/* Dynamic Background Image (On Top, Right Side) */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-10 mix-blend-multiply z-0 transition-all duration-1000 ease-in-out"
-        style={{ backgroundImage: `url('${slide.imageUrl}')` }}
+        className="absolute inset-y-0 right-0 w-2/3 md:w-3/4 bg-cover bg-center z-0 transition-all duration-1000 ease-in-out"
+        style={{ 
+          backgroundImage: `url('${slide.imageUrl}')`,
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%)',
+          maskImage: 'linear-gradient(to right, transparent, black 30%)'
+        }}
       ></div>
       
       {/* Bottom fade into page background */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-50 to-transparent z-10"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-50 to-transparent z-10 pointer-events-none"></div>
       
       {/* Card Content */}
       <div className="relative z-20 w-full pt-12 h-full flex flex-col items-start px-8">
