@@ -1,6 +1,6 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 
-export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean }) {
+export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string }) {
   try {
     const searchParams: any = {
       q: q,
@@ -9,6 +9,10 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
       sort_by: '_text_match:desc,is_in_promo:desc,natural_sku:asc',
       per_page: 50
     };
+    
+    if (options?.sortBy) {
+      searchParams.sort_by = options.sortBy;
+    }
     
     if (!options?.includeUnpublished) {
       if (options?.b2bMode) {
