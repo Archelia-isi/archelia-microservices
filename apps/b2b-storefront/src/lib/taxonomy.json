@@ -1,0 +1,4151 @@
+[
+  {
+    "id": "casa",
+    "name": "CASA",
+    "iconName": "box",
+    "children": [
+      {
+        "id": "casa-bagno",
+        "name": "BAGNO",
+        "children": [
+          {
+            "id": "casa-bagno-contenitori",
+            "name": "CONTENITORI",
+            "children": []
+          },
+          {
+            "id": "casa-bagno-soffioni-doccia",
+            "name": "SOFFIONI DOCCIA",
+            "children": []
+          },
+          {
+            "id": "casa-bagno-areatori-e-romigetto",
+            "name": "AREATORI E ROMIGETTO",
+            "children": []
+          },
+          {
+            "id": "casa-bagno-flessibili-ed-accessori-bagno",
+            "name": "FLESSIBILI ED ACCESSORI BAGNO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-utensili-manuali",
+        "name": "UTENSILI MANUALI",
+        "children": [
+          {
+            "id": "casa-utensili-manuali-contenitori-in-plastica-per-attrezz",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-teli-di-copertura",
+        "name": "TELI DI COPERTURA",
+        "children": [
+          {
+            "id": "casa-teli-di-copertura-teli-copertura-automoto",
+            "name": "TELI COPERTURA AUTO/MOTO",
+            "children": []
+          },
+          {
+            "id": "casa-teli-di-copertura-teli-di-copertura-tavoli",
+            "name": "TELI DI COPERTURA TAVOLI",
+            "children": []
+          },
+          {
+            "id": "casa-teli-di-copertura-teli-di-copertura-ombrelloni",
+            "name": "TELI DI COPERTURA OMBRELLONI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-edilizia-e-accessori",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "casa-edilizia-e-accessori-protezioni-pareti",
+            "name": "PROTEZIONI PARETI",
+            "children": []
+          },
+          {
+            "id": "casa-edilizia-e-accessori-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-arredo-e-complementi",
+        "name": "ARREDO E COMPLEMENTI",
+        "children": [
+          {
+            "id": "casa-arredo-e-complementi-arredo-esterno",
+            "name": "ARREDO ESTERNO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-ferramenta-per-mobili",
+        "name": "FERRAMENTA PER MOBILI",
+        "children": [
+          {
+            "id": "casa-ferramenta-per-mobili-feltrini",
+            "name": "FELTRINI",
+            "children": []
+          },
+          {
+            "id": "casa-ferramenta-per-mobili-accessori-idraulici-e-scarico-condizionamento",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-armadi-rack-e-accessori",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "casa-armadi-rack-e-accessori-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-luci-decorative-e-natalizie",
+        "name": "LUCI DECORATIVE E NATALIZIE",
+        "children": [
+          {
+            "id": "casa-luci-decorative-e-natalizie-arredo-esterno",
+            "name": "ARREDO ESTERNO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-ventilazione-e-trattamento-aria",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "casa-ventilazione-e-trattamento-aria-ventilatori",
+            "name": "VENTILATORI",
+            "children": []
+          },
+          {
+            "id": "casa-ventilazione-e-trattamento-aria-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "casa-dispositivi-di-protezione-individuale",
+        "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+        "children": [
+          {
+            "id": "casa-dispositivi-di-protezione-individuale-dispositivi-di-protezione-individuale",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "utensili",
+    "name": "UTENSILI",
+    "iconName": "tool",
+    "children": [
+      {
+        "id": "utensili-accessori",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "utensili-accessori-morse",
+            "name": "MORSE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-livelle",
+            "name": "LIVELLE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-dischi-flex",
+            "name": "DISCHI FLEX",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-flessometri",
+            "name": "FLESSOMETRI",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-spugne-abrasive",
+            "name": "SPUGNE ABRASIVE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-lime-in-acciaio",
+            "name": "LIME IN ACCIAIO",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-misuratore-laser",
+            "name": "MISURATORE LASER",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-elettrodomestici",
+            "name": "ACCESSORI ELETTRODOMESTICI",
+            "children": [
+              {
+                "id": "utensili-accessori-elettrodomestici-accessori-idropulitrice",
+                "name": "ACCESSORI IDROPULITRICE",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "utensili-accessori-pistole-termiche",
+            "name": "PISTOLE TERMICHE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-spazzole-in-acciaio",
+            "name": "SPAZZOLE IN ACCIAIO",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-squadre-per-cantieri",
+            "name": "SQUADRE PER CANTIERI",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-oli-di-lubrificazione",
+            "name": "OLI DI LUBRIFICAZIONE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-set-matite-da-cantiere",
+            "name": "SET MATITE DA CANTIERE",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-metri-in-plastica-pieghevoli",
+            "name": "METRI IN PLASTICA PIEGHEVOLI",
+            "children": []
+          },
+          {
+            "id": "utensili-accessori-contenitori-in-plastica-per-attrezz",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-compressori",
+        "name": "COMPRESSORI",
+        "children": [
+          {
+            "id": "utensili-compressori-verniciatore",
+            "name": "VERNICIATORE",
+            "children": []
+          },
+          {
+            "id": "utensili-compressori-pistole-di-gonfiaggio",
+            "name": "PISTOLE DI GONFIAGGIO",
+            "children": []
+          },
+          {
+            "id": "utensili-compressori-gruppi-filtro-regolatore-lubrificatore",
+            "name": "GRUPPI FILTRO REGOLATORE LUBRIFICATORE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-utensili-manuali",
+        "name": "UTENSILI MANUALI",
+        "children": [
+          {
+            "id": "utensili-utensili-manuali-punte-trapano",
+            "name": "PUNTE TRAPANO",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-fustellatrici",
+            "name": "FUSTELLATRICI",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-chiavi-inglesi",
+            "name": "CHIAVI INGLESI",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-bussole-e-inserti",
+            "name": "BUSSOLE E INSERTI",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-presse-idrauliche",
+            "name": "PRESSE IDRAULICHE",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-set-chiavi-inglesi",
+            "name": "SET CHIAVI INGLESI",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-utensili-elettricista",
+            "name": "UTENSILI ELETTRICISTA",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-accessori-per-saldatura",
+            "name": "ACCESSORI PER SALDATURA",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-spazzole-per-auto-e-cerchioni",
+            "name": "SPAZZOLE PER AUTO E CERCHIONI",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-chiavi-e-utensili-di-serraggio",
+            "name": "CHIAVI E UTENSILI DI SERRAGGIO",
+            "children": []
+          },
+          {
+            "id": "utensili-utensili-manuali-contenitori-in-plastica-per-attrezz",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-strumenti-di-misura",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "utensili-strumenti-di-misura-cercafase",
+            "name": "CERCAFASE",
+            "children": []
+          },
+          {
+            "id": "utensili-strumenti-di-misura-multimetro",
+            "name": "MULTIMETRO",
+            "children": []
+          },
+          {
+            "id": "utensili-strumenti-di-misura-tester-e-strumenti-di-misura",
+            "name": "TESTER E STRUMENTI DI MISURA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-edilizia-e-accessori",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "utensili-edilizia-e-accessori-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "utensili-edilizia-e-accessori-punte-trapano",
+            "name": "PUNTE TRAPANO",
+            "children": []
+          },
+          {
+            "id": "utensili-edilizia-e-accessori-viti-e-fissaggi",
+            "name": "VITI E FISSAGGI",
+            "children": []
+          },
+          {
+            "id": "utensili-edilizia-e-accessori-kit-punte-trapano",
+            "name": "KIT PUNTE TRAPANO",
+            "children": []
+          },
+          {
+            "id": "utensili-edilizia-e-accessori-tasselli-e-ancoraggi",
+            "name": "TASSELLI E ANCORAGGI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-elettroutensili-basic",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "utensili-elettroutensili-basic-pistole-per-colla-a-caldo",
+            "name": "PISTOLE PER COLLA A CALDO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-fascette-e-stringitubo",
+        "name": "FASCETTE E STRINGITUBO",
+        "children": [
+          {
+            "id": "utensili-fascette-e-stringitubo-fascette",
+            "name": "FASCETTE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-saldatrici-e-accessori",
+        "name": "SALDATRICI E ACCESSORI",
+        "children": [
+          {
+            "id": "utensili-saldatrici-e-accessori-saldatrici",
+            "name": "SALDATRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-abbigliamento-da-lavoro",
+        "name": "ABBIGLIAMENTO DA LAVORO",
+        "children": [
+          {
+            "id": "utensili-abbigliamento-da-lavoro-tuta-monouso",
+            "name": "TUTA MONOUSO",
+            "children": []
+          },
+          {
+            "id": "utensili-abbigliamento-da-lavoro-dispositivi-di-protezione-individuale",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-attrezzature-da-pittore",
+        "name": "ATTREZZATURE DA PITTORE",
+        "children": [
+          {
+            "id": "utensili-attrezzature-da-pittore-nastri-adesivi",
+            "name": "NASTRI ADESIVI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-cacciaviti-pinze-e-inserti",
+        "name": "CACCIAVITI PINZE E INSERTI",
+        "children": [
+          {
+            "id": "utensili-cacciaviti-pinze-e-inserti-pinze",
+            "name": "PINZE",
+            "children": []
+          },
+          {
+            "id": "utensili-cacciaviti-pinze-e-inserti-cacciaviti",
+            "name": "CACCIAVITI",
+            "children": []
+          },
+          {
+            "id": "utensili-cacciaviti-pinze-e-inserti-set-inserti",
+            "name": "SET INSERTI",
+            "children": []
+          },
+          {
+            "id": "utensili-cacciaviti-pinze-e-inserti-set-cacciaviti",
+            "name": "SET CACCIAVITI",
+            "children": []
+          },
+          {
+            "id": "utensili-cacciaviti-pinze-e-inserti-utensili-elettricista",
+            "name": "UTENSILI ELETTRICISTA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-forbici-e-utensili-da-taglio",
+        "name": "FORBICI E UTENSILI DA TAGLIO",
+        "children": [
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-sega",
+            "name": "SEGA",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-forbici",
+            "name": "FORBICI",
+            "children": [
+              {
+                "id": "utensili-forbici-e-utensili-da-taglio-forbici-elettricista",
+                "name": "FORBICI ELETTRICISTA",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-accetta",
+            "name": "ACCETTA",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-segaccio",
+            "name": "SEGACCIO",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-taglierini",
+            "name": "TAGLIERINI",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-sezionatori",
+            "name": "SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-tagliabulloni",
+            "name": "TAGLIABULLONI",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-fustellatrici",
+            "name": "FUSTELLATRICI",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-utensili-elettricista",
+            "name": "UTENSILI ELETTRICISTA",
+            "children": []
+          },
+          {
+            "id": "utensili-forbici-e-utensili-da-taglio-lame-e-accessori-da-taglio",
+            "name": "LAME E ACCESSORI DA TAGLIO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-elementi-di-fissaggio-e-isolanti",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-fermacavo",
+            "name": "FERMACAVO",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-ferma-porta",
+            "name": "FERMA PORTA",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-nastri-isolanti",
+            "name": "NASTRI ISOLANTI",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-viti-e-fissaggi",
+            "name": "VITI E FISSAGGI",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-tasselli-e-ancoraggi",
+            "name": "TASSELLI E ANCORAGGI",
+            "children": []
+          },
+          {
+            "id": "utensili-elementi-di-fissaggio-e-isolanti-pistole-per-colla-a-caldo",
+            "name": "PISTOLE PER COLLA A CALDO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-raccordi-innesti-tubi-irrigatori",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "utensili-raccordi-innesti-tubi-irrigatori-pistole-di-gonfiaggio",
+            "name": "PISTOLE DI GONFIAGGIO",
+            "children": []
+          },
+          {
+            "id": "utensili-raccordi-innesti-tubi-irrigatori-spazzole-per-auto-e-cerchioni",
+            "name": "SPAZZOLE PER AUTO E CERCHIONI",
+            "children": []
+          },
+          {
+            "id": "utensili-raccordi-innesti-tubi-irrigatori-raccordi-ed-innesti-giardinaggio",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch",
+        "name": "CHIAVI INGLESI A BRUCOLA E A CRICCH",
+        "children": [
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-chiavi-inglesi",
+            "name": "CHIAVI INGLESI",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-chiavi-bombole",
+            "name": "CHIAVI BOMBOLE",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-bussole-e-inserti",
+            "name": "BUSSOLE E INSERTI",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-set-chiavi-inglesi",
+            "name": "SET CHIAVI INGLESI",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-chiavi-a-cricchetto",
+            "name": "CHIAVI A CRICCHETTO",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-set-chiavi-esagonali",
+            "name": "SET CHIAVI ESAGONALI",
+            "children": []
+          },
+          {
+            "id": "utensili-chiavi-inglesi-a-brucola-e-a-cricch-set-chiavi-a-cricchetto",
+            "name": "SET CHIAVI A CRICCHETTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-martelli-e-attrezzatura-da-cantiere",
+        "name": "MARTELLI E ATTREZZATURA DA CANTIERE",
+        "children": [
+          {
+            "id": "utensili-martelli-e-attrezzatura-da-cantiere-martelli",
+            "name": "MARTELLI",
+            "children": []
+          },
+          {
+            "id": "utensili-martelli-e-attrezzatura-da-cantiere-raschietti",
+            "name": "RASCHIETTI",
+            "children": []
+          },
+          {
+            "id": "utensili-martelli-e-attrezzatura-da-cantiere-levachiodi",
+            "name": "LEVACHIODI",
+            "children": []
+          },
+          {
+            "id": "utensili-martelli-e-attrezzatura-da-cantiere-set-scalpelli",
+            "name": "SET SCALPELLI",
+            "children": []
+          },
+          {
+            "id": "utensili-martelli-e-attrezzatura-da-cantiere-spatole-cazzuole-e-frattazzi",
+            "name": "SPATOLE CAZZUOLE E FRATTAZZI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "utensili-dispositivi-di-protezione-individuale",
+        "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+        "children": [
+          {
+            "id": "utensili-dispositivi-di-protezione-individuale-tuta-monouso",
+            "name": "TUTA MONOUSO",
+            "children": []
+          },
+          {
+            "id": "utensili-dispositivi-di-protezione-individuale-dispositivi-di-protezione-individuale",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elettricita",
+    "name": "ELETTRICITA'",
+    "iconName": "sun",
+    "children": [
+      {
+        "id": "elettricita-cavi",
+        "name": "CAVI",
+        "children": [
+          {
+            "id": "elettricita-cavi-e-prolunghe",
+            "name": "CAVI E PROLUNGHE",
+            "children": [
+              {
+                "id": "elettricita-cavi-e-prolunghe-avvolgicavo",
+                "name": "AVVOLGICAVO",
+                "children": []
+              },
+              {
+                "id": "elettricita-cavi-e-prolunghe-accessori-elettrici",
+                "name": "ACCESSORI ELETTRICI",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-cavi-cavi-unipolari",
+            "name": "CAVI UNIPOLARI",
+            "children": []
+          },
+          {
+            "id": "elettricita-cavi-cavi-tripolari",
+            "name": "CAVI TRIPOLARI",
+            "children": []
+          },
+          {
+            "id": "elettricita-cavi-cavi-multipolari",
+            "name": "CAVI MULTIPOLARI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-smart",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "elettricita-smart-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-smart-controller-smart",
+            "name": "CONTROLLER SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-smart-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "elettricita-smart-interruttori-smart",
+            "name": "INTERRUTTORI SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-smart-stabilizzatori-di-tensione",
+            "name": "STABILIZZATORI DI TENSIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-smart-scaricatori-di-sovratensione",
+            "name": "SCARICATORI DI SOVRATENSIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-batterie",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "elettricita-batterie-power-station-e-centrali-elettriche-portatili",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-accessori",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "elettricita-accessori-puntalini",
+            "name": "PUNTALINI",
+            "children": []
+          },
+          {
+            "id": "elettricita-accessori-cercafase",
+            "name": "CERCAFASE",
+            "children": []
+          },
+          {
+            "id": "elettricita-accessori-multimetro",
+            "name": "MULTIMETRO",
+            "children": []
+          },
+          {
+            "id": "elettricita-accessori-carica-batterie",
+            "name": "CARICA BATTERIE",
+            "children": []
+          },
+          {
+            "id": "elettricita-accessori-per-illuminazione",
+            "name": "ACCESSORI PER ILLUMINAZIONE",
+            "children": [
+              {
+                "id": "elettricita-accessori-per-illuminazione-staffe",
+                "name": "STAFFE",
+                "children": []
+              },
+              {
+                "id": "elettricita-accessori-per-illuminazione-strip-led-e-accessori",
+                "name": "STRIP LED E ACCESSORI",
+                "children": []
+              },
+              {
+                "id": "elettricita-accessori-per-illuminazione-scatole-di-derivazione",
+                "name": "SCATOLE DI DERIVAZIONE",
+                "children": []
+              },
+              {
+                "id": "elettricita-accessori-per-illuminazione-reattori-e-alimentatori-per-lampade",
+                "name": "REATTORI E ALIMENTATORI PER LAMPADE",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-accessori-interruttori-vintage",
+            "name": "INTERRUTTORI VINTAGE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-emergenza",
+        "name": "EMERGENZA",
+        "children": [
+          {
+            "id": "elettricita-emergenza-pulsanti",
+            "name": "PULSANTI",
+            "children": [
+              {
+                "id": "elettricita-emergenza-pulsanti-e-dispositivi-di-allarme",
+                "name": "PULSANTI E DISPOSITIVI DI ALLARME",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "elettricita-automazione",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "elettricita-automazione-fusibili",
+            "name": "FUSIBILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-pulsanti",
+            "name": "PULSANTI",
+            "children": [
+              {
+                "id": "elettricita-automazione-pulsanti-e-dispositivi-di-allarme",
+                "name": "PULSANTI E DISPOSITIVI DI ALLARME",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-automazione-igrostati",
+            "name": "IGROSTATI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-finecorsa",
+            "name": "FINECORSA",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-contattori",
+            "name": "CONTATTORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-sezionatori",
+            "name": "SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-contenitori",
+            "name": "CONTENITORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-condensatori",
+            "name": "CONDENSATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-crepuscolare",
+            "name": "CREPUSCOLARE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-differenziale",
+            "name": "DIFFERENZIALE",
+            "children": [
+              {
+                "id": "elettricita-automazione-differenziale-magnetotermico",
+                "name": "DIFFERENZIALE MAGNETOTERMICO",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-automazione-magnetotermico",
+            "name": "MAGNETOTERMICO",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-porta-fusibile",
+            "name": "PORTA FUSIBILE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-temporizzatori",
+            "name": "TEMPORIZZATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-avviatori-motore",
+            "name": "AVVIATORI MOTORE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-zoccoli-per-rele",
+            "name": "ZOCCOLI PER RELÈ",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-controller-accessi",
+            "name": "CONTROLLER ACCESSI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-rele-a-stato-solido",
+            "name": "RELE A STATO SOLIDO",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-strumenti-di-misura",
+            "name": "STRUMENTI DI MISURA",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-sensori-di-prossimita",
+            "name": "SENSORI DI PROSSIMITA",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-inverter-di-frequenza",
+            "name": "INVERTER DI FREQUENZA",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-colonne-di-segnalazione",
+            "name": "COLONNE DI SEGNALAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-commutatori-e-sezionatori",
+            "name": "COMMUTATORI E SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-scaricatori-di-sovratensione",
+            "name": "SCARICATORI DI SOVRATENSIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-illuminazione-antideflagrante",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-riscaldatori-per-quadri-elettrici",
+            "name": "RISCALDATORI PER QUADRI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-automazione-interruttori-magnetotermici-scatolati",
+            "name": "INTERRUTTORI MAGNETOTERMICI SCATOLATI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-fotovoltaico",
+        "name": "FOTOVOLTAICO",
+        "children": [
+          {
+            "id": "elettricita-fotovoltaico-fermacavo",
+            "name": "FERMACAVO",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-sezionatori",
+            "name": "SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-kit-fotovoltaici",
+            "name": "KIT FOTOVOLTAICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-batterie-utensili",
+            "name": "BATTERIE UTENSILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-pannelli-fotovoltaici",
+            "name": "PANNELLI FOTOVOLTAICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-inverter-di-frequenza",
+            "name": "INVERTER DI FREQUENZA",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-inverter-fotovoltaici",
+            "name": "INVERTER FOTOVOLTAICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-accessori-fotovoltaici",
+            "name": "ACCESSORI FOTOVOLTAICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-strutture-fotovoltaiche",
+            "name": "STRUTTURE FOTOVOLTAICHE",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          },
+          {
+            "id": "elettricita-fotovoltaico-power-station-e-centrali-elettriche-portatili",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-trasformatori",
+        "name": "TRASFORMATORI",
+        "children": [
+          {
+            "id": "elettricita-trasformatori-trasformatori-di-corrente",
+            "name": "TRASFORMATORI DI CORRENTE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-canaline-e-tubi-rk",
+        "name": "CANALINE E TUBI RK",
+        "children": [
+          {
+            "id": "elettricita-canaline-e-tubi-rk-clip-rk",
+            "name": "CLIP RK",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-tubo-rk",
+            "name": "TUBO RK",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-canaline",
+            "name": "CANALINE",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-trivia-rk",
+            "name": "TRIVIA RK",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-pressacavi",
+            "name": "PRESSACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-manicotto-rk",
+            "name": "MANICOTTO RK",
+            "children": [
+              {
+                "id": "elettricita-canaline-e-tubi-rk-manicotto-rk-ip65",
+                "name": "MANICOTTO RK IP65",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-curva-larga-rk-90",
+            "name": "CURVA LARGA RK 90",
+            "children": [
+              {
+                "id": "elettricita-canaline-e-tubi-rk-curva-larga-rk-90-ip65",
+                "name": "CURVA LARGA Rk 90° IP65",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-curva-piccola-rk-90",
+            "name": "CURVA PICCOLA RK 90",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-raccordo-rk-scatola-ip65",
+            "name": "RACCORDO RK SCATOLA IP65",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-canaline-e-tubi-rk-guaina-on-raccordo-rk-ip65",
+            "name": "GUAINA ON RACCORDO RK IP65",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-strumenti-di-misura",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "elettricita-strumenti-di-misura-cercafase",
+            "name": "CERCAFASE",
+            "children": []
+          },
+          {
+            "id": "elettricita-strumenti-di-misura-strumenti-di-misura",
+            "name": "STRUMENTI DI MISURA",
+            "children": []
+          },
+          {
+            "id": "elettricita-strumenti-di-misura-utensili-elettricista",
+            "name": "UTENSILI ELETTRICISTA",
+            "children": []
+          },
+          {
+            "id": "elettricita-strumenti-di-misura-trasformatori-di-corrente",
+            "name": "TRASFORMATORI DI CORRENTE",
+            "children": []
+          },
+          {
+            "id": "elettricita-strumenti-di-misura-tester-e-strumenti-di-misura",
+            "name": "TESTER E STRUMENTI DI MISURA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-edilizia-e-accessori",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "elettricita-edilizia-e-accessori-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "elettricita-edilizia-e-accessori-sportelli-di-ispezione",
+            "name": "SPORTELLI DI ISPEZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-edilizia-e-accessori-strutture-fotovoltaiche",
+            "name": "STRUTTURE FOTOVOLTAICHE",
+            "children": []
+          },
+          {
+            "id": "elettricita-edilizia-e-accessori-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-fusibili-e-accessori",
+        "name": "FUSIBILI E ACCESSORI",
+        "children": [
+          {
+            "id": "elettricita-fusibili-e-accessori-fusibili",
+            "name": "FUSIBILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fusibili-e-accessori-sezionatori",
+            "name": "SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-fusibili-e-accessori-porta-fusibile",
+            "name": "PORTA FUSIBILE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-morsetti-e-connettori",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "elettricita-morsetti-e-connettori-puntalini",
+            "name": "PUNTALINI",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-moduli-led",
+            "name": "MODULI LED",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-pressacavi",
+            "name": "PRESSACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-scatole-di-giunzione",
+            "name": "SCATOLE DI GIUNZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-manicotti-di-giunzione",
+            "name": "MANICOTTI DI GIUNZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-marcatura-e-identificazione",
+            "name": "MARCATURA E IDENTIFICAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-morsetti-e-connettori-morsettiere-di-distribuzione",
+            "name": "MORSETTIERE DI DISTRIBUZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-ferramenta-per-mobili",
+        "name": "FERRAMENTA PER MOBILI",
+        "children": [
+          {
+            "id": "elettricita-ferramenta-per-mobili-ferma-porta",
+            "name": "FERMA PORTA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-illuminazione-esterna",
+        "name": "ILLUMINAZIONE ESTERNA",
+        "children": [
+          {
+            "id": "elettricita-illuminazione-esterna-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-passerelle-e-accessori",
+        "name": "PASSERELLE E ACCESSORI",
+        "children": [
+          {
+            "id": "elettricita-passerelle-e-accessori-passerelle-portacavi",
+            "name": "PASSERELLE PORTACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-passerelle-e-accessori-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-fascette-e-stringitubo",
+        "name": "FASCETTE E STRINGITUBO",
+        "children": [
+          {
+            "id": "elettricita-fascette-e-stringitubo-fascette",
+            "name": "FASCETTE",
+            "children": []
+          },
+          {
+            "id": "elettricita-fascette-e-stringitubo-fermacavo",
+            "name": "FERMACAVO",
+            "children": []
+          },
+          {
+            "id": "elettricita-fascette-e-stringitubo-marcatura-e-identificazione",
+            "name": "MARCATURA E IDENTIFICAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-fascette-e-stringitubo-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-generatori-di-corrente",
+        "name": "GENERATORI DI CORRENTE",
+        "children": [
+          {
+            "id": "elettricita-generatori-di-corrente-gruppi-elettrogeni",
+            "name": "GRUPPI ELETTROGENI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-armadi-rack-e-accessori",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "elettricita-armadi-rack-e-accessori-ventilatori",
+            "name": "VENTILATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-armadi-rack-e-accessori-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-armadi-rack-e-accessori-strutture-fotovoltaiche",
+            "name": "STRUTTURE FOTOVOLTAICHE",
+            "children": []
+          },
+          {
+            "id": "elettricita-armadi-rack-e-accessori-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-armadi-rack-e-accessori-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-illuminazione-industiale",
+        "name": "ILLUMINAZIONE INDUSTIALE",
+        "children": [
+          {
+            "id": "elettricita-illuminazione-industiale-reattori-e-alimentatori-per-lampade",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-alimentatori-e-driver-led",
+        "name": "ALIMENTATORI E DRIVER LED",
+        "children": [
+          {
+            "id": "elettricita-alimentatori-e-driver-led-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-alimentatori-e-driver-led-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-alimentatori-e-driver-led-strip-led-e-accessori",
+            "name": "STRIP LED E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-alimentatori-e-driver-led-accessori-fotovoltaici",
+            "name": "ACCESSORI FOTOVOLTAICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-alimentatori-e-driver-led-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-rifasamento-e-condensatori",
+        "name": "RIFASAMENTO E CONDENSATORI",
+        "children": [
+          {
+            "id": "elettricita-rifasamento-e-condensatori-contattori",
+            "name": "CONTATTORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-rifasamento-e-condensatori-condensatori",
+            "name": "CONDENSATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-rifasamento-e-condensatori-strumenti-di-misura",
+            "name": "STRUMENTI DI MISURA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-stabilizzatori-di-tensione",
+        "name": "STABILIZZATORI DI TENSIONE",
+        "children": [
+          {
+            "id": "elettricita-stabilizzatori-di-tensione-stabilizzatori-di-tensione",
+            "name": "STABILIZZATORI DI TENSIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-caricabatterie-e-avviatori",
+        "name": "CARICABATTERIE E AVVIATORI",
+        "children": [
+          {
+            "id": "elettricita-caricabatterie-e-avviatori-carica-batterie",
+            "name": "CARICA BATTERIE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-corrugati-guaine-e-pozzetti",
+        "name": "CORRUGATI, GUAINE E POZZETTI",
+        "children": [
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-tubo-rk",
+            "name": "TUBO RK",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-corrugati",
+            "name": "CORRUGATI",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-pressacavi",
+            "name": "PRESSACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-guaina-spiralata",
+            "name": "GUAINA SPIRALATA",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-manicotto-rk-ip65",
+            "name": "MANICOTTO RK IP65",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-pozzetti-elettrici",
+            "name": "POZZETTI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-guaine-termorestringenti",
+            "name": "GUAINE TERMORESTRINGENTI",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-raccordo-rk-scatola-ip65",
+            "name": "RACCORDO RK SCATOLA IP65",
+            "children": []
+          },
+          {
+            "id": "elettricita-corrugati-guaine-e-pozzetti-accessori-idraulici-e-scarico-condizionamento",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-scaricatori-di-sovratensione",
+        "name": "SCARICATORI DI SOVRATENSIONE",
+        "children": [
+          {
+            "id": "elettricita-scaricatori-di-sovratensione-scaricatori-di-sovratensione",
+            "name": "SCARICATORI DI SOVRATENSIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-sirene-e-segnalatori-acustici",
+        "name": "SIRENE E SEGNALATORI ACUSTICI",
+        "children": [
+          {
+            "id": "elettricita-sirene-e-segnalatori-acustici-sirene",
+            "name": "SIRENE",
+            "children": []
+          },
+          {
+            "id": "elettricita-sirene-e-segnalatori-acustici-campanelli",
+            "name": "CAMPANELLI",
+            "children": []
+          },
+          {
+            "id": "elettricita-sirene-e-segnalatori-acustici-nuova-categoria-sirene",
+            "name": "Nuova Categoria SIRENE",
+            "children": []
+          },
+          {
+            "id": "elettricita-sirene-e-segnalatori-acustici-colonne-di-segnalazione",
+            "name": "COLONNE DI SEGNALAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-sirene-e-segnalatori-acustici-pulsanti-e-dispositivi-di-allarme",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-sicurezza-e-controllo-accessi",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-serrature-smart",
+            "name": "SERRATURE SMART",
+            "children": []
+          },
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-controller-accessi",
+            "name": "CONTROLLER ACCESSI",
+            "children": []
+          },
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-barriere-parcheggio",
+            "name": "BARRIERE PARCHEGGIO",
+            "children": []
+          },
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-pulsanti-e-dispositivi-di-allarme",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME",
+            "children": []
+          },
+          {
+            "id": "elettricita-sicurezza-e-controllo-accessi-elettroserrature-e-incontri-elettrici",
+            "name": "ELETTROSERRATURE E INCONTRI ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-prese-industriali-e-adattatori",
+        "name": "PRESE INDUSTRIALI E ADATTATORI",
+        "children": [
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-quadretti",
+            "name": "QUADRETTI",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-presa-industriale-400v",
+            "name": "PRESA INDUSTRIALE 400V",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-spina-industriale-400v",
+            "name": "SPINA INDUSTRIALE 400V",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-spina-industriale-230v",
+            "name": "SPINA INDUSTRIALE 230V",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-presa-industriale-230v",
+            "name": "PRESA INDUSTRIALE 230V",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-industriali-e-adattatori-adattatori-civile-industriale",
+            "name": "ADATTATORI CIVILE-INDUSTRIALE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-ventilazione-e-trattamento-aria",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-ventilatori",
+            "name": "VENTILATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-temporizzatori",
+            "name": "TEMPORIZZATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-inverter-di-frequenza",
+            "name": "INVERTER DI FREQUENZA",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-riscaldatori-per-quadri-elettrici",
+            "name": "RISCALDATORI PER QUADRI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-ventilazione-e-trattamento-aria-accessori-idraulici-e-scarico-condizionamento",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-linea-vita-e-protezione-fulmini",
+        "name": "LINEA VITA E PROTEZIONE FULMINI",
+        "children": [
+          {
+            "id": "elettricita-linea-vita-e-protezione-fulmini-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-elementi-di-fissaggio-e-isolanti",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-fascette",
+            "name": "FASCETTE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-fermacavo",
+            "name": "FERMACAVO",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-pressacavi",
+            "name": "PRESSACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-viti-e-fissaggi",
+            "name": "VITI E FISSAGGI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-isolatori-elettrici",
+            "name": "ISOLATORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-tasselli-e-ancoraggi",
+            "name": "TASSELLI E ANCORAGGI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-manicotti-di-giunzione",
+            "name": "MANICOTTI DI GIUNZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-guaine-termorestringenti",
+            "name": "GUAINE TERMORESTRINGENTI",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-marcatura-e-identificazione",
+            "name": "MARCATURA E IDENTIFICAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-elementi-di-fissaggio-e-isolanti-morsettiere-di-distribuzione",
+            "name": "MORSETTIERE DI DISTRIBUZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-raccordi-innesti-tubi-irrigatori",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "elettricita-raccordi-innesti-tubi-irrigatori-raccordi-ed-innesti-giardinaggio",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-centralini-e-scatole-di-distribuz",
+        "name": "CENTRALINI E SCATOLE DI DISTRIBUZ.",
+        "children": [
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-morse",
+            "name": "MORSE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-quadretti",
+            "name": "QUADRETTI",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-pressacavi",
+            "name": "PRESSACAVI",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-centralini",
+            "name": "CENTRALINI",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-sportelli-di-ispezione",
+            "name": "SPORTELLI DI ISPEZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-cassette-di-derivazione",
+            "name": "CASSETTE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-componenti-in-polistirene",
+            "name": "COMPONENTI IN POLISTIRENE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-materiale-di-messa-a-terra",
+            "name": "MATERIALE DI MESSA A TERRA",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-morsettiere-di-distribuzione",
+            "name": "MORSETTIERE DI DISTRIBUZIONE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-illuminazione-antideflagrante",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE",
+            "children": []
+          },
+          {
+            "id": "elettricita-centralini-e-scatole-di-distribuz-griglie-e-terminali-di-ventilazione",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-prese-e-spine-adattatori-multiprese",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-multipresa",
+            "name": "MULTIPRESA",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-presa-civile",
+            "name": "PRESA CIVILE",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-spine-civili",
+            "name": "SPINE CIVILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-tower-multiprese",
+            "name": "TOWER MULTIPRESE",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-adattatori-civili",
+            "name": "ADATTATORI CIVILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-prese-e-spine-adattatori-multiprese-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettricita-interruttori-magnetotermici-e-differenziali",
+        "name": "INTERRUTTORI MAGNETOTERMICI E DIFFERENZIALI",
+        "children": [
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-fusibili",
+            "name": "FUSIBILI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-sezionatori",
+            "name": "SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-differenziale",
+            "name": "DIFFERENZIALE",
+            "children": [
+              {
+                "id": "elettricita-interruttori-magnetotermici-e-differenziali-differenziale-magnetotermico",
+                "name": "DIFFERENZIALE MAGNETOTERMICO",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-magnetotermico",
+            "name": "MAGNETOTERMICO",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-avviatori-motore",
+            "name": "AVVIATORI MOTORE",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-interruttori-aperti",
+            "name": "INTERRUTTORI APERTI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-commutatori-e-sezionatori",
+            "name": "COMMUTATORI E SEZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-interruttori-magnetotermici-scatolati",
+            "name": "INTERRUTTORI MAGNETOTERMICI SCATOLATI",
+            "children": []
+          },
+          {
+            "id": "elettricita-interruttori-magnetotermici-e-differenziali-interruttori-magnetotermici-differenziali-con-protezione-arco",
+            "name": "INTERRUTTORI MAGNETOTERMICI DIFFERENZIALI CON PROTEZIONE ARCO",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elettronica",
+    "name": "ELETTRONICA",
+    "iconName": "home",
+    "children": [
+      {
+        "id": "elettronica-smart",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "elettronica-smart-hub-smart",
+            "name": "HUB SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-igrostati",
+            "name": "IGROSTATI",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-rele-smart",
+            "name": "RELE SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-controller-smart",
+            "name": "CONTROLLER SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-elettrovalvole-smart",
+            "name": "ELETTROVALVOLE SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-cronotermostati-smart",
+            "name": "CRONOTERMOSTATI SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-smart-valvole-termostatiche-smart",
+            "name": "VALVOLE TERMOSTATICHE SMART",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-torce",
+        "name": "TORCE",
+        "children": [
+          {
+            "id": "elettronica-torce-mini-torcia-per-batteria",
+            "name": "MINI TORCIA PER BATTERIA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-batterie",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "elettronica-batterie-batterie-aa",
+            "name": "BATTERIE AA",
+            "children": []
+          },
+          {
+            "id": "elettronica-batterie-batterie-aaa",
+            "name": "BATTERIE AAA",
+            "children": []
+          },
+          {
+            "id": "elettronica-batterie-batterie-lr20d",
+            "name": "BATTERIE LR20D",
+            "children": []
+          },
+          {
+            "id": "elettronica-batterie-batterie-lr14c",
+            "name": "BATTERIE LR14C",
+            "children": []
+          },
+          {
+            "id": "elettronica-batterie-batterie-cr2025",
+            "name": "BATTERIE CR2025",
+            "children": []
+          },
+          {
+            "id": "elettronica-batterie-batteria-9v-6lr61",
+            "name": "BATTERIA 9V 6LR61",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-accessori",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "elettronica-accessori-televisori",
+            "name": "ACCESSORI TELEVISORI",
+            "children": [
+              {
+                "id": "elettronica-accessori-televisori-telecomando-lg",
+                "name": "TELECOMANDO LG",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-telecomando-sony",
+                "name": "TELECOMANDO SONY",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-staffe-televisori",
+                "name": "STAFFE TELEVISORI",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-telecomando-samsung",
+                "name": "TELECOMANDO SAMSUNG",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-telecomando-hisense",
+                "name": "TELECOMANDO HISENSE",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-telecomando-panasonic",
+                "name": "TELECOMANDO PANASONIC",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-televisori-telecomando-universale",
+                "name": "TELECOMANDO UNIVERSALE",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettronica-accessori-informatici",
+            "name": "ACCESSORI INFORMATICI",
+            "children": [
+              {
+                "id": "elettronica-accessori-informatici-switch-poe",
+                "name": "SWITCH POE",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-informatici-adattatori-usb",
+                "name": "ADATTATORI USB",
+                "children": []
+              },
+              {
+                "id": "elettronica-accessori-informatici-tag-e-dispositivi-nfc",
+                "name": "TAG E DISPOSITIVI NFC",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "elettronica-accessori-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-telecamere",
+        "name": "TELECAMERE",
+        "children": [
+          {
+            "id": "elettronica-telecamere-nvr",
+            "name": "NVR",
+            "children": []
+          },
+          {
+            "id": "elettronica-telecamere-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "elettronica-telecamere-telecamere-poe",
+            "name": "TELECAMERE POE",
+            "children": []
+          },
+          {
+            "id": "elettronica-telecamere-kit-telecamere-poe",
+            "name": "KIT TELECAMERE POE",
+            "children": []
+          },
+          {
+            "id": "elettronica-telecamere-scatole-di-giunzione",
+            "name": "SCATOLE DI GIUNZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-telecomandi",
+        "name": "TELECOMANDI",
+        "children": [
+          {
+            "id": "elettronica-telecomandi-telecomando-condizionatori",
+            "name": "TELECOMANDO CONDIZIONATORI",
+            "children": []
+          },
+          {
+            "id": "elettronica-telecomandi-telecomando-cancello-univversale",
+            "name": "TELECOMANDO CANCELLO UNIVVERSALE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-strumenti-di-misura",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "elettronica-strumenti-di-misura-multimetro",
+            "name": "MULTIMETRO",
+            "children": []
+          },
+          {
+            "id": "elettronica-strumenti-di-misura-strumenti-di-misura",
+            "name": "STRUMENTI DI MISURA",
+            "children": []
+          },
+          {
+            "id": "elettronica-strumenti-di-misura-tester-e-strumenti-di-misura",
+            "name": "TESTER E STRUMENTI DI MISURA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-morsetti-e-connettori",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "elettronica-morsetti-e-connettori-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-generatori-di-corrente",
+        "name": "GENERATORI DI CORRENTE",
+        "children": [
+          {
+            "id": "elettronica-generatori-di-corrente-power-station-e-centrali-elettriche-portatili",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-armadi-rack-e-accessori",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "elettronica-armadi-rack-e-accessori-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-caricabatterie-e-avviatori",
+        "name": "CARICABATTERIE E AVVIATORI",
+        "children": [
+          {
+            "id": "elettronica-caricabatterie-e-avviatori-carica-batterie",
+            "name": "CARICA BATTERIE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-sicurezza-e-controllo-accessi",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-nvr",
+            "name": "NVR",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-videocitofoni",
+            "name": "VIDEOCITOFONI",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-serrature-smart",
+            "name": "SERRATURE SMART",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-controller-accessi",
+            "name": "CONTROLLER ACCESSI",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-kit-telecamere-poe",
+            "name": "KIT TELECAMERE POE",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-sensori-di-prossimita",
+            "name": "SENSORI DI PROSSIMITA",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-tag-e-dispositivi-nfc",
+            "name": "TAG E DISPOSITIVI NFC",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-kit-sistemi-di-allarme",
+            "name": "KIT SISTEMI DI ALLARME",
+            "children": []
+          },
+          {
+            "id": "elettronica-sicurezza-e-controllo-accessi-terminali-rilevazione-presenze",
+            "name": "TERMINALI RILEVAZIONE PRESENZE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettronica-prese-e-spine-adattatori-multiprese",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "elettronica-prese-e-spine-adattatori-multiprese-tower-multiprese",
+            "name": "TOWER MULTIPRESE",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "serie-civile",
+    "name": "SERIE CIVILE",
+    "iconName": "radio",
+    "children": [
+      {
+        "id": "serie-civile-smart",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "serie-civile-smart-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "serie-civile-smart-controller-smart",
+            "name": "CONTROLLER SMART",
+            "children": []
+          },
+          {
+            "id": "serie-civile-smart-interruttori-smart",
+            "name": "INTERRUTTORI SMART",
+            "children": []
+          },
+          {
+            "id": "serie-civile-smart-strumenti-di-misura",
+            "name": "STRUMENTI DI MISURA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-frutti",
+        "name": "FRUTTI",
+        "children": [
+          {
+            "id": "serie-civile-frutti-pulsanti",
+            "name": "PULSANTI",
+            "children": [
+              {
+                "id": "serie-civile-frutti-pulsanti-e-dispositivi-di-allarme",
+                "name": "PULSANTI E DISPOSITIVI DI ALLARME",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "serie-civile-frutti-campanelli",
+            "name": "CAMPANELLI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-prese-audio",
+            "name": "PRESE AUDIO",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-frutti-matix",
+            "name": "FRUTTI MATIX",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-presa-civile",
+            "name": "PRESA CIVILE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-frutti-living",
+            "name": "FRUTTI LIVING",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-prolunghe-hdmi",
+            "name": "PROLUNGHE HDMI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-interruttori-smart",
+            "name": "INTERRUTTORI SMART",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-interruttori-vintage",
+            "name": "INTERRUTTORI VINTAGE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-interruttori-a-parete",
+            "name": "INTERRUTTORI A PARETE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-frutti-prese-spine-e-adattatori-tv",
+            "name": "PRESE, SPINE E ADATTATORI TV",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-placche",
+        "name": "PLACCHE",
+        "children": [
+          {
+            "id": "serie-civile-placche-pannelli-led",
+            "name": "PANNELLI LED",
+            "children": []
+          },
+          {
+            "id": "serie-civile-placche-presa-civile",
+            "name": "PRESA CIVILE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-placche-placche-matix",
+            "name": "PLACCHE MATIX",
+            "children": []
+          },
+          {
+            "id": "serie-civile-placche-placche-living",
+            "name": "PLACCHE LIVING",
+            "children": []
+          },
+          {
+            "id": "serie-civile-placche-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-automazione",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "serie-civile-automazione-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-cavi-e-prolunghe",
+        "name": "CAVI E PROLUNGHE",
+        "children": [
+          {
+            "id": "serie-civile-cavi-e-prolunghe-prolunga-tv",
+            "name": "PROLUNGA TV",
+            "children": []
+          },
+          {
+            "id": "serie-civile-cavi-e-prolunghe-prolunghe-hdmi",
+            "name": "PROLUNGHE HDMI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-morsetti-e-connettori",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "serie-civile-morsetti-e-connettori-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-armadi-rack-e-accessori",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "serie-civile-armadi-rack-e-accessori-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-accessori-per-illuminazione",
+        "name": "ACCESSORI PER ILLUMINAZIONE",
+        "children": [
+          {
+            "id": "serie-civile-accessori-per-illuminazione-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-sicurezza-e-controllo-accessi",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "serie-civile-sicurezza-e-controllo-accessi-interruttori-a-parete",
+            "name": "INTERRUTTORI A PARETE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-centralini-e-scatole-di-distribuz",
+        "name": "CENTRALINI E SCATOLE DI DISTRIBUZ.",
+        "children": [
+          {
+            "id": "serie-civile-centralini-e-scatole-di-distribuz-armadi-e-accessori",
+            "name": "ARMADI E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-centralini-e-scatole-di-distribuz-scatole-di-derivazione",
+            "name": "SCATOLE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-centralini-e-scatole-di-distribuz-cassette-di-derivazione",
+            "name": "CASSETTE DI DERIVAZIONE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-centralini-e-scatole-di-distribuz-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "serie-civile-prese-e-spine-adattatori-multiprese",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-multipresa",
+            "name": "MULTIPRESA",
+            "children": []
+          },
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-presa-civile",
+            "name": "PRESA CIVILE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-spine-civili",
+            "name": "SPINE CIVILI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-tower-multiprese",
+            "name": "TOWER MULTIPRESE",
+            "children": []
+          },
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-adattatori-civili",
+            "name": "ADATTATORI CIVILI",
+            "children": []
+          },
+          {
+            "id": "serie-civile-prese-e-spine-adattatori-multiprese-prese-spine-e-adattatori-tv",
+            "name": "PRESE, SPINE E ADATTATORI TV",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "giardinaggio",
+    "name": "GIARDINAGGIO",
+    "iconName": "battery",
+    "children": [
+      {
+        "id": "giardinaggio-pompe-e-autoclavi",
+        "name": "POMPE E AUTOCLAVI",
+        "children": [
+          {
+            "id": "giardinaggio-pompe-e-autoclavi-pompe-sommerse",
+            "name": "POMPE SOMMERSE",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-pompe-e-autoclavi-pompe-autoclave",
+            "name": "POMPE AUTOCLAVE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "giardinaggio-elettroutensili-pro",
+        "name": "ELETTROUTENSILI PRO",
+        "children": [
+          {
+            "id": "giardinaggio-elettroutensili-pro-motosega",
+            "name": "MOTOSEGA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "giardinaggio-utensili-da-giardino",
+        "name": "UTENSILI DA GIARDINO",
+        "children": [
+          {
+            "id": "giardinaggio-utensili-da-giardino-rastrelli",
+            "name": "RASTRELLI",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-pompa-manuale",
+            "name": "POMPA MANUALE",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-pale-vanghe-e-zappe",
+            "name": "PALE VANGHE E ZAPPE",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-tagliabordi-elettrici",
+            "name": "TAGLIABORDI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-aspiracenere-soffiatore",
+            "name": "ASPIRACENERE SOFFIATORE",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-utensili-da-giardino-a-mano",
+            "name": "UTENSILI DA GIARDINO A MANO",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-utensili-da-giardino-tosaerba-e-attrezzi-giardinaggio",
+            "name": "TOSAERBA E ATTREZZI GIARDINAGGIO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "giardinaggio-edilizia-e-accessori",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "giardinaggio-edilizia-e-accessori-tasselli-e-ancoraggi",
+            "name": "TASSELLI E ANCORAGGI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "giardinaggio-elettroutensili-basic",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "giardinaggio-elettroutensili-basic-motosega",
+            "name": "MOTOSEGA",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "giardinaggio-raccordi-innesti-tubi-irrigatori",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-irrigatori",
+            "name": "IRRIGATORI",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-avvolgitubo",
+            "name": "AVVOLGITUBO",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-temporizzatori",
+            "name": "TEMPORIZZATORI",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-tubo-irrigazione",
+            "name": "TUBO IRRIGAZIONE",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-nastro-microforato",
+            "name": "NASTRO MICROFORATO",
+            "children": []
+          },
+          {
+            "id": "giardinaggio-raccordi-innesti-tubi-irrigatori-raccordi-ed-innesti-giardinaggio",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "illuminazione",
+    "name": "ILLUMINAZIONE",
+    "iconName": "feather",
+    "children": [
+      {
+        "id": "illuminazione-smart",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "illuminazione-smart-lampadine",
+            "name": "LAMPADINE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-smart-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "illuminazione-smart-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-faretti",
+        "name": "FARETTI",
+        "children": [
+          {
+            "id": "illuminazione-faretti-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-faretti",
+            "name": "FARETTI",
+            "children": [
+              {
+                "id": "illuminazione-faretti-faretti-12v",
+                "name": "FARETTI 12V",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-faretti-luce-track",
+            "name": "LUCE TRACK",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-portafaretti",
+            "name": "PORTAFARETTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-pannelli-led",
+            "name": "PANNELLI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-faro-stradale",
+            "name": "FARO STRADALE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-faro-proiettore",
+            "name": "FARO PROIETTORE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-binario-elettrico",
+            "name": "BINARIO ELETTRICO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-faretti-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-placche",
+        "name": "PLACCHE",
+        "children": [
+          {
+            "id": "illuminazione-placche-placche-matix",
+            "name": "PLACCHE MATIX",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-emergenza",
+        "name": "EMERGENZA",
+        "children": [
+          {
+            "id": "illuminazione-emergenza-bandiere",
+            "name": "BANDIERE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-emergenza-plafoniera",
+            "name": "PLAFONIERA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-emergenza-emergenza-awex",
+            "name": "EMERGENZA  AWEX",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-strip-led",
+        "name": "STRIP LED",
+        "children": [
+          {
+            "id": "illuminazione-strip-led-profili",
+            "name": "PROFILI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-strip-led-strip-led",
+            "name": "STRIP LED",
+            "children": [
+              {
+                "id": "illuminazione-strip-led-strip-led-e-accessori",
+                "name": "STRIP LED E ACCESSORI",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-strip-led-moduli-led",
+            "name": "MODULI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-strip-led-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-strip-led-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-accessori",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "illuminazione-accessori-pulsanti",
+            "name": "PULSANTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-portalampada",
+            "name": "PORTALAMPADA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-crepuscolare",
+            "name": "CREPUSCOLARE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-per-illuminazione",
+            "name": "ACCESSORI PER ILLUMINAZIONE",
+            "children": [
+              {
+                "id": "illuminazione-accessori-per-illuminazione-staffe",
+                "name": "STAFFE",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-profili",
+                "name": "PROFILI",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-strip-led",
+                "name": "STRIP LED",
+                "children": [
+                  {
+                    "id": "illuminazione-accessori-per-illuminazione-strip-led-e-accessori",
+                    "name": "STRIP LED E ACCESSORI",
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-luce-track",
+                "name": "LUCE TRACK",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-moduli-led",
+                "name": "MODULI LED",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-rele-smart",
+                "name": "RELE SMART",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-portalampada",
+                "name": "PORTALAMPADA",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-pannelli-led",
+                "name": "PANNELLI LED",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-controller-smart",
+                "name": "CONTROLLER SMART",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-binario-elettrico",
+                "name": "BINARIO ELETTRICO",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-sensori-movimento",
+                "name": "SENSORI MOVIMENTO",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-accessori-elettrici",
+                "name": "ACCESSORI ELETTRICI",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-tasselli-e-ancoraggi",
+                "name": "TASSELLI E ANCORAGGI",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-pali-per-illuminazione",
+                "name": "PALI PER ILLUMINAZIONE",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-accessori-canalizzazione",
+                "name": "ACCESSORI CANALIZZAZIONE",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-accessori-per-profili-led",
+                "name": "ACCESSORI PER PROFILI LED",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-accessori-binario-magnetico",
+                "name": "ACCESSORI BINARIO MAGNETICO",
+                "children": []
+              },
+              {
+                "id": "illuminazione-accessori-per-illuminazione-reattori-e-alimentatori-per-lampade",
+                "name": "REATTORI E ALIMENTATORI PER LAMPADE",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-accessori-binario-elettrico",
+            "name": "BINARIO ELETTRICO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-accessori-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-lampadine",
+        "name": "LAMPADINE",
+        "children": [
+          {
+            "id": "illuminazione-lampadine-tubo-led",
+            "name": "TUBO LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-lampadine-lampadine",
+            "name": "LAMPADINE",
+            "children": [
+              {
+                "id": "illuminazione-lampadine-lampadine-g9",
+                "name": "LAMPADINE G9",
+                "children": []
+              },
+              {
+                "id": "illuminazione-lampadine-lampadine-e14",
+                "name": "LAMPADINE E14",
+                "children": []
+              },
+              {
+                "id": "illuminazione-lampadine-lampadine-e27",
+                "name": "LAMPADINE E27",
+                "children": []
+              },
+              {
+                "id": "illuminazione-lampadine-lampadine-gu10",
+                "name": "LAMPADINE GU10",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-lampadine-a-filamento",
+            "name": "LAMPADINE A FILAMENTO",
+            "children": [
+              {
+                "id": "illuminazione-lampadine-a-filamento-lampadine-e14",
+                "name": "LAMPADINE E14",
+                "children": []
+              },
+              {
+                "id": "illuminazione-lampadine-a-filamento-lampadine-e27",
+                "name": "LAMPADINE E27",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-lampadine-faretti-12v",
+            "name": "FARETTI 12V",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-automazione",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "illuminazione-automazione-controller-smart",
+            "name": "CONTROLLER SMART",
+            "children": []
+          },
+          {
+            "id": "illuminazione-automazione-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-telecomandi",
+        "name": "TELECOMANDI",
+        "children": [
+          {
+            "id": "illuminazione-telecomandi-interruttori-smart",
+            "name": "INTERRUTTORI SMART",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-lampade-portatili",
+        "name": "Lampade portatili",
+        "children": [
+          {
+            "id": "illuminazione-lampade-portatili-torce",
+            "name": "Torce",
+            "children": []
+          },
+          {
+            "id": "illuminazione-lampade-portatili-lampade-darredo",
+            "name": "LAMPADE D'ARREDO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-illuminazione-esterna",
+        "name": "ILLUMINAZIONE ESTERNA",
+        "children": [
+          {
+            "id": "illuminazione-illuminazione-esterna-faretti",
+            "name": "FARETTI",
+            "children": [
+              {
+                "id": "illuminazione-illuminazione-esterna-faretti-12v",
+                "name": "FARETTI 12V",
+                "children": []
+              },
+              {
+                "id": "illuminazione-illuminazione-esterna-faretti-e-fari-per-piscina",
+                "name": "FARETTI E FARI PER PISCINA",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-plafoniera",
+            "name": "PLAFONIERA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-faro-stradale",
+            "name": "FARO STRADALE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-arredo-esterno",
+            "name": "ARREDO ESTERNO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-faro-proiettore",
+            "name": "FARO PROIETTORE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-lampade-darredo",
+            "name": "LAMPADE D'ARREDO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-illuminazione-solare",
+            "name": "Illuminazione Solare",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-apparecchi-segnapasso",
+            "name": "APPARECCHI SEGNAPASSO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-pali-per-illuminazione",
+            "name": "PALI PER ILLUMINAZIONE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-esterna-luci-natalizie-e-decorative",
+            "name": "LUCI NATALIZIE E DECORATIVE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-morsetti-e-connettori",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "illuminazione-morsetti-e-connettori-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-morsetti-e-connettori-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-illuminazione-dinterno",
+        "name": "ILLUMINAZIONE D'INTERNO",
+        "children": [
+          {
+            "id": "illuminazione-illuminazione-dinterno-profili",
+            "name": "PROFILI",
+            "children": [
+              {
+                "id": "illuminazione-illuminazione-dinterno-profili-led",
+                "name": "PROFILI LED",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-faretti",
+            "name": "FARETTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-tubo-led",
+            "name": "TUBO LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-strip-led",
+            "name": "STRIP LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-plafoniera",
+            "name": "PLAFONIERA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-luce-track",
+            "name": "LUCE TRACK",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-ventilatori",
+            "name": "VENTILATORI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-specchi-led",
+            "name": "SPECCHI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-pannelli-led",
+            "name": "PANNELLI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-portafaretti",
+            "name": "PORTAFARETTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-placche-matix",
+            "name": "PLACCHE MATIX",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-lampade-darredo",
+            "name": "LAMPADE D'ARREDO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-sensori-movimento",
+            "name": "SENSORI MOVIMENTO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-binario-elettrico",
+            "name": "BINARIO ELETTRICO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-accessori-canalizzazione",
+            "name": "ACCESSORI CANALIZZAZIONE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-accessori-per-profili-led",
+            "name": "ACCESSORI PER PROFILI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-dinterno-luci-natalizie-e-decorative",
+            "name": "LUCI NATALIZIE E DECORATIVE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-illuminazione-industiale",
+        "name": "ILLUMINAZIONE INDUSTIALE",
+        "children": [
+          {
+            "id": "illuminazione-illuminazione-industiale-staffe",
+            "name": "STAFFE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-tubo-led",
+            "name": "TUBO LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-plafoniera",
+            "name": "PLAFONIERA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-campana-led",
+            "name": "CAMPANA LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-faro-stradale",
+            "name": "FARO STRADALE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-faro-proiettore",
+            "name": "FARO PROIETTORE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-industiale-aste-telescopiche",
+            "name": "ASTE TELESCOPICHE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-alimentatori-e-driver-led",
+        "name": "ALIMENTATORI E DRIVER LED",
+        "children": [
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-faretti",
+            "name": "FARETTI",
+            "children": [
+              {
+                "id": "illuminazione-alimentatori-e-driver-led-faretti-12v",
+                "name": "FARETTI 12V",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-alimentatori",
+            "name": "ALIMENTATORI",
+            "children": [
+              {
+                "id": "illuminazione-alimentatori-e-driver-led-alimentatori-dali",
+                "name": "ALIMENTATORI DALI",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-dimmer-smart",
+            "name": "DIMMER SMART",
+            "children": []
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-controller-smart",
+            "name": "CONTROLLER SMART",
+            "children": []
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-strip-led-e-accessori",
+            "name": "STRIP LED E ACCESSORI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-accessori-per-profili-led",
+            "name": "ACCESSORI PER PROFILI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-alimentatori-e-driver-led-reattori-e-alimentatori-per-lampade",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-luci-decorative-e-natalizie",
+        "name": "LUCI DECORATIVE E NATALIZIE",
+        "children": [
+          {
+            "id": "illuminazione-luci-decorative-e-natalizie-arredo-esterno",
+            "name": "ARREDO ESTERNO",
+            "children": []
+          },
+          {
+            "id": "illuminazione-luci-decorative-e-natalizie-faro-proiettore",
+            "name": "FARO PROIETTORE",
+            "children": []
+          },
+          {
+            "id": "illuminazione-luci-decorative-e-natalizie-luci-natalizie-e-decorative",
+            "name": "LUCI NATALIZIE E DECORATIVE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-illuminazione-da-cartongesso",
+        "name": "ILLUMINAZIONE DA CARTONGESSO",
+        "children": [
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-faretti",
+            "name": "FARETTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-profili",
+            "name": "PROFILI",
+            "children": [
+              {
+                "id": "illuminazione-illuminazione-da-cartongesso-profili-led",
+                "name": "PROFILI LED",
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-plafoniera",
+            "name": "PLAFONIERA",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-pannelli-led",
+            "name": "PANNELLI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-portafaretti",
+            "name": "PORTAFARETTI",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-accessori-per-profili-led",
+            "name": "ACCESSORI PER PROFILI LED",
+            "children": []
+          },
+          {
+            "id": "illuminazione-illuminazione-da-cartongesso-accessori-binario-magnetico",
+            "name": "ACCESSORI BINARIO MAGNETICO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "illuminazione-prese-e-spine-adattatori-multiprese",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "illuminazione-prese-e-spine-adattatori-multiprese-accessori-elettrici",
+            "name": "ACCESSORI ELETTRICI",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elettroutensili",
+    "name": "ELETTROUTENSILI",
+    "iconName": "droplet",
+    "children": [
+      {
+        "id": "elettroutensili-batterie",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "elettroutensili-batterie-batterie-utensili",
+            "name": "BATTERIE UTENSILI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-accessori",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "elettroutensili-accessori-fresa",
+            "name": "FRESA",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-segaccio",
+            "name": "SEGACCIO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-dischi-flex",
+            "name": "DISCHI FLEX",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-punte-trapano",
+            "name": "PUNTE TRAPANO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-carta-abrasiva",
+            "name": "CARTA ABRASIVA",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-kit-punte-trapano",
+            "name": "KIT PUNTE TRAPANO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-taglia-polisterolo",
+            "name": "TAGLIA POLISTEROLO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-accessori-seghetto-alternativo",
+            "name": "SEGHETTO ALTERNATIVO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-compressori",
+        "name": "COMPRESSORI",
+        "children": [
+          {
+            "id": "elettroutensili-compressori-compressore",
+            "name": "COMPRESSORE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-elettroutensili-pro",
+        "name": "ELETTROUTENSILI PRO",
+        "children": [
+          {
+            "id": "elettroutensili-elettroutensili-pro-saldatrici",
+            "name": "SALDATRICI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-batteria-2ah",
+            "name": "BATTERIA 2AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-verniciatore",
+            "name": "VERNICIATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-batteria-4ah",
+            "name": "BATTERIA 4AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-batteria-5ah",
+            "name": "BATTERIA 5AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-multifunzione",
+            "name": "MULTIFUNZIONE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-sega-circolare",
+            "name": "SEGA CIRCOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-carica-batterie",
+            "name": "CARICA BATTERIE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-kit-idropulitrice",
+            "name": "KIT IDROPULITRICE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-spara-chiodi-e-punti",
+            "name": "SPARA CHIODI E PUNTI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-trapani-a-percussione",
+            "name": "TRAPANI A PERCUSSIONE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-aspirapolvere-manuale",
+            "name": "ASPIRAPOLVERE MANUALE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-smerigliatrice-angolare",
+            "name": "SMERIGLIATRICE ANGOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-kit-caricabatteriebatteria-2ah",
+            "name": "KIT CARICABATTERIE/BATTERIA 2AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-kit-caricabatteriebatteria-4ah",
+            "name": "KIT CARICABATTERIE/BATTERIA 4AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-pro-trapano-avvitatore-a-percussione-br",
+            "name": "TRAPANO AVVITATORE A PERCUSSIONE BR",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-utensili-da-giardino",
+        "name": "UTENSILI DA GIARDINO",
+        "children": [
+          {
+            "id": "elettroutensili-utensili-da-giardino-motosega",
+            "name": "MOTOSEGA",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-utensili-da-giardino-idropulitrice",
+            "name": "IDROPULITRICE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-elettroutensili-basic",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "elettroutensili-elettroutensili-basic-idropulitrice",
+            "name": "IDROPULITRICE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-basic-sega-circolare",
+            "name": "SEGA CIRCOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-basic-kit-avvitatore",
+            "name": "KIT AVVITATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-basic-seghetto-alternativo",
+            "name": "SEGHETTO ALTERNATIVO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-basic-smerigliatrice-angolare",
+            "name": "SMERIGLIATRICE ANGOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-basic-aspirapolvere-e-aspiraliquidi",
+            "name": "ASPIRAPOLVERE E ASPIRALIQUIDI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-elettroutensili-a-filo",
+        "name": "ELETTROUTENSILI A FILO",
+        "children": [
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-saldatrici",
+            "name": "SALDATRICI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-compressore",
+            "name": "COMPRESSORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-miscelatore",
+            "name": "MISCELATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-levigatrici",
+            "name": "LEVIGATRICI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-lucidatrici",
+            "name": "LUCIDATRICI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-verniciatore",
+            "name": "VERNICIATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-idropulitrice",
+            "name": "IDROPULITRICE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-multifunzione",
+            "name": "MULTIFUNZIONE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-pistole-termiche",
+            "name": "PISTOLE TERMICHE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-seghetto-alternativo",
+            "name": "SEGHETTO ALTERNATIVO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-martello-tassellatore",
+            "name": "MARTELLO TASSELLATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-trapani-a-percussione",
+            "name": "TRAPANI A PERCUSSIONE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-aspiracenere-soffiatore",
+            "name": "ASPIRACENERE SOFFIATORE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-smerigliatrice-angolare",
+            "name": "SMERIGLIATRICE ANGOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-smerigliatrici-da-banco",
+            "name": "SMERIGLIATRICI DA BANCO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-levigatrice-roto-orbitale",
+            "name": "LEVIGATRICE ROTO-ORBITALE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-a-filo-tagliapiastrelle-elettrici",
+            "name": "TAGLIAPIASTRELLE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-saldatrici-e-accessori",
+        "name": "SALDATRICI E ACCESSORI",
+        "children": [
+          {
+            "id": "elettroutensili-saldatrici-e-accessori-saldatrici",
+            "name": "SALDATRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-elettroutensili-brusheless",
+        "name": "ELETTROUTENSILI BRUSHELESS",
+        "children": [
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-segaccio",
+            "name": "SEGACCIO",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-batteria-2ah",
+            "name": "BATTERIA 2AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-batteria-4ah",
+            "name": "BATTERIA 4AH",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-sega-circolare",
+            "name": "SEGA CIRCOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-carica-batterie",
+            "name": "CARICA BATTERIE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-avvitatore-ad-impulsi",
+            "name": "AVVITATORE AD IMPULSI",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-smerigliatrice-angolare",
+            "name": "SMERIGLIATRICE ANGOLARE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-levigatrice-roto-orbitale",
+            "name": "LEVIGATRICE ROTO-ORBITALE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-tassellatore-a-percussione",
+            "name": "TASSELLATORE A PERCUSSIONE",
+            "children": []
+          },
+          {
+            "id": "elettroutensili-elettroutensili-brusheless-trapano-avvitatore-a-percussione-br",
+            "name": "TRAPANO AVVITATORE A PERCUSSIONE BR",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-ventilazione-e-trattamento-aria",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "elettroutensili-ventilazione-e-trattamento-aria-compressore",
+            "name": "COMPRESSORE",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettroutensili-martelli-e-attrezzatura-da-cantiere",
+        "name": "MARTELLI E ATTREZZATURA DA CANTIERE",
+        "children": [
+          {
+            "id": "elettroutensili-martelli-e-attrezzatura-da-cantiere-compressore",
+            "name": "COMPRESSORE",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "elettrodomestici",
+    "name": "ELETTRODOMESTICI",
+    "iconName": "box",
+    "children": [
+      {
+        "id": "elettrodomestici-bagno",
+        "name": "BAGNO",
+        "children": [
+          {
+            "id": "elettrodomestici-bagno-termoventilatori",
+            "name": "TERMOVENTILATORI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-bagno-scaldasalviette-elettrici",
+            "name": "SCALDASALVIETTE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettrodomestici-stiro-e-asciugatura",
+        "name": "STIRO E ASCIUGATURA",
+        "children": [
+          {
+            "id": "elettrodomestici-stiro-e-asciugatura-stendibiancheria",
+            "name": "STENDIBIANCHERIA",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-stiro-e-asciugatura-asciugascarpe-elettrici",
+            "name": "ASCIUGASCARPE ELETTRICI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-stiro-e-asciugatura-scaldasalviette-elettrici",
+            "name": "SCALDASALVIETTE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettrodomestici-grandi-elettrodomestici",
+        "name": "GRANDI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "elettrodomestici-grandi-elettrodomestici-scaldasalviette-elettrici",
+            "name": "SCALDASALVIETTE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettrodomestici-elettrodomestici-ad-incasso",
+        "name": "ELETTRODOMESTICI AD INCASSO",
+        "children": [
+          {
+            "id": "elettrodomestici-elettrodomestici-ad-incasso-cantinette-vino",
+            "name": "CANTINETTE VINO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettrodomestici-ventilazione-e-trattamento-aria",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "elettrodomestici-ventilazione-e-trattamento-aria-ventilatori",
+            "name": "VENTILATORI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-ventilazione-e-trattamento-aria-termoventilatori",
+            "name": "TERMOVENTILATORI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-ventilazione-e-trattamento-aria-raffrescatori-evaporativi",
+            "name": "RAFFRESCATORI EVAPORATIVI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-ventilazione-e-trattamento-aria-scaldasalviette-elettrici",
+            "name": "SCALDASALVIETTE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "elettrodomestici-elettrodomestici-libera-istallazion",
+        "name": "ELETTRODOMESTICI LIBERA ISTALLAZION",
+        "children": [
+          {
+            "id": "elettrodomestici-elettrodomestici-libera-istallazion-frigoriferi",
+            "name": "FRIGORIFERI",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-elettrodomestici-libera-istallazion-aspiracenere-soffiatore",
+            "name": "ASPIRACENERE SOFFIATORE",
+            "children": []
+          },
+          {
+            "id": "elettrodomestici-elettrodomestici-libera-istallazion-aspirapolvere-e-aspiraliquidi",
+            "name": "ASPIRAPOLVERE E ASPIRALIQUIDI",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "pitture-e-solventi",
+    "name": "PITTURE E SOLVENTI",
+    "iconName": "tool",
+    "children": [
+      {
+        "id": "pitture-e-solventi-attrezzature-da-pittore",
+        "name": "ATTREZZATURE DA PITTORE",
+        "children": [
+          {
+            "id": "pitture-e-solventi-attrezzature-da-pittore-rulli-da-pittura",
+            "name": "RULLI DA PITTURA",
+            "children": []
+          },
+          {
+            "id": "pitture-e-solventi-attrezzature-da-pittore-pennelli-e-plafoni",
+            "name": "PENNELLI E PLAFONI",
+            "children": []
+          },
+          {
+            "id": "pitture-e-solventi-attrezzature-da-pittore-teli-e-protezioni-per-lavori-di-pit",
+            "name": "TELI E PROTEZIONI PER LAVORI DI PIT",
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "grandi-elettrodomestici",
+    "name": "GRANDI ELETTRODOMESTICI",
+    "iconName": "sun",
+    "children": [
+      {
+        "id": "grandi-elettrodomestici-stiro-e-asciugatura",
+        "name": "STIRO E ASCIUGATURA",
+        "children": [
+          {
+            "id": "grandi-elettrodomestici-stiro-e-asciugatura-asciugatrici",
+            "name": "ASCIUGATRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "grandi-elettrodomestici-grandi-elettrodomestici",
+        "name": "GRANDI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "grandi-elettrodomestici-grandi-elettrodomestici-congelatori",
+            "name": "CONGELATORI",
+            "children": []
+          },
+          {
+            "id": "grandi-elettrodomestici-grandi-elettrodomestici-scaldasalviette-elettrici",
+            "name": "SCALDASALVIETTE ELETTRICI",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "grandi-elettrodomestici-elettrodomestici-ad-incasso",
+        "name": "ELETTRODOMESTICI AD INCASSO",
+        "children": [
+          {
+            "id": "grandi-elettrodomestici-elettrodomestici-ad-incasso-frigoriferi",
+            "name": "FRIGORIFERI",
+            "children": []
+          },
+          {
+            "id": "grandi-elettrodomestici-elettrodomestici-ad-incasso-cantinette-vino",
+            "name": "CANTINETTE VINO",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "grandi-elettrodomestici-elettrodomestici-libera-istallazion",
+        "name": "ELETTRODOMESTICI LIBERA ISTALLAZION",
+        "children": [
+          {
+            "id": "grandi-elettrodomestici-elettrodomestici-libera-istallazion-lavatrici",
+            "name": "LAVATRICI",
+            "children": []
+          },
+          {
+            "id": "grandi-elettrodomestici-elettrodomestici-libera-istallazion-lavastoviglie",
+            "name": "LAVASTOVIGLIE",
+            "children": []
+          },
+          {
+            "id": "grandi-elettrodomestici-elettrodomestici-libera-istallazion-cantinette-vino",
+            "name": "CANTINETTE VINO",
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+]
