@@ -32,9 +32,18 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
 
 export async function getProductById(idOrSku: string) {
   try {
+    // Prima proviamo a prenderlo direttamente per ID (metodo più veloce e sicuro per gli ID esatti)
+    try {
+      const doc = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents(idOrSku).retrieve();
+      if (doc) return doc;
+    } catch (e) {
+      // Se fallisce, potrebbe non essere l'ID ma lo SKU
+    }
+
+    // Se non lo trova per ID, cerchiamo per SKU esatto
     const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-      q: idOrSku,
-      query_by: 'id,sku',
+      q: '*',
+      filter_by: `sku:=${idOrSku} || natural_sku:=${idOrSku}`,
       per_page: 1
     });
     return searchResults?.hits?.[0]?.document || null;
