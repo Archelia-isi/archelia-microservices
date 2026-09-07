@@ -2,6 +2,7 @@ import { searchProducts } from '@archelia/typesense';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { Button } from '@archelia/ui-storefront';
+import { addToCart } from '../actions/cart';
 import Image from 'next/image';
 
 export default async function CatalogPage({
@@ -78,8 +79,9 @@ export default async function CatalogPage({
                       <div className="text-xs text-gray-500">Stock: <span className="font-medium text-gray-900">{product.stock || 0}</span></div>
                       <div className="text-lg font-bold text-gray-900 mt-1">€ {Number(product.price).toFixed(2)}</div>
                     </div>
-                    <form>
+                    <form action={addToCart}>
                       <input type="hidden" name="sku" value={product.sku} />
+                      <input type="hidden" name="quantity" value="1" />
                       <Button>Aggiungi</Button>
                     </form>
                   </div>
