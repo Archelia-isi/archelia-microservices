@@ -30,6 +30,20 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
   }
 }
 
+export async function getProductById(idOrSku: string) {
+  try {
+    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+      q: idOrSku,
+      query_by: 'id,sku',
+      per_page: 1
+    });
+    return searchResults?.hits?.[0]?.document || null;
+  } catch (error) {
+    console.error('Typesense getProductById error:', error);
+    return null;
+  }
+}
+
 export async function searchGuides(q: string) {
   try {
     const searchResults = await typesenseClient.collections(GUIDES_COLLECTION_NAME).documents().search({
