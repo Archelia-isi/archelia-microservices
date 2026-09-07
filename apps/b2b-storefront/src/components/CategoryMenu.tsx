@@ -3,73 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// Dummy taxonomy matching Archelia structure roughly
+// Realistic B2B taxonomy matching standard products
 const taxonomy = [
-  {
-    id: 'casa',
-    name: 'CASA',
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-    children: [
-      {
-        id: 'bagno',
-        name: 'BAGNO',
-        children: [
-          { id: 'contenitori', name: 'CONTENITORI' },
-          { id: 'soffioni', name: 'SOFFIONI DOCCIA' },
-          { id: 'areatori', name: 'AREATORI E ROMIGETTO' },
-          { id: 'flessibili', name: 'FLESSIBILI ED ACCESSORI BAGNO' },
-        ]
-      },
-      { id: 'utensili-manuali', name: 'UTENSILI MANUALI', children: [] },
-      { id: 'teli', name: 'TELI DI COPERTURA', children: [] },
-      { id: 'edilizia', name: 'EDILIZIA E ACCESSORI', children: [] },
-      { id: 'arredo', name: 'ARREDO E COMPLEMENTI', children: [] },
-      { id: 'ferramenta', name: 'FERRAMENTA PER MOBILI', children: [] },
-    ]
-  },
-  {
-    id: 'utensili',
-    name: 'UTENSILI',
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
-      </svg>
-    ),
-    children: [
-      { id: 'elettroutensili', name: 'ELETTROUTENSILI', children: [] },
-      { id: 'saldatura', name: 'SALDATURA', children: [] },
-    ]
-  },
-  {
-    id: 'elettricita',
-    name: 'ELETTRICITÀ',
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-    children: [
-      { id: 'cavi', name: 'CAVI ELETTRICI', children: [] },
-      { id: 'quadri', name: 'QUADRI ELETTRICI', children: [] },
-    ]
-  },
-  {
-    id: 'serie-civile',
-    name: 'SERIE CIVILE',
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-      </svg>
-    ),
-    children: [
-      { id: 'placche', name: 'PLACCHE', children: [] },
-      { id: 'interruttori', name: 'INTERRUTTORI', children: [] },
-    ]
-  },
   {
     id: 'illuminazione',
     name: 'ILLUMINAZIONE',
@@ -79,17 +14,138 @@ const taxonomy = [
       </svg>
     ),
     children: [
-      { id: 'lampadine', name: 'LAMPADINE LED', children: [] },
-      { id: 'pannelli', name: 'PANNELLI LED', children: [] },
-      { id: 'strisce', name: 'STRISCE LED', children: [] },
+      { 
+        id: 'lampadine-led', 
+        name: 'LAMPADINE LED',
+        children: [
+          { id: 'gu10', name: 'Faretti GU10' },
+          { id: 'e27', name: 'Goccia E27' },
+          { id: 'e14', name: 'Oliva E14' },
+          { id: 'vintage', name: 'Filamento Vintage' },
+        ] 
+      },
+      { 
+        id: 'strisce-led', 
+        name: 'STRISCE LED',
+        children: [
+          { id: 'strisce-24v', name: 'Strisce 24V' },
+          { id: 'strisce-12v', name: 'Strisce 12V' },
+          { id: 'profili', name: 'Profili in Alluminio' },
+          { id: 'alimentatori', name: 'Alimentatori' },
+        ] 
+      },
+      { 
+        id: 'industriale', 
+        name: 'ILLUMINAZIONE INDUSTRIALE',
+        children: [
+          { id: 'campane', name: 'Campane LED' },
+          { id: 'proiettori', name: 'Fari Proiettori' },
+          { id: 'plafoniere', name: 'Plafoniere Stagne' },
+        ] 
+      },
+    ]
+  },
+  {
+    id: 'elettricita',
+    name: 'MATERIALE ELETTRICO',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    children: [
+      { 
+        id: 'cavi', 
+        name: 'CAVI ELETTRICI',
+        children: [
+          { id: 'cavi-energia', name: 'Cavi Energia' },
+          { id: 'cavi-dati', name: 'Cavi Rete / Dati' },
+          { id: 'cavi-tv', name: 'Cavi TV / Satellitari' },
+        ] 
+      },
+      { 
+        id: 'quadri', 
+        name: 'QUADRI E MAGNETOTERMICI',
+        children: [
+          { id: 'magnetotermici', name: 'Interruttori Magnetotermici' },
+          { id: 'salvavita', name: 'Differenziali Salvavita' },
+          { id: 'quadri-incasso', name: 'Quadri da Incasso' },
+        ] 
+      },
+      { 
+        id: 'serie-civile', 
+        name: 'SERIE CIVILE E PLACCHE',
+        children: [
+          { id: 'b-ticino', name: 'Compatibili B-Ticino' },
+          { id: 'vimar', name: 'Compatibili Vimar' },
+          { id: 'scatole', name: 'Scatole di Derivazione' },
+        ] 
+      }
+    ]
+  },
+  {
+    id: 'utensileria',
+    name: 'UTENSILERIA',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+      </svg>
+    ),
+    children: [
+      { 
+        id: 'elettroutensili', 
+        name: 'ELETTROUTENSILI',
+        children: [
+          { id: 'trapani', name: 'Trapani e Avvitatori' },
+          { id: 'smerigliatrici', name: 'Smerigliatrici' },
+          { id: 'tassellatori', name: 'Tassellatori' },
+        ] 
+      },
+      { 
+        id: 'manuali', 
+        name: 'UTENSILI MANUALI',
+        children: [
+          { id: 'cacciaviti', name: 'Cacciaviti' },
+          { id: 'pinze', name: 'Pinze e Tronchesi' },
+          { id: 'chiavi', name: 'Chiavi Inglesi' },
+        ] 
+      },
+    ]
+  },
+  {
+    id: 'casa-bagno',
+    name: 'CASA E BAGNO',
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+    children: [
+      {
+        id: 'bagno',
+        name: 'ACCESSORI BAGNO',
+        children: [
+          { id: 'soffioni', name: 'Soffioni Doccia' },
+          { id: 'flessibili', name: 'Flessibili Doccia' },
+          { id: 'areatori', name: 'Areatori e Romigetto' },
+        ]
+      },
+      {
+        id: 'arredo',
+        name: 'ARREDO E COMPLEMENTI',
+        children: [
+          { id: 'mensole', name: 'Mensole' },
+          { id: 'ferramenta', name: 'Ferramenta per Mobili' },
+        ]
+      }
     ]
   }
 ];
 
 export default function CategoryMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeRootId, setActiveRootId] = useState<string>('casa');
-  const [activeSubId, setActiveSubId] = useState<string | null>('bagno');
+  const [activeRootId, setActiveRootId] = useState<string>('illuminazione');
+  const [activeSubId, setActiveSubId] = useState<string | null>('lampadine-led');
 
   const activeRoot = taxonomy.find(t => t.id === activeRootId);
   const activeSub = activeRoot?.children?.find(c => c.id === activeSubId) || activeRoot?.children?.[0];
@@ -116,15 +172,15 @@ export default function CategoryMenu() {
 
       {/* Drawer */}
       <div 
-        className={`fixed top-0 left-0 h-full bg-white z-[70] transition-transform duration-300 ease-in-out flex w-[850px] shadow-2xl ${
+        className={`fixed top-0 left-0 h-full bg-white z-[70] transition-transform duration-300 ease-in-out flex w-full max-w-[850px] shadow-2xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <button 
           onClick={() => setIsOpen(false)}
-          className="absolute top-4 -right-12 bg-white text-black p-2 rounded-full shadow-lg hover:bg-gray-100"
+          className="absolute top-4 right-4 bg-gray-100 text-black p-2 rounded-full shadow-sm hover:bg-gray-200 z-50 transition-colors"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
