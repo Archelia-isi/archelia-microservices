@@ -1,6 +1,6 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 
-export async function searchProducts(q: string, options?: { includeUnpublished?: boolean }) {
+export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean }) {
   try {
     const searchParams: any = {
       q: q,
@@ -11,7 +11,11 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     };
     
     if (!options?.includeUnpublished) {
-      searchParams.filter_by = 'publishedOnWeb:true';
+      if (options?.b2bMode) {
+        searchParams.filter_by = 'publishedOnB2b:true';
+      } else {
+        searchParams.filter_by = 'publishedOnWeb:true';
+      }
     }
 
     const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search(searchParams);

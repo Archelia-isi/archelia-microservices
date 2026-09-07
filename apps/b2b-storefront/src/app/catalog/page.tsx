@@ -12,7 +12,7 @@ export default async function CatalogPage({
   const isAuthenticated = !!session;
 
   const query = searchParams.q || '*';
-  const results = await searchProducts(query);
+  const results = await searchProducts(query, { b2bMode: true });
   
   // result.hits contains the data
   const hits = results?.hits || [];
@@ -89,7 +89,7 @@ export default async function CatalogPage({
                   {isAuthenticated ? (
                     <>
                       <div className="text-xl font-bold text-blue-900">
-                        € {Number(product.price).toFixed(2).replace('.', ',')}
+                        € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
                       </div>
                       <form action={addToCart} className="flex gap-2">
                         <input type="hidden" name="sku" value={product.sku} />
