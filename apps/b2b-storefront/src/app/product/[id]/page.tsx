@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getProductById, searchProducts } from '@archelia/typesense/dist/search.js';
+import ProductCarousel from '../../../components/ProductCarousel';
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productRaw = await getProductById(params.id);
@@ -10,6 +11,21 @@ export default async function ProductPage({ params }: { params: { id: string } }
   }
   
   const product: any = productRaw;
+
+  // Fetch related products (e.g. from the same category or brand, fallback to generic search if not available)
+  const searchQuery = product.category || product.brand || '*';
+  let relatedProductsRes: any;
+  try {
+    relatedProductsRes = await searchProducts(searchQuery, { b2bMode: true });
+  } catch (e) {
+    console.error('Failed to fetch related products:', e);
+  }
+  
+  // Filter out the current product from related
+  const relatedProducts = (relatedProductsRes?.hits || [])
+    .map((h: any) => h.document)
+    .filter((p: any) => p.id !== product.id && p.sku !== product.sku)
+    .slice(0, 10);
 
   // Parse technical description string into an array of key-value pairs
   // E.g. "Tipo: Strip LED; Potenza: 11 W/m;" -> [{key: "Tipo", value: "Strip LED"}, ...]
@@ -112,27 +128,36 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </div>
           </div>
 
-          {/* TECHNICAL SPECS ONLY (NO COMMERCIAL DESCRIPTION) */}
-          <div className="mt-2">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-200 pb-2 flex items-center gap-2">
-              <svg className="w-5 h-5 text-[#00C800]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              Specifiche Tecniche
-            </h3>
-            
-            {techSpecs.length > 0 ? (
-              <div className="bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden text-sm">
-                {techSpecs.map((spec: { key: string, value: string }, index: number) => (
-                  <div key={index} className={`flex border-b border-gray-100 last:border-0 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}>
-                    <div className="w-1/3 py-3 px-4 font-bold text-gray-700 border-r border-gray-100">{spec.key}</div>
-                    <div className="w-2/3 py-3 px-4 text-gray-900">{spec.value}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">Scheda tecnica non disponibile per questo articolo.</p>
-            )}
-          </div>
+          {/* Removed tech specs from here */}
         </div>
+      </div>
+
+      {/* TECHNICAL SPECS (Full Width, Compact Grid) */}
+      <div className="mt-16 w-full">
+        <h3 className="text-xl font-bold text-gray-900 mb-6 border-b-2 border-gray-100 pb-3 flex items-center gap-2">
+          <svg className="w-6 h-6 text-[#00C800]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Dettagli Tecnici
+        </h3>
+        
+        {techSpecs.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {techSpecs.map((spec: { key: string, value: string }, index: number) => (
+              <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col justify-center hover:border-[#00C800] transition-colors shadow-sm">
+                <span className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">{spec.key}</span>
+                <span className="text-sm font-medium text-gray-900">{spec.value}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-8 text-center border border-gray-200 text-gray-500">
+            Scheda tecnica non disponibile per questo articolo.
+          </div>
+        )}
+      </div>
+
+      {/* RELATED PRODUCTS CAROUSEL */}
+      <div className="mt-20 mb-12">
+        <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" />
       </div>
     </div>
   );
