@@ -1,13 +1,13 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 
-export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string }) {
+export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string, limit?: number }) {
   try {
     const searchParams: any = {
       q: q,
       query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
       query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
       sort_by: '_text_match:desc,is_in_promo:desc,natural_sku:asc',
-      per_page: 50
+      per_page: options?.limit || 50
     };
     
     if (options?.sortBy) {

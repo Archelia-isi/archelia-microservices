@@ -1,0 +1,300 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import Link from 'next/link';
+
+interface CatalogClientProps {
+  initialProducts: any[];
+  query: string;
+  isAuthenticated: boolean;
+}
+
+export default function CatalogClient({ initialProducts, query, isAuthenticated }: CatalogClientProps) {
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  // Extract all available filters dynamically
+  const availableFilters = useMemo(() => {
+    const filters: Record<string, Record<string, number>> = {};
+
+    initialProducts.forEach((doc) => {
+      const addFilter = (key: string, value: string) => {
+        if (!value) return;
+        if (!filters[key]) filters[key] = {};
+        filters[key][value] = (filters[key][value] || 0) + 1;
+      };
+
+      addFilter('Marca', doc.brand);
+      if (doc.category && doc.category.length > 3) {
+        addFilter('Categoria', doc.category);
+      }
+
+      if (doc.technical_desc) {
+        const parts = doc.technical_desc.split(';');
+        parts.forEach((part: string) => {
+          if (part.includes(':')) {
+            const [k, ...v] = part.split(':');
+            const key = k.trim().replace(/^-\s*/, '');
+            const value = v.join(':').trim();
+            // Clean up unwanted or overly specific specs
+            const ignoreKeys = ['sku', 'ean', 'codice', 'peso', 'misure', 'dimensioni', 'ean13', 'descrizione'];
+            if (
+              key.length > 1 &&
+              key.length < 25 &&
+              value.length > 0 &&
+              value.length < 30 &&
+              !ignoreKeys.includes(key.toLowerCase()) &&
+              isNaN(Number(value))
+            ) {
+              addFilter(key, value);
+            }
+          }
+        });
+      }
+    });
+
+    // Sort filters
+    const sortedFilters: Record<string, Record<string, number>> = {};
+    const keys = Object.keys(filters).sort((a, b) => {
+      if (a === 'Categoria') return -1;
+      if (b === 'Categoria') return 1;
+      if (a === 'Marca') return -1;
+      if (b === 'Marca') return 1;
+      return a.localeCompare(b);
+    });
+
+    keys.forEach(k => {
+      // Solo mostrare i filtri che hanno almeno 2 opzioni
+      if (Object.keys(filters[k]).length > 1) {
+        sortedFilters[k] = filters[k];
+      }
+    });
+
+    return sortedFilters;
+  }, [initialProducts]);
+
+  // Apply filters
+  const filteredProducts = useMemo(() => {
+    if (Object.keys(activeFilters).length === 0) return initialProducts;
+
+    return initialProducts.filter(doc => {
+      return Object.keys(activeFilters).every(filterKey => {
+        const selectedValues = activeFilters[filterKey];
+        if (selectedValues.length === 0) return true;
+
+        if (filterKey === 'Marca') {
+          return selectedValues.includes(doc.brand);
+        }
+        if (filterKey === 'Categoria') {
+          return selectedValues.includes(doc.category);
+        }
+
+        // Technical specs matching
+        if (doc.technical_desc) {
+          const parts = doc.technical_desc.split(';');
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            if (part.includes(':')) {
+              const [k, ...v] = part.split(':');
+              const key = k.trim().replace(/^-\s*/, '');
+              const value = v.join(':').trim();
+              if (key === filterKey && selectedValues.includes(value)) {
+                return true;
+              }
+            }
+          }
+        }
+        return false;
+      });
+    });
+  }, [initialProducts, activeFilters]);
+
+  const handleFilterToggle = (key: string, value: string) => {
+    setActiveFilters(prev => {
+      const newFilters = { ...prev };
+      if (!newFilters[key]) {
+        newFilters[key] = [];
+      }
+      
+      if (newFilters[key].includes(value)) {
+        newFilters[key] = newFilters[key].filter(v => v !== value);
+        if (newFilters[key].length === 0) {
+          delete newFilters[key];
+        }
+      } else {
+        newFilters[key].push(value);
+      }
+      
+      return newFilters;
+    });
+  };
+
+  const clearFilters = () => setActiveFilters({});
+
+  return (
+    <div className="w-full flex flex-col md:flex-row gap-8">
+      {/* Sidebar Filtri */}
+      <div className={`md:w-64 flex-shrink-0 ${isMobileFiltersOpen ? 'block' : 'hidden md:block'}`}>
+        <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 sticky top-24 max-h-[85vh] overflow-y-auto scrollbar-hide">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="font-bold text-lg text-gray-900">Filtra per</h2>
+            {Object.keys(activeFilters).length > 0 && (
+              <button onClick={clearFilters} className="text-xs text-red-500 hover:underline">
+                Rimuovi tutti
+              </button>
+            )}
+          </div>
+
+          {Object.keys(availableFilters).length === 0 && (
+            <p className="text-sm text-gray-500">Nessun filtro disponibile</p>
+          )}
+
+          {Object.keys(availableFilters).map(filterKey => (
+            <div key={filterKey} className="mb-6 border-b border-gray-100 pb-4 last:border-0 last:mb-0 last:pb-0">
+              <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider">{filterKey}</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
+                {Object.entries(availableFilters[filterKey])
+                  .sort((a, b) => b[1] - a[1]) // Ordina per conteggio decrescente
+                  .map(([val, count]) => {
+                  const isChecked = activeFilters[filterKey]?.includes(val);
+                  return (
+                    <label key={val} className="flex items-start gap-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center w-4 h-4 mt-0.5">
+                        <input
+                          type="checkbox"
+                          className="appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:bg-[#00C800] checked:border-[#00C800] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00C800]/20"
+                          checked={isChecked}
+                          onChange={() => handleFilterToggle(filterKey, val)}
+                        />
+                        {isChecked && (
+                          <svg className="absolute w-3 h-3 text-white pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-sm flex-1 ${isChecked ? 'font-semibold text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                        {val}
+                      </span>
+                      <span className="text-xs text-gray-400">({count})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="mb-6 flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-sm font-medium text-gray-600">
+            Mostrando <span className="text-gray-900 font-bold">{filteredProducts.length}</span> risultati
+            {query !== '*' ? ` per "${query}"` : ''}
+          </p>
+          
+          <button 
+            className="md:hidden flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-md text-sm font-medium"
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Filtri {Object.keys(activeFilters).length > 0 && `(${Object.keys(activeFilters).length})`}
+          </button>
+        </div>
+
+        {filteredProducts.length === 0 ? (
+          <div className="w-full py-16 bg-white rounded-lg border border-gray-200 text-center text-gray-500 shadow-sm mt-4">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-lg">Nessun prodotto corrisponde ai filtri selezionati</p>
+            <button onClick={clearFilters} className="mt-4 px-6 py-2 bg-[#00C800] text-white font-medium rounded-md hover:bg-green-600 transition-colors">
+              Azzera Filtri
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product: any) => {
+              const isOutOfStock = (product.stock || 0) <= 0;
+              return (
+                <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative">
+                  <Link href={`/product/${product.id || product.sku}`} className="relative w-full h-48 bg-white flex items-center justify-center p-4 border-b border-gray-100 group">
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.title}
+                        className="max-h-full object-contain group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <span className="text-gray-400 text-sm">N/D</span>
+                    )}
+                    {product.vendor && (
+                      <span className="absolute top-2 left-2 bg-gray-100 text-gray-600 text-[10px] uppercase px-2 py-1 rounded font-bold border border-gray-200 tracking-wider">
+                        {product.vendor}
+                      </span>
+                    )}
+                  </Link>
+                  
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-xs font-mono font-bold text-gray-500">{product.sku}</div>
+                      <div className="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800]">
+                        Disp: {product.stock || 0}
+                      </div>
+                    </div>
+                    
+                    <Link href={`/product/${product.id || product.sku}`} className="flex-1">
+                      <h3 className="text-sm font-bold text-gray-900 line-clamp-3 mb-4 hover:text-[#00C800] transition-colors leading-snug" title={product.title || product.original_name}>
+                        {product.title || product.original_name}
+                      </h3>
+                    </Link>
+                    
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
+                      {isAuthenticated ? (
+                        <>
+                          <div className="text-lg font-bold text-gray-900">
+                            € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
+                          </div>
+                          <form action="/api/cart/add" method="POST" className="flex gap-2">
+                            <input type="hidden" name="sku" value={product.sku} />
+                            <input 
+                              type="number" 
+                              name="quantity" 
+                              defaultValue="1" 
+                              min="1" 
+                              max={product.stock || 1}
+                              className="w-14 px-1 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#00C800] focus:border-[#00C800] outline-none text-center hidden"
+                            />
+                            <button 
+                              type="submit" 
+                              disabled={isOutOfStock}
+                              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
+                                isOutOfStock 
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                                  : 'bg-[#00C800] text-white hover:bg-green-600'
+                              }`}
+                            >
+                              {isOutOfStock ? 'Esaurito' : 'Acquista'}
+                            </button>
+                          </form>
+                        </>
+                      ) : (
+                        <div className="w-full text-center">
+                          <Link href="/login" className="text-xs font-bold uppercase tracking-wider text-[#00C800] hover:text-green-700 block w-full bg-[#00C800]/10 rounded py-2 transition-colors">
+                            Accedi
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

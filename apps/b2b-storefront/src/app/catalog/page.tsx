@@ -1,7 +1,7 @@
 import { searchProducts } from '@archelia/typesense/dist/search.js';
 import { verifySession } from '@/lib/session';
-import { addToCart } from '../actions/cart';
 import Link from 'next/link';
+import CatalogClient from '../../components/CatalogClient';
 
 export default async function CatalogPage({
   searchParams,
@@ -12,10 +12,11 @@ export default async function CatalogPage({
   const isAuthenticated = !!session;
 
   const query = searchParams.q || '*';
-  const results = await searchProducts(query, { b2bMode: true });
+  // Richiedi fino a 250 prodotti per popolare i filtri in modo ricco (replicando il comportamento del tema originale)
+  const results = await searchProducts(query, { b2bMode: true, limit: 250 });
   
-  // result.hits contains the data
   const hits = results?.hits || [];
+  const products = hits.map((h: any) => h.document);
 
   return (
     <div className="w-full">
@@ -24,119 +25,33 @@ export default async function CatalogPage({
           <h1 className="text-2xl font-bold text-gray-900">Catalogo Prodotti</h1>
           {isAuthenticated ? (
             <p className="text-sm text-gray-500 mt-1">
-              Ciao, <span className="font-semibold text-gray-700">{session.user.firstName || session.user.email}</span>. Ordina i tuoi prodotti velocemente.
+              Ciao, <span className="font-semibold text-gray-700">{session.user.firstName || session.user.email}</span>. Usa i filtri per trovare ciò che cerchi.
             </p>
           ) : (
             <p className="text-sm text-gray-500 mt-1">
-              Catalogo pubblico. <Link href="/login" className="text-green-600 hover:underline">Accedi</Link> per visualizzare i prezzi e acquistare.
+              Catalogo pubblico. <Link href="/login" className="text-[#00C800] hover:underline font-bold">Accedi</Link> per visualizzare i prezzi B2B e acquistare.
             </p>
           )}
         </div>
         
-        <form className="flex w-full md:w-1/2 gap-2">
+        <form className="flex w-full md:w-1/2 gap-2" action="/catalog" method="GET">
           <input
             type="text"
             name="q"
             defaultValue={query === '*' ? '' : query}
-            placeholder="Cerca per SKU, nome, o tag..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all shadow-sm"
+            placeholder="Cerca prodotti o inserisci SKU..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C800] focus:border-transparent transition-all shadow-sm font-medium"
           />
           <button 
             type="submit" 
-            className="px-6 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors shadow-sm"
+            className="px-6 py-2 bg-[#00C800] text-white font-bold uppercase tracking-wider rounded-md hover:bg-green-600 transition-colors shadow-sm text-sm"
           >
             Cerca
           </button>
         </form>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {hits.map((hit: any) => {
-          const product = hit.document;
-          const isOutOfStock = (product.stock || 0) <= 0;
-          return (
-            <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-              <div className="relative w-full h-48 bg-white flex items-center justify-center p-4 border-b border-gray-100">
-                {product.image_url ? (
-                  <img 
-                    src={product.image_url} 
-                    alt={product.title}
-                    className="max-h-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400 text-sm">Immagine Non Disponibile</span>
-                )}
-                {product.vendor && (
-                  <span className="absolute top-2 left-2 bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium border border-gray-200">
-                    {product.vendor}
-                  </span>
-                )}
-              </div>
-              
-              <div className="p-4 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-1">
-                  <div className="text-xs font-mono font-bold text-gray-500">{product.sku}</div>
-                  <div className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                    Disp: {product.stock || 0}
-                  </div>
-                </div>
-                
-                <h3 className="text-sm font-medium text-gray-900 line-clamp-3 mb-4 flex-1" title={product.title || product.original_name}>
-                  {product.title || product.original_name}
-                </h3>
-                
-                <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
-                  {isAuthenticated ? (
-                    <>
-                      <div className="text-xl font-bold text-green-700">
-                        € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
-                      </div>
-                      <form action={addToCart} className="flex gap-2">
-                        <input type="hidden" name="sku" value={product.sku} />
-                        <input 
-                          type="number" 
-                          name="quantity" 
-                          defaultValue="1" 
-                          min="1" 
-                          max={product.stock || 1}
-                          className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 outline-none"
-                        />
-                        <button 
-                          type="submit" 
-                          disabled={isOutOfStock}
-                          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                            isOutOfStock 
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                              : 'bg-green-600 text-white hover:bg-green-700'
-                          }`}
-                        >
-                          {isOutOfStock ? 'Esaurito' : 'Aggiungi'}
-                        </button>
-                      </form>
-                    </>
-                  ) : (
-                    <div className="w-full text-center">
-                      <Link href="/login" className="text-sm font-medium text-green-600 hover:text-green-600 block w-full bg-green-50 rounded py-2 transition-colors">
-                        Accedi per i prezzi
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      
-      {hits.length === 0 && (
-        <div className="w-full py-16 bg-white rounded-lg border border-gray-200 text-center text-gray-500 shadow-sm mt-4">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <p className="text-lg">Nessun prodotto trovato per "{query}"</p>
-          <p className="text-sm mt-1">Prova a cercare con un termine diverso o uno SKU esatto.</p>
-        </div>
-      )}
+      <CatalogClient initialProducts={products} query={query} isAuthenticated={isAuthenticated} />
     </div>
   );
 }
