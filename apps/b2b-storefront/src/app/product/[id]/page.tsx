@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProductById, searchProducts } from '@archelia/typesense/dist/search.js';
 import ProductCarousel from '../../../components/ProductCarousel';
+import AddToCartBox from '../../../components/AddToCartBox';
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productRaw = await getProductById(params.id);
@@ -87,46 +88,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
             {product.title || product.original_name}
           </h1>
 
-          {/* BUY BOX (B2B Style) */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
-            <div className="flex items-end justify-between mb-6 pb-6 border-b border-gray-200">
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-1">Prezzo Riservato B2B</p>
-                <div className="text-3xl font-bold text-gray-900">
-                  {/* Per un portale B2B, in genere i prezzi sono offuscati se non loggati.
-                      Ma per ora mostriamo il prezzo o un placeholder. */}
-                  {product.price ? `€ ${product.price.toFixed(2)}` : 'Accesso Richiesto'}
-                  <span className="text-xs text-gray-500 font-normal ml-2">/ {product.unit || 'PZ'}</span>
-                </div>
-              </div>
-              
-              <div className="text-right">
-                <p className="text-xs text-gray-500 font-medium mb-1">Disponibilità Magazzino</p>
-                {product.stock > 0 ? (
-                  <p className="text-[#00C800] font-bold">{product.stock} PZ in pronta consegna</p>
-                ) : (
-                  <p className="text-orange-500 font-bold">In arrivo</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex items-center w-full sm:w-32 bg-white border border-gray-300 rounded">
-                <button className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-black transition-colors">-</button>
-                <input 
-                  type="number" 
-                  defaultValue={1} 
-                  min={1} 
-                  className="w-full h-12 text-center font-bold text-gray-900 border-x border-gray-300 focus:outline-none focus:border-[#00C800] focus:ring-1 focus:ring-[#00C800]"
-                />
-                <button className="w-10 h-12 flex items-center justify-center text-gray-500 hover:text-black transition-colors">+</button>
-              </div>
-              <button className="flex-1 bg-black text-white hover:bg-[#00C800] transition-colors font-bold text-sm h-12 rounded flex items-center justify-center gap-2 shadow-lg shadow-black/10">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                Aggiungi all'Ordine
-              </button>
-            </div>
-          </div>
+          {/* BUY BOX (Client Component per gestire quantità) */}
+          <AddToCartBox product={product} isLoggedIn={false} />
 
           {/* Removed tech specs from here */}
         </div>
