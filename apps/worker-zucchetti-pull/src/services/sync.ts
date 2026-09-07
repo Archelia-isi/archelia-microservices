@@ -565,14 +565,14 @@ export class ZucchettiPullService {
         return result;
       }
 
-      const filtered = articles.filter(a => LISTINI_ECOMMERCE.includes(a.licodlis));
+      const filtered = articles.filter(a => LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis));
       
       const skusSet = new Set(filtered.map(a => a.arcodar2));
       const existingProducts = await prisma.product.findMany({
         where: { sku: { in: Array.from(skusSet) } },
-        select: { id: true, sku: true, price: true }
+        select: { id: true, sku: true, price: true, priceB2b: true }
       });
-      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price }]));
+      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price, priceB2b: p.priceB2b }]));
 
       const skuAggregated = new Map<string, any>();
       for (const a of filtered) {
@@ -588,10 +588,20 @@ export class ZucchettiPullService {
           newPrice = parseFloat((newPrice * moltip).toFixed(2));
         }
 
-        const existing = skuAggregated.get(sku);
-        if (!existing || newPrice > existing.newPrice) {
-          skuAggregated.set(sku, { sku, newPrice, priceList: a.licodlis });
+        const existing = skuAggregated.get(sku) || { sku, newPrice: null, priceList: null, newPriceB2b: null, priceListB2b: null };
+        
+        if (LISTINI_ECOMMERCE.includes(a.licodlis)) {
+           if (existing.newPrice === null || newPrice > existing.newPrice) {
+             existing.newPrice = newPrice;
+             existing.priceList = a.licodlis;
+           }
+        } else if (LISTINI_B2B.includes(a.licodlis)) {
+           if (existing.newPriceB2b === null || newPrice > existing.newPriceB2b) {
+             existing.newPriceB2b = newPrice;
+             existing.priceListB2b = a.licodlis;
+           }
         }
+        skuAggregated.set(sku, existing);
       }
 
       const updates = Array.from(skuAggregated.values());
@@ -601,19 +611,35 @@ export class ZucchettiPullService {
       
       for (let i = 0; i < updates.length; i += CONCURRENCY) {
         const batch = updates.slice(i, i + CONCURRENCY);
-        const promises = batch.map(u => prisma.product.updateMany({
-           where: { sku: u.sku },
-           data: { price: u.newPrice, priceList: u.priceList }
-        }));
+        const promises = batch.map(u => {
+           const updateData: any = {};
+           if (u.newPrice !== null) {
+              updateData.price = u.newPrice;
+              updateData.priceList = u.priceList;
+           }
+           if (u.newPriceB2b !== null) {
+              updateData.priceB2b = u.newPriceB2b;
+              updateData.priceListB2b = u.priceListB2b;
+           }
+           return prisma.product.updateMany({
+             where: { sku: u.sku },
+             data: updateData
+           });
+        });
 
         const batchResults = await Promise.allSettled(promises);
         for (let j = 0; j < batchResults.length; j++) {
           if (batchResults[j].status === 'fulfilled') {
              result.updated++;
              const old = oldPriceMap.get(batch[j].sku);
-             if (old && old.price !== batch[j].newPrice) {
-                historyData.push({ productId: old.id, oldPrice: old.price, newPrice: batch[j].newPrice });
-                changelogData.push({ productId: old.id, field: 'price', oldValue: String(old.price), newValue: String(batch[j].newPrice), source: 'PRICE_SYNC' });
+             if (old) {
+                if (batch[j].newPrice !== null && old.price !== batch[j].newPrice) {
+                   historyData.push({ productId: old.id, oldPrice: old.price, newPrice: batch[j].newPrice });
+                   changelogData.push({ productId: old.id, field: 'price', oldValue: String(old.price), newValue: String(batch[j].newPrice), source: 'PRICE_SYNC' });
+                }
+                if (batch[j].newPriceB2b !== null && old.priceB2b !== batch[j].newPriceB2b) {
+                   changelogData.push({ productId: old.id, field: 'priceB2b', oldValue: String(old.priceB2b), newValue: String(batch[j].newPriceB2b), source: 'PRICE_SYNC' });
+                }
              }
           } else {
              result.errors++;
