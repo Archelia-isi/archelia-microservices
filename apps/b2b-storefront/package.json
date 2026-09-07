@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "prebuild": "rm -rf node_modules/react node_modules/react-dom"
   },
   "dependencies": {
     "@archelia/b2b-database": "*",
