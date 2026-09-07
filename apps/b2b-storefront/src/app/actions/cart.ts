@@ -4,6 +4,7 @@ import { getCart, saveCart, clearCart } from '@/lib/cart';
 import { revalidatePath } from 'next/cache';
 import { prisma } from '@archelia/b2b-database';
 import { verifySession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 
 export async function addToCart(formData: FormData) {
   const sku = formData.get('sku') as string;
@@ -32,12 +33,12 @@ export async function removeFromCart(sku: string) {
   revalidatePath('/cart');
 }
 
-export async function checkout() {
+export async function checkout(formData: FormData) {
   const session = await verifySession();
-  if (!session) return { error: 'Devi essere loggato.' };
+  if (!session) return;
 
   const cart = await getCart();
-  if (cart.items.length === 0) return { error: 'Il carrello è vuoto.' };
+  if (cart.items.length === 0) return;
 
   // Convert temporary Redis cart to persistent Neon Cart
   const dbCart = await prisma.b2BCart.create({
@@ -57,5 +58,5 @@ export async function checkout() {
   await clearCart();
   revalidatePath('/cart');
   
-  return { success: true, cartId: dbCart.id };
+  redirect('/catalog?checkout=success');
 }
