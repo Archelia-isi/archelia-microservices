@@ -75,9 +75,15 @@ const slides = [
   }
 ];
 
-export default function HeroCarousel() {
+export default function HeroCarousel({ categoryImages }: { categoryImages?: Record<number, string> }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Update slides with dynamic images if provided
+  const currentSlides = slides.map(slide => ({
+    ...slide,
+    imageUrl: categoryImages?.[slide.id] || slide.imageUrl
+  }));
 
   useEffect(() => {
     if (isPaused) return;
@@ -87,16 +93,16 @@ export default function HeroCarousel() {
     }, 5000); // 5 seconds
     
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, currentSlides.length]);
 
-  const slide = slides[currentIndex];
+  const slide = currentSlides[currentIndex];
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+    setCurrentIndex((prev) => (prev === 0 ? currentSlides.length - 1 : prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    setCurrentIndex((prev) => (prev === currentSlides.length - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -109,11 +115,11 @@ export default function HeroCarousel() {
       
       {/* Dynamic Background Image (On Top, Right Side) */}
       <div 
-        className="absolute inset-y-0 right-0 w-2/3 md:w-3/4 bg-cover bg-center z-0 transition-all duration-1000 ease-in-out"
+        className="absolute inset-y-0 right-8 w-1/2 bg-contain bg-no-repeat bg-right z-0 transition-all duration-1000 ease-in-out mix-blend-multiply"
         style={{ 
           backgroundImage: `url('${slide.imageUrl}')`,
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 30%)',
-          maskImage: 'linear-gradient(to right, transparent, black 30%)'
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%)',
+          maskImage: 'linear-gradient(to right, transparent, black 10%)'
         }}
       ></div>
       
@@ -121,8 +127,8 @@ export default function HeroCarousel() {
       <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-gray-50 to-transparent z-10 pointer-events-none"></div>
       
       {/* Card Content */}
-      <div className="relative z-20 w-full pt-12 h-full flex flex-col items-start px-8">
-        <div className="bg-white/95 backdrop-blur rounded shadow-md w-full max-w-sm p-6 transform transition-all duration-500 ease-in-out" key={slide.id}>
+      <div className="relative z-20 w-full pt-12 h-full flex flex-col items-start px-8 pointer-events-none">
+        <div className="bg-white/95 backdrop-blur rounded shadow-md w-full max-w-sm p-6 transform transition-all duration-500 ease-in-out pointer-events-auto" key={slide.id}>
           <h1 className="text-xl font-bold tracking-tight mb-2 text-gray-900 animate-fadeIn">
             {slide.title}
           </h1>
@@ -163,7 +169,7 @@ export default function HeroCarousel() {
 
       {/* Slide Indicators */}
       <div className="absolute bottom-[170px] left-8 z-30 flex gap-2">
-        {slides.map((s, i) => (
+        {currentSlides.map((s, i) => (
           <button 
             key={s.id} 
             onClick={() => setCurrentIndex(i)}
