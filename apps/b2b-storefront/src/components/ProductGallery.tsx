@@ -10,6 +10,7 @@ interface ProductGalleryProps {
 
 export default function ProductGallery({ images, alt, inStock }: ProductGalleryProps) {
   const [mainImage, setMainImage] = useState(images[0]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!images || images.length === 0) {
     return (
@@ -36,7 +37,8 @@ export default function ProductGallery({ images, alt, inStock }: ProductGalleryP
         <img 
           src={mainImage} 
           alt={alt}
-          className="w-full h-full object-contain hover:scale-110 transition-transform duration-500 cursor-zoom-in"
+          className="w-full h-full object-contain transition-transform duration-500 cursor-zoom-in"
+          onClick={() => setIsModalOpen(true)}
         />
       </div>
 
@@ -55,6 +57,31 @@ export default function ProductGallery({ images, alt, inStock }: ProductGalleryP
               <img src={img} alt={`${alt} - vista ${idx + 1}`} className="w-full h-full object-contain" />
             </button>
           ))}
+        </div>
+      )}
+
+      {/* MODAL FULLSCREEN */}
+      {isModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out backdrop-blur-sm"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div className="relative max-w-5xl max-h-screen w-full h-full flex items-center justify-center">
+            <button 
+              className="absolute top-4 right-4 text-white bg-black/50 hover:bg-black p-3 rounded-full transition-colors z-50"
+              onClick={(e) => { e.stopPropagation(); setIsModalOpen(false); }}
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img 
+              src={mainImage} 
+              alt={alt}
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>
