@@ -16,7 +16,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
           <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-            <Link href="/catalog" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <Image 
                 src="/logo-izzo.png" 
                 alt="Izzo Distribuzione" 
