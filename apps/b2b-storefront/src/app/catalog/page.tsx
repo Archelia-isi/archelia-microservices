@@ -1,4 +1,4 @@
-import { searchProducts } from '@archelia/typesense';
+import { searchProducts } from '@archelia/typesense/dist/search.js';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { Button } from '@archelia/ui-storefront';

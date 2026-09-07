@@ -1,35 +1,9 @@
-import { Client } from 'typesense';
+import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 import { shopifyPromoService, TypesensePromoData } from '@archelia/shopify';
 import { prisma } from '@archelia/database';
 
-const typesenseUrl = process.env.TYPESENSE_URL || process.env.TYPESENSE_PUBLIC_URL || 'http://localhost:8108';
-let host = typesenseUrl.replace('https://', '').replace('http://', '');
-let protocol = typesenseUrl.startsWith('https') ? 'https' : 'http';
-let port = typesenseUrl.startsWith('https') ? 443 : 8108;
-
-// Parse the port if it exists in the url
-if (host.includes(':')) {
-  const parts = host.split(':');
-  host = parts[0];
-  port = parseInt(parts[1], 10);
-}
-
-export const typesenseClient = new Client({
-  nodes: [
-    {
-      host: host,
-      port: port,
-      protocol: protocol,
-    },
-  ],
-  apiKey: process.env.TYPESENSE_ADMIN_KEY || 'default_key',
-  connectionTimeoutSeconds: 10,
-});
-
-export const PRODUCTS_COLLECTION_NAME = 'products';
-
-export const GUIDES_COLLECTION_NAME = 'guides';
-
+export * from './client.js';
+export * from './search.js';
 /**
  * Initializes the Typesense collection schema for products if it doesn't exist.
  * If forceRecreate is true, it will drop the collection first.
@@ -258,7 +232,7 @@ export async function getTypesenseStatus() {
       documentCount
     };
   } catch (error) {
-    console.error('Typesense Connection Error Details:', error, 'URL configured:', typesenseUrl);
+    console.error('Typesense Connection Error Details:', error, 'URL configured:', process.env.TYPESENSE_URL);
     return {
       status: 'offline',
       documentCount: 0,
@@ -391,7 +365,8 @@ export async function runBulkSync() {
     console.log(`Progress: ${Math.min(i + batchSize, products.length)} / ${products.length}`);
   }
 
-  console.log(`\nBulk sync complete!`);
+  console.log(`
+Bulk sync complete!`);
   console.log(`Successfully synced: ${synced}`);
   console.log(`Failed: ${failed}`);
   
@@ -405,39 +380,3 @@ export async function runBulkSync() {
 /**
  * Esegue una ricerca Typesense con le priorità definite dal cliente.
  */
-export async function searchProducts(q: string, options?: { includeUnpublished?: boolean }) {
-  try {
-    const searchParams: any = {
-      q: q,
-      query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-      query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
-      sort_by: '_text_match:desc,is_in_promo:desc,natural_sku:asc',
-      per_page: 50
-    };
-    
-    if (!options?.includeUnpublished) {
-      searchParams.filter_by = 'publishedOnWeb:true';
-    }
-
-    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search(searchParams);
-    return searchResults;
-  } catch (error) {
-    console.error('Typesense search error:', error);
-    throw error;
-  }
-}
-
-export async function searchGuides(q: string) {
-  try {
-    const searchResults = await typesenseClient.collections(GUIDES_COLLECTION_NAME).documents().search({
-      q: q,
-      query_by: 'title,content,category',
-      query_by_weights: '100,50,20',
-      per_page: 3
-    });
-    return searchResults;
-  } catch (error) {
-    console.error('Typesense guides search error:', error);
-    throw error; // Or return empty results depending on error handling strategy
-  }
-}
