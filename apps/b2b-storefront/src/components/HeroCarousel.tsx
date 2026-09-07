@@ -5,70 +5,70 @@ import { useState, useEffect } from 'react';
 const slides = [
   {
     id: 1,
-    imageUrl: 'https://images.unsplash.com/photo-1587293852726-70cdb56c2866?q=80&w=1200&auto=format&fit=crop', // Warehouse boxes
+    imageUrl: '/slider/b2b.jpg', // Warehouse boxes
     gradient: 'from-[#ffe4e1] to-[#ffb6c1]', // Pink
     title: 'Distribuzione B2B',
     description: 'Accesso esclusivo al catalogo ingrosso. Giacenze in tempo reale, listini personalizzati.',
   },
   {
     id: 2,
-    imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop', // Servers / tech
+    imageUrl: '/slider/informatica.jpg', // Servers / tech
     gradient: 'from-[#e0f2fe] to-[#bae6fd]', // Light blue
     title: 'Informatica e Rack',
     description: 'Armadi di rete, cavi e componenti di alta qualità per la tua infrastruttura aziendale.',
   },
   {
     id: 3,
-    imageUrl: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=1200&auto=format&fit=crop', // Drill/tools
+    imageUrl: '/slider/elettroutensili.jpg', // Drill/tools
     gradient: 'from-[#fef08a] to-[#fde047]', // Yellow
     title: 'Elettroutensili',
     description: 'Trapani, avvitatori e strumenti professionali per ogni esigenza in cantiere.',
   },
   {
     id: 4,
-    imageUrl: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?q=80&w=1200&auto=format&fit=crop', // Lighting
+    imageUrl: '/slider/led.jpg', // Lighting
     gradient: 'from-[#dcfce7] to-[#86efac]', // Green
     title: 'Illuminazione LED',
     description: 'Pannelli, strisce e faretti ad alta efficienza energetica in pronta consegna.',
   },
   {
     id: 5,
-    imageUrl: 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?q=80&w=1200&auto=format&fit=crop', // Cables / electric
+    imageUrl: '/slider/elettrico.jpg', // Cables / electric
     gradient: 'from-[#ffedd5] to-[#fdba74]', // Orange
     title: 'Materiale Elettrico',
     description: 'Cavi, quadri elettrici e serie civile delle migliori marche sul mercato per impianti sicuri.',
   },
   {
     id: 6,
-    imageUrl: 'https://images.unsplash.com/photo-1621252179027-94459d278660?q=80&w=1200&auto=format&fit=crop', // Safety
+    imageUrl: '/slider/antinfortunistica.jpg', // Safety
     gradient: 'from-[#f3e8ff] to-[#d8b4fe]', // Purple
     title: 'Antinfortunistica',
     description: 'Dispositivi di Protezione Individuale per la sicurezza del tuo team sul lavoro.',
   },
   {
     id: 7,
-    imageUrl: 'https://images.unsplash.com/photo-1558002038-1055907df827?q=80&w=1200&auto=format&fit=crop', // Smart thermostat
+    imageUrl: '/slider/domotica.jpg', // Smart thermostat
     gradient: 'from-[#e2e8f0] to-[#cbd5e1]', // Slate
     title: 'Smart Home & Domotica',
     description: 'Sistemi di automazione intelligenti per gestire energia e sicurezza.',
   },
   {
     id: 8,
-    imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1200&auto=format&fit=crop', // Interior
+    imageUrl: '/slider/arredo.jpg', // Interior
     gradient: 'from-[#fce7f3] to-[#f9a8d4]', // Pink bright
     title: 'Arredo e Complementi',
     description: 'Dettagli di stile ed accessori essenziali per l\'edilizia moderna ed il design d\'interni.',
   },
   {
     id: 9,
-    imageUrl: 'https://images.unsplash.com/photo-1530124566582-a618bc2615dc?q=80&w=1200&auto=format&fit=crop', // Hand tools
+    imageUrl: '/slider/utensili_manuali.jpg', // Hand tools
     gradient: 'from-[#ccfbf1] to-[#5eead4]', // Teal
     title: 'Utensili Manuali',
     description: 'Chiavi, cacciaviti e pinze forgiate in acciaio resistente per ogni professionista.',
   },
   {
     id: 10,
-    imageUrl: 'https://images.unsplash.com/photo-1589927986089-35812388d1f4?q=80&w=1200&auto=format&fit=crop', // Garden
+    imageUrl: '/slider/giardinaggio.jpg', // Garden
     gradient: 'from-[#ecfccb] to-[#bef264]', // Lime
     title: 'Giardinaggio ed Esterni',
     description: 'Tutto il necessario per la cura del verde, l\'irrigazione e l\'arredo degli spazi esterni.',
