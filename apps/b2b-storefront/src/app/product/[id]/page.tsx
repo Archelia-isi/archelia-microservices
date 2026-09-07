@@ -3,6 +3,19 @@ import { notFound } from 'next/navigation';
 import { getProductById, searchProducts } from '@archelia/typesense/dist/search.js';
 import ProductCarousel from '../../../components/ProductCarousel';
 import AddToCartBox from '../../../components/AddToCartBox';
+import ProductGallery from '../../../components/ProductGallery';
+import { Pool } from 'pg';
+
+export const dynamic = 'force-dynamic';
+
+// Lazy pool creation to avoid build-time errors
+let pool: Pool | null = null;
+function getPool() {
+  if (!pool && process.env.DATABASE_URL) {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  }
+  return pool;
+}
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const productRaw = await getProductById(params.id);
@@ -12,6 +25,27 @@ export default async function ProductPage({ params }: { params: { id: string } }
   }
   
   const product: any = productRaw;
+
+  // Fetch full image list from main database
+  let dbProduct = null;
+  try {
+    const currentPool = getPool();
+    if (currentPool) {
+      const result = await currentPool.query('SELECT "imageUrls" FROM products WHERE sku = $1', [product.sku]);
+      if (result.rows.length > 0) {
+        dbProduct = result.rows[0];
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch product from DB:', e);
+  }
+
+  let images: string[] = [];
+  if (dbProduct?.imageUrls && Array.isArray(dbProduct.imageUrls) && dbProduct.imageUrls.length > 0) {
+    images = dbProduct.imageUrls as string[];
+  } else if (product.image_url) {
+    images = [product.image_url];
+  }
 
   // Fetch related products (e.g. from the same category or brand, fallback to generic search if not available)
   const searchQuery = product.category || product.brand || '*';
@@ -51,33 +85,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
       </nav>
 
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* PRODUCT IMAGE GALLERY (Left) */}
+        {/* IMAGE GALLERY */}
         <div className="w-full lg:w-1/2 flex flex-col gap-4">
-          <div className="w-full aspect-square bg-white border border-gray-100 rounded-lg p-8 shadow-sm flex items-center justify-center relative overflow-hidden group">
-            <div className="absolute top-4 left-4 z-10 flex gap-2">
-              <span className="bg-[#00C800] text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded">B2B</span>
-              {product.stock > 0 && (
-                <span className="bg-gray-900 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00C800]"></div> In Stock
-                </span>
-              )}
-            </div>
-            
-            {product.image_url ? (
-              <img 
-                src={product.image_url} 
-                alt={product.title} 
-                className="w-full h-full object-contain hover:scale-110 transition-transform duration-500 cursor-zoom-in"
-              />
-            ) : (
-              <div className="w-32 h-32 text-gray-200">
-                <svg fill="currentColor" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-              </div>
-            )}
-          </div>
+          <ProductGallery images={images} alt={product.title || product.original_name || 'Prodotto'} inStock={product.stock > 0} />
         </div>
 
-        {/* PRODUCT INFO (Right) */}
+        {/* PRODUCT INFO & BUY BOX */}
         <div className="w-full lg:w-1/2 flex flex-col">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-2 py-1 rounded">{product.brand || product.vendor || 'IZZO'}</span>

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@archelia/b2b-database": "*",
+    "@archelia/database": "^1.0.0",
     "@archelia/ui-storefront": "*",
     "ioredis": "^5.11.1",
     "next": "14.2.3",
