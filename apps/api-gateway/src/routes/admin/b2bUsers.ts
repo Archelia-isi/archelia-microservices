@@ -6,6 +6,7 @@ import { zucchettiClient } from '@archelia/zucchetti';
 import * as bcrypt from 'bcryptjs';
 
 import { authenticate } from '../auth.js';
+import { log } from '@archelia/core';
 
 export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
