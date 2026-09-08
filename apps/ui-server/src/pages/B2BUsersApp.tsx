@@ -14,7 +14,10 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https:/
 
 interface B2BUser {
   id: string;
-  email: string;
+  username: string;
+  email?: string;
+  tempPassword?: string;
+  mustChangePassword?: boolean;
   firstName?: string;
   lastName?: string;
   companyName?: string;
@@ -43,10 +46,14 @@ export default function B2BUsersApp() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<B2BUser | null>(null);
+  const [isUsernameEditable, setIsUsernameEditable] = useState(false);
   
   const defaultForm = {
+    username: '',
     email: '',
     password: '',
+    tempPassword: '',
+    mustChangePassword: false,
     firstName: '',
     lastName: '',
     companyName: '',
@@ -112,9 +119,52 @@ export default function B2BUsersApp() {
     }
   };
 
-  const handleSelectZucchettiCustomer = (c: any) => {
+  const handleSelectZucchettiCustomer = async (c: any) => {
+    // 1. Controllo Codice Zucchetti duplicato
+    if (c.zucchettiCode) {
+      try {
+        const res = await fetch(`${API_URL}/api/admin/b2b-users/check-zucchetti?code=${c.zucchettiCode}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const json = await res.json();
+        if (json.exists) {
+          toast.error('Questo cliente ha già un account B2B!');
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // 2. Generazione Username Univoco
+    let baseUsername = (c.companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.').replace(/^\.|\.$/g, '');
+    if (!baseUsername) baseUsername = 'user';
+    let finalUsername = baseUsername;
+    let counter = 0;
+    let isAvailable = false;
+    
+    toast.loading('Verifica username...', { id: 'check-u' });
+    while (!isAvailable && counter < 50) { // max 50 tentativi di fallback
+       try {
+         const res = await fetch(`${API_URL}/api/admin/b2b-users/check-username?u=${finalUsername}`, {
+           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+         });
+         const json = await res.json();
+         if (json.available) {
+           isAvailable = true;
+         } else {
+           counter++;
+           finalUsername = `${baseUsername}.${counter}`;
+         }
+       } catch (e) {
+         isAvailable = true; // Fallback in caso di errore di rete
+       }
+    }
+    toast.dismiss('check-u');
+
     setFormData({
       ...formData,
+      username: finalUsername,
       companyName: c.companyName || '',
       vatNumber: c.vatNumber || '',
       zucchettiCode: c.zucchettiCode || '',
@@ -128,14 +178,14 @@ export default function B2BUsersApp() {
       province: c.province || '',
       phone: c.phone || ''
     });
-    toast.success('Dati precompilati da Zucchetti!');
+    toast.success('Dati e Username precompilati!');
     setZucchettiResults([]);
     setZucchettiSearch('');
   };
 
   const handleSubmit = async () => {
-    if (!formData.email || (!editingUser && !formData.password)) {
-      toast.error('Email e password sono obbligatori');
+    if (!formData.username || (!editingUser && !formData.password)) {
+      toast.error('Username e password sono obbligatori');
       return;
     }
     
@@ -194,7 +244,10 @@ export default function B2BUsersApp() {
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => {
               setEditingUser(null);
-              setFormData(defaultForm);
+              setFormData({
+                ...defaultForm,
+                password: Math.random().toString(36).slice(-8)
+              });
               setIsModalOpen(true);
             }}>
               Nuovo Utente
@@ -213,15 +266,19 @@ export default function B2BUsersApp() {
                   <Badge variant={u.role === 'ADMIN' ? 'danger' : u.role === 'AGENT' ? 'warning' : 'primary'}>{u.role}</Badge>
                   {u.isElmarkCustomer && <Badge variant="success">ELMARK</Badge>}
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{u.companyName || u.email}</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{u.email}</div>
+                <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{u.companyName || u.username}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}><strong>User:</strong> {u.username}</div>
+                {u.email && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Email: {u.email}</div>}
                 
                 <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                   <Button variant="secondary" icon={<Edit2 size={14} />} onClick={() => {
                     setEditingUser(u);
                     setFormData({
-                      email: u.email,
+                      username: u.username || '',
+                      email: u.email || '',
                       password: '',
+                      tempPassword: u.tempPassword || '',
+                      mustChangePassword: u.mustChangePassword || false,
                       firstName: u.firstName || '',
                       lastName: u.lastName || '',
                       companyName: u.companyName || '',
@@ -315,9 +372,81 @@ export default function B2BUsersApp() {
             
             <div style={{ borderTop: '1px solid var(--color-border)', margin: '1rem 0' }}></div>
 
-            <TextInput label="Email (Login)" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
-            <TextInput label={editingUser ? "Nuova Password" : "Password"} type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required={!editingUser} />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <TextInput label="Username (Login)" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} disabled={!isUsernameEditable} required />
+              </div>
+              <Button type="button" variant="secondary" onClick={() => setIsUsernameEditable(!isUsernameEditable)} icon={<Edit2 size={16} />}>
+                Modifica
+              </Button>
+            </div>
             
+            <TextInput label="Email (Opzionale)" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            
+            {!editingUser ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <TextInput label="Password Provvisoria" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                </div>
+                <Button type="button" variant="secondary" onClick={() => setFormData({...formData, password: Math.random().toString(36).slice(-8)})}>
+                  Genera
+                </Button>
+              </div>
+            ) : (
+              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Stato Password</div>
+                {editingUser.tempPassword ? (
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                     <div>
+                       <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>In attesa di primo accesso: </span>
+                       <strong style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{editingUser.tempPassword}</strong>
+                     </div>
+                     <Button size="sm" type="button" variant="danger" onClick={async () => {
+                       toast.loading('Reset in corso...', { id: 'reset' });
+                       try {
+                         const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
+                           method: 'POST',
+                           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                         });
+                         const json = await res.json();
+                         toast.dismiss('reset');
+                         if (json.success) {
+                           setEditingUser({...editingUser, tempPassword: json.tempPassword});
+                           toast.success('Password resettata!');
+                         }
+                       } catch(e) {
+                         toast.dismiss('reset');
+                         toast.error('Errore');
+                       }
+                     }}>Rigenera</Button>
+                   </div>
+                ) : (
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                     <Badge variant="success">Configurata dall'utente (Privata)</Badge>
+                     <Button size="sm" type="button" variant="danger" onClick={async () => {
+                       if(!confirm('Attenzione: sovrascriverai la password privata dell\'utente con una provvisoria. Procedere?')) return;
+                       toast.loading('Reset in corso...', { id: 'reset' });
+                       try {
+                         const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
+                           method: 'POST',
+                           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                         });
+                         const json = await res.json();
+                         toast.dismiss('reset');
+                         if (json.success) {
+                           setEditingUser({...editingUser, tempPassword: json.tempPassword});
+                           toast.success('Password resettata e resa provvisoria!');
+                         }
+                       } catch(e) {
+                         toast.dismiss('reset');
+                         toast.error('Errore');
+                       }
+                     }}>Forza Reset</Button>
+                   </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: '1rem' }}>
               <div style={{ flex: 1 }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo B2B</label>

@@ -14,6 +14,55 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   // Helper hook if auth is required
   app.addHook('onRequest', authenticate);
 
+  // GET /api/admin/b2b-users/check-username
+  app.get('/b2b-users/check-username', {
+    schema: {
+      querystring: z.object({ u: z.string() })
+    }
+  }, async (request) => {
+    const { u } = request.query;
+    const exists = await b2bPrisma.b2BUser.findUnique({ where: { username: u } });
+    return { available: !exists };
+  });
+
+  // GET /api/admin/b2b-users/check-zucchetti
+  app.get('/b2b-users/check-zucchetti', {
+    schema: {
+      querystring: z.object({ code: z.string() })
+    }
+  }, async (request) => {
+    const { code } = request.query;
+    const exists = await b2bPrisma.b2BUser.findUnique({ where: { zucchettiCode: code } });
+    return { exists: !!exists, userId: exists?.id };
+  });
+
+  // POST /api/admin/b2b-users/:id/reset-password
+  app.post('/b2b-users/:id/reset-password', {
+    schema: {
+      params: z.object({ id: z.string() })
+    }
+  }, async (request, reply) => {
+    const { id } = request.params;
+    
+    // Genera password casuale da 8 caratteri
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    
+    try {
+       const user = await b2bPrisma.b2BUser.update({
+         where: { id },
+         data: {
+            passwordHash,
+            tempPassword,
+            mustChangePassword: true
+         }
+       });
+       return { success: true, tempPassword };
+    } catch(e) {
+       return reply.code(400).send({ error: 'Utente non trovato' });
+    }
+  });
+
   // GET /api/admin/b2b-users
   app.get('/b2b-users', {
     schema: {
@@ -61,7 +110,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   app.post('/b2b-users', {
     schema: {
       body: z.object({
-        email: z.string().email(),
+        username: z.string().min(3),
+        email: z.string().email().optional().or(z.literal('')),
         password: z.string().min(6),
         firstName: z.string().optional(),
         lastName: z.string().optional(),
@@ -87,18 +137,22 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     const data = request.body;
     
     // Controlla se esiste
-    const exists = await b2bPrisma.b2BUser.findUnique({ where: { email: data.email } });
+    const exists = await b2bPrisma.b2BUser.findUnique({ where: { username: data.username } });
     if (exists) {
-      return reply.code(400).send({ error: 'Email già in uso' });
+      return reply.code(400).send({ error: 'Username già in uso' });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const { password, ...userData } = data;
     
+    if (!userData.email) userData.email = null;
+
     const user = await b2bPrisma.b2BUser.create({
       data: {
         ...userData,
-        passwordHash
+        passwordHash,
+        tempPassword: data.password,
+        mustChangePassword: true
       }
     });
     
@@ -110,7 +164,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     schema: {
       params: z.object({ id: z.string() }),
       body: z.object({
-        email: z.string().email(),
+        username: z.string().min(3),
+        email: z.string().email().optional().or(z.literal('')),
         password: z.string().optional(),
         firstName: z.string().optional(),
         lastName: z.string().optional(),
@@ -136,13 +191,22 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     const { id } = request.params;
     const data = request.body;
     
+    if (data.username) {
+      const exists = await b2bPrisma.b2BUser.findUnique({ where: { username: data.username } });
+      if (exists && exists.id !== id) {
+        return reply.code(400).send({ error: 'Username già in uso' });
+      }
+    }
+
     const updateData: any = { ...data };
-    
+    if (!updateData.email) updateData.email = null;
+
     if (data.password) {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
+      updateData.tempPassword = data.password;
+      updateData.mustChangePassword = true;
     }
     delete updateData.password;
-
     try {
       const user = await b2bPrisma.b2BUser.update({
         where: { id },

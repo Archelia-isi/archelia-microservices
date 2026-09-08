@@ -10,8 +10,12 @@ datasource db {
 
 model B2BUser {
   id                 String       @id @default(cuid())
-  email              String       @unique
+  username           String       @unique
+  email              String?      @unique
   passwordHash       String
+  tempPassword       String?
+  mustChangePassword Boolean      @default(true)
+  
   firstName          String?
   lastName           String?
   companyName        String?
