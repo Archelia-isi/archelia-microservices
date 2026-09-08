@@ -102,7 +102,7 @@ export default function CategoryMenu() {
               </div>
               <div className="p-6">
                 <Link 
-                  href={`/catalog?q=${activeRoot.name.toLowerCase()}`}
+                  href={`/catalog?l1=${activeRoot.id}`}
                   onClick={() => setIsOpen(false)}
                   className="text-green-600 text-sm font-bold hover:underline"
                 >
@@ -122,7 +122,7 @@ export default function CategoryMenu() {
                   activeSub.children.map((child) => (
                     <Link
                       key={child.id}
-                      href={`/catalog?q=${child.name.toLowerCase()}`}
+                      href={`/catalog?l1=${activeRoot!.id}&l2=${activeSub.id}&l3=${child.id}`}
                       onClick={() => setIsOpen(false)}
                       className="p-4 px-8 text-sm text-gray-600 font-medium hover:text-green-600 hover:bg-gray-50 transition-colors flex justify-between items-center border-b border-gray-50"
                     >
@@ -140,7 +140,7 @@ export default function CategoryMenu() {
               </div>
               <div className="p-6">
                 <Link 
-                  href={`/catalog?q=${activeSub.name.toLowerCase()}`}
+                  href={`/catalog?l1=${activeRoot!.id}&l2=${activeSub.id}`}
                   onClick={() => setIsOpen(false)}
                   className="text-green-600 text-sm font-bold hover:underline"
                 >

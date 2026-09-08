@@ -6,14 +6,20 @@ import CatalogClient from '../../components/CatalogClient';
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: { q?: string; l1?: string; l2?: string; l3?: string };
 }) {
   const session = await verifySession();
   const isAuthenticated = !!session;
 
   const query = searchParams.q || '*';
   // Richiedi fino a 250 prodotti per popolare i filtri in modo ricco (replicando il comportamento del tema originale)
-  const results = await searchProducts(query, { b2bMode: true, limit: 250 });
+  const results = await searchProducts(query, { 
+    b2bMode: true, 
+    limit: 250,
+    l1: searchParams.l1,
+    l2: searchParams.l2,
+    l3: searchParams.l3,
+  });
   
   const hits = results?.hits || [];
   const products = hits.map((h: any) => h.document);
