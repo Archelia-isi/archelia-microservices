@@ -12,6 +12,7 @@ interface CatalogClientProps {
 export default function CatalogClient({ initialProducts, query, isAuthenticated }: CatalogClientProps) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [openFilterGroup, setOpenFilterGroup] = useState<string | null>(null);
 
   // Extract all available filters dynamically
   const availableFilters = useMemo(() => {
@@ -149,39 +150,60 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
             <p className="text-sm text-gray-500">Nessun filtro disponibile</p>
           )}
 
-          {Object.keys(availableFilters).map(filterKey => (
-            <div key={filterKey} className="mb-6 border-b border-gray-100 pb-4 last:border-0 last:mb-0 last:pb-0">
-              <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider">{filterKey}</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
-                {Object.entries(availableFilters[filterKey])
-                  .sort((a, b) => b[1] - a[1]) // Ordina per conteggio decrescente
-                  .map(([val, count]) => {
-                  const isChecked = activeFilters[filterKey]?.includes(val);
-                  return (
-                    <label key={val} className="flex items-start gap-3 cursor-pointer group">
-                      <div className="relative flex items-center justify-center w-4 h-4 mt-0.5">
-                        <input
-                          type="checkbox"
-                          className="appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:bg-[#00C800] checked:border-[#00C800] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00C800]/20"
-                          checked={isChecked}
-                          onChange={() => handleFilterToggle(filterKey, val)}
-                        />
-                        {isChecked && (
-                          <svg className="absolute w-3 h-3 text-white pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`text-sm flex-1 ${isChecked ? 'font-semibold text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>
-                        {val}
-                      </span>
-                      <span className="text-xs text-gray-400">({count})</span>
-                    </label>
-                  );
-                })}
+          {Object.keys(availableFilters).map(filterKey => {
+            const isOpen = openFilterGroup === filterKey;
+            const hasActive = activeFilters[filterKey] && activeFilters[filterKey].length > 0;
+
+            return (
+              <div key={filterKey} className="mb-4 border-b border-gray-100 pb-2 last:border-0 last:mb-0 last:pb-0">
+                <button 
+                  className="w-full flex justify-between items-center py-2 text-left"
+                  onClick={() => setOpenFilterGroup(isOpen ? null : filterKey)}
+                >
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wider">{filterKey}</h3>
+                    {hasActive && !isOpen && (
+                      <span className="text-[#00C800] text-[10px]">●</span>
+                    )}
+                  </div>
+                  <span className="text-gray-400 text-lg font-light leading-none">
+                    {isOpen ? '−' : '+'}
+                  </span>
+                </button>
+                
+                {isOpen && (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2 scrollbar-hide py-3">
+                    {Object.entries(availableFilters[filterKey])
+                      .sort((a, b) => b[1] - a[1]) // Ordina per conteggio decrescente
+                      .map(([val, count]) => {
+                      const isChecked = activeFilters[filterKey]?.includes(val);
+                      return (
+                        <label key={val} className="flex items-start gap-3 cursor-pointer group">
+                          <div className="relative flex items-center justify-center w-4 h-4 mt-0.5">
+                            <input
+                              type="checkbox"
+                              className="appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:bg-[#00C800] checked:border-[#00C800] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00C800]/20 cursor-pointer"
+                              checked={isChecked}
+                              onChange={() => handleFilterToggle(filterKey, val)}
+                            />
+                            {isChecked && (
+                              <svg className="absolute w-3 h-3 text-white pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className={`text-sm flex-1 ${isChecked ? 'font-semibold text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                            {val}
+                          </span>
+                          <span className="text-xs text-gray-400">({count})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
