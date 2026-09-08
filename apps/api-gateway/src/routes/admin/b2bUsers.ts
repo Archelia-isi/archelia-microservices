@@ -73,6 +73,11 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         zucchettiPriceList: z.string().optional(),
         customerType: z.string().optional(),
         fido: z.number().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        zip: z.string().optional(),
+        province: z.string().optional(),
+        phone: z.string().optional(),
         isElmarkCustomer: z.boolean().default(false),
         elmarkDiscounts: z.any().optional(),
         isActive: z.boolean().default(true),
@@ -117,6 +122,11 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         zucchettiPriceList: z.string().optional(),
         customerType: z.string().optional(),
         fido: z.number().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        zip: z.string().optional(),
+        province: z.string().optional(),
+        phone: z.string().optional(),
         isElmarkCustomer: z.boolean().default(false),
         elmarkDiscounts: z.any().optional(),
         isActive: z.boolean().default(true),
@@ -213,7 +223,12 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
            zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo
            customerType: typeDesc,
-           discount: baseDiscount
+           discount: baseDiscount,
+           address: c.anindiri || c.Anindiri || '',
+           city: c.anlocali || c.Anlocali || '',
+           zip: c.an___cap || c.An___cap || '',
+           province: c.anprovin || c.Anprovin || '',
+           phone: c.antelefo || c.Antelefo || ''
          };
       });
 

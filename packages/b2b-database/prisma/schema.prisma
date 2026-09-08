@@ -27,6 +27,12 @@ model B2BUser {
   customerType       String?
   fido               Float?
   
+  address            String?
+  city               String?
+  zip                String?
+  province           String?
+  phone              String?
+  
   isElmarkCustomer   Boolean      @default(false)
   elmarkDiscounts    Json?        // Sconti per categorie Elmark
   isActive           Boolean      @default(true)

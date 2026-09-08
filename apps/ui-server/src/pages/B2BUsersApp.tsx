@@ -53,6 +53,11 @@ export default function B2BUsersApp() {
     customerType: '',
     fido: 0,
     discount: 0,
+    address: '',
+    city: '',
+    zip: '',
+    province: '',
+    phone: '',
     isElmarkCustomer: false,
     elmarkDiscounts: {} as any,
     isActive: true
@@ -111,7 +116,12 @@ export default function B2BUsersApp() {
       zucchettiPriceList: c.zucchettiPriceList || '',
       customerType: c.customerType || '',
       fido: c.fido || 0,
-      discount: c.discount || 0
+      discount: c.discount || 0,
+      address: c.address || '',
+      city: c.city || '',
+      zip: c.zip || '',
+      province: c.province || '',
+      phone: c.phone || ''
     });
     toast.success('Dati precompilati da Zucchetti!');
     setZucchettiResults([]);
@@ -218,6 +228,11 @@ export default function B2BUsersApp() {
                       customerType: u.customerType || '',
                       fido: u.fido || 0,
                       discount: u.discount || 0,
+                      address: u.address || '',
+                      city: u.city || '',
+                      zip: u.zip || '',
+                      province: u.province || '',
+                      phone: u.phone || '',
                       isElmarkCustomer: u.isElmarkCustomer,
                       elmarkDiscounts: u.elmarkDiscounts || {},
                       isActive: u.isActive
@@ -269,6 +284,17 @@ export default function B2BUsersApp() {
             <div style={{ display: 'flex', gap: '1rem' }}>
               <TextInput label="Ragione Sociale" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} disabled />
               <TextInput label="Partita IVA" value={formData.vatNumber} onChange={e => setFormData({...formData, vatNumber: e.target.value})} disabled />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <TextInput label="Indirizzo" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} disabled />
+              <TextInput label="Località" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} disabled />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <TextInput label="CAP" value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} disabled />
+              <TextInput label="Provincia" value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})} disabled />
+              <TextInput label="Telefono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled />
             </div>
             
             <div style={{ display: 'flex', gap: '1rem' }}>
