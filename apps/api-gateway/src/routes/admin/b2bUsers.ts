@@ -184,18 +184,18 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
       });
 
       const mapped = filtered.map((c: any) => {
-         const cat = (c.ancatcon || c.Ancatcon || '').toUpperCase();
-         let typeDesc = cat;
-         if (cat === 'CLIBR') typeDesc = 'Rivenditore';
-         else if (cat === 'CLIBI') typeDesc = 'Installatore';
-         else if (cat === 'CLIG') typeDesc = 'Generale/Standard';
+         const typeCode = (c.ancatscm || c.Ancatscm || '').toLowerCase();
+         let typeDesc = typeCode.toUpperCase();
+         if (typeCode === 'riv') typeDesc = 'Rivenditore';
+         else if (typeCode === 'ist') typeDesc = 'Installatore';
+         else if (typeCode === 'gen') typeDesc = 'Generale';
 
          return {
            zucchettiCode: c.ancodice || c.Ancodice || '',
            companyName: c.andescri || c.Andescri || '',
            vatNumber: c.anpariva || c.Anpariva || '',
            fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
-           zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo anlistin in zzna_clienti
+           zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo
            customerType: typeDesc
          };
       });
