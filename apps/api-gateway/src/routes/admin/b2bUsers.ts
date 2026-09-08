@@ -171,7 +171,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            });
         }
       } catch (e) {
-        logger.error('Errore nel fetch degli sconti da Zucchetti', e);
+        log.error('Errore nel fetch degli sconti da Zucchetti', e);
       }
 
       // Fetch customers
