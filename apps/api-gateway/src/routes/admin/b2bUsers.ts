@@ -145,7 +145,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const { password, ...userData } = data;
     
-    if (!userData.email) userData.email = null;
+    if (!userData.email) delete userData.email;
 
     const user = await b2bPrisma.b2BUser.create({
       data: {

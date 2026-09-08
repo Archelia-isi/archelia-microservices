@@ -461,7 +461,7 @@ export default function B2BUsersApp() {
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Agente di Riferimento</label>
                   <Select value={formData.agentId} onChange={e => setFormData({...formData, agentId: e.target.value})} options={[
                     {value: '', label: '-- Nessun Agente --'},
-                    ...agents.map(a => ({ value: a.id, label: a.companyName || a.email }))
+                    ...agents.map(a => ({ value: a.id, label: a.companyName || a.username }))
                   ]} />
                 </div>
               )}
