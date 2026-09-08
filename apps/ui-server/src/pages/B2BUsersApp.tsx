@@ -176,7 +176,8 @@ export default function B2BUsersApp() {
       city: c.city || '',
       zip: c.zip || '',
       province: c.province || '',
-      phone: c.phone || ''
+      phone: c.phone || '',
+      email: c.email || formData.email
     });
     toast.success('Dati e Username precompilati!');
     setZucchettiResults([]);
@@ -356,7 +357,11 @@ export default function B2BUsersApp() {
             <div style={{ display: 'flex', gap: '1rem' }}>
               <TextInput label="CAP" value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} disabled />
               <TextInput label="Provincia" value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})} disabled />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem' }}>
               <TextInput label="Telefono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled />
+              <TextInput label="Email Anagrafica" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
             </div>
             
             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -380,8 +385,6 @@ export default function B2BUsersApp() {
                 Modifica
               </Button>
             </div>
-            
-            <TextInput label="Email (Opzionale)" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
             
             {!editingUser ? (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>

@@ -292,7 +292,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            city: c.anlocali || c.Anlocali || '',
            zip: c.an___cap || c.An___cap || '',
            province: c.anprovin || c.Anprovin || '',
-           phone: c.antelefo || c.Antelefo || ''
+           phone: c.antelefo || c.Antelefo || '',
+           email: c.an_email || c.An_email || ''
          };
       });
 
