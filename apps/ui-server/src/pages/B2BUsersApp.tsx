@@ -91,6 +91,9 @@ export default function B2BUsersApp() {
       const data = await res.json();
       if (data.results) {
         setZucchettiResults(data.results);
+        if (data.results.length === 0) {
+           toast.error('Nessun cliente trovato su Zucchetti (o limite 100 superato). Prova "ferr".');
+        }
       }
     } catch (e) {
       toast.error('Errore ricerca Zucchetti');
