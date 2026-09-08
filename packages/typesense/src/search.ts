@@ -16,7 +16,8 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     
     if (!options?.includeUnpublished) {
       if (options?.b2bMode) {
-        searchParams.filter_by = 'publishedOnB2b:true';
+        // TEMP FIX: Fallback to publishedOnWeb because publishedOnB2b is not yet populated in Typesense docs
+        searchParams.filter_by = 'publishedOnWeb:true';
       } else {
         searchParams.filter_by = 'publishedOnWeb:true';
       }
