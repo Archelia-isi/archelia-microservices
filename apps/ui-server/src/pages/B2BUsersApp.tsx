@@ -26,6 +26,11 @@ interface B2BUser {
   customerType?: string;
   fido?: number;
   discount?: number;
+  address?: string;
+  city?: string;
+  zip?: string;
+  province?: string;
+  phone?: string;
   isElmarkCustomer: boolean;
   elmarkDiscounts?: any;
   isActive: boolean;
