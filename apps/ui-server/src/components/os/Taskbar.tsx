@@ -44,7 +44,7 @@ export default function Taskbar() {
     e.dataTransfer.setData('source', 'taskbar');
   };
 
-  const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+  const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
   
   const visibleApps = Object.values(windows).filter(app => {
     if (currentStore === 'B2B' && !b2bAllowedApps.includes(app.id)) return false;

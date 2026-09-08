@@ -36,6 +36,7 @@ import CalendarApp from '../../pages/CalendarApp';
 import NotesApp from '../../pages/NotesApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
 import UsersApp from '../../pages/UsersApp';
+import B2BUsersApp from '../../pages/B2BUsersApp';
 import * as FcIcons from 'react-icons/fc';
 
 
@@ -438,7 +439,8 @@ export default function DesktopOS() {
     if (!windows['roblox_game']) registerApp({ id: 'roblox_game', title: 'Roblox Obby', icon: getImg('./icons/themes/roblox/roblox_game.jpg'), color: 'transparent', component: <RobloxMinigame />, x: 150, y: 150, width: 800, height: 600 });
     if (!windows['calendar_app']) registerApp({ id: 'calendar_app', title: 'Calendario', icon: <DynamicFcIcon name="FcCalendar" />, color: 'transparent', component: <CalendarApp />, x: 150, y: 100, width: 1000, height: 700 });
     if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700 });
-    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700 });
+    if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti OS', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700 });
+    if (!windows['b2b_users']) registerApp({ id: 'b2b_users', title: 'Clienti B2B', icon: <DynamicFcIcon name="FcConferenceCall" />, color: 'transparent', component: <B2BUsersApp />, x: 300, y: 180, width: 1000, height: 700 });
   }, []);
 
   if (!isLoggedIn) {
@@ -498,7 +500,7 @@ export default function DesktopOS() {
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {(() => {
-            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
             
             // 1. Filtra le app effettivamente visibili
             let visibleApps = Object.values(windows).filter(app => {
@@ -646,7 +648,7 @@ export default function DesktopOS() {
         )}
 
         {Object.values(windows).map(win => {
-          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
           if (currentStore === 'B2B' && !b2bAllowedApps.includes(win.id)) return null;
           if (!canViewApp(win.id, currentStore)) return null;
           return <WindowComponent key={win.id} id={win.id} />;

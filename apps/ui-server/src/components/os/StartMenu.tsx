@@ -132,7 +132,7 @@ export default function StartMenu({ onClose }: StartMenuProps) {
 
   // Convert windows object to array and filter by search query, removing os-settings
   const apps = useMemo(() => {
-    const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+    const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
     let allApps = Object.values(windows).filter(app => {
       if (app.id === 'os-settings') return false;
       if (app.id === 'roblox_game' && theme !== 'roblox') return false;

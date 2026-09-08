@@ -18,6 +18,7 @@ import { adminSchedulerRoutes, initScheduler } from './routes/admin/scheduler.js
 import { adminSearchRoutes } from './routes/admin/search.js';
 import { adminDatabaseRoutes } from './routes/admin/database.js';
 import adminPromoRoutes from './routes/admin/promo.js';
+import { adminB2BUsersRoutes } from './routes/admin/b2bUsers.js';
 import { adminEqualizzatoreRoutes } from './routes/admin/equalizzatore.js';
 import { marketingRoutes } from './routes/admin/marketing.js';
 import { adminSettingsRoutes } from './routes/admin/settings.js';
@@ -66,6 +67,7 @@ async function buildApp() {
   await app.register(adminSearchRoutes);
   await app.register(adminDatabaseRoutes);
   await app.register(adminPromoRoutes);
+  await app.register(adminB2BUsersRoutes, { prefix: '/api/admin' });
   await app.register(adminEqualizzatoreRoutes);
   await app.register(marketingRoutes);
   await app.register(adminSettingsRoutes, { prefix: '/api/admin' });

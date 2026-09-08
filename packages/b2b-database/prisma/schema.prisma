@@ -9,22 +9,41 @@ datasource db {
 }
 
 model B2BUser {
-  id             String       @id @default(cuid())
-  email          String       @unique
-  passwordHash   String
-  firstName      String?
-  lastName       String?
-  companyName    String?
-  vatNumber      String?
-  zucchettiCode  String?      @unique
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  passwordHash       String
+  firstName          String?
+  lastName           String?
+  companyName        String?
+  vatNumber          String?
+  zucchettiCode      String?      @unique
 
-  sessions       B2BSession[]
-  carts          B2BCart[]
+  role               B2BRole      @default(USER)
+  agentId            String?
+  agent              B2BUser?     @relation("AgentToClient", fields: [agentId], references: [id])
+  clients            B2BUser[]    @relation("AgentToClient")
+  
+  zucchettiPriceList String?
+  customerType       String?
+  fido               Float?
+  
+  isElmarkCustomer   Boolean      @default(false)
+  elmarkDiscounts    Json?        // Sconti per categorie Elmark
+  isActive           Boolean      @default(true)
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  sessions           B2BSession[]
+  carts              B2BCart[]
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   @@map("b2b_users")
+}
+
+enum B2BRole {
+  USER
+  AGENT
+  ADMIN
 }
 
 model B2BSession {

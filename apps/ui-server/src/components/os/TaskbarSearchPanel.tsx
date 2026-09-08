@@ -80,7 +80,7 @@ export default function TaskbarSearchPanel() {
           
           // Ricerca app locali
           const qLower = query.toLowerCase();
-          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management'];
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
           
           const localApps: SearchResult[] = Object.values(windows)
             .filter(app => {
