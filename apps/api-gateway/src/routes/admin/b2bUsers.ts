@@ -15,25 +15,33 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   app.addHook('onRequest', authenticate);
 
   // GET /api/admin/b2b-users/check-username
-  app.get('/b2b-users/check-username', {
-    schema: {
-      querystring: z.object({ u: z.string() })
+  app.get('/b2b-users/check-username', async (request) => {
+    const query = request.query as any;
+    const u = query.u;
+    if (!u) return { available: false };
+    
+    try {
+      const exists = await b2bPrisma.b2BUser.findUnique({ where: { username: u } });
+      return { available: !exists };
+    } catch (e) {
+      log.error('Errore check-username', e);
+      return { available: true }; // fallback on error to not block
     }
-  }, async (request) => {
-    const { u } = request.query;
-    const exists = await b2bPrisma.b2BUser.findUnique({ where: { username: u } });
-    return { available: !exists };
   });
 
   // GET /api/admin/b2b-users/check-zucchetti
-  app.get('/b2b-users/check-zucchetti', {
-    schema: {
-      querystring: z.object({ code: z.string() })
+  app.get('/b2b-users/check-zucchetti', async (request) => {
+    const query = request.query as any;
+    const code = query.code;
+    if (!code) return { exists: false };
+    
+    try {
+      const exists = await b2bPrisma.b2BUser.findFirst({ where: { zucchettiCode: code } });
+      return { exists: !!exists, userId: exists?.id };
+    } catch(e) {
+      log.error('Errore check-zucchetti', e);
+      return { exists: false };
     }
-  }, async (request) => {
-    const { code } = request.query;
-    const exists = await b2bPrisma.b2BUser.findUnique({ where: { zucchettiCode: code } });
-    return { exists: !!exists, userId: exists?.id };
   });
 
   // POST /api/admin/b2b-users/:id/reset-password

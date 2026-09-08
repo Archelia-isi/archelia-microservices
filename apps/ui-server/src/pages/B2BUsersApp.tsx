@@ -146,9 +146,16 @@ export default function B2BUsersApp() {
     toast.loading('Verifica username...', { id: 'check-u' });
     while (!isAvailable && counter < 50) { // max 50 tentativi di fallback
        try {
-         const res = await fetch(`${API_URL}/api/admin/b2b-users/check-username?u=${finalUsername}`, {
+         const res = await fetch(`${API_URL}/api/admin/b2b-users/check-username?u=${encodeURIComponent(finalUsername)}`, {
            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
          });
+         
+         if (!res.ok) {
+            console.error('Errore API check-username:', await res.text());
+            isAvailable = true; // Usciamo dal loop per non bloccare tutto
+            break;
+         }
+         
          const json = await res.json();
          if (json.available) {
            isAvailable = true;
@@ -157,6 +164,7 @@ export default function B2BUsersApp() {
            finalUsername = `${baseUsername}.${counter}`;
          }
        } catch (e) {
+         console.error('Eccezione di rete:', e);
          isAvailable = true; // Fallback in caso di errore di rete
        }
     }
