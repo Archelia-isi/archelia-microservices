@@ -183,14 +183,22 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
          return name.includes(lowerQ) || code.includes(lowerQ) || vat.includes(lowerQ);
       });
 
-      const mapped = filtered.map((c: any) => ({
-         zucchettiCode: c.ancodice || c.Ancodice || '',
-         companyName: c.andescri || c.Andescri || '',
-         vatNumber: c.anpariva || c.Anpariva || '',
-         fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
-         zucchettiPriceList: c.ancatcon || c.Ancatcon || '',
-         customerType: c.antipcon || c.Antipcon || ''
-      }));
+      const mapped = filtered.map((c: any) => {
+         const cat = (c.ancatcon || c.Ancatcon || '').toUpperCase();
+         let typeDesc = cat;
+         if (cat === 'CLIBR') typeDesc = 'Rivenditore';
+         else if (cat === 'CLIBI') typeDesc = 'Installatore';
+         else if (cat === 'CLIG') typeDesc = 'Generale/Standard';
+
+         return {
+           zucchettiCode: c.ancodice || c.Ancodice || '',
+           companyName: c.andescri || c.Andescri || '',
+           vatNumber: c.anpariva || c.Anpariva || '',
+           fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
+           zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo anlistin in zzna_clienti
+           customerType: typeDesc
+         };
+      });
 
       // Se non trova niente nella cache di Zucchetti (es. per il limite dei 100), diamo un piccolo mock per far provare la UI all'utente se la query corrisponde
       if (mapped.length === 0) {

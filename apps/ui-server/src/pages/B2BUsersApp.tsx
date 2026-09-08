@@ -255,7 +255,7 @@ export default function B2BUsersApp() {
                   {zucchettiResults.map((r, i) => (
                     <div key={i} onClick={() => handleSelectZucchettiCustomer(r)} style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }}>
                       <div style={{ fontWeight: 600 }}>{r.companyName} ({r.zucchettiCode})</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>P.IVA: {r.vatNumber} - Fido: €{r.fido}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>P.IVA: {r.vatNumber} - Tipo: {r.customerType} - Fido: €{r.fido}</div>
                     </div>
                   ))}
                 </div>
@@ -270,6 +270,10 @@ export default function B2BUsersApp() {
             <div style={{ display: 'flex', gap: '1rem' }}>
               <TextInput label="Codice Zucchetti" value={formData.zucchettiCode} onChange={e => setFormData({...formData, zucchettiCode: e.target.value})} disabled />
               <TextInput label="Listino Assegnato" value={formData.zucchettiPriceList} onChange={e => setFormData({...formData, zucchettiPriceList: e.target.value})} disabled />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <TextInput label="Tipo Cliente" value={formData.customerType} onChange={e => setFormData({...formData, customerType: e.target.value})} disabled />
               <TextInput label="Fido (€)" type="number" value={String(formData.fido)} onChange={e => setFormData({...formData, fido: parseFloat(e.target.value)})} disabled />
             </div>
             
