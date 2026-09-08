@@ -5,14 +5,13 @@ import { prisma as b2bPrisma } from '@archelia/b2b-database';
 import { zucchettiClient } from '@archelia/zucchetti';
 import * as bcrypt from 'bcryptjs';
 
+import { authenticate } from '../auth.js';
+
 export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
   // Helper hook if auth is required
-  app.addHook('onRequest', async (request, reply) => {
-    // Basic auth check using your existing middleware
-    await (fastify as any).authenticate(request, reply);
-  });
+  app.addHook('onRequest', authenticate);
 
   // GET /api/admin/b2b-users
   app.get('/b2b-users', {
