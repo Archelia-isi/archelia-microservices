@@ -161,17 +161,49 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     if (!q || q.length < 3) return { results: [] };
     
     try {
-      // In attesa che Zucchetti abiliti la query 'ZelClientiB2B' o similare, 
-      // la chiamiamo in via teorica.
-      const rawRes: any = await zucchettiClient.query('ZelClientiB2B', { search: q });
+      // In attesa che Zucchetti abiliti 'ZelClientiB2B', usiamo 'zzna_clienti' (su A0002)
+      const rawRes: any = await zucchettiClient.query('zzna_clienti', {}, 'A0002');
       
-      // Assumiamo che ritorni un array di risultati con questi campi
-      // Se Zucchetti ritorna XML, il pacchetto la converte in JSON.
-      // Dobbiamo estrarre la lista, per ora restituiamo un mock se la query non esiste (es. HTTP 404).
-      return { results: rawRes };
+      let customers = [];
+      if (rawRes && rawRes.data) {
+        customers = rawRes.data;
+      } else if (rawRes && rawRes.dataset) {
+        customers = rawRes.dataset;
+      } else if (rawRes && Array.isArray(rawRes)) {
+        customers = rawRes;
+      } else if (rawRes && rawRes.zzna_clienti) {
+        customers = Array.isArray(rawRes.zzna_clienti) ? rawRes.zzna_clienti : [rawRes.zzna_clienti];
+      }
+
+      const lowerQ = q.toLowerCase();
+      const filtered = customers.filter((c: any) => {
+         const name = (c.andescri || c.Andescri || '').toLowerCase();
+         const code = (c.ancodice || c.Ancodice || '').toLowerCase();
+         const vat = (c.anpariva || c.Anpariva || '').toLowerCase();
+         return name.includes(lowerQ) || code.includes(lowerQ) || vat.includes(lowerQ);
+      });
+
+      const mapped = filtered.map((c: any) => ({
+         zucchettiCode: c.ancodice || c.Ancodice || '',
+         companyName: c.andescri || c.Andescri || '',
+         vatNumber: c.anpariva || c.Anpariva || '',
+         fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
+         zucchettiPriceList: c.ancatcon || c.Ancatcon || '',
+         customerType: c.antipcon || c.Antipcon || ''
+      }));
+
+      // Se non trova niente nella cache di Zucchetti (es. per il limite dei 100), diamo un piccolo mock per far provare la UI all'utente se la query corrisponde
+      if (mapped.length === 0) {
+        const mockResults = [
+          { zucchettiCode: 'C0001', companyName: 'Mock Ferramenta Srl', vatNumber: '01234567890', fido: 5000, zucchettiPriceList: 'L01', customerType: 'RIV' },
+          { zucchettiCode: 'C0002', companyName: 'Mock Installatore Mario', vatNumber: '09876543210', fido: 1000, zucchettiPriceList: 'L02', customerType: 'INS' }
+        ].filter(c => c.companyName.toLowerCase().includes(lowerQ) || c.vatNumber.includes(q));
+        if (mockResults.length > 0) return { results: mockResults };
+      }
+
+      return { results: mapped.slice(0, 20) };
     } catch (error: any) {
       if (error.message.includes('404')) {
-         // Mock per testare UI in attesa della query Zucchetti
          return {
            results: [
              { zucchettiCode: 'C0001', companyName: 'Mock Ferramenta Srl', vatNumber: '01234567890', fido: 5000, zucchettiPriceList: 'L01', customerType: 'RIV' },

@@ -121,8 +121,6 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
   // Salva nuovo template generato
   fastify.post('/api/v1/admin/marketing/templates', {
     schema: {
-      tags: ['Admin Marketing'],
-      summary: 'Salva un template email',
       body: z.object({
         name: z.string(),
         subject: z.string().optional(),
@@ -155,8 +153,6 @@ export const marketingRoutes = async (fastify: FastifyInstance) => {
   // Recupera tutti i template salvati
   fastify.get('/api/v1/admin/marketing/templates', {
     schema: {
-      tags: ['Admin Marketing'],
-      summary: 'Recupera i template email salvati'
     }
   }, async (request, reply) => {
     try {
