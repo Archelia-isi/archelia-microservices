@@ -217,6 +217,7 @@ export default function B2BUsersApp() {
                       zucchettiPriceList: u.zucchettiPriceList || '',
                       customerType: u.customerType || '',
                       fido: u.fido || 0,
+                      discount: u.discount || 0,
                       isElmarkCustomer: u.isElmarkCustomer,
                       elmarkDiscounts: u.elmarkDiscounts || {},
                       isActive: u.isActive
