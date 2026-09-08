@@ -160,8 +160,21 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     if (!q || q.length < 3) return { results: [] };
     
     try {
-      // In attesa che Zucchetti abiliti 'ZelClientiB2B', usiamo 'zzna_clienti' (su A0002)
-      // Passiamo limit per bypassare il blocco di default a 100 record!
+      // Fetch discounts from Zucchetti
+      let discountsMap: Record<string, string> = {};
+      try {
+        const scontiRes: any = await zucchettiClient.query('zzna_cat_scont', { limit: '1000', offset: '0' }, 'A0002');
+        if (scontiRes && scontiRes.data) {
+           scontiRes.data.forEach((d: any) => {
+              const cat = (d.tscatcli || '').toLowerCase();
+              if (cat) discountsMap[cat] = d.tsscont1 || '0.00';
+           });
+        }
+      } catch (e) {
+        logger.error('Errore nel fetch degli sconti da Zucchetti', e);
+      }
+
+      // Fetch customers
       const rawRes: any = await zucchettiClient.query('zzna_clienti', { limit: '100000', offset: '0' }, 'A0002');
       
       let customers = [];
@@ -189,6 +202,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
          if (typeCode === 'riv') typeDesc = 'Rivenditore';
          else if (typeCode === 'ist') typeDesc = 'Installatore';
          else if (typeCode === 'gen') typeDesc = 'Generale';
+         
+         const baseDiscount = discountsMap[typeCode] ? Math.abs(parseFloat(discountsMap[typeCode])) : 0;
 
          return {
            zucchettiCode: c.ancodice || c.Ancodice || '',
@@ -196,7 +211,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            vatNumber: c.anpariva || c.Anpariva || '',
            fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
            zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo
-           customerType: typeDesc
+           customerType: typeDesc,
+           discount: baseDiscount
          };
       });
 

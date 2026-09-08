@@ -25,6 +25,7 @@ interface B2BUser {
   zucchettiPriceList?: string;
   customerType?: string;
   fido?: number;
+  discount?: number;
   isElmarkCustomer: boolean;
   elmarkDiscounts?: any;
   isActive: boolean;
@@ -51,6 +52,7 @@ export default function B2BUsersApp() {
     zucchettiPriceList: '',
     customerType: '',
     fido: 0,
+    discount: 0,
     isElmarkCustomer: false,
     elmarkDiscounts: {} as any,
     isActive: true
@@ -108,7 +110,8 @@ export default function B2BUsersApp() {
       zucchettiCode: c.zucchettiCode || '',
       zucchettiPriceList: c.zucchettiPriceList || '',
       customerType: c.customerType || '',
-      fido: c.fido || 0
+      fido: c.fido || 0,
+      discount: c.discount || 0
     });
     toast.success('Dati precompilati da Zucchetti!');
     setZucchettiResults([]);
@@ -255,7 +258,7 @@ export default function B2BUsersApp() {
                   {zucchettiResults.map((r, i) => (
                     <div key={i} onClick={() => handleSelectZucchettiCustomer(r)} style={{ padding: '0.5rem', borderBottom: '1px solid var(--color-border)', cursor: 'pointer' }}>
                       <div style={{ fontWeight: 600 }}>{r.companyName} ({r.zucchettiCode})</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>P.IVA: {r.vatNumber} - Tipo: {r.customerType} - Fido: €{r.fido}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>P.IVA: {r.vatNumber} - Tipo: {r.customerType} - Sconto base: {r.discount}% - Fido: €{r.fido}</div>
                     </div>
                   ))}
                 </div>
@@ -274,6 +277,7 @@ export default function B2BUsersApp() {
             
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
               <TextInput label="Tipo Cliente" value={formData.customerType} onChange={e => setFormData({...formData, customerType: e.target.value})} disabled />
+              <TextInput label="Sconto Applicato (%)" type="number" value={String(formData.discount)} onChange={e => setFormData({...formData, discount: parseFloat(e.target.value)})} disabled />
               <TextInput label="Fido (€)" type="number" value={String(formData.fido)} onChange={e => setFormData({...formData, fido: parseFloat(e.target.value)})} disabled />
             </div>
             
