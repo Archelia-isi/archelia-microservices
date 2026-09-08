@@ -161,7 +161,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     
     try {
       // In attesa che Zucchetti abiliti 'ZelClientiB2B', usiamo 'zzna_clienti' (su A0002)
-      const rawRes: any = await zucchettiClient.query('zzna_clienti', {}, 'A0002');
+      // Passiamo limit per bypassare il blocco di default a 100 record!
+      const rawRes: any = await zucchettiClient.query('zzna_clienti', { limit: '100000', offset: '0' }, 'A0002');
       
       let customers = [];
       if (rawRes && rawRes.data) {
