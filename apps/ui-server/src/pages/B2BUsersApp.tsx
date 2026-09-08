@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Edit2, Check, Shield, Search } from 'lucide-react';
+import { Users, Plus, Trash2, Edit2, Check, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
@@ -33,7 +33,6 @@ interface B2BUser {
 export default function B2BUsersApp() {
   const [users, setUsers] = useState<B2BUser[]>([]);
   const [agents, setAgents] = useState<B2BUser[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isAppReady, setIsAppReady] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,7 +46,7 @@ export default function B2BUsersApp() {
     companyName: '',
     vatNumber: '',
     zucchettiCode: '',
-    role: 'USER' as const,
+    role: 'USER' as 'USER' | 'AGENT' | 'ADMIN',
     agentId: '',
     zucchettiPriceList: '',
     customerType: '',
@@ -60,14 +59,12 @@ export default function B2BUsersApp() {
   const [formData, setFormData] = useState(defaultForm);
   const [zucchettiSearch, setZucchettiSearch] = useState('');
   const [zucchettiResults, setZucchettiResults] = useState<any[]>([]);
-  const [searchingZucchetti, setSearchingZucchetti] = useState(false);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/admin/b2b-users?limit=100`, {
@@ -81,14 +78,11 @@ export default function B2BUsersApp() {
       setIsAppReady(true);
     } catch (e) {
       toast.error('Errore nel caricamento degli utenti B2B');
-    } finally {
-      setLoading(false);
     }
   };
 
   const searchZucchetti = async () => {
     if (zucchettiSearch.length < 3) return;
-    setSearchingZucchetti(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}`, {
@@ -100,8 +94,6 @@ export default function B2BUsersApp() {
       }
     } catch (e) {
       toast.error('Errore ricerca Zucchetti');
-    } finally {
-      setSearchingZucchetti(false);
     }
   };
 
@@ -132,8 +124,8 @@ export default function B2BUsersApp() {
       : `${API_URL}/api/admin/b2b-users`;
       
     try {
-      const payload = { ...formData };
-      if (payload.agentId === '') payload.agentId = undefined;
+      const payload: any = { ...formData };
+      if (payload.agentId === '') payload.agentId = null;
       
       const res = await fetch(url, {
         method: editingUser ? 'PUT' : 'POST',
@@ -174,7 +166,7 @@ export default function B2BUsersApp() {
 
   return (
     <>
-      <AppSplashScreen isReady={isAppReady} appName="Utenti B2B" icon={<Users size={32} />} />
+      <AppSplashScreen isLoading={!isAppReady} appName="Utenti B2B" icon={<Users size={32} />} />
       
       <StickyHeader>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
@@ -197,7 +189,7 @@ export default function B2BUsersApp() {
             {users.map(u => (
               <div key={u.id} className="user-card" style={{ padding: '1.25rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <Badge variant={u.role === 'ADMIN' ? 'error' : u.role === 'AGENT' ? 'warning' : 'primary'}>{u.role}</Badge>
+                  <Badge variant={u.role === 'ADMIN' ? 'danger' : u.role === 'AGENT' ? 'warning' : 'primary'}>{u.role}</Badge>
                   {u.isElmarkCustomer && <Badge variant="success">ELMARK</Badge>}
                 </div>
                 <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{u.companyName || u.email}</div>
@@ -237,7 +229,7 @@ export default function B2BUsersApp() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingUser ? "Modifica Utente B2B" : "Nuovo Utente B2B"}
-        width="800px"
+        size="full"
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
