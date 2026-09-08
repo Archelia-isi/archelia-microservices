@@ -17,8 +17,8 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     let filters = [];
     if (!options?.includeUnpublished) {
       if (options?.b2bMode) {
-        // TEMP FIX: Fallback to publishedOnWeb because publishedOnB2b is not yet populated in Typesense docs
-        filters.push('publishedOnWeb:true');
+        // TEMP FIX: Do not filter by publishedOnWeb in B2B mode since all 11084 products in Typesense are B2B products,
+        // and publishedOnB2b is not yet populated.
       } else {
         filters.push('publishedOnWeb:true');
       }
