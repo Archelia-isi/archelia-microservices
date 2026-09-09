@@ -56,16 +56,18 @@ export default async function CartPage() {
   const extraAgentDiscount = await getExtraAgentDiscount();
   
   const finalItems = populatedItems.map(item => {
-    if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0 };
+    if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0, basePrice: 0 };
     
     let originalPrice = Number(item.product.price);
-    let finalPrice = originalPrice;
+    let basePrice = originalPrice;
     
     if (genericDiscount > 0) {
-      finalPrice = finalPrice * (1 - (genericDiscount / 100));
+      basePrice = basePrice * (1 - (genericDiscount / 100));
     } else if (Number(item.product.priceB2b) > 0) {
-      finalPrice = Number(item.product.priceB2b);
+      basePrice = Number(item.product.priceB2b);
     }
+
+    let finalPrice = basePrice;
 
     if (extraAgentDiscount > 0) {
       finalPrice = finalPrice * (1 - (extraAgentDiscount / 100));
@@ -75,7 +77,7 @@ export default async function CartPage() {
       finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
     }
 
-    return { ...item, finalPrice, originalPrice };
+    return { ...item, finalPrice, originalPrice, basePrice };
   });
 
   const totalAmount = finalItems.reduce((acc, item) => {

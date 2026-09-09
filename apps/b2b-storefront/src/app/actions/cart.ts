@@ -36,6 +36,15 @@ export async function addToCart(sku: string, quantity: number) {
       });
     }
 
+    // Leggi l'eventuale extra sconto dall'agente per i nuovi prodotti
+    let agentExtraDiscount = 0;
+    if (session.user.role === 'AGENT') {
+      const cookieVal = cookies().get('agentExtraDiscount')?.value;
+      if (cookieVal) {
+        agentExtraDiscount = parseFloat(cookieVal) || 0;
+      }
+    }
+
     // Controlla se l'articolo è già nel carrello
     const existingItem = await prisma.b2BCartItem.findUnique({
       where: {
@@ -49,7 +58,11 @@ export async function addToCart(sku: string, quantity: number) {
     if (existingItem) {
       await prisma.b2BCartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + quantity },
+        data: { 
+          quantity: existingItem.quantity + quantity,
+          // Se è l'agente che aggiunge, aggiorniamo lo sconto extra? O lo lasciamo com'è?
+          // Lasciamo l'extra sconto esistente, per sicurezza.
+        },
       });
     } else {
       await prisma.b2BCartItem.create({
@@ -57,6 +70,7 @@ export async function addToCart(sku: string, quantity: number) {
           cartId: cart.id,
           sku: sku,
           quantity: quantity,
+          extraDiscount: agentExtraDiscount,
         },
       });
     }
@@ -99,6 +113,32 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
 
   revalidatePath('/cart');
   return { success: true };
+}
+
+export async function massUpdateCartExtraDiscount(discount: number) {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
+
+  try {
+    const targetUserId = await getTargetUserId(session);
+    
+    const cart = await prisma.b2BCart.findFirst({
+      where: { userId: targetUserId, status: 'ACTIVE' },
+    });
+
+    if (cart) {
+      await prisma.b2BCartItem.updateMany({
+        where: { cartId: cart.id },
+        data: { extraDiscount: discount >= 0 ? discount : 0 },
+      });
+    }
+
+    revalidatePath('/cart');
+    return { success: true };
+  } catch (error: any) {
+    console.error('massUpdate error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function removeFromCart(itemId: string) {

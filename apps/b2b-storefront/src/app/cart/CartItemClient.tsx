@@ -128,17 +128,29 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
       </div>
       
       <div className="col-span-4 sm:col-span-2 text-right flex flex-col items-end">
-        {item.originalPrice > item.finalPrice && (
+        {item.originalPrice > (item.basePrice || item.finalPrice) && (
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[10px] text-gray-400 line-through">
               € {item.originalPrice.toFixed(2).replace('.', ',')}
             </span>
             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-              -{Math.round((1 - (item.finalPrice / item.originalPrice)) * 100)}%
+              -{Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%
             </span>
           </div>
         )}
-        <div className="font-medium text-sm">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>
+        
+        {item.basePrice > item.finalPrice && (
+          <div className="flex items-center justify-end gap-1 mb-0.5">
+            <span className="text-[11px] text-gray-500 line-through">
+              € {item.basePrice.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1 rounded">
+              -{Math.round((1 - (item.finalPrice / item.basePrice)) * 100)}% Extra
+            </span>
+          </div>
+        )}
+
+        <div className="font-bold text-sm text-gray-900">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>
         <div className="text-xs text-gray-400">/ {p.unit}</div>
         
         {isAgent && (

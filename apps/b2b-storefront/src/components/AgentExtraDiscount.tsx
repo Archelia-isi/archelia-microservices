@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAgentExtraDiscount } from '../app/actions/agentDiscount';
+import { massUpdateCartExtraDiscount } from '../app/actions/cart';
 
 export default function AgentExtraDiscount({ initialDiscount = 0 }: { initialDiscount?: number }) {
   const [discount, setDiscount] = useState<number | string>(initialDiscount);
@@ -12,6 +13,7 @@ export default function AgentExtraDiscount({ initialDiscount = 0 }: { initialDis
     const val = parseFloat(String(discount));
     if (!isNaN(val) && val >= 0) {
       await setAgentExtraDiscount(val);
+      await massUpdateCartExtraDiscount(val);
       router.refresh();
     }
   };
@@ -19,6 +21,7 @@ export default function AgentExtraDiscount({ initialDiscount = 0 }: { initialDis
   const handleClear = async () => {
     setDiscount(0);
     await setAgentExtraDiscount(0);
+    await massUpdateCartExtraDiscount(0);
     router.refresh();
   };
 
