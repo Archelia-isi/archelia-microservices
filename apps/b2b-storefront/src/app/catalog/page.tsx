@@ -9,6 +9,10 @@ export default async function CatalogPage({
   searchParams: { q?: string; l1?: string; l2?: string; l3?: string };
 }) {
   const session = await verifySession();
+  if (session?.user?.mustChangePassword) {
+    redirect('/setup-password');
+  }
+  
   const isAuthenticated = !!session;
 
   const query = searchParams.q || '*';

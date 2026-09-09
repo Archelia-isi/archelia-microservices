@@ -1,9 +1,16 @@
 import Link from 'next/link';
 import { searchProducts } from '@archelia/typesense/dist/search.js';
+import { verifySession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 import HeroCarousel from '../components/HeroCarousel';
 import ProductCarousel from '../components/ProductCarousel';
 
 export default async function Home() {
+  const session = await verifySession();
+  if (session?.user?.mustChangePassword) {
+    redirect('/setup-password');
+  }
+
   let illumRes, battRes, eletRes, civileRes, novitaRes, promoRes;
   
   try {

@@ -45,9 +45,24 @@ export async function verifySession() {
     include: { user: true },
   });
 
-  if (!session || session.expiresAt < new Date()) {
+  if (!session || session.expiresAt < new Date() || !session.user.isActive) {
     return null;
   }
 
+  return session;
+}
+
+import { redirect } from 'next/navigation';
+
+export async function requireAuth() {
+  const session = await verifySession();
+  if (!session) {
+    redirect('/login');
+  }
+  
+  if (session.user.mustChangePassword) {
+    redirect('/setup-password');
+  }
+  
   return session;
 }

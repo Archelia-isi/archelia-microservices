@@ -1,11 +1,17 @@
-import { login } from '../actions/auth';
+import { setupPassword } from '../actions/auth';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { prisma } from '@archelia/b2b-database';
 import Image from 'next/image';
 
-export default async function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function SetupPasswordPage({ searchParams }: { searchParams: { error?: string } }) {
   const session = await verifySession();
-  if (session) {
+  if (!session?.userId) {
+    redirect('/login');
+  }
+
+  const user = await prisma.b2BUser.findUnique({ where: { id: session.userId } });
+  if (!user || (!user.mustChangePassword && !user.tempPassword)) {
     redirect('/catalog');
   }
 
@@ -20,41 +26,38 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
             height={80} 
             className="object-contain h-16 w-auto mb-4"
           />
-          <p className="text-sm text-gray-500 mt-2">Accedi alla tua area riservata per visualizzare il catalogo e i listini personalizzati.</p>
+          <h1 className="text-xl font-semibold mt-2 text-gray-800">Imposta Password Privata</h1>
+          <p className="text-sm text-gray-500 mt-2">
+            Per motivi di sicurezza, devi sostituire la password provvisoria con una tua password personale e privata.
+          </p>
         </div>
 
         {searchParams.error === 'invalid' && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-6 text-sm text-center">
-            Credenziali non valide. Riprova.
-          </div>
-        )}
-        {searchParams.error === 'missing' && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-md mb-6 text-sm text-center">
-            Compila tutti i campi.
+            Le password non coincidono oppure è troppo corta (min 8 caratteri).
           </div>
         )}
         
-        <form action={login} className="flex flex-col gap-5">
+        <form action={setupPassword} className="flex flex-col gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username o Email aziendale</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nuova Password (min 8 caratteri)</label>
             <input 
-              name="identifier" 
-              type="text" 
-              required 
+              name="password" 
+              type="password" 
+              required
+              minLength={8}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all shadow-sm"
-              placeholder="cliente.prova o email@azienda.it"
+              placeholder="••••••••"
             />
           </div>
           
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <a href="#" className="text-xs text-green-600 hover:text-green-600">Password dimenticata?</a>
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Conferma Nuova Password</label>
             <input 
-              name="password" 
+              name="confirmPassword" 
               type="password" 
-              required 
+              required
+              minLength={8}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all shadow-sm"
               placeholder="••••••••"
             />
@@ -64,13 +67,9 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
             type="submit"
             className="w-full mt-2 bg-green-600 text-white font-medium py-2.5 px-4 rounded-md hover:bg-green-700 transition-colors shadow-sm"
           >
-            Accedi
+            Salva e Accedi
           </button>
         </form>
-        
-        <div className="mt-8 text-center text-sm text-gray-500 border-t border-gray-100 pt-6">
-          Non hai un account B2B? <a href="#" className="text-green-600 hover:text-green-600 font-medium">Richiedi accesso</a>
-        </div>
       </div>
     </div>
   );
