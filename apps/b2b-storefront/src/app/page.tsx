@@ -26,8 +26,25 @@ export default async function Home() {
     console.error('Failed to fetch home page products:', error);
   }
   
-  const getTop4 = (res: any) => res?.hits?.slice(0, 4).map((h: any) => h.document) || [];
-  const getTop10 = (res: any) => res?.hits?.slice(0, 10).map((h: any) => h.document) || [];
+  const isAuthenticated = !!session;
+  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+
+  const mapPrices = (products: any[]) => {
+    return products.map(p => {
+      if (isAuthenticated) {
+        if (p.discgroup && elmarkDiscounts[p.discgroup] !== undefined) {
+          const discountPerc = elmarkDiscounts[p.discgroup];
+          p.price_b2b = p.price * (1 - (discountPerc / 100));
+        } else if (!p.price_b2b) {
+          p.price_b2b = p.price;
+        }
+      }
+      return p;
+    });
+  };
+
+  const getTop4 = (res: any) => mapPrices(res?.hits?.slice(0, 4).map((h: any) => h.document) || []);
+  const getTop10 = (res: any) => mapPrices(res?.hits?.slice(0, 10).map((h: any) => h.document) || []);
   
   const illumProducts = getTop4(illumRes);
   const battProducts = getTop4(battRes);

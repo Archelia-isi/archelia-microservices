@@ -52,9 +52,9 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
         <div>
           <p className="text-xs text-gray-500 font-medium mb-1">Prezzo Riservato B2B</p>
           <div className="text-3xl font-bold text-gray-900">
-            {isLoggedIn && product.price ? (
+            {isLoggedIn ? (
               <>
-                € {product.price.toFixed(2)}
+                € {(product.price_b2b || product.price || 0).toFixed(2)}
                 <span className="text-xs text-gray-500 font-normal ml-2">/ {product.unit || 'PZ'}</span>
               </>
             ) : (

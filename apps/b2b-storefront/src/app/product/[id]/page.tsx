@@ -6,6 +6,8 @@ import AddToCartBox from '../../../components/AddToCartBox';
 import ProductGallery from '../../../components/ProductGallery';
 import { Pool } from 'pg';
 
+import { verifySession } from '@/lib/session';
+
 export const dynamic = 'force-dynamic';
 
 // Lazy pool creation to avoid build-time errors
@@ -18,6 +20,10 @@ function getPool() {
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
+  const session = await verifySession();
+  const isAuthenticated = !!session;
+  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+
   const productRaw = await getProductById(params.id);
 
   if (!productRaw) {
@@ -25,6 +31,16 @@ export default async function ProductPage({ params }: { params: { id: string } }
   }
   
   const product: any = productRaw;
+
+  // Apply B2B pricing for the main product
+  if (isAuthenticated) {
+    if (product.discgroup && elmarkDiscounts[product.discgroup] !== undefined) {
+      const discountPerc = elmarkDiscounts[product.discgroup];
+      product.price_b2b = product.price * (1 - (discountPerc / 100));
+    } else if (!product.price_b2b) {
+      product.price_b2b = product.price;
+    }
+  }
 
   // Fetch full image list from main database
   let dbProduct = null;
@@ -60,6 +76,18 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const relatedProducts = (relatedProductsRes?.hits || [])
     .map((h: any) => h.document)
     .filter((p: any) => p.id !== product.id && p.sku !== product.sku)
+    .map((p: any) => {
+      // Apply B2B pricing to related products
+      if (isAuthenticated) {
+        if (p.discgroup && elmarkDiscounts[p.discgroup] !== undefined) {
+          const discountPerc = elmarkDiscounts[p.discgroup];
+          p.price_b2b = p.price * (1 - (discountPerc / 100));
+        } else if (!p.price_b2b) {
+          p.price_b2b = p.price;
+        }
+      }
+      return p;
+    })
     .slice(0, 10);
 
   // Parse technical description string into an array of key-value pairs
@@ -102,7 +130,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
           </h1>
 
           {/* BUY BOX (Client Component per gestire quantità) */}
-          <AddToCartBox product={product} isLoggedIn={false} />
+          <AddToCartBox product={product} isLoggedIn={isAuthenticated} />
 
           {/* Removed tech specs from here */}
         </div>

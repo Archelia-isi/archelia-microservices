@@ -27,7 +27,25 @@ export default async function CatalogPage({
   });
   
   const hits = results?.hits || [];
-  const products = hits.map((h: any) => h.document);
+  
+  // Calculate dynamic B2B prices for the user
+  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  const products = hits.map((h: any) => {
+    const product = { ...h.document };
+    
+    if (isAuthenticated) {
+      if (product.discgroup && elmarkDiscounts[product.discgroup] !== undefined) {
+        // Apply specific Elmark category discount to the base price
+        const discountPerc = elmarkDiscounts[product.discgroup];
+        product.price_b2b = product.price * (1 - (discountPerc / 100));
+      } else if (!product.price_b2b) {
+        // Fallback if price_b2b is missing
+        product.price_b2b = product.price;
+      }
+    }
+    
+    return product;
+  });
 
   return (
     <div className="w-full">
