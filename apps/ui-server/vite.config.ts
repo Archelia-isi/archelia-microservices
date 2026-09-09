@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron/simple'
+import renderer from 'vite-plugin-electron-renderer'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,8 +14,8 @@ export default defineConfig({
       preload: {
         input: 'electron/preload.ts',
       },
-      renderer: {},
     }),
+    renderer(),
   ],
   server: {
     port: 3000,
