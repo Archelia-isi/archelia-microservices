@@ -30,6 +30,7 @@ model B2BUser {
   zucchettiPriceList String?
   customerType       String?
   fido               Float?
+  discount           Float        @default(0)
   
   address            String?
   city               String?
