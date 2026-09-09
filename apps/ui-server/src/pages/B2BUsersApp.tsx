@@ -320,7 +320,7 @@ export default function B2BUsersApp() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingUser ? "Modifica Utente B2B" : "Nuovo Utente B2B"}
-        size="full"
+        size="xl"
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
             <Button variant="secondary" onClick={() => setIsModalOpen(false)}>Annulla</Button>
@@ -332,33 +332,24 @@ export default function B2BUsersApp() {
           
           <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', paddingRight: '1rem', paddingBottom: '3rem' }}>
             
-            <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo B2B</label>
+            <div style={{ padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>1. Seleziona Ruolo B2B</label>
                 <Select value={formData.role} onChange={e => {
                   setFormData({...formData, role: e.target.value as any});
                   setZucchettiSearch('');
                   setZucchettiResults([]);
                 }} options={[
-                  {value: 'USER', label: 'Utente B2B (Cliente)'},
+                  {value: 'USER', label: 'Utente B2B (Cliente Standard)'},
                   {value: 'AGENT', label: 'Agente / Rappresentante'},
                   {value: 'ADMIN', label: 'Amministratore (Super Agente)'}
                 ]} />
               </div>
-              {formData.role === 'USER' && (
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Agente di Riferimento</label>
-                  <Select value={formData.agentId} onChange={e => setFormData({...formData, agentId: e.target.value})} options={[
-                    {value: '', label: '-- Nessun Agente --'},
-                    ...agents.map(a => ({ value: a.id, label: a.companyName || a.username }))
-                  ]} />
-                </div>
-              )}
-            </div>
 
-            <div style={{ padding: '1rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ borderTop: '1px solid var(--color-border)', margin: '1rem 0' }}></div>
+              
               <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
-                Cerca da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : '(Clienti)'}
+                2. Cerca anagrafica da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : '(Clienti)'}
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <TextInput value={zucchettiSearch} onChange={e => setZucchettiSearch(e.target.value)} placeholder="Es. Ferramenta..." />
@@ -471,6 +462,23 @@ export default function B2BUsersApp() {
                      }}>Forza Reset</Button>
                    </div>
                 )}
+              </div>
+            )}
+
+            {formData.role === 'USER' && formData.zucchettiCode && (
+              <div style={{ padding: '1rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>3. Assegnazione Agente</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <Select value={formData.agentId} onChange={e => setFormData({...formData, agentId: e.target.value})} options={[
+                      {value: '', label: '-- Nessun Agente --'},
+                      ...agents.map(a => ({ value: a.id, label: a.companyName || a.username }))
+                    ]} />
+                  </div>
+                  <div style={{ flex: 2, fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                    Seleziona l'agente a cui assegnare questo cliente per la visibilità ordini e sconti.
+                  </div>
+                </div>
               </div>
             )}
           </div>

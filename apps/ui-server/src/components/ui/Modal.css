@@ -51,6 +51,7 @@
 .ui-modal-content.size-sm { width: 100%; max-width: 400px; }
 .ui-modal-content.size-md { width: 100%; max-width: 600px; }
 .ui-modal-content.size-lg { width: 100%; max-width: 800px; }
+.ui-modal-content.size-xl { width: 100%; max-width: 1200px; max-height: calc(100vh - 100px); }
 .ui-modal-content.size-full { width: 100%; max-width: 95%; height: 95%; }
 
 .ui-modal-header {
