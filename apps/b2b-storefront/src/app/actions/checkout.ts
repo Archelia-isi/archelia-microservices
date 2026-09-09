@@ -57,7 +57,6 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         quantity: item.quantity,
         originalPrice,
         finalPrice,
-        discountApplied: genericDiscount + extraDiscount // Just a raw stat
       });
     }
 
@@ -119,6 +118,6 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     return { success: true, orderId: order.id, status: orderStatus };
   } catch (error: any) {
     console.error('Checkout error:', error);
-    return { success: false, error: 'Errore durante il checkout' };
+    return { success: false, error: 'Errore durante il checkout: ' + error.message };
   }
 }
