@@ -296,7 +296,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                             sku={product.sku} 
                             isLoggedIn={isAuthenticated} 
                             disabled={isOutOfStock}
-                            text={isOutOfStock ? 'Esaurito' : 'Acquista'}
+                            text={isOutOfStock ? 'Esaurito' : 'Aggiungi'}
                             className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
                               isOutOfStock 
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 

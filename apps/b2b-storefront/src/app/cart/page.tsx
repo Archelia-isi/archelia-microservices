@@ -39,14 +39,17 @@ export default async function CartPage() {
   const genericDiscount = session.user.discount || 0;
   
   const finalItems = populatedItems.map(item => {
-    if (!item.product) return { ...item, finalPrice: 0 };
-    let finalPrice = item.product.price;
+    if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0 };
+    
+    let originalPrice = Number(item.product.price);
+    let finalPrice = originalPrice;
+    
     if (genericDiscount > 0) {
       finalPrice = finalPrice * (1 - (genericDiscount / 100));
-    } else if (item.product.priceB2b > 0) {
-      finalPrice = item.product.priceB2b;
+    } else if (Number(item.product.priceB2b) > 0) {
+      finalPrice = Number(item.product.priceB2b);
     }
-    return { ...item, finalPrice };
+    return { ...item, finalPrice, originalPrice };
   });
 
   const totalAmount = finalItems.reduce((acc, item) => {

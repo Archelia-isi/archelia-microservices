@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Image from 'next/image';
+
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart } from '../actions/cart';
 
@@ -37,7 +37,7 @@ export default function CartItemClient({ item }: { item: any }) {
     <div className={`grid grid-cols-12 gap-4 p-4 items-center ${isPending ? 'opacity-50' : ''}`}>
       <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
         <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
-          <Image src={p.imageUrl} alt={p.title} width={64} height={64} className="object-contain w-full h-full" />
+          <img src={p.imageUrl} alt={p.title} className="object-contain w-full h-full" />
         </div>
         <div className="flex flex-col">
           <Link href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-[#00C800] line-clamp-2">
@@ -74,12 +74,17 @@ export default function CartItemClient({ item }: { item: any }) {
       </div>
       
       <div className="col-span-4 sm:col-span-2 text-right">
-        <div className="font-medium text-sm">€ {item.finalPrice.toFixed(2)}</div>
+        {item.originalPrice > item.finalPrice && (
+          <div className="text-[10px] text-gray-400 line-through">
+            € {item.originalPrice.toFixed(2).replace('.', ',')}
+          </div>
+        )}
+        <div className="font-medium text-sm">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>
         <div className="text-xs text-gray-400">/ {p.unit}</div>
       </div>
       
       <div className="col-span-4 sm:col-span-2 flex flex-col items-end justify-center gap-2">
-        <div className="font-bold text-gray-900">€ {total.toFixed(2)}</div>
+        <div className="font-bold text-gray-900">€ {total.toFixed(2).replace('.', ',')}</div>
         <button 
           onClick={() => startTransition(() => { removeFromCart(item.id); })}
           disabled={isPending}
