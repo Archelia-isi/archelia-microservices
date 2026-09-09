@@ -1,5 +1,6 @@
 import { searchProducts } from '@archelia/typesense/dist/search.js';
 import { verifySession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import CatalogClient from '../../components/CatalogClient';
 
