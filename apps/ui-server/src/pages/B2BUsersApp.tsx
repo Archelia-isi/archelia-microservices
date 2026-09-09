@@ -497,17 +497,23 @@ export default function B2BUsersApp() {
                     Imposta lo sconto dedicato (%) per le categorie Elmark.
                   </div>
                   {/* Esempio Categorie Elmark */}
-                  {['Illuminazione', 'Spine e Prese', 'Cavi', 'Smart Home'].map(cat => (
-                    <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.9rem' }}>{cat}</span>
+                  {[
+                    { id: 'E1', label: 'Electrical Part 1' },
+                    { id: 'E2', label: 'Electrical Part 2' },
+                    { id: 'L', label: 'Lighting' },
+                    { id: 'C', label: 'Cables' },
+                    { id: 'F', label: 'Fixtures' }
+                  ].map(cat => (
+                    <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.9rem' }}>{cat.label} ({cat.id})</span>
                       <input 
                         type="number" 
                         min="0" max="100" 
                         style={{ width: '60px', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)' }}
-                        value={formData.elmarkDiscounts[cat] || 0}
+                        value={formData.elmarkDiscounts[cat.id] || 0}
                         onChange={e => setFormData({
                           ...formData,
-                          elmarkDiscounts: { ...formData.elmarkDiscounts, [cat]: parseFloat(e.target.value) }
+                          elmarkDiscounts: { ...formData.elmarkDiscounts, [cat.id]: parseFloat(e.target.value) }
                         })}
                       />
                     </div>
