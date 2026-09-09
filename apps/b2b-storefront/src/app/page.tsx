@@ -32,10 +32,7 @@ export default async function Home() {
   const mapPrices = (products: any[]) => {
     return products.map(p => {
       if (isAuthenticated) {
-        if (p.discgroup && elmarkDiscounts[p.discgroup] !== undefined) {
-          const discountPerc = elmarkDiscounts[p.discgroup];
-          p.price_b2b = p.price * (1 - (discountPerc / 100));
-        } else if (session?.user?.discount && session.user.discount > 0) {
+        if (session?.user?.discount && session.user.discount > 0) {
           p.price_b2b = p.price * (1 - (session.user.discount / 100));
         } else if (!p.price_b2b) {
           p.price_b2b = p.price;

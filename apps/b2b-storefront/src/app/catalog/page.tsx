@@ -34,12 +34,8 @@ export default async function CatalogPage({
     const product = { ...h.document };
     
     if (isAuthenticated) {
-      if (product.discgroup && elmarkDiscounts[product.discgroup] !== undefined) {
-        // Apply specific Elmark category discount to the base price
-        const discountPerc = elmarkDiscounts[product.discgroup];
-        product.price_b2b = product.price * (1 - (discountPerc / 100));
-      } else if (session?.user?.discount && session.user.discount > 0) {
-        // Apply generic user discount
+      if (session?.user?.discount && session.user.discount > 0) {
+        // Applica sempre e solo lo sconto generico dell'utente
         product.price_b2b = product.price * (1 - (session.user.discount / 100));
       } else if (!product.price_b2b) {
         // Fallback if price_b2b is missing

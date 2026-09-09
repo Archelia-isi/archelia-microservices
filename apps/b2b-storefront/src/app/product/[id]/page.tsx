@@ -34,10 +34,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
   // Apply B2B pricing for the main product
   if (isAuthenticated) {
-    if (product.discgroup && elmarkDiscounts[product.discgroup] !== undefined) {
-      const discountPerc = elmarkDiscounts[product.discgroup];
-      product.price_b2b = product.price * (1 - (discountPerc / 100));
-    } else if (session?.user?.discount && session.user.discount > 0) {
+    if (session?.user?.discount && session.user.discount > 0) {
       product.price_b2b = product.price * (1 - (session.user.discount / 100));
     } else if (!product.price_b2b) {
       product.price_b2b = product.price;
@@ -81,10 +78,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
     .map((p: any) => {
       // Apply B2B pricing to related products
       if (isAuthenticated) {
-        if (p.discgroup && elmarkDiscounts[p.discgroup] !== undefined) {
-          const discountPerc = elmarkDiscounts[p.discgroup];
-          p.price_b2b = p.price * (1 - (discountPerc / 100));
-        } else if (session?.user?.discount && session.user.discount > 0) {
+        if (session?.user?.discount && session.user.discount > 0) {
           p.price_b2b = p.price * (1 - (session.user.discount / 100));
         } else if (!p.price_b2b) {
           p.price_b2b = p.price;
