@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefix } from '../actions/search';
 import { addToCart } from '../actions/cart';
 
-export default function QuickAddCart() {
+export default function QuickAddCart({ userDiscount = 0 }: { userDiscount?: number }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -74,6 +74,16 @@ export default function QuickAddCart() {
     }
   };
 
+  const getDiscountedPrice = (product: any) => {
+    let price = Number(product.price);
+    if (userDiscount > 0) {
+      return price * (1 - (userDiscount / 100));
+    } else if (Number(product.price_b2b) > 0) {
+      return Number(product.price_b2b);
+    }
+    return price;
+  };
+
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 shadow-sm relative z-10" ref={dropdownRef}>
       <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -95,24 +105,36 @@ export default function QuickAddCart() {
           
           {isOpen && results.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
-              {results.map((product) => (
-                <div 
-                  key={product.sku}
-                  onClick={() => handleSelect(product)}
-                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
-                >
-                  <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
-                    <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+              {results.map((product) => {
+                const finalPrice = getDiscountedPrice(product);
+                const originalPrice = Number(product.price);
+                
+                return (
+                  <div 
+                    key={product.sku}
+                    onClick={() => handleSelect(product)}
+                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
+                      <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-bold text-gray-900">{product.sku}</span>
+                      <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      {originalPrice > finalPrice && (
+                        <span className="text-[10px] text-gray-400 line-through">
+                          € {originalPrice.toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-gray-900">
+                        € {finalPrice.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-sm font-bold text-gray-900">{product.sku}</span>
-                    <span className="text-xs text-gray-500 truncate">{product.title || product.original_name}</span>
-                  </div>
-                  <div className="text-xs font-medium text-gray-900">
-                    € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

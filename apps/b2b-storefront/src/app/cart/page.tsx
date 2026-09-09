@@ -61,7 +61,7 @@ export default async function CartPage() {
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
       
-      <QuickAddCart />
+      <QuickAddCart userDiscount={genericDiscount} />
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">
