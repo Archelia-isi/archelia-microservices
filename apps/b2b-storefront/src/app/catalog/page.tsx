@@ -38,6 +38,9 @@ export default async function CatalogPage({
         // Apply specific Elmark category discount to the base price
         const discountPerc = elmarkDiscounts[product.discgroup];
         product.price_b2b = product.price * (1 - (discountPerc / 100));
+      } else if (session?.user?.discount && session.user.discount > 0) {
+        // Apply generic user discount
+        product.price_b2b = product.price * (1 - (session.user.discount / 100));
       } else if (!product.price_b2b) {
         // Fallback if price_b2b is missing
         product.price_b2b = product.price;
