@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
 
             <nav className="flex space-x-6 items-center font-medium">
-              {session?.role === 'AGENT' && (
+              {session?.user?.role === 'AGENT' && (
                 <AgentImpersonatorClient 
                   currentCode={impersonatedClientCode} 
                   currentName={impersonatedClientName} 

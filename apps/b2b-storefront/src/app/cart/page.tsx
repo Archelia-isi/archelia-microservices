@@ -74,7 +74,7 @@ export default async function CartPage() {
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
       
-      {session.role === 'AGENT' && (
+      {session.user.role === 'AGENT' && (
         <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
       )}
 

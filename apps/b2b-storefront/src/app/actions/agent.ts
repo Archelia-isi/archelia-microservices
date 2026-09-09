@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 
 export async function getAgentCustomers() {
   const session = await verifySession();
-  if (!session || session.role !== 'AGENT') {
+  if (!session || session.user.role !== 'AGENT') {
     return { success: false, error: 'Non autorizzato' };
   }
 
@@ -62,7 +62,7 @@ export async function getAgentCustomers() {
 
 export async function setImpersonatedClient(zucchettiCode: string | null, companyName: string | null, discount: number | null) {
   const session = await verifySession();
-  if (!session || session.role !== 'AGENT') {
+  if (!session || session.user.role !== 'AGENT') {
     return { success: false };
   }
 

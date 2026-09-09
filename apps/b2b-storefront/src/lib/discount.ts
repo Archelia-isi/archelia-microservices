@@ -7,7 +7,7 @@ export async function getEffectiveDiscount() {
 
   let baseDiscount = session.user.discount || 0;
 
-  if (session.role === 'AGENT') {
+  if (session.user.role === 'AGENT') {
     const cookieStore = cookies();
     const impersonatedDiscountStr = cookieStore.get('impersonatedClientDiscount')?.value;
     if (impersonatedDiscountStr) {
@@ -20,7 +20,7 @@ export async function getEffectiveDiscount() {
 
 export async function getExtraAgentDiscount() {
   const session = await verifySession();
-  if (!session || session.role !== 'AGENT') return 0;
+  if (!session || session.user.role !== 'AGENT') return 0;
 
   const cookieStore = cookies();
   const extraStr = cookieStore.get('agentExtraDiscount')?.value;
