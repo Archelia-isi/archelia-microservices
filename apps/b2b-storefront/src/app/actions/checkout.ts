@@ -12,15 +12,6 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
-    const cart = await prisma.b2BCart.findFirst({
-      where: { userId: session.userId, status: 'ACTIVE' },
-      include: { items: true },
-    });
-
-    if (!cart || cart.items.length === 0) {
-      return { success: false, error: 'Il carrello è vuoto' };
-    }
-
     // Determine target user (Impersonation check)
     let targetUserId = session.userId;
     let createdById = session.userId;
@@ -38,6 +29,15 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         }
         targetUserId = impersonatedUser.id;
       }
+    }
+
+    const cart = await prisma.b2BCart.findFirst({
+      where: { userId: targetUserId, status: 'ACTIVE' },
+      include: { items: true },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      return { success: false, error: 'Il carrello è vuoto' };
     }
 
     // Calculate final prices and totals
@@ -62,6 +62,10 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
 
       if (extraDiscount > 0) {
         finalPrice = finalPrice * (1 - (extraDiscount / 100));
+      }
+
+      if (item.extraDiscount && item.extraDiscount > 0) {
+        finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
       }
 
       totalAmount += finalPrice * item.quantity;

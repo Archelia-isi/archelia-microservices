@@ -16,8 +16,14 @@ export default async function CartPage() {
   const cookieStore = cookies();
   const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
 
+  let targetUserId = session.userId;
+  if (session.user.role === 'AGENT' && impersonatedClientCode) {
+    const client = await prisma.b2BUser.findUnique({ where: { zucchettiCode: impersonatedClientCode } });
+    if (client) targetUserId = client.id;
+  }
+
   const cart = await prisma.b2BCart.findFirst({
-    where: { userId: session.userId, status: 'ACTIVE' },
+    where: { userId: targetUserId, status: 'ACTIVE' },
     include: { items: { orderBy: { createdAt: 'desc' } } },
   });
 
@@ -65,6 +71,10 @@ export default async function CartPage() {
       finalPrice = finalPrice * (1 - (extraAgentDiscount / 100));
     }
 
+    if (item.extraDiscount && item.extraDiscount > 0) {
+      finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+    }
+
     return { ...item, finalPrice, originalPrice };
   });
 
@@ -104,7 +114,7 @@ export default async function CartPage() {
             
             <div className="divide-y divide-gray-100">
               {finalItems.map((item) => (
-                <CartItemClient key={item.id} item={item} />
+                <CartItemClient key={item.id} item={item} isAgent={session.user.role === 'AGENT'} />
               ))}
             </div>
           </div>

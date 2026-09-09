@@ -85,15 +85,16 @@ model B2BCart {
 }
 
 model B2BCartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  cart      B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  cartId          String
+  cart            B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
   
-  sku       String
-  quantity  Int      @default(1)
+  sku             String
+  quantity        Int      @default(1)
+  extraDiscount   Float?   @default(0)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([cartId, sku])
   @@map("b2b_cart_items")

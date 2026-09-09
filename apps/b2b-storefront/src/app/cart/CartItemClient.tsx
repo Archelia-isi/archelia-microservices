@@ -3,11 +3,12 @@
 import { useState, useTransition, useEffect, useRef } from 'react';
 
 import Link from 'next/link';
-import { updateCartItemQuantity, removeFromCart } from '../actions/cart';
+import { updateCartItemQuantity, removeFromCart, updateCartItemExtraDiscount } from '../actions/cart';
 
-export default function CartItemClient({ item }: { item: any }) {
+export default function CartItemClient({ item, isAgent }: { item: any, isAgent?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
+  const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
   const isFirstRender = useRef(true);
 
   if (!item.product) {
@@ -29,8 +30,9 @@ export default function CartItemClient({ item }: { item: any }) {
   useEffect(() => {
     if (!isPending) {
       setLocalQuantity(item.quantity);
+      setLocalExtraDiscount(item.extraDiscount || 0);
     }
-  }, [item.quantity, isPending]);
+  }, [item.quantity, item.extraDiscount, isPending]);
 
   // Effetto Debounce per aggiornare il backend dopo 600ms dall'ultimo tocco/digitazione
   useEffect(() => {
@@ -45,15 +47,19 @@ export default function CartItemClient({ item }: { item: any }) {
     if (newQty < 1) newQty = 1;
     if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
 
-    if (newQty !== item.quantity) {
+    let newDiscount = parseFloat(String(localExtraDiscount));
+    if (isNaN(newDiscount) || newDiscount < 0) newDiscount = 0;
+
+    if (newQty !== item.quantity || newDiscount !== (item.extraDiscount || 0)) {
       const timer = setTimeout(() => {
         startTransition(() => {
-          updateCartItemQuantity(item.id, newQty);
+          if (newQty !== item.quantity) updateCartItemQuantity(item.id, newQty);
+          if (newDiscount !== (item.extraDiscount || 0)) updateCartItemExtraDiscount(item.id, newDiscount);
         });
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [localQuantity, item.id, item.quantity, p.stock]);
+  }, [localQuantity, localExtraDiscount, item.id, item.quantity, item.extraDiscount, p.stock]);
 
   const handleIncrement = () => {
     let current = parseInt(String(localQuantity)) || 0;
@@ -72,6 +78,12 @@ export default function CartItemClient({ item }: { item: any }) {
     if (isNaN(newQty) || newQty < 1) newQty = 1;
     if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
     setLocalQuantity(newQty);
+  };
+
+  const handleDiscountBlur = () => {
+    let newDisc = parseFloat(String(localExtraDiscount));
+    if (isNaN(newDisc) || newDisc < 0) newDisc = 0;
+    setLocalExtraDiscount(newDisc);
   };
 
   return (
@@ -115,7 +127,7 @@ export default function CartItemClient({ item }: { item: any }) {
         </div>
       </div>
       
-      <div className="col-span-4 sm:col-span-2 text-right">
+      <div className="col-span-4 sm:col-span-2 text-right flex flex-col items-end">
         {item.originalPrice > item.finalPrice && (
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[10px] text-gray-400 line-through">
@@ -128,6 +140,22 @@ export default function CartItemClient({ item }: { item: any }) {
         )}
         <div className="font-medium text-sm">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>
         <div className="text-xs text-gray-400">/ {p.unit}</div>
+        
+        {isAgent && (
+          <div className="mt-2 flex items-center justify-end gap-1 text-xs">
+            <span className="text-yellow-700 font-medium text-[10px]">Extra:</span>
+            <input 
+              type="number"
+              value={localExtraDiscount}
+              onChange={(e) => setLocalExtraDiscount(e.target.value)}
+              onBlur={handleDiscountBlur}
+              className="w-12 h-6 text-center text-[11px] border border-yellow-300 rounded focus:outline-none focus:ring-1 focus:ring-yellow-500"
+              min="0"
+              max="99"
+            />
+            <span className="text-yellow-700 text-[10px]">%</span>
+          </div>
+        )}
       </div>
       
       <div className="col-span-4 sm:col-span-2 flex flex-col items-end justify-center gap-2">

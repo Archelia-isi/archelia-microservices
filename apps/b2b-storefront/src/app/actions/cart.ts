@@ -3,6 +3,18 @@
 import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+
+async function getTargetUserId(session: any) {
+  if (session.user.role === 'AGENT') {
+    const impersonatedCode = cookies().get('impersonatedClientCode')?.value;
+    if (impersonatedCode) {
+      const client = await prisma.b2BUser.findUnique({ where: { zucchettiCode: impersonatedCode } });
+      if (client) return client.id;
+    }
+  }
+  return session.userId;
+}
 
 export async function addToCart(sku: string, quantity: number) {
   const session = await verifySession();
@@ -11,14 +23,16 @@ export async function addToCart(sku: string, quantity: number) {
   }
 
   try {
-    // Trova il carrello attivo dell'utente, oppure crealo
+    const targetUserId = await getTargetUserId(session);
+
+    // Trova il carrello attivo dell'utente (o del cliente impersonato), oppure crealo
     let cart = await prisma.b2BCart.findFirst({
-      where: { userId: session.userId, status: 'ACTIVE' },
+      where: { userId: targetUserId, status: 'ACTIVE' },
     });
 
     if (!cart) {
       cart = await prisma.b2BCart.create({
-        data: { userId: session.userId, status: 'ACTIVE' },
+        data: { userId: targetUserId, status: 'ACTIVE' },
       });
     }
 
@@ -69,6 +83,19 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
       data: { quantity },
     });
   }
+
+  revalidatePath('/cart');
+  return { success: true };
+}
+
+export async function updateCartItemExtraDiscount(itemId: string, discount: number) {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
+
+  await prisma.b2BCartItem.update({
+    where: { id: itemId },
+    data: { extraDiscount: discount >= 0 ? discount : 0 },
+  });
 
   revalidatePath('/cart');
   return { success: true };
