@@ -71,16 +71,25 @@ export default async function AgentOrdersPage() {
                   </div>
                   <div>
                     <span className="text-gray-500 block">Totale Ordine:</span>
-                    <span className="font-medium text-gray-900 text-lg">€ {order.grandTotal.toFixed(2).replace('.', ',')}</span>
+                    <span className="font-medium text-gray-900 text-lg">€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
                   </div>
                 </div>
                 
-                <Link 
-                  href={`/agent/orders/${order.id}`}
-                  className="bg-[#00C800] hover:bg-green-600 text-white font-bold py-2 px-6 rounded transition-colors"
-                >
-                  Apri e Revisiona
-                </Link>
+                <form action={async () => {
+                  'use server';
+                  const { startOrderReview } = await import('@/app/actions/agent');
+                  const res = await startOrderReview(order.id);
+                  if (res.success) {
+                    redirect('/cart');
+                  }
+                }}>
+                  <button 
+                    type="submit"
+                    className="bg-[#00C800] hover:bg-green-600 text-white font-bold py-2 px-6 rounded transition-colors"
+                  >
+                    Apri e Revisiona
+                  </button>
+                </form>
               </div>
             </div>
           ))}

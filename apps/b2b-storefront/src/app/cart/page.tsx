@@ -8,6 +8,7 @@ import QuickAddCart from './QuickAddCart';
 import AgentExtraDiscount from '../../components/AgentExtraDiscount';
 import CheckoutButtons from '../../components/CheckoutButtons';
 import { cookies } from 'next/headers';
+import { getTargetUserId, getCartQuery } from '../actions/cart';
 
 export default async function CartPage() {
   const session = await verifySession();
@@ -16,14 +17,11 @@ export default async function CartPage() {
   const cookieStore = cookies();
   const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
 
-  let targetUserId = session.userId;
-  if (session.user.role === 'AGENT' && impersonatedClientCode) {
-    const client = await prisma.b2BUser.findUnique({ where: { zucchettiCode: impersonatedClientCode } });
-    if (client) targetUserId = client.id;
-  }
+  const targetUserId = await getTargetUserId(session);
+  const cartQuery = await getCartQuery();
 
   const cart = await prisma.b2BCart.findFirst({
-    where: { userId: targetUserId, status: 'ACTIVE' },
+    where: { userId: targetUserId, ...cartQuery },
     include: { items: { orderBy: { createdAt: 'desc' } } },
   });
 
@@ -87,7 +85,31 @@ export default async function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
+      {cartQuery.status === 'REVIEW' && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded shadow-sm flex justify-between items-center">
+          <div>
+            <h3 className="text-yellow-800 font-bold">Modalità Revisione Attiva</h3>
+            <p className="text-sm text-yellow-700">Stai revisionando l'ordine #{cartQuery.linkedOrderId?.slice(-6).toUpperCase()}. Le modifiche che farai al carrello e al catalogo si applicheranno a questo ordine.</p>
+          </div>
+          <form action={async () => {
+            'use server';
+            const { cookies } = await import('next/headers');
+            const { redirect } = await import('next/navigation');
+            const { revalidatePath } = await import('next/cache');
+            cookies().delete('reviewingOrderId');
+            revalidatePath('/cart');
+            redirect('/cart');
+          }}>
+            <button type="submit" className="text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-4 py-2 rounded transition-colors">
+              Annulla Revisione
+            </button>
+          </form>
+        </div>
+      )}
+
+      <h1 className="text-3xl font-bold mb-8">
+        {cartQuery.status === 'REVIEW' ? 'Revisione Ordine' : 'Il tuo Carrello'}
+      </h1>
       
       {session.user.role === 'AGENT' && (
         <AgentExtraDiscount initialDiscount={extraAgentDiscount} />

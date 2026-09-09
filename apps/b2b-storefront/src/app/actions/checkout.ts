@@ -6,33 +6,19 @@ import { revalidatePath } from 'next/cache';
 import { getProductById } from '@archelia/typesense/dist/search.js';
 import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
 import { cookies } from 'next/headers';
+import { getTargetUserId, getCartQuery } from './cart';
 
 export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
-    // Determine target user (Impersonation check)
-    let targetUserId = session.userId;
-    let createdById = session.userId;
-    
-    if (session.user.role === 'AGENT') {
-      const cookieStore = cookies();
-      const impersonatedCode = cookieStore.get('impersonatedClientCode')?.value;
-      if (impersonatedCode) {
-        // Find user by zucchettiCode
-        const impersonatedUser = await prisma.b2BUser.findUnique({
-          where: { zucchettiCode: impersonatedCode }
-        });
-        if (!impersonatedUser) {
-          return { success: false, error: 'Utente impersonato non trovato nel DB B2B' };
-        }
-        targetUserId = impersonatedUser.id;
-      }
-    }
+    const targetUserId = await getTargetUserId(session);
+    const createdById = session.userId;
+    const cartQuery = await getCartQuery();
 
     const cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, status: 'ACTIVE' },
+      where: { userId: targetUserId, ...cartQuery },
       include: { items: true },
     });
 
@@ -113,6 +99,16 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
       where: { id: cart.id },
       data: { status: 'COMPLETED' }
     });
+
+    // Se stavamo revisionando un ordine, cancelliamo quello vecchio e puliamo il cookie
+    if (cart.linkedOrderId) {
+      try {
+        await prisma.b2BOrder.delete({ where: { id: cart.linkedOrderId } });
+      } catch (e) {
+        console.error('Failed to delete old reviewed order', e);
+      }
+      cookies().delete('reviewingOrderId');
+    }
 
     // If orderStatus === 'APPROVED', we should push to Redis/Worker to send to Zucchetti. 
     // This will be handled by a queue later.

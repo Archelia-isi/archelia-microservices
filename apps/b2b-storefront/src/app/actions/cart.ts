@@ -5,7 +5,7 @@ import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
-async function getTargetUserId(session: any) {
+export async function getTargetUserId(session: any) {
   if (session.user.role === 'AGENT') {
     const impersonatedCode = cookies().get('impersonatedClientCode')?.value;
     if (impersonatedCode) {
@@ -16,6 +16,14 @@ async function getTargetUserId(session: any) {
   return session.userId;
 }
 
+export async function getCartQuery() {
+  const reviewOrderId = cookies().get('reviewingOrderId')?.value;
+  if (reviewOrderId) {
+    return { status: 'REVIEW' as const, linkedOrderId: reviewOrderId };
+  }
+  return { status: 'ACTIVE' as const };
+}
+
 export async function addToCart(sku: string, quantity: number) {
   const session = await verifySession();
   if (!session) {
@@ -24,15 +32,16 @@ export async function addToCart(sku: string, quantity: number) {
 
   try {
     const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
 
-    // Trova il carrello attivo dell'utente (o del cliente impersonato), oppure crealo
+    // Trova il carrello attivo (o di revisione)
     let cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, status: 'ACTIVE' },
+      where: { userId: targetUserId, ...cartQuery },
     });
 
     if (!cart) {
       cart = await prisma.b2BCart.create({
-        data: { userId: targetUserId, status: 'ACTIVE' },
+        data: { userId: targetUserId, ...cartQuery },
       });
     }
 
@@ -134,9 +143,10 @@ export async function massUpdateCartExtraDiscount(discount: number) {
 
   try {
     const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
     
     const cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, status: 'ACTIVE' },
+      where: { userId: targetUserId, ...cartQuery },
       include: { items: true },
     });
 
