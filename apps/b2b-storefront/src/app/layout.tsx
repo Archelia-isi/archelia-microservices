@@ -64,10 +64,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
             <nav className="flex space-x-6 items-center font-medium">
               {session?.user?.role === 'AGENT' && (
-                <AgentImpersonatorClient 
-                  currentCode={impersonatedClientCode} 
-                  currentName={impersonatedClientName} 
-                />
+                <>
+                  <Link href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
+                    Vaglio Ordini
+                  </Link>
+                  <AgentImpersonatorClient 
+                    currentCode={impersonatedClientCode} 
+                    currentName={impersonatedClientName} 
+                  />
+                </>
               )}
               <Link href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
               {isAuthenticated ? (
