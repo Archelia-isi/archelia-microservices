@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart } from '../actions/cart';
 
 export default function CartItemClient({ item }: { item: any }) {
   const [isPending, startTransition] = useTransition();
-  const [localQuantity, setLocalQuantity] = useState(item.quantity);
+  const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
+  const isFirstRender = useRef(true);
 
   if (!item.product) {
     return (
@@ -21,20 +22,60 @@ export default function CartItemClient({ item }: { item: any }) {
   }
 
   const p = item.product;
-  const total = item.finalPrice * localQuantity;
+  const parsedQuantity = parseInt(String(localQuantity)) || 1;
+  const total = item.finalPrice * parsedQuantity;
 
-  const handleUpdate = (newQty: number) => {
-    if (newQty < 1) newQty = 1;
-    if (newQty > p.stock) newQty = p.stock || 1;
+  // Sincronizza se il prop esterno cambia
+  useEffect(() => {
+    if (!isPending) {
+      setLocalQuantity(item.quantity);
+    }
+  }, [item.quantity, isPending]);
+
+  // Effetto Debounce per aggiornare il backend dopo 600ms dall'ultimo tocco/digitazione
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     
+    let newQty = parseInt(String(localQuantity));
+    if (isNaN(newQty)) return; // Ignora se il campo è momentaneamente vuoto
+    
+    if (newQty < 1) newQty = 1;
+    if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
+
+    if (newQty !== item.quantity) {
+      const timer = setTimeout(() => {
+        startTransition(() => {
+          updateCartItemQuantity(item.id, newQty);
+        });
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [localQuantity, item.id, item.quantity, p.stock]);
+
+  const handleIncrement = () => {
+    let current = parseInt(String(localQuantity)) || 0;
+    if (current >= p.stock) return;
+    setLocalQuantity(current + 1);
+  };
+
+  const handleDecrement = () => {
+    let current = parseInt(String(localQuantity)) || 0;
+    if (current <= 1) return;
+    setLocalQuantity(current - 1);
+  };
+
+  const handleBlur = () => {
+    let newQty = parseInt(String(localQuantity));
+    if (isNaN(newQty) || newQty < 1) newQty = 1;
+    if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
     setLocalQuantity(newQty);
-    startTransition(() => {
-      updateCartItemQuantity(item.id, newQty);
-    });
   };
 
   return (
-    <div className={`grid grid-cols-12 gap-4 p-4 items-center ${isPending ? 'opacity-50' : ''}`}>
+    <div className={`grid grid-cols-12 gap-4 p-4 items-center ${isPending ? 'opacity-70' : ''} transition-opacity`}>
       <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
         <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
           <img src={p.imageUrl} alt={p.title} className="object-contain w-full h-full" />
@@ -55,20 +96,21 @@ export default function CartItemClient({ item }: { item: any }) {
       <div className="col-span-4 sm:col-span-2 flex items-center justify-center">
         <div className="flex items-center border border-gray-300 rounded overflow-hidden">
           <button 
-            onClick={() => handleUpdate(localQuantity - 1)}
-            disabled={isPending}
-            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+            onClick={handleDecrement}
+            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 transition-colors"
           >-</button>
           <input 
             type="number"
             value={localQuantity}
-            readOnly
+            onChange={(e) => setLocalQuantity(e.target.value)}
+            onBlur={handleBlur}
             className="w-10 h-8 text-center text-sm font-medium border-x border-gray-300 outline-none"
+            min="1"
+            max={p.stock}
           />
           <button 
-            onClick={() => handleUpdate(localQuantity + 1)}
-            disabled={isPending}
-            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600"
+            onClick={handleIncrement}
+            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 transition-colors"
           >+</button>
         </div>
       </div>
