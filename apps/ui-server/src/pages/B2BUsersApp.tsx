@@ -173,6 +173,7 @@ export default function B2BUsersApp() {
     setFormData({
       ...formData,
       username: finalUsername,
+      password: formData.password || (!editingUser ? Math.random().toString(36).slice(-8) : ''),
       companyName: c.companyName || '',
       vatNumber: c.vatNumber || '',
       zucchettiCode: c.zucchettiCode || '',
@@ -253,10 +254,7 @@ export default function B2BUsersApp() {
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => {
               setEditingUser(null);
-              setFormData({
-                ...defaultForm,
-                password: Math.random().toString(36).slice(-8)
-              });
+              setFormData(defaultForm);
               setIsModalOpen(true);
             }}>
               Nuovo Utente
