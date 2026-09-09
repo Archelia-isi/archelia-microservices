@@ -60,10 +60,6 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         finalPrice = Number(p.price_b2b);
       }
 
-      if (extraDiscount > 0) {
-        finalPrice = finalPrice * (1 - (extraDiscount / 100));
-      }
-
       if (item.extraDiscount && item.extraDiscount > 0) {
         finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
       }

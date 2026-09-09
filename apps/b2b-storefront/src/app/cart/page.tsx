@@ -69,10 +69,8 @@ export default async function CartPage() {
 
     let finalPrice = basePrice;
 
-    if (extraAgentDiscount > 0) {
-      finalPrice = finalPrice * (1 - (extraAgentDiscount / 100));
-    }
-
+    // Solo l'extra discount del singolo item viene calcolato
+    // (L'extra discount globale è già stato spalmato sugli items via DB o in addToCart)
     if (item.extraDiscount && item.extraDiscount > 0) {
       finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
     }
