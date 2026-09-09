@@ -19,17 +19,18 @@ export default async function CartPage() {
   // Fetch details for each item
   const populatedItems = await Promise.all(items.map(async (item) => {
     const product = await getProductById(item.sku);
+    const p = product as any;
     return {
       ...item,
-      product: product ? {
-        id: product.id,
-        sku: product.sku,
-        title: product.title || product.original_name,
-        price: product.price || 0,
-        priceB2b: product.price_b2b || product.price || 0,
-        imageUrl: product.image_url || '/placeholder.png',
-        unit: product.unit || 'PZ',
-        stock: product.stock || 0
+      product: p ? {
+        id: p.id,
+        sku: p.sku,
+        title: p.title || p.original_name,
+        price: p.price || 0,
+        priceB2b: p.price_b2b || p.price || 0,
+        imageUrl: p.image_url || '/placeholder.png',
+        unit: p.unit || 'PZ',
+        stock: p.stock || 0
       } : null
     };
   }));
