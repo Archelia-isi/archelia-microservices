@@ -330,10 +330,36 @@ export default function B2BUsersApp() {
       >
         <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
           
-          <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '1.5rem', overflowY: 'auto', paddingRight: '1rem' }}>
+          <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', paddingRight: '1rem', paddingBottom: '3rem' }}>
             
-            <div style={{ padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Cerca da Zucchetti (Ragione Sociale o P.IVA)</label>
+            <div style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo B2B</label>
+                <Select value={formData.role} onChange={e => {
+                  setFormData({...formData, role: e.target.value as any});
+                  setZucchettiSearch('');
+                  setZucchettiResults([]);
+                }} options={[
+                  {value: 'USER', label: 'Utente B2B (Cliente)'},
+                  {value: 'AGENT', label: 'Agente / Rappresentante'},
+                  {value: 'ADMIN', label: 'Amministratore (Super Agente)'}
+                ]} />
+              </div>
+              {formData.role === 'USER' && (
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Agente di Riferimento</label>
+                  <Select value={formData.agentId} onChange={e => setFormData({...formData, agentId: e.target.value})} options={[
+                    {value: '', label: '-- Nessun Agente --'},
+                    ...agents.map(a => ({ value: a.id, label: a.companyName || a.username }))
+                  ]} />
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '1rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                Cerca da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : '(Clienti)'}
+              </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <TextInput value={zucchettiSearch} onChange={e => setZucchettiSearch(e.target.value)} placeholder="Es. Ferramenta..." />
                 <Button variant="secondary" onClick={searchZucchetti} icon={<Search size={16}/>}>Cerca</Button>
@@ -351,37 +377,29 @@ export default function B2BUsersApp() {
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <TextInput label="Ragione Sociale" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} disabled />
-              <TextInput label="Partita IVA" value={formData.vatNumber} onChange={e => setFormData({...formData, vatNumber: e.target.value})} disabled />
+              <div style={{ flex: 1 }}><TextInput label="Ragione Sociale" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Partita IVA" value={formData.vatNumber} onChange={e => setFormData({...formData, vatNumber: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Codice Zucchetti" value={formData.zucchettiCode} onChange={e => setFormData({...formData, zucchettiCode: e.target.value})} disabled /></div>
             </div>
             
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <TextInput label="Indirizzo" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} disabled />
-              <TextInput label="Località" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} disabled />
+              <div style={{ flex: 2 }}><TextInput label="Indirizzo" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Località" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} disabled /></div>
             </div>
             
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <TextInput label="CAP" value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} disabled />
-              <TextInput label="Provincia" value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})} disabled />
+              <div style={{ flex: 1 }}><TextInput label="CAP" value={formData.zip} onChange={e => setFormData({...formData, zip: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Provincia" value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Telefono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Email Anagrafica" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} /></div>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '1rem' }}>
-              <TextInput label="Telefono" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} disabled />
-              <TextInput label="Email Anagrafica" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              <div style={{ flex: 1 }}><TextInput label="Tipo Cliente" value={formData.customerType} onChange={e => setFormData({...formData, customerType: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Listino Assegnato" value={formData.zucchettiPriceList} onChange={e => setFormData({...formData, zucchettiPriceList: e.target.value})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Sconto Applicato (%)" type="number" value={String(formData.discount)} onChange={e => setFormData({...formData, discount: parseFloat(e.target.value)})} disabled /></div>
+              <div style={{ flex: 1 }}><TextInput label="Fido (€)" type="number" value={String(formData.fido)} onChange={e => setFormData({...formData, fido: parseFloat(e.target.value)})} disabled /></div>
             </div>
-            
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <TextInput label="Codice Zucchetti" value={formData.zucchettiCode} onChange={e => setFormData({...formData, zucchettiCode: e.target.value})} disabled />
-              <TextInput label="Listino Assegnato" value={formData.zucchettiPriceList} onChange={e => setFormData({...formData, zucchettiPriceList: e.target.value})} disabled />
-            </div>
-            
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <TextInput label="Tipo Cliente" value={formData.customerType} onChange={e => setFormData({...formData, customerType: e.target.value})} disabled />
-              <TextInput label="Sconto Applicato (%)" type="number" value={String(formData.discount)} onChange={e => setFormData({...formData, discount: parseFloat(e.target.value)})} disabled />
-              <TextInput label="Fido (€)" type="number" value={String(formData.fido)} onChange={e => setFormData({...formData, fido: parseFloat(e.target.value)})} disabled />
-            </div>
-            
-            <div style={{ borderTop: '1px solid var(--color-border)', margin: '1rem 0' }}></div>
 
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
@@ -455,27 +473,6 @@ export default function B2BUsersApp() {
                 )}
               </div>
             )}
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Ruolo B2B</label>
-                <Select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as any})} options={[
-                  {value: 'USER', label: 'Utente B2B'},
-                  {value: 'AGENT', label: 'Agente / Rappresentante'},
-                  {value: 'ADMIN', label: 'Amministratore (Super Agente)'}
-                ]} />
-              </div>
-              {formData.role === 'USER' && (
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.25rem' }}>Agente di Riferimento</label>
-                  <Select value={formData.agentId} onChange={e => setFormData({...formData, agentId: e.target.value})} options={[
-                    {value: '', label: '-- Nessun Agente --'},
-                    ...agents.map(a => ({ value: a.id, label: a.companyName || a.username }))
-                  ]} />
-                </div>
-              )}
-            </div>
-
           </div>
 
           {/* Colonna Destra: Elmark */}
