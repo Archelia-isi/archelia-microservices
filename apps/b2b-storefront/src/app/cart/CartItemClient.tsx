@@ -9,6 +9,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
+  const [showModal, setShowModal] = useState({ show: false, newQty: 0 });
   const isFirstRender = useRef(true);
 
   if (!item.product) {
@@ -51,15 +52,21 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
     if (isNaN(newDiscount) || newDiscount < 0) newDiscount = 0;
 
     if (newQty !== item.quantity || newDiscount !== (item.extraDiscount || 0)) {
+      // Se il cliente sta diminuendo la quantità e ha uno sconto extra applicato
+      if (newQty < item.quantity && (item.extraDiscount || 0) > 0 && !isAgent) {
+        setShowModal({ show: true, newQty });
+        return;
+      }
+
       const timer = setTimeout(() => {
         startTransition(() => {
           if (newQty !== item.quantity) updateCartItemQuantity(item.id, newQty);
-          if (newDiscount !== (item.extraDiscount || 0)) updateCartItemExtraDiscount(item.id, newDiscount);
+          if (newDiscount !== (item.extraDiscount || 0) && isAgent) updateCartItemExtraDiscount(item.id, newDiscount);
         });
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [localQuantity, localExtraDiscount, item.id, item.quantity, item.extraDiscount, p.stock]);
+  }, [localQuantity, localExtraDiscount, item.id, item.quantity, item.extraDiscount, p.stock, isAgent]);
 
   const handleIncrement = () => {
     let current = parseInt(String(localQuantity)) || 0;
@@ -86,7 +93,22 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
     setLocalExtraDiscount(newDisc);
   };
 
+  const confirmModal = () => {
+    const qty = showModal.newQty;
+    setShowModal({ show: false, newQty: 0 });
+    startTransition(() => {
+      // Pass true for resetExtraDiscount
+      updateCartItemQuantity(item.id, qty, true);
+    });
+  };
+
+  const cancelModal = () => {
+    setShowModal({ show: false, newQty: 0 });
+    setLocalQuantity(item.quantity);
+  };
+
   return (
+    <>
     <div className={`grid grid-cols-12 gap-4 p-4 items-center ${isPending ? 'opacity-70' : ''} transition-opacity`}>
       <div className="col-span-12 sm:col-span-6 flex items-center gap-4">
         <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
@@ -182,5 +204,38 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
         </button>
       </div>
     </div>
+
+    {showModal.show && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+          <div className="p-5 border-b border-gray-200">
+            <h3 className="text-lg font-bold text-red-600 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              Attenzione: Sconto Extra a Rischio
+            </h3>
+          </div>
+          <div className="p-5 text-sm text-gray-700">
+            <p>Lo sconto extra attualmente applicato su questo prodotto è stato approvato dall'agente per la quantità <strong>{item.quantity}</strong> o superiore.</p>
+            <p className="mt-3 text-red-600 font-medium">Se procedi diminuendo la quantità a {showModal.newQty}, l'intero sconto extra su questo prodotto verrà annullato.</p>
+            <p className="mt-3 text-gray-500 text-xs">Sei sicuro di voler continuare?</p>
+          </div>
+          <div className="bg-gray-50 p-4 flex justify-end gap-3 border-t border-gray-200">
+            <button 
+              onClick={cancelModal}
+              className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Annulla
+            </button>
+            <button 
+              onClick={confirmModal}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors"
+            >
+              Continua (Perdi sconto)
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -85,16 +85,21 @@ export async function addToCart(sku: string, quantity: number) {
   }
 }
 
-export async function updateCartItemQuantity(itemId: string, quantity: number) {
+export async function updateCartItemQuantity(itemId: string, quantity: number, resetExtraDiscount: boolean = false) {
   const session = await verifySession();
   if (!session) return { success: false };
 
   if (quantity <= 0) {
     await prisma.b2BCartItem.delete({ where: { id: itemId } });
   } else {
+    const dataToUpdate: any = { quantity };
+    if (resetExtraDiscount) {
+      dataToUpdate.extraDiscount = 0;
+    }
+    
     await prisma.b2BCartItem.update({
       where: { id: itemId },
-      data: { quantity },
+      data: dataToUpdate,
     });
   }
 
