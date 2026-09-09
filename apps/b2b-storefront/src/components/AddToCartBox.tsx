@@ -46,15 +46,28 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
     alert(`Aggiunti ${quantity} ${product.unit || 'PZ'} al carrello!`);
   };
 
+  const hasDiscount = isLoggedIn && product.price_b2b && product.price && product.price_b2b < product.price;
+  const discountPercentage = hasDiscount ? Math.round((1 - (product.price_b2b / product.price)) * 100) : 0;
+
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
       <div className="flex items-end justify-between mb-6 pb-6 border-b border-gray-200">
         <div>
           <p className="text-xs text-gray-500 font-medium mb-1">Prezzo Riservato B2B</p>
+          {hasDiscount && (
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm text-gray-400 line-through">
+                € {product.price.toFixed(2).replace('.', ',')}
+              </span>
+              <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                -{discountPercentage}%
+              </span>
+            </div>
+          )}
           <div className="text-3xl font-bold text-gray-900">
             {isLoggedIn ? (
               <>
-                € {(product.price_b2b || product.price || 0).toFixed(2)}
+                € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
                 <span className="text-xs text-gray-500 font-normal ml-2">/ {product.unit || 'PZ'}</span>
               </>
             ) : (
