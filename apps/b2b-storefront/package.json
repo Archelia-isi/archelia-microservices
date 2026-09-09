@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "prebuild": "rm -rf node_modules/react node_modules/react-dom"
+    "start": "next start"
   },
   "dependencies": {
     "@archelia/b2b-database": "*",
@@ -15,9 +14,10 @@
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "ioredis": "^5.11.1",
-    "next": "14.2.3",
+    "next": "^14.2.3",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "styled-jsx": "^5.1.1"
   },
   "devDependencies": {
     "@types/node": "^20",
