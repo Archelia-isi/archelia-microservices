@@ -1,62 +1,85 @@
 'use server';
 
-import { getCart, saveCart, clearCart } from '@/lib/cart';
-import { revalidatePath } from 'next/cache';
-import { prisma } from '@archelia/b2b-database';
 import { verifySession } from '@/lib/session';
-import { redirect } from 'next/navigation';
+import { prisma } from '@archelia/b2b-database';
+import { revalidatePath } from 'next/cache';
 
-export async function addToCart(formData: FormData) {
-  const sku = formData.get('sku') as string;
-  const quantity = parseInt((formData.get('quantity') as string) || '1', 10);
-
-  if (!sku || quantity <= 0) return;
-
-  const cart = await getCart();
-  const existingItem = cart.items.find(item => item.sku === sku);
-
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.items.push({ sku, quantity });
+export async function addToCart(sku: string, quantity: number) {
+  const session = await verifySession();
+  if (!session) {
+    return { success: false, error: 'Non autorizzato' };
   }
 
-  await saveCart(cart);
-  revalidatePath('/catalog');
-  revalidatePath('/cart');
-}
+  try {
+    // Trova il carrello attivo dell'utente, oppure crealo
+    let cart = await prisma.b2BCart.findFirst({
+      where: { userId: session.userId, status: 'ACTIVE' },
+    });
 
-export async function removeFromCart(sku: string) {
-  const cart = await getCart();
-  cart.items = cart.items.filter(item => item.sku !== sku);
-  await saveCart(cart);
-  revalidatePath('/cart');
-}
-
-export async function checkout(formData: FormData) {
-  const session = await verifySession();
-  if (!session) return;
-
-  const cart = await getCart();
-  if (cart.items.length === 0) return;
-
-  // Convert temporary Redis cart to persistent Neon Cart
-  const dbCart = await prisma.b2BCart.create({
-    data: {
-      userId: session.userId,
-      status: 'CHECKOUT_PENDING',
-      items: {
-        create: cart.items.map(item => ({
-          sku: item.sku,
-          quantity: item.quantity
-        }))
-      }
+    if (!cart) {
+      cart = await prisma.b2BCart.create({
+        data: { userId: session.userId, status: 'ACTIVE' },
+      });
     }
-  });
 
-  // Puliamo il carrello temporaneo Redis
-  await clearCart();
+    // Controlla se l'articolo è già nel carrello
+    const existingItem = await prisma.b2BCartItem.findUnique({
+      where: {
+        cartId_sku: {
+          cartId: cart.id,
+          sku: sku,
+        },
+      },
+    });
+
+    if (existingItem) {
+      await prisma.b2BCartItem.update({
+        where: { id: existingItem.id },
+        data: { quantity: existingItem.quantity + quantity },
+      });
+    } else {
+      await prisma.b2BCartItem.create({
+        data: {
+          cartId: cart.id,
+          sku: sku,
+          quantity: quantity,
+        },
+      });
+    }
+
+    revalidatePath('/cart');
+    revalidatePath('/catalog');
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Cart action error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateCartItemQuantity(itemId: string, quantity: number) {
+  const session = await verifySession();
+  if (!session) return { success: false };
+
+  if (quantity <= 0) {
+    await prisma.b2BCartItem.delete({ where: { id: itemId } });
+  } else {
+    await prisma.b2BCartItem.update({
+      where: { id: itemId },
+      data: { quantity },
+    });
+  }
+
   revalidatePath('/cart');
+  return { success: true };
+}
+
+export async function removeFromCart(itemId: string) {
+  const session = await verifySession();
+  if (!session) return { success: false };
+
+  await prisma.b2BCartItem.delete({ where: { id: itemId } });
   
-  redirect('/catalog?checkout=success');
+  revalidatePath('/cart');
+  return { success: true };
 }

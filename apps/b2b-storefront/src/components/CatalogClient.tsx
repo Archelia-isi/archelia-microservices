@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import AddToCartButton from './AddToCartButton';
 
 interface CatalogClientProps {
   initialProducts: any[];
@@ -279,28 +280,17 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                           <div className="text-lg font-bold text-gray-900">
                             € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
                           </div>
-                          <form action="/api/cart/add" method="POST" className="flex gap-2">
-                            <input type="hidden" name="sku" value={product.sku} />
-                            <input 
-                              type="number" 
-                              name="quantity" 
-                              defaultValue="1" 
-                              min="1" 
-                              max={product.stock || 1}
-                              className="w-14 px-1 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#00C800] focus:border-[#00C800] outline-none text-center hidden"
-                            />
-                            <button 
-                              type="submit" 
-                              disabled={isOutOfStock}
-                              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
-                                isOutOfStock 
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
-                                  : 'bg-[#00C800] text-white hover:bg-green-600'
-                              }`}
-                            >
-                              {isOutOfStock ? 'Esaurito' : 'Acquista'}
-                            </button>
-                          </form>
+                          <AddToCartButton 
+                            sku={product.sku} 
+                            isLoggedIn={isAuthenticated} 
+                            disabled={isOutOfStock}
+                            text={isOutOfStock ? 'Esaurito' : 'Acquista'}
+                            className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded transition-colors ${
+                              isOutOfStock 
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200' 
+                                : 'bg-[#00C800] text-white hover:bg-green-600'
+                            }`}
+                          />
                         </>
                       ) : (
                         <div className="w-full text-center">

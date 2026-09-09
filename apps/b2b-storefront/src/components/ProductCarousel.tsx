@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import AddToCartButton from './AddToCartButton';
 
-export default function ProductCarousel({ title, products, viewAllLink }: { title: string, products: any[], viewAllLink?: string }) {
+export default function ProductCarousel({ title, products, viewAllLink, isLoggedIn = false }: { title: string, products: any[], viewAllLink?: string, isLoggedIn?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -94,10 +95,7 @@ export default function ProductCarousel({ title, products, viewAllLink }: { titl
                 SKU: {prod.sku || 'N/D'}
               </div>
               <div className="mt-auto">
-                <button className="w-full bg-black text-white hover:bg-[#00C800] transition-colors font-bold text-xs py-2 px-4 rounded flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                  Aggiungi
-                </button>
+                <AddToCartButton sku={prod.sku} isLoggedIn={isLoggedIn} />
               </div>
             </div>
           </div>
