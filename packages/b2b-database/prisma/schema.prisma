@@ -44,6 +44,7 @@ model B2BUser {
 
   sessions           B2BSession[]
   carts              B2BCart[]
+  orders             B2BOrder[]
 
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -103,4 +104,49 @@ enum CartStatus {
   CHECKOUT_PENDING
   COMPLETED
   ABANDONED
+}
+
+model B2BOrder {
+  id                    String          @id @default(cuid())
+  userId                String          // Il cliente finale
+  user                  B2BUser         @relation(fields: [userId], references: [id])
+  createdById           String          // Può essere il cliente stesso o l'agente
+  status                OrderStatus     @default(DRAFT)
+  
+  zucchettiOrderRef     String?         // Riferimento o numero ordine in Zucchetti
+  totalAmount           Float           @default(0)
+  totalIva              Float           @default(0)
+  
+  notes                 String?
+
+  items                 B2BOrderItem[]
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@map("b2b_orders")
+}
+
+model B2BOrderItem {
+  id              String    @id @default(cuid())
+  orderId         String
+  order           B2BOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  sku             String
+  quantity        Int       @default(1)
+  originalPrice   Float
+  finalPrice      Float     // Prezzo scontato finale
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("b2b_order_items")
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_AGENT_REVIEW
+  APPROVED
+  SENT_TO_ZUCCHETTI
+  ERROR
 }
