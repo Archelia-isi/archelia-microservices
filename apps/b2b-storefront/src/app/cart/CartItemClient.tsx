@@ -14,7 +14,7 @@ export default function CartItemClient({ item }: { item: any }) {
       <div className="grid grid-cols-12 gap-4 p-4 items-center">
         <div className="col-span-12 text-gray-500">
           Prodotto {item.sku} non più disponibile.
-          <button onClick={() => startTransition(() => removeFromCart(item.id))} className="text-red-500 ml-4 hover:underline">Rimuovi</button>
+          <button onClick={() => startTransition(() => { removeFromCart(item.id); })} className="text-red-500 ml-4 hover:underline">Rimuovi</button>
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ export default function CartItemClient({ item }: { item: any }) {
       <div className="col-span-4 sm:col-span-2 flex flex-col items-end justify-center gap-2">
         <div className="font-bold text-gray-900">€ {total.toFixed(2)}</div>
         <button 
-          onClick={() => startTransition(() => removeFromCart(item.id))}
+          onClick={() => startTransition(() => { removeFromCart(item.id); })}
           disabled={isPending}
           className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
         >
