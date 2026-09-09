@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
+import { prisma } from '@archelia/database';
 import { zucchettiClient } from '@archelia/zucchetti';
 import * as bcrypt from 'bcryptjs';
 
@@ -10,6 +11,17 @@ import { log } from '@archelia/core';
 
 export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
+
+  // --- Recupera le categorie di sconto Elmark dalla tabella dei prodotti processati ---
+  fastify.get('/elmark-groups', async (request, reply) => {
+    try {
+      const groups = await prisma.$queryRaw`SELECT DISTINCT discgroup as id FROM elmark_processed_products WHERE discgroup IS NOT NULL AND discgroup != '' ORDER BY id`;
+      return reply.send({ success: true, groups });
+    } catch (e) {
+      request.log.error(e);
+      return reply.status(500).send({ success: false, error: 'Database error' });
+    }
+  });
 
   // Helper hook if auth is required
   app.addHook('onRequest', authenticate);

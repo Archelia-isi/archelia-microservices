@@ -42,6 +42,7 @@ interface B2BUser {
 export default function B2BUsersApp() {
   const [users, setUsers] = useState<B2BUser[]>([]);
   const [agents, setAgents] = useState<B2BUser[]>([]);
+  const [elmarkGroups, setElmarkGroups] = useState<{id: string, label: string}[]>([]);
   const [isAppReady, setIsAppReady] = useState(false);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -94,6 +95,28 @@ export default function B2BUsersApp() {
         setUsers(data.users);
         setAgents(data.users.filter((u: B2BUser) => u.role === 'AGENT'));
       }
+      
+      // Fetch Elmark Groups
+      try {
+        const elRes = await fetch(`${API_URL}/api/admin/b2b-users/elmark-groups`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const elData = await elRes.json();
+        if (elData.success && elData.groups) {
+          const ELMARK_LABELS: Record<string, string> = {
+            'E1': 'Electrical Part 1',
+            'E2': 'Electrical Part 2',
+            'L': 'Lighting',
+            'C': 'Cables',
+            'F': 'Fixtures'
+          };
+          setElmarkGroups(elData.groups.map((g: any) => ({
+             id: g.id,
+             label: ELMARK_LABELS[g.id] || g.id
+          })));
+        }
+      } catch(e) {}
+
       setIsAppReady(true);
     } catch (e) {
       toast.error('Errore nel caricamento degli utenti B2B');
@@ -497,13 +520,7 @@ export default function B2BUsersApp() {
                     Imposta lo sconto dedicato (%) per le categorie Elmark.
                   </div>
                   {/* Esempio Categorie Elmark */}
-                  {[
-                    { id: 'E1', label: 'Electrical Part 1' },
-                    { id: 'E2', label: 'Electrical Part 2' },
-                    { id: 'L', label: 'Lighting' },
-                    { id: 'C', label: 'Cables' },
-                    { id: 'F', label: 'Fixtures' }
-                  ].map(cat => (
+                  {elmarkGroups.map(cat => (
                     <div key={cat.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.9rem' }}>{cat.label} ({cat.id})</span>
                       <input 
