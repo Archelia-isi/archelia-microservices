@@ -6,10 +6,15 @@ import Link from 'next/link';
 import CartItemClient from './CartItemClient';
 import QuickAddCart from './QuickAddCart';
 import AgentExtraDiscount from '../../components/AgentExtraDiscount';
+import CheckoutButtons from '../../components/CheckoutButtons';
+import { cookies } from 'next/headers';
 
 export default async function CartPage() {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const cookieStore = cookies();
+  const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
 
   const cart = await prisma.b2BCart.findFirst({
     where: { userId: session.userId, status: 'ACTIVE' },
@@ -120,9 +125,10 @@ export default async function CartPage() {
               </div>
             </div>
             
-            <button className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-[#00C800] transition-colors w-full sm:w-auto">
-              Procedi al Checkout
-            </button>
+            <CheckoutButtons 
+              isAgent={session.user.role === 'AGENT'} 
+              isImpersonating={!!impersonatedClientCode} 
+            />
           </div>
         </div>
       )}
