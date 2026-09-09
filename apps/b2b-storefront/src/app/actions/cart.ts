@@ -71,6 +71,7 @@ export async function addToCart(sku: string, quantity: number) {
           sku: sku,
           quantity: quantity,
           extraDiscount: agentExtraDiscount,
+          extraDiscountMinQty: agentExtraDiscount > 0 ? quantity : null,
         },
       });
     }
@@ -95,6 +96,7 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
     const dataToUpdate: any = { quantity };
     if (resetExtraDiscount) {
       dataToUpdate.extraDiscount = 0;
+      dataToUpdate.extraDiscountMinQty = null;
     }
     
     await prisma.b2BCartItem.update({
@@ -111,9 +113,15 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 
+  const item = await prisma.b2BCartItem.findUnique({ where: { id: itemId } });
+  if (!item) return { success: false };
+
   await prisma.b2BCartItem.update({
     where: { id: itemId },
-    data: { extraDiscount: discount >= 0 ? discount : 0 },
+    data: { 
+      extraDiscount: discount >= 0 ? discount : 0,
+      extraDiscountMinQty: discount > 0 ? item.quantity : null
+    },
   });
 
   revalidatePath('/cart');
@@ -129,13 +137,20 @@ export async function massUpdateCartExtraDiscount(discount: number) {
     
     const cart = await prisma.b2BCart.findFirst({
       where: { userId: targetUserId, status: 'ACTIVE' },
+      include: { items: true },
     });
 
-    if (cart) {
-      await prisma.b2BCartItem.updateMany({
-        where: { cartId: cart.id },
-        data: { extraDiscount: discount >= 0 ? discount : 0 },
-      });
+    if (cart && cart.items.length > 0) {
+      // Dobbiamo ciclare per impostare il minQty alla quantità attuale di ogni singolo prodotto
+      for (const item of cart.items) {
+        await prisma.b2BCartItem.update({
+          where: { id: item.id },
+          data: { 
+            extraDiscount: discount >= 0 ? discount : 0,
+            extraDiscountMinQty: discount > 0 ? item.quantity : null
+          },
+        });
+      }
     }
 
     revalidatePath('/cart');

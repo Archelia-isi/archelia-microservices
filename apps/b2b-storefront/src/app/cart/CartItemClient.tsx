@@ -9,7 +9,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
-  const [showModal, setShowModal] = useState({ show: false, newQty: 0 });
+  const [showModal, setShowModal] = useState({ show: false, newQty: 0, minQty: 0 });
   const isFirstRender = useRef(true);
 
   if (!item.product) {
@@ -53,8 +53,9 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
 
     if (newQty !== item.quantity || newDiscount !== (item.extraDiscount || 0)) {
       // Se il cliente sta diminuendo la quantità e ha uno sconto extra applicato
-      if (newQty < item.quantity && (item.extraDiscount || 0) > 0 && !isAgent) {
-        setShowModal({ show: true, newQty });
+      const minQty = item.extraDiscountMinQty || item.quantity;
+      if (newQty < minQty && (item.extraDiscount || 0) > 0 && !isAgent) {
+        setShowModal({ show: true, newQty, minQty });
         return;
       }
 
@@ -95,7 +96,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
 
   const confirmModal = () => {
     const qty = showModal.newQty;
-    setShowModal({ show: false, newQty: 0 });
+    setShowModal({ show: false, newQty: 0, minQty: 0 });
     startTransition(() => {
       // Pass true for resetExtraDiscount
       updateCartItemQuantity(item.id, qty, true);
@@ -103,7 +104,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
   };
 
   const cancelModal = () => {
-    setShowModal({ show: false, newQty: 0 });
+    setShowModal({ show: false, newQty: 0, minQty: 0 });
     setLocalQuantity(item.quantity);
   };
 
@@ -215,7 +216,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
             </h3>
           </div>
           <div className="p-5 text-sm text-gray-700">
-            <p>Lo sconto extra attualmente applicato su questo prodotto è stato approvato dall'agente per la quantità <strong>{item.quantity}</strong> o superiore.</p>
+            <p>Lo sconto extra attualmente applicato su questo prodotto è stato approvato dall'agente per la quantità <strong>{showModal.minQty}</strong> o superiore.</p>
             <p className="mt-3 text-red-600 font-medium">Se procedi diminuendo la quantità a {showModal.newQty}, l'intero sconto extra su questo prodotto verrà annullato.</p>
             <p className="mt-3 text-gray-500 text-xs">Sei sicuro di voler continuare?</p>
           </div>
