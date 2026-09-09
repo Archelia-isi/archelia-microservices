@@ -159,7 +159,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
       {/* RELATED PRODUCTS CAROUSEL */}
       <div className="mt-20 mb-12">
-        <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isAuthenticated={isAuthenticated} />
+        <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} />
       </div>
     </div>
   );
