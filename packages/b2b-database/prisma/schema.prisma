@@ -75,6 +75,7 @@ model B2BCart {
   userId    String?
   user      B2BUser?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   status    CartStatus    @default(ACTIVE)
+  linkedOrderId String?
 
   items     B2BCartItem[]
 
@@ -103,6 +104,7 @@ model B2BCartItem {
 
 enum CartStatus {
   ACTIVE
+  REVIEW
   CHECKOUT_PENDING
   COMPLETED
   ABANDONED
