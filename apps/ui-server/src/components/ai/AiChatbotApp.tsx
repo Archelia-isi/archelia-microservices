@@ -406,6 +406,7 @@ export default function AiChatbotApp() {
               <HologramAvatar animationState={animationState} />
             </React.Suspense>
             
+            {/* @ts-ignore - type definitions for OrbitControls in new drei version are missing these props but they exist at runtime */}
             <OrbitControls enableZoom={false} enablePan={false} maxPolarAngle={Math.PI / 1.8} minPolarAngle={Math.PI / 2.2} />
           </Canvas>
         </ErrorBoundary>

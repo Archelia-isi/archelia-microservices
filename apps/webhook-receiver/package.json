@@ -13,6 +13,7 @@
     "@archelia/database": "*",
     "fastify": "^4.26.2",
     "fastify-raw-body": "^4.3.0",
+    "proxy-addr": "^2.0.7",
     "zod": "^3.22.4"
   },
   "devDependencies": {
