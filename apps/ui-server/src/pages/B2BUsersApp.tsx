@@ -232,7 +232,7 @@ export default function B2BUsersApp() {
       if (payload.agentId === '') delete payload.agentId;
       if (payload.email === '') delete payload.email;
       if (isNaN(payload.fido)) payload.fido = 0;
-      delete payload.discount; // not in schema
+      if (isNaN(payload.discount)) payload.discount = 0;
       delete payload.mustChangePassword; // not in schema
       delete payload.tempPassword; // not in schema
       
