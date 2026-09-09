@@ -229,7 +229,12 @@ export default function B2BUsersApp() {
       
     try {
       const payload: any = { ...formData };
-      if (payload.agentId === '') payload.agentId = null;
+      if (payload.agentId === '') delete payload.agentId;
+      if (payload.email === '') delete payload.email;
+      if (isNaN(payload.fido)) payload.fido = 0;
+      delete payload.discount; // not in schema
+      delete payload.mustChangePassword; // not in schema
+      delete payload.tempPassword; // not in schema
       
       const res = await fetch(url, {
         method: editingUser ? 'PUT' : 'POST',
