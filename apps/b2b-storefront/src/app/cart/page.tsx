@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getProductById } from '@archelia/typesense/dist/search.js';
 import Link from 'next/link';
 import CartItemClient from './CartItemClient';
+import QuickAddCart from './QuickAddCart';
 
 export default async function CartPage() {
   const session = await verifySession();
@@ -60,6 +61,8 @@ export default async function CartPage() {
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
       
+      <QuickAddCart />
+
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-500 mb-4">Il tuo carrello è vuoto.</p>
