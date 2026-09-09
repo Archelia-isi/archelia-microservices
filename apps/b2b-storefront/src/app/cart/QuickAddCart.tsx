@@ -124,9 +124,14 @@ export default function QuickAddCart({ userDiscount = 0 }: { userDiscount?: numb
                     </div>
                     <div className="flex flex-col items-end">
                       {originalPrice > finalPrice && (
-                        <span className="text-[10px] text-gray-400 line-through">
-                          € {originalPrice.toFixed(2).replace('.', ',')}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-gray-400 line-through">
+                            € {originalPrice.toFixed(2).replace('.', ',')}
+                          </span>
+                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                            -{Math.round((1 - (finalPrice / originalPrice)) * 100)}%
+                          </span>
+                        </div>
                       )}
                       <span className="text-xs font-bold text-gray-900">
                         € {finalPrice.toFixed(2).replace('.', ',')}

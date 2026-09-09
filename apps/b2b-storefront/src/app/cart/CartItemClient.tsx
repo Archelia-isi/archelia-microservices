@@ -117,8 +117,13 @@ export default function CartItemClient({ item }: { item: any }) {
       
       <div className="col-span-4 sm:col-span-2 text-right">
         {item.originalPrice > item.finalPrice && (
-          <div className="text-[10px] text-gray-400 line-through">
-            € {item.originalPrice.toFixed(2).replace('.', ',')}
+          <div className="flex items-center justify-end gap-1 mb-0.5">
+            <span className="text-[10px] text-gray-400 line-through">
+              € {item.originalPrice.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+              -{Math.round((1 - (item.finalPrice / item.originalPrice)) * 100)}%
+            </span>
           </div>
         )}
         <div className="font-medium text-sm">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>

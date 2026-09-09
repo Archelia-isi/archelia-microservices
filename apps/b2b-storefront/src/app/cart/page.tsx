@@ -57,6 +57,9 @@ export default async function CartPage() {
     return acc + ((item.finalPrice || 0) * item.quantity);
   }, 0);
 
+  const ivaAmount = totalAmount * 0.22;
+  const grandTotal = totalAmount + ivaAmount;
+
   return (
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
@@ -87,11 +90,22 @@ export default async function CartPage() {
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col items-end">
-            <div className="text-gray-500 mb-2">Totale Ordine (IVA esclusa)</div>
-            <div className="text-4xl font-bold text-gray-900 mb-6">
-              € {totalAmount.toFixed(2).replace('.', ',')}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:items-end">
+            <div className="w-full sm:w-80 mb-6 space-y-3">
+              <div className="flex justify-between text-gray-500">
+                <span>Totale Imponibile:</span>
+                <span className="font-medium text-gray-900">€ {totalAmount.toFixed(2).replace('.', ',')}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>IVA (22%):</span>
+                <span className="font-medium text-gray-900">€ {ivaAmount.toFixed(2).replace('.', ',')}</span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-3 text-xl font-bold">
+                <span>Totale Ordine:</span>
+                <span className="text-gray-900">€ {grandTotal.toFixed(2).replace('.', ',')}</span>
+              </div>
             </div>
+            
             <button className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-[#00C800] transition-colors w-full sm:w-auto">
               Procedi al Checkout
             </button>
