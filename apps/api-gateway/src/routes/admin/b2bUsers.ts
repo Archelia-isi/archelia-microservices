@@ -250,13 +250,47 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   // GET /api/admin/zucchetti/customers/search
   app.get('/zucchetti/customers/search', {
     schema: {
-      querystring: z.object({ q: z.string() })
+      querystring: z.object({ q: z.string(), type: z.string().optional() })
     }
   }, async (request, reply) => {
-    const { q } = request.query;
+    const { q, type } = request.query;
     if (!q || q.length < 3) return { results: [] };
     
     try {
+      if (type === 'AGENT') {
+        const rawRes: any = await zucchettiClient.query('zzna_agenti', { limit: '1000', offset: '0' }, 'A0002');
+        let agents = [];
+        if (rawRes && rawRes.data) agents = rawRes.data;
+        else if (rawRes && rawRes.dataset) agents = rawRes.dataset;
+        else if (rawRes && Array.isArray(rawRes)) agents = rawRes;
+        else if (rawRes && rawRes.zzna_agenti) agents = Array.isArray(rawRes.zzna_agenti) ? rawRes.zzna_agenti : [rawRes.zzna_agenti];
+
+        const lowerQ = q.toLowerCase();
+        const filtered = agents.filter((a: any) => {
+           const name = (a.agdesage || '').toLowerCase();
+           const code = (a.agcodage || '').toLowerCase();
+           return name.includes(lowerQ) || code.includes(lowerQ);
+        });
+
+        const mapped = filtered.map((a: any) => ({
+           zucchettiCode: a.agcodage || '',
+           companyName: a.agdesage || '',
+           vatNumber: '',
+           fido: 0,
+           zucchettiPriceList: '',
+           customerType: 'AGENTE',
+           discount: 0,
+           address: a.agindage || '',
+           city: a.agcitage || '',
+           zip: a.agagecap || '',
+           province: a.agproage || '',
+           phone: a.agtelefo || '',
+           email: a.ag_email || ''
+        }));
+        
+        return { results: mapped };
+      }
+
       // Fetch discounts from Zucchetti
       let discountsMap: Record<string, string> = {};
       try {
@@ -307,7 +341,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            companyName: c.andescri || c.Andescri || '',
            vatNumber: c.anpariva || c.Anpariva || '',
            fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
-           zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo
+           zucchettiPriceList: '',
            customerType: typeDesc,
            discount: baseDiscount,
            address: c.anindiri || c.Anindiri || '',

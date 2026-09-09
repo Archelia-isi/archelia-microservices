@@ -127,7 +127,8 @@ export default function B2BUsersApp() {
     if (zucchettiSearch.length < 3) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}`, {
+      const url = `${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}${formData.role === 'AGENT' ? '&type=AGENT' : ''}`;
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
