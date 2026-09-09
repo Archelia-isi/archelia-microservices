@@ -79,7 +79,7 @@ export default async function Home() {
       </section>
 
       {/* PRODUCT SLIDERS (B2B CAROUSELS) */}
-      <ProductCarousel title="Scelti per te" products={novitaProducts} viewAllLink="/catalog" />
+      <ProductCarousel title="Scelti per te" products={novitaProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} />
       
       {/* BENTO BOX NAVIGAZIONE B2B */}
       <section className="w-full px-4 mt-8 mb-12">
@@ -117,7 +117,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ProductCarousel title="In Promozione" products={promoProducts} viewAllLink="/catalog?q=promo" />
+      <ProductCarousel title="In Promozione" products={promoProducts} viewAllLink="/catalog?q=promo" isLoggedIn={isAuthenticated} />
 
       {/* VANTAGGI B2B COMPATTI */}
       <section className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 px-4">
