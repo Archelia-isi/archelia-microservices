@@ -39,7 +39,7 @@ export default async function CartPage() {
   const genericDiscount = session.user.discount || 0;
   
   const finalItems = populatedItems.map(item => {
-    if (!item.product) return item;
+    if (!item.product) return { ...item, finalPrice: 0 };
     let finalPrice = item.product.price;
     if (genericDiscount > 0) {
       finalPrice = finalPrice * (1 - (genericDiscount / 100));
