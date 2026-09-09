@@ -291,6 +291,40 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         return { results: mapped };
       }
 
+      if (type === 'ADMIN') {
+        const rawRes: any = await zucchettiClient.query('zzna_persone', { limit: '1000', offset: '0' }, 'A0002');
+        let persons = [];
+        if (rawRes && rawRes.data) persons = rawRes.data;
+        else if (rawRes && rawRes.dataset) persons = rawRes.dataset;
+        else if (rawRes && Array.isArray(rawRes)) persons = rawRes;
+        else if (rawRes && rawRes.zzna_persone) persons = Array.isArray(rawRes.zzna_persone) ? rawRes.zzna_persone : [rawRes.zzna_persone];
+
+        const lowerQ = q.toLowerCase();
+        const filtered = persons.filter((p: any) => {
+           const name = (p.cotitle || '').toLowerCase();
+           const code = (p.cocompanyid || '').toLowerCase();
+           return name.includes(lowerQ) || code.includes(lowerQ);
+        });
+
+        const mapped = filtered.map((p: any) => ({
+           zucchettiCode: p.cocompanyid || '',
+           companyName: p.cotitle || '',
+           vatNumber: p.coiva || p.cofiscalcode || '',
+           fido: 0,
+           zucchettiPriceList: '',
+           customerType: 'PERSONA',
+           discount: 0,
+           address: '',
+           city: '',
+           zip: '',
+           province: '',
+           phone: '',
+           email: ''
+        }));
+        
+        return { results: mapped };
+      }
+
       // Fetch discounts from Zucchetti
       let discountsMap: Record<string, string> = {};
       try {

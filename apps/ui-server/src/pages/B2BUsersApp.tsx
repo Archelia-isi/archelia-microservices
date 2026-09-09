@@ -127,7 +127,8 @@ export default function B2BUsersApp() {
     if (zucchettiSearch.length < 3) return;
     try {
       const token = localStorage.getItem('token');
-      const url = `${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}${formData.role === 'AGENT' ? '&type=AGENT' : ''}`;
+      const typeParam = formData.role === 'AGENT' ? '&type=AGENT' : formData.role === 'ADMIN' ? '&type=ADMIN' : '';
+      const url = `${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}${typeParam}`;
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -391,7 +392,7 @@ export default function B2BUsersApp() {
               <div style={{ borderTop: '1px solid var(--color-border)', margin: '1rem 0' }}></div>
               
               <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
-                2. Cerca anagrafica da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : '(Clienti)'}
+                2. Cerca anagrafica da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : formData.role === 'ADMIN' ? '(Persone)' : '(Clienti)'}
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <TextInput value={zucchettiSearch} onChange={e => setZucchettiSearch(e.target.value)} placeholder="Es. Ferramenta..." />
