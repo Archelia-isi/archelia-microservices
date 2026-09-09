@@ -38,6 +38,7 @@ export async function initializeTypesenseSchema(forceRecreate: boolean = false) 
           { name: 'unit', type: 'string', optional: true, index: false },
           { name: 'price', type: 'float', facet: true },
           { name: 'price_b2b', type: 'float', facet: true, optional: true },
+          { name: 'discgroup', type: 'string', facet: true, optional: true },
           { name: 'stock', type: 'int32' },
           { name: 'image_url', type: 'string', optional: true },
           { name: 'image_urls', type: 'string[]', optional: true, index: false },
@@ -181,6 +182,7 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
       unit: product.unit || '',
       price: product.price || 0,
       price_b2b: product.priceB2b || 0,
+      discgroup: product.discgroup || '',
       stock: Math.floor((product.stock || 0) + (product.stockEk || 0)),
       image_url: product.imageUrl || '',
       image_urls: Array.isArray(product.imageUrls) ? product.imageUrls : [],
@@ -341,6 +343,15 @@ export async function runBulkSync() {
 
   console.log(`Found ${products.length} products to sync.`);
 
+  console.log('Fetching Elmark discgroups...');
+  const elmarkProducts = await prisma.elmarkProcessedProduct.findMany({
+    select: { sku: true, discgroup: true }
+  });
+  const skuToDiscgroup = new Map<string, string>();
+  for (const ep of elmarkProducts) {
+    if (ep.discgroup) skuToDiscgroup.set(ep.sku, ep.discgroup);
+  }
+
   // 3. Sync in batches of 100 to avoid overwhelming the Typesense server
   let synced = 0;
   let failed = 0;
@@ -357,6 +368,7 @@ export async function runBulkSync() {
         if (shopifyId) {
           promoData = promoMap.get(`gid://shopify/Product/${shopifyId}`) || promoMap.get(shopifyId);
         }
+        product.discgroup = skuToDiscgroup.get(product.sku) || '';
         await syncProductToTypesense(product, promoData);
         synced++;
       } catch (e) {
