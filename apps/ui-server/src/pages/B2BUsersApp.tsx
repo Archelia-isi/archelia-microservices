@@ -216,6 +216,37 @@ export default function B2BUsersApp() {
     setZucchettiSearch('');
   };
 
+  const handleEditUser = (u: any) => {
+    setEditingUser(u);
+    setFormData({
+      username: u.username || '',
+      email: u.email || '',
+      password: '',
+      tempPassword: u.tempPassword || '',
+      mustChangePassword: u.mustChangePassword || false,
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      companyName: u.companyName || '',
+      vatNumber: u.vatNumber || '',
+      zucchettiCode: u.zucchettiCode || '',
+      role: u.role,
+      agentId: u.agentId || '',
+      zucchettiPriceList: u.zucchettiPriceList || '',
+      customerType: u.customerType || '',
+      fido: u.fido || 0,
+      discount: u.discount || 0,
+      address: u.address || '',
+      city: u.city || '',
+      zip: u.zip || '',
+      province: u.province || '',
+      phone: u.phone || '',
+      isElmarkCustomer: u.isElmarkCustomer,
+      elmarkDiscounts: u.elmarkDiscounts || {},
+      isActive: u.isActive
+    });
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = async () => {
     if (!formData.username || (!editingUser && !formData.password)) {
       toast.error('Username e password sono obbligatori');
@@ -296,7 +327,12 @@ export default function B2BUsersApp() {
         <GlassPanel style={{ padding: '1.5rem' }}>
           <div className="users-grid">
             {users.map(u => (
-              <div key={u.id} className="user-card" style={{ padding: '1.25rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column' }}>
+              <div 
+                key={u.id} 
+                className="user-card" 
+                onClick={() => handleEditUser(u)}
+                style={{ padding: '1.25rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <Badge variant={u.role === 'ADMIN' ? 'danger' : u.role === 'AGENT' ? 'warning' : 'primary'}>{u.role}</Badge>
                   {u.isElmarkCustomer && <Badge variant="success">ELMARK</Badge>}
@@ -306,37 +342,14 @@ export default function B2BUsersApp() {
                 {u.email && <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Email: {u.email}</div>}
                 
                 <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <Button variant="secondary" icon={<Edit2 size={14} />} onClick={() => {
-                    setEditingUser(u);
-                    setFormData({
-                      username: u.username || '',
-                      email: u.email || '',
-                      password: '',
-                      tempPassword: u.tempPassword || '',
-                      mustChangePassword: u.mustChangePassword || false,
-                      firstName: u.firstName || '',
-                      lastName: u.lastName || '',
-                      companyName: u.companyName || '',
-                      vatNumber: u.vatNumber || '',
-                      zucchettiCode: u.zucchettiCode || '',
-                      role: u.role,
-                      agentId: u.agentId || '',
-                      zucchettiPriceList: u.zucchettiPriceList || '',
-                      customerType: u.customerType || '',
-                      fido: u.fido || 0,
-                      discount: u.discount || 0,
-                      address: u.address || '',
-                      city: u.city || '',
-                      zip: u.zip || '',
-                      province: u.province || '',
-                      phone: u.phone || '',
-                      isElmarkCustomer: u.isElmarkCustomer,
-                      elmarkDiscounts: u.elmarkDiscounts || {},
-                      isActive: u.isActive
-                    });
-                    setIsModalOpen(true);
+                  <Button variant="secondary" icon={<Edit2 size={14} />} onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditUser(u);
                   }}>Modifica</Button>
-                  <Button variant="danger" icon={<Trash2 size={14} />} onClick={() => handleDelete(u.id)} />
+                  <Button variant="danger" icon={<Trash2 size={14} />} onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(u.id);
+                  }} />
                 </div>
               </div>
             ))}
