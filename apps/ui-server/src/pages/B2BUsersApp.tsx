@@ -353,7 +353,7 @@ export default function B2BUsersApp() {
       >
         <div style={{ display: 'flex', gap: '2rem', height: '100%' }}>
           
-          <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', paddingRight: '1rem', paddingBottom: '3rem' }}>
+          <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', paddingRight: '1rem', paddingBottom: '1rem' }}>
             
             <div style={{ padding: '1rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)' }}>
               <div style={{ marginBottom: '1rem' }}>
@@ -415,78 +415,84 @@ export default function B2BUsersApp() {
               <div style={{ flex: 1 }}><TextInput label="Fido (€)" type="number" value={String(formData.fido)} onChange={e => setFormData({...formData, fido: parseFloat(e.target.value)})} disabled /></div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
               <div style={{ flex: 1 }}>
-                <TextInput label="Username (Login)" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} disabled={!isUsernameEditable} required />
-              </div>
-              <Button type="button" variant="secondary" onClick={() => setIsUsernameEditable(!isUsernameEditable)} icon={<Edit2 size={16} />}>
-                Modifica
-              </Button>
-            </div>
-            
-            {!editingUser ? (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
-                  <TextInput label="Password Provvisoria" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <TextInput label="Username (Login)" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} disabled={!isUsernameEditable} required />
+                  </div>
+                  <Button type="button" variant="secondary" onClick={() => setIsUsernameEditable(!isUsernameEditable)} icon={<Edit2 size={16} />}>
+                    Modifica
+                  </Button>
                 </div>
-                <Button type="button" variant="secondary" onClick={() => setFormData({...formData, password: Math.random().toString(36).slice(-8)})}>
-                  Genera
-                </Button>
               </div>
-            ) : (
-              <div style={{ padding: '0.75rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Stato Password</div>
-                {editingUser.tempPassword ? (
-                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                     <div>
-                       <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>In attesa di primo accesso: </span>
-                       <strong style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{editingUser.tempPassword}</strong>
-                     </div>
-                     <Button size="sm" type="button" variant="danger" onClick={async () => {
-                       toast.loading('Reset in corso...', { id: 'reset' });
-                       try {
-                         const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
-                           method: 'POST',
-                           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                         });
-                         const json = await res.json();
-                         toast.dismiss('reset');
-                         if (json.success) {
-                           setEditingUser({...editingUser, tempPassword: json.tempPassword});
-                           toast.success('Password resettata!');
-                         }
-                       } catch(e) {
-                         toast.dismiss('reset');
-                         toast.error('Errore');
-                       }
-                     }}>Rigenera</Button>
-                   </div>
+              
+              <div style={{ flex: 1 }}>
+                {!editingUser ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <TextInput label="Password Provvisoria" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                    </div>
+                    <Button type="button" variant="secondary" onClick={() => setFormData({...formData, password: Math.random().toString(36).slice(-8)})}>
+                      Genera
+                    </Button>
+                  </div>
                 ) : (
-                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                     <Badge variant="success">Configurata dall'utente (Privata)</Badge>
-                     <Button size="sm" type="button" variant="danger" onClick={async () => {
-                       if(!confirm('Attenzione: sovrascriverai la password privata dell\'utente con una provvisoria. Procedere?')) return;
-                       toast.loading('Reset in corso...', { id: 'reset' });
-                       try {
-                         const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
-                           method: 'POST',
-                           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                         });
-                         const json = await res.json();
-                         toast.dismiss('reset');
-                         if (json.success) {
-                           setEditingUser({...editingUser, tempPassword: json.tempPassword});
-                           toast.success('Password resettata e resa provvisoria!');
-                         }
-                       } catch(e) {
-                         toast.dismiss('reset');
-                         toast.error('Errore');
-                       }
-                     }}>Forza Reset</Button>
-                   </div>
+                  <div style={{ padding: '0.5rem', background: 'var(--color-surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem' }}>Stato Password</div>
+                    {editingUser.tempPassword ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>In attesa di primo accesso: </span>
+                          <strong style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>{editingUser.tempPassword}</strong>
+                        </div>
+                        <Button size="sm" type="button" variant="danger" onClick={async () => {
+                          toast.loading('Reset in corso...', { id: 'reset' });
+                          try {
+                            const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                            });
+                            const json = await res.json();
+                            toast.dismiss('reset');
+                            if (json.success) {
+                              setEditingUser({...editingUser, tempPassword: json.tempPassword});
+                              toast.success('Password resettata!');
+                            }
+                          } catch(e) {
+                            toast.dismiss('reset');
+                            toast.error('Errore');
+                          }
+                        }}>Rigenera</Button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Badge variant="success">Configurata dall'utente (Privata)</Badge>
+                        <Button size="sm" type="button" variant="danger" onClick={async () => {
+                          if(!confirm('Attenzione: sovrascriverai la password privata dell\'utente con una provvisoria. Procedere?')) return;
+                          toast.loading('Reset in corso...', { id: 'reset' });
+                          try {
+                            const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/reset-password`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                            });
+                            const json = await res.json();
+                            toast.dismiss('reset');
+                            if (json.success) {
+                              setEditingUser({...editingUser, tempPassword: json.tempPassword});
+                              toast.success('Password resettata e resa provvisoria!');
+                            }
+                          } catch(e) {
+                            toast.dismiss('reset');
+                            toast.error('Errore');
+                          }
+                        }}>Forza Reset</Button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
 
             {formData.role === 'USER' && formData.zucchettiCode && (
               <div style={{ padding: '1rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
