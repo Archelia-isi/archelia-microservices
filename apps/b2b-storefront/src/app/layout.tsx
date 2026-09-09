@@ -6,6 +6,8 @@ import { verifySession } from '@/lib/session';
 import { logout } from './actions/auth';
 import CategoryMenu from '../components/CategoryMenu';
 import { prisma } from '@archelia/b2b-database';
+import { cookies } from 'next/headers';
+import AgentImpersonatorClient from '../components/AgentImpersonatorClient';
 
 const assistant = Assistant({ subsets: ['latin'] });
 
@@ -23,6 +25,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
     }
   }
+  const cookieStore = cookies();
+  const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
+  const impersonatedClientName = cookieStore.get('impersonatedClientName')?.value;
+
   return (
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden`}>
@@ -57,6 +63,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
 
             <nav className="flex space-x-6 items-center font-medium">
+              {session?.role === 'AGENT' && (
+                <AgentImpersonatorClient 
+                  currentCode={impersonatedClientCode} 
+                  currentName={impersonatedClientName} 
+                />
+              )}
               <Link href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
               {isAuthenticated ? (
                 <>

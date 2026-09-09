@@ -28,19 +28,26 @@ export default async function CatalogPage({
   
   const hits = results?.hits || [];
   
-  // Calculate dynamic B2B prices for the user
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const genericDiscount = await getEffectiveDiscount();
+  const extraDiscount = await getExtraAgentDiscount();
+
   const products = hits.map((h: any) => {
     const product = { ...h.document };
     
     if (isAuthenticated) {
-      if (session?.user?.discount && session.user.discount > 0) {
-        // Applica sempre e solo lo sconto generico dell'utente
-        product.price_b2b = product.price * (1 - (session.user.discount / 100));
-      } else if (!product.price_b2b) {
-        // Fallback if price_b2b is missing
-        product.price_b2b = product.price;
+      let finalPrice = Number(product.price || 0);
+      if (genericDiscount > 0) {
+        finalPrice = finalPrice * (1 - (genericDiscount / 100));
+      } else if (Number(product.price_b2b) > 0) {
+        finalPrice = Number(product.price_b2b);
       }
+
+      if (extraDiscount > 0) {
+        finalPrice = finalPrice * (1 - (extraDiscount / 100));
+      }
+      
+      product.price_b2b = finalPrice;
     }
     
     return product;

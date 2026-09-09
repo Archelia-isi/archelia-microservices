@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefix } from '../actions/search';
 import { addToCart } from '../actions/cart';
 
-export default function QuickAddCart({ userDiscount = 0 }: { userDiscount?: number }) {
+export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0 }: { userDiscount?: number, extraDiscount?: number }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -76,12 +76,17 @@ export default function QuickAddCart({ userDiscount = 0 }: { userDiscount?: numb
 
   const getDiscountedPrice = (product: any) => {
     let price = Number(product.price);
+    let final = price;
     if (userDiscount > 0) {
-      return price * (1 - (userDiscount / 100));
+      final = price * (1 - (userDiscount / 100));
     } else if (Number(product.price_b2b) > 0) {
-      return Number(product.price_b2b);
+      final = Number(product.price_b2b);
     }
-    return price;
+    
+    if (extraDiscount > 0) {
+      final = final * (1 - (extraDiscount / 100));
+    }
+    return final;
   };
 
   return (

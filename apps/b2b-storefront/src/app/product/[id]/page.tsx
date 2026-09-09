@@ -33,12 +33,23 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const product: any = productRaw;
 
   // Apply B2B pricing for the main product
+  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const genericDiscount = await getEffectiveDiscount();
+  const extraDiscount = await getExtraAgentDiscount();
+
   if (isAuthenticated) {
-    if (session?.user?.discount && session.user.discount > 0) {
-      product.price_b2b = product.price * (1 - (session.user.discount / 100));
-    } else if (!product.price_b2b) {
-      product.price_b2b = product.price;
+    let finalPrice = Number(product.price || 0);
+    if (genericDiscount > 0) {
+      finalPrice = finalPrice * (1 - (genericDiscount / 100));
+    } else if (Number(product.price_b2b) > 0) {
+      finalPrice = Number(product.price_b2b);
     }
+
+    if (extraDiscount > 0) {
+      finalPrice = finalPrice * (1 - (extraDiscount / 100));
+    }
+    
+    product.price_b2b = finalPrice;
   }
 
   // Fetch full image list from main database
@@ -78,11 +89,18 @@ export default async function ProductPage({ params }: { params: { id: string } }
     .map((p: any) => {
       // Apply B2B pricing to related products
       if (isAuthenticated) {
-        if (session?.user?.discount && session.user.discount > 0) {
-          p.price_b2b = p.price * (1 - (session.user.discount / 100));
-        } else if (!p.price_b2b) {
-          p.price_b2b = p.price;
+        let finalPrice = Number(p.price || 0);
+        if (genericDiscount > 0) {
+          finalPrice = finalPrice * (1 - (genericDiscount / 100));
+        } else if (Number(p.price_b2b) > 0) {
+          finalPrice = Number(p.price_b2b);
         }
+
+        if (extraDiscount > 0) {
+          finalPrice = finalPrice * (1 - (extraDiscount / 100));
+        }
+        
+        p.price_b2b = finalPrice;
       }
       return p;
     })

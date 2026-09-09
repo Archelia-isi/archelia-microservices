@@ -5,6 +5,7 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import Link from 'next/link';
 import CartItemClient from './CartItemClient';
 import QuickAddCart from './QuickAddCart';
+import AgentExtraDiscount from '../../components/AgentExtraDiscount';
 
 export default async function CartPage() {
   const session = await verifySession();
@@ -27,8 +28,10 @@ export default async function CartPage() {
         id: p.id,
         sku: p.sku,
         title: p.title || p.original_name,
+        original_name: p.original_name,
         price: p.price || 0,
         priceB2b: p.price_b2b || p.price || 0,
+        image_url: p.image_url || '/placeholder.png',
         imageUrl: p.image_url || '/placeholder.png',
         unit: p.unit || 'PZ',
         stock: p.stock || 0
@@ -37,7 +40,9 @@ export default async function CartPage() {
   }));
 
   // Calcola il totale con gli sconti applicati
-  const genericDiscount = session.user.discount || 0;
+  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const genericDiscount = await getEffectiveDiscount();
+  const extraAgentDiscount = await getExtraAgentDiscount();
   
   const finalItems = populatedItems.map(item => {
     if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0 };
@@ -50,6 +55,11 @@ export default async function CartPage() {
     } else if (Number(item.product.priceB2b) > 0) {
       finalPrice = Number(item.product.priceB2b);
     }
+
+    if (extraAgentDiscount > 0) {
+      finalPrice = finalPrice * (1 - (extraAgentDiscount / 100));
+    }
+
     return { ...item, finalPrice, originalPrice };
   });
 
@@ -64,7 +74,11 @@ export default async function CartPage() {
     <div className="max-w-4xl mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Il tuo Carrello</h1>
       
-      <QuickAddCart userDiscount={genericDiscount} />
+      {session.role === 'AGENT' && (
+        <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
+      )}
+
+      <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">

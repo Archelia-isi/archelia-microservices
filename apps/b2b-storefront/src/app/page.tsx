@@ -29,15 +29,24 @@ export default async function Home() {
   const isAuthenticated = !!session;
   const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
 
+  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const genericDiscount = await getEffectiveDiscount();
+  const extraDiscount = await getExtraAgentDiscount();
+
   const mapPrices = (products: any[]) => {
     return products.map(p => {
-      if (isAuthenticated) {
-        if (session?.user?.discount && session.user.discount > 0) {
-          p.price_b2b = p.price * (1 - (session.user.discount / 100));
-        } else if (!p.price_b2b) {
-          p.price_b2b = p.price;
-        }
+      let finalPrice = Number(p.price || 0);
+      if (genericDiscount > 0) {
+        finalPrice = finalPrice * (1 - (genericDiscount / 100));
+      } else if (Number(p.price_b2b) > 0) {
+        finalPrice = Number(p.price_b2b);
       }
+
+      if (extraDiscount > 0) {
+        finalPrice = finalPrice * (1 - (extraDiscount / 100));
+      }
+      
+      p.price_b2b = finalPrice;
       return p;
     });
   };
