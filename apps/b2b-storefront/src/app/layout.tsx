@@ -41,9 +41,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Image 
                   src="/logo-izzo.png" 
                   alt="Izzo Distribuzione" 
-                  width={240} 
-                  height={80} 
-                  className="object-contain h-20 w-auto scale-125 origin-left"
+                  width={180} 
+                  height={60} 
+                  className="object-contain h-14 md:h-16 w-auto"
                   priority
                 />
               </Link>
