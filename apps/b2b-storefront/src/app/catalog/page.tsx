@@ -36,7 +36,8 @@ export default async function CatalogPage({
     const product = { ...h.document };
     
     if (isAuthenticated) {
-      let finalPrice = Number(product.price_b2b || 0);
+      product.originalPriceB2b = Number(product.price_b2b || 0);
+      let finalPrice = product.originalPriceB2b;
       if (genericDiscount > 0) {
         finalPrice = finalPrice * (1 - (genericDiscount / 100));
       }

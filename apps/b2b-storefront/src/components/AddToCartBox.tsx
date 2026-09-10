@@ -56,26 +56,37 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
     });
   };
 
-  const hasDiscount = false;
-  const discountPercentage = 0;
+  const hasDiscount = isLoggedIn && product.originalPriceB2b && product.price_b2b < product.originalPriceB2b;
+  const discountPercentage = hasDiscount ? Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100) : 0;
 
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm sticky top-24">
       <div className="mb-4">
         <div className="text-xs text-gray-500 mb-1">Prezzo Riservato B2B</div>
-        <div className="flex items-end gap-2">
-          <div className="text-2xl font-bold text-gray-900">
-            {isLoggedIn ? (
-              <>
-                € {Number(product.price_b2b || 0).toFixed(2).replace('.', ',')}
-              </>
-            ) : (
-              <div className="text-sm font-medium text-gray-500 mt-2">
-                <Link prefetch={true} href="/login" className="text-[#00C800] underline">Accedi</Link> per visualizzare i prezzi
+        {isLoggedIn ? (
+          <>
+            {hasDiscount && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm text-gray-400 line-through">
+                  € {product.originalPriceB2b.toFixed(2).replace('.', ',')}
+                </span>
+                <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                  -{discountPercentage}%
+                </span>
               </div>
             )}
+            <div className="flex items-end gap-2">
+              <div className="text-2xl font-bold text-gray-900">
+                € {Number(product.price_b2b || 0).toFixed(2).replace('.', ',')}
+              </div>
+              <div className="text-xs text-gray-500 mb-1">/ {product.unit}</div>
+            </div>
+          </>
+        ) : (
+          <div className="text-sm font-medium text-gray-500 mt-2">
+            <Link prefetch={true} href="/login" className="text-[#00C800] underline">Accedi</Link> per visualizzare i prezzi
           </div>
-        </div>
+        )}
         
         <div className="text-right">
           <p className="text-xs text-gray-500 font-medium mb-1">Disponibilità Magazzino</p>

@@ -38,7 +38,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const extraDiscount = await getExtraAgentDiscount();
 
   if (isAuthenticated) {
-    let finalPrice = Number(product.price_b2b || 0);
+    product.originalPriceB2b = Number(product.price_b2b || 0);
+    let finalPrice = product.originalPriceB2b;
     if (genericDiscount > 0) {
       finalPrice = finalPrice * (1 - (genericDiscount / 100));
     }
@@ -86,7 +87,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
     .map((p: any) => {
       // Apply B2B pricing to related products
       if (isAuthenticated) {
-        let finalPrice = Number(p.price_b2b || 0);
+        p.originalPriceB2b = Number(p.price_b2b || 0);
+        let finalPrice = p.originalPriceB2b;
         if (genericDiscount > 0) {
           finalPrice = finalPrice * (1 - (genericDiscount / 100));
         }
