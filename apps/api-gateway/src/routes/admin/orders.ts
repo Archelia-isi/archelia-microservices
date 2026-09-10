@@ -49,7 +49,7 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
-          include: { user: true }
+          include: { user: true, items: true }
         }),
         b2bPrisma.b2BOrder.count({ where })
       ]);

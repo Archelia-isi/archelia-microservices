@@ -193,9 +193,16 @@ export default function Orders() {
         appName="Gestione Ordini" 
         icon={<ShoppingCart size={32} color="var(--color-primary)" />} 
       />
-      <div className="flex-col h-full fade-in">
+      <div style={{ 
+        padding: '0', 
+        height: '100%', 
+        overflowY: 'auto',
+        opacity: isAppReady ? 1 : 0,
+        pointerEvents: isAppReady ? 'auto' : 'none',
+        transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
+      }}>
         <StickyHeader>
-          <div className="flex-between w-full">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <Tabs 
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as any)}
@@ -206,16 +213,16 @@ export default function Orders() {
               ]}
             />
             {(activeTab === 'orders' || activeTab === 'pending') && (
-              <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
+              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
                 <ShoppingCart size={16} /> Sincronizza Ora
               </button>
             )}
           </div>
         </StickyHeader>
 
-        <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
+        <div style={{ padding: '2rem' }}>
           {(activeTab === 'orders' || activeTab === 'pending') ? (
-          <GlassPanel padding="none">
+          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
             {loading && orders.length === 0 ? (
               <div className="flex-center p-8">
                 <div className="loading-spinner"></div>
@@ -232,7 +239,7 @@ export default function Orders() {
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--color-bg-alt)', borderBottom: '1px solid var(--color-border)' }}>
                     <th className="text-left font-bold" style={{ padding: '1rem' }}>ID Ordine</th>
@@ -260,19 +267,28 @@ export default function Orders() {
                       {new Date(order.createdAt).toLocaleString('it-IT')}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                      {order.shopifyCustomer ? (
+                      {currentStore === 'B2B' && order.shopifyCustomer ? (
                         <>
-                          {order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}
-                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                            {order.shopifyCustomer.companyName || `${order.shopifyCustomer.firstName || ''} ${order.shopifyCustomer.lastName || ''}`}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                             {order.shopifyCustomer.email}
-                          </span>
+                          </div>
+                        </>
+                      ) : order.shopifyCustomer ? (
+                        <>
+                          <div style={{ color: 'var(--color-text-primary)' }}>{order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            {order.shopifyCustomer.email}
+                          </div>
                         </>
                       ) : (
                         <>
-                          {order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name} 
-                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ color: 'var(--color-text-primary)' }}>{order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                             {order.zucchettiQueue?.payload?.customer?.email || order.shopifyCustomerId || '-'}
-                          </span>
+                          </div>
                         </>
                       )}
                     </td>
@@ -287,7 +303,7 @@ export default function Orders() {
             </table>
           </div>
         )}
-        </GlassPanel>
+        </div>
         ) : (
           <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
             <GlassPanel padding="lg" radius="lg" style={{ marginBottom: '0' }}>
@@ -353,7 +369,65 @@ export default function Orders() {
 
       {/* MODAL DETTAGLIO ORDINE */}
       <Modal isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={`Dettaglio Ordine ${selectedOrder?.orderNumber || selectedOrder?.shopifyOrderId || ''}`}>
-        {selectedOrder && selectedOrder.zucchettiQueue?.payload ? (
+        {currentStore === 'B2B' && selectedOrder ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <GlassPanel padding="sm">
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Package size={14} /> Dati Cliente
+                </h4>
+                <p style={{ fontWeight: 600 }}>{selectedOrder.user?.companyName || `${selectedOrder.user?.firstName || ''} ${selectedOrder.user?.lastName || ''}`}</p>
+                <p style={{ fontSize: '0.9rem' }}>{selectedOrder.user?.email}</p>
+                <p style={{ fontSize: '0.9rem' }}>P.IVA: {selectedOrder.user?.vatNumber}</p>
+              </GlassPanel>
+            </div>
+            <div>
+              <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Prodotti Preventivati</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedOrder.items?.map((item: any) => {
+                  const scontoPerc = item.originalPrice > item.finalPrice ? Math.round(((item.originalPrice - item.finalPrice) / item.originalPrice) * 100) : 0;
+                  return (
+                  <div 
+                    key={item.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '1rem', 
+                      background: 'var(--color-bg-alt)', 
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      border: '1px solid transparent',
+                      transition: 'border 0.2s'
+                    }}
+                    onClick={() => handleProductClick(item.sku)}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                  >
+                    <div>
+                      <p style={{ fontWeight: 600, marginBottom: '0.2rem' }}>Articolo: {item.sku}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Tag size={12} /> SKU: {item.sku} <span style={{ color: 'var(--color-border)' }}>|</span> Q.tà: {item.quantity}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                       {scontoPerc > 0 && (
+                         <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginRight: '0.5rem' }}>€{item.originalPrice?.toFixed(2)}</span>
+                       )}
+                       <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>€{item.finalPrice?.toFixed(2)}</span>
+                       {scontoPerc > 0 && (
+                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {scontoPerc}%</div>
+                       )}
+                    </div>
+                  </div>
+                )})}
+              </div>
+              <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', textAlign: 'right' }}>
+                <p style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '0.5rem' }}>Totale: €{selectedOrder.totalPrice?.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        ) : selectedOrder && selectedOrder.zucchettiQueue?.payload ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* Info Cliente & Indirizzo */}
