@@ -71,9 +71,17 @@ export default async function AccountOrdersPage() {
                     <span className="font-bold text-xl text-gray-900">€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
                   </div>
                   
-                  {isDraft && (
-                    <AcceptDraftButton orderId={order.id} />
-                  )}
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Link 
+                      href={`/account/orders/${order.id}`}
+                      className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex-1 md:flex-none"
+                    >
+                      Dettagli
+                    </Link>
+                    {isDraft && (
+                      <AcceptDraftButton orderId={order.id} />
+                    )}
+                  </div>
                 </div>
               </div>
             );
