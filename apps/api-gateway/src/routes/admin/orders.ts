@@ -44,14 +44,14 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
       }
 
       const [data, total] = await Promise.all([
-        (b2bPrisma as any).b2BOrder.findMany({
+        b2bPrisma.b2BOrder.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
           include: { user: true }
         }),
-        (b2bPrisma as any).b2BOrder.count({ where })
+        b2bPrisma.b2BOrder.count({ where })
       ]);
 
       const formattedData = data.map((o: any) => ({
