@@ -67,7 +67,7 @@ export default async function Home() {
       <h3 className="font-bold text-gray-900 text-sm p-4 pb-1">{title}</h3>
       <div className="grid grid-cols-2 flex-grow p-4 pt-1 gap-1">
         {products.map((prod: any, idx: number) => (
-          <Link href={`/product/${prod.id || prod.sku}`} key={idx} className="bg-white flex flex-col items-center justify-start relative group cursor-pointer hover:bg-gray-50 transition-colors">
+          <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} key={idx} className="bg-white flex flex-col items-center justify-start relative group cursor-pointer hover:bg-gray-50 transition-colors">
             <div className="absolute top-0 right-0 w-5 h-5 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer">
               <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             </div>
@@ -83,7 +83,7 @@ export default async function Home() {
         ))}
       </div>
       <div className="px-4 pb-4">
-        <Link href={link} className="text-[#3296c8] font-medium text-xs hover:underline flex items-center">
+        <Link prefetch={true} href={link} className="text-[#3296c8] font-medium text-xs hover:underline flex items-center">
           Scopri tutto <span className="ml-1 font-bold text-[10px]">&gt;</span>
         </Link>
       </div>
@@ -111,7 +111,7 @@ export default async function Home() {
         <h2 className="text-xl font-bold text-gray-900 border-l-4 border-[#00C800] pl-3 mb-6">Mondi Izzo Distribuzione</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-auto md:h-[400px]">
           {/* Main big box */}
-          <Link href="/catalog?q=illuminazione" className="md:col-span-2 md:row-span-2 relative rounded overflow-hidden group shadow-sm">
+          <Link prefetch={true} href="/catalog?q=illuminazione" className="md:col-span-2 md:row-span-2 relative rounded overflow-hidden group shadow-sm">
             <img src="/slider/led.jpg" alt="Illuminazione" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div className="absolute bottom-6 left-6 right-6">
@@ -122,7 +122,7 @@ export default async function Home() {
           </Link>
           
           {/* Small boxes */}
-          <Link href="/catalog?q=utensili" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
+          <Link prefetch={true} href="/catalog?q=utensili" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
             <img src="/slider/elettroutensili.jpg" alt="Utensili" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div className="absolute bottom-4 left-4 right-4">
@@ -131,7 +131,7 @@ export default async function Home() {
             </div>
           </Link>
 
-          <Link href="/catalog?q=antinfortunistica" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
+          <Link prefetch={true} href="/catalog?q=antinfortunistica" className="relative rounded overflow-hidden group shadow-sm md:h-auto h-[200px]">
             <img src="/slider/antinfortunistica.jpg" alt="Antinfortunistica" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div className="absolute bottom-4 left-4 right-4">
@@ -185,7 +185,7 @@ export default async function Home() {
                 Accedi all'area riservata per consultare i tuoi listini ed effettuare nuovi ordini.
               </p>
             </div>
-            <Link 
+            <Link prefetch={true} 
               href="/login" 
               className="shrink-0 bg-black hover:bg-zinc-800 text-white font-bold py-3 px-8 rounded transition-colors text-sm"
             >

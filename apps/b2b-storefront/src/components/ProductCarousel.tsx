@@ -41,7 +41,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
         
         <div className="flex items-center gap-4">
           {viewAllLink && (
-            <Link href={viewAllLink} className="text-sm font-medium text-[#00C800] hover:underline">
+            <Link prefetch={true} href={viewAllLink} className="text-sm font-medium text-[#00C800] hover:underline">
               Vedi tutti &gt;
             </Link>
           )}
@@ -75,7 +75,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
             <div className="absolute top-2 right-2 z-10 text-xs font-bold bg-[#00C800] text-white px-2 py-1 rounded">
               B2B
             </div>
-            <Link href={`/product/${prod.id || prod.sku}`} className="w-full aspect-square p-4 flex items-center justify-center bg-white relative">
+            <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="w-full aspect-square p-4 flex items-center justify-center bg-white relative">
               {prod.image_url ? (
                 <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
               ) : (
@@ -87,7 +87,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
             <div className="p-4 pt-2 flex flex-col flex-grow border-t border-gray-50">
               <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{prod.vendor || 'IZZO'}</span>
               <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
-                <Link href={`/product/${prod.id || prod.sku}`} className="hover:text-[#00C800] transition-colors">
+                <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="hover:text-[#00C800] transition-colors">
                   {prod.title || prod.original_name}
                 </Link>
               </h3>

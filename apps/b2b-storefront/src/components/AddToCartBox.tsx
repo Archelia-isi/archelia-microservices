@@ -82,7 +82,7 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
               </>
             ) : (
               <div className="text-sm font-medium text-gray-500 mt-2">
-                <Link href="/login" className="text-[#00C800] underline">Accedi</Link> per visualizzare i prezzi
+                <Link prefetch={true} href="/login" className="text-[#00C800] underline">Accedi</Link> per visualizzare i prezzi
               </div>
             )}
           </div>

@@ -64,7 +64,7 @@ export default async function CatalogPage({
             </p>
           ) : (
             <p className="text-sm text-gray-500 mt-1">
-              Catalogo pubblico. <Link href="/login" className="text-[#00C800] hover:underline font-bold">Accedi</Link> per visualizzare i prezzi B2B e acquistare.
+              Catalogo pubblico. <Link prefetch={true} href="/login" className="text-[#00C800] hover:underline font-bold">Accedi</Link> per visualizzare i prezzi B2B e acquistare.
             </p>
           )}
         </div>

@@ -23,7 +23,7 @@ export default async function AccountOrdersPage() {
       {orders.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-500 mb-4">Non hai ancora effettuato ordini o ricevuto preventivi.</p>
-          <Link href="/catalog" className="inline-block bg-[#00C800] text-white px-6 py-2 font-bold rounded hover:bg-green-600 transition-colors">
+          <Link prefetch={true} href="/catalog" className="inline-block bg-[#00C800] text-white px-6 py-2 font-bold rounded hover:bg-green-600 transition-colors">
             Vai al Catalogo
           </Link>
         </div>
@@ -72,7 +72,7 @@ export default async function AccountOrdersPage() {
                   </div>
                   
                   <div className="flex gap-2 w-full md:w-auto">
-                    <Link 
+                    <Link prefetch={true} 
                       href={`/account/orders/${order.id}`}
                       className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex-1 md:flex-none"
                     >

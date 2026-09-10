@@ -116,7 +116,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
           <img src={p.imageUrl} alt={p.title} className="object-contain w-full h-full" />
         </div>
         <div className="flex flex-col">
-          <Link href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-[#00C800] line-clamp-2">
+          <Link prefetch={true} href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-[#00C800] line-clamp-2">
             {p.title}
           </Link>
           <span className="text-xs text-gray-500 font-mono mt-1">SKU: {p.sku}</span>

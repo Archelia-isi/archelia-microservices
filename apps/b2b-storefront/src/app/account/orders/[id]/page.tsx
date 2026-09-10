@@ -68,7 +68,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   return (
     <div>
       <div className="mb-6">
-        <Link href="/account/orders" className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">
+        <Link prefetch={true} href="/account/orders" className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">
           &larr; Torna agli Ordini
         </Link>
       </div>

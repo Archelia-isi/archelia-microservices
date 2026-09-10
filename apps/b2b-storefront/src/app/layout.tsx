@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
           <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center">
+              <Link prefetch={true} href="/" className="flex items-center">
                 <Image 
                   src="/logo-izzo.png" 
                   alt="Izzo Distribuzione" 
@@ -65,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <nav className="flex space-x-6 items-center font-medium">
               {session?.user?.role === 'AGENT' && (
                 <>
-                  <Link href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
+                  <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
                     Vaglio Ordini
                   </Link>
                   <AgentImpersonatorClient 
@@ -74,11 +74,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   />
                 </>
               )}
-              <Link href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
+              <Link prefetch={true} href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
               {isAuthenticated ? (
                 <>
-                  <Link href="/account" className="hover:text-green-400 transition-colors">Area Privata</Link>
-                  <Link href="/cart" className="hover:text-green-400 transition-colors flex items-center gap-2">
+                  <Link prefetch={true} href="/account" className="hover:text-green-400 transition-colors">Area Privata</Link>
+                  <Link prefetch={true} href="/cart" className="hover:text-green-400 transition-colors flex items-center gap-2">
                     Carrello
                     {cartItemCount > 0 && (
                       <span className="bg-[#00C800] text-black text-xs font-bold px-2 py-0.5 rounded-full">
@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   </form>
                 </>
               ) : (
-                <Link href="/login" className="hover:text-green-400 transition-colors">Area Clienti</Link>
+                <Link prefetch={true} href="/login" className="hover:text-green-400 transition-colors">Area Clienti</Link>
               )}
             </nav>
           </div>

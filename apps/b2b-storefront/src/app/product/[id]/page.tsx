@@ -121,9 +121,9 @@ export default async function ProductPage({ params }: { params: { id: string } }
     <div className="w-full max-w-7xl mx-auto px-4 py-8 md:py-12">
       {/* BREADCRUMB */}
       <nav className="text-xs text-gray-500 mb-8 flex items-center gap-2 font-medium">
-        <Link href="/" className="hover:text-[#00C800] transition-colors">Home</Link>
+        <Link prefetch={true} href="/" className="hover:text-[#00C800] transition-colors">Home</Link>
         <span>/</span>
-        <Link href="/catalog" className="hover:text-[#00C800] transition-colors">Catalogo Prodotti</Link>
+        <Link prefetch={true} href="/catalog" className="hover:text-[#00C800] transition-colors">Catalogo Prodotti</Link>
         <span>/</span>
         <span className="text-gray-900 font-bold truncate max-w-[200px] md:max-w-md">{product.title || product.original_name}</span>
       </nav>

@@ -243,7 +243,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
               const isOutOfStock = (product.stock || 0) <= 0;
               return (
                 <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative">
-                  <Link href={`/product/${product.id || product.sku}`} className="relative w-full h-48 bg-white flex items-center justify-center p-4 border-b border-gray-100 group">
+                  <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="relative w-full h-48 bg-white flex items-center justify-center p-4 border-b border-gray-100 group">
                     {product.image_url ? (
                       <img 
                         src={product.image_url} 
@@ -268,7 +268,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                       </div>
                     </div>
                     
-                    <Link href={`/product/${product.id || product.sku}`} className="flex-1">
+                    <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="flex-1">
                       <h3 className="text-sm font-bold text-gray-900 line-clamp-3 mb-4 hover:text-[#00C800] transition-colors leading-snug" title={product.title || product.original_name}>
                         {product.title || product.original_name}
                       </h3>
@@ -306,7 +306,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                         </>
                       ) : (
                         <div className="w-full text-center">
-                          <Link href="/login" className="text-xs font-bold uppercase tracking-wider text-[#00C800] hover:text-green-700 block w-full bg-[#00C800]/10 rounded py-2 transition-colors">
+                          <Link prefetch={true} href="/login" className="text-xs font-bold uppercase tracking-wider text-[#00C800] hover:text-green-700 block w-full bg-[#00C800]/10 rounded py-2 transition-colors">
                             Accedi
                           </Link>
                         </div>
