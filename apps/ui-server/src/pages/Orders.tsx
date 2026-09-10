@@ -420,7 +420,7 @@ export default function Orders() {
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
                   >
                     <div>
-                      <p style={{ fontWeight: 600, marginBottom: '0.2rem' }}>Articolo: {item.sku}</p>
+                      <p style={{ fontWeight: 600, marginBottom: '0.2rem' }}>{item.title || item.sku}</p>
                       <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Tag size={12} /> SKU: {item.sku} <span style={{ color: 'var(--color-border)' }}>|</span> Q.tà: {item.quantity}
                       </p>

@@ -54,6 +54,13 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         b2bPrisma.b2BOrder.count({ where })
       ]);
 
+      const allSkus = [...new Set(data.flatMap(o => o.items.map((i: any) => i.sku)))];
+      const products = await prisma.product.findMany({
+        where: { sku: { in: allSkus } },
+        select: { sku: true, title: true, originalName: true }
+      });
+      const productMap = new Map(products.map(p => [p.sku, p.title || p.originalName]));
+
       const formattedData = data.map((o: any) => ({
         id: o.id,
         orderNumber: `#${o.id.slice(-6).toUpperCase()}`,
@@ -65,7 +72,10 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         status: o.status,
         fulfillmentStatus: o.status === 'APPROVED' ? 'unfulfilled' : 'pending',
         user: o.user, // Pass the full user object for B2B
-        items: o.items, // Pass the full items array for B2B
+        items: o.items.map((item: any) => ({
+          ...item,
+          title: productMap.get(item.sku) || item.sku
+        })), // Pass the enriched items array for B2B
         shopifyCustomer: o.user ? {
           firstName: o.user.firstName,
           lastName: o.user.lastName,
