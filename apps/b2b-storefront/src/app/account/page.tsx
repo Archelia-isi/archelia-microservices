@@ -30,10 +30,8 @@ export default async function AccountDashboard() {
           <h2 className="text-xl font-bold mb-4">Dati Aziendali</h2>
           <div className="space-y-3 text-gray-700">
             <p><span className="font-medium text-gray-500">Ragione Sociale:</span> {user.companyName || 'Non specificato'}</p>
-            <p><span className="font-medium text-gray-500">Referente:</span> {user.firstName} {user.lastName}</p>
             <p><span className="font-medium text-gray-500">P.IVA:</span> {user.vatNumber || 'Non specificata'}</p>
             <p><span className="font-medium text-gray-500">Email:</span> {user.email || 'Non specificata'}</p>
-            <p><span className="font-medium text-gray-500">Codice Cliente (Zucchetti):</span> {user.zucchettiCode || 'Non assegnato'}</p>
           </div>
         </div>
 
@@ -42,8 +40,8 @@ export default async function AccountDashboard() {
           <h2 className="text-xl font-bold mb-4">Il Tuo Agente</h2>
           {user.agent ? (
             <div className="space-y-3 text-gray-700">
-              <p><span className="font-medium text-gray-500">Nome:</span> {user.agent.firstName} {user.agent.lastName}</p>
-              <p><span className="font-medium text-gray-500">Email:</span> {user.agent.email || 'N/D'}</p>
+              <p><span className="font-medium text-gray-500">Nome:</span> {user.agent.companyName || `${user.agent.firstName} ${user.agent.lastName}`}</p>
+              <p><span className="font-medium text-gray-500">Email:</span> {user.agent.email || 'Non disponibile'}</p>
               <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded text-sm text-gray-600">
                 Il tuo agente è a disposizione per preventivi personalizzati e assistenza sugli ordini.
               </div>
