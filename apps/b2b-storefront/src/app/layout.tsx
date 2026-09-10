@@ -32,11 +32,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const impersonatedClientName = cookieStore.get('impersonatedClientName')?.value;
 
   return (
-    <html lang="it" className="w-full overflow-x-hidden">
+    <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
-          <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-6">
+          <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-6 shrink-0">
               <Link prefetch={true} href="/" className="flex items-center">
                 <Image 
                   src="/logo-izzo.png" 
@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <CategoryMenu />
             </div>
 
-            <form action="/catalog" method="GET" className="hidden md:flex flex-1 max-w-xl mx-3 md:mx-8 relative">
+            <form action="/catalog" method="GET" className="hidden md:flex flex-1 min-w-0 max-w-xl mx-3 md:mx-8 relative">
               <input 
                 type="text" 
                 name="q"
@@ -64,7 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </button>
             </form>
 
-            <nav className="flex space-x-3 md:space-x-6 items-center font-medium">
+            <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0 overflow-x-auto">
               {session?.user?.role === 'AGENT' && (
                 <>
                   <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
