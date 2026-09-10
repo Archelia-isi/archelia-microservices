@@ -40,7 +40,15 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         where.status = status;
       }
       if (search) {
-        // ... (we can add basic search for b2b if needed, currently skip)
+        where.OR = [
+          { id: { contains: search, mode: 'insensitive' } },
+          { user: { firstName: { contains: search, mode: 'insensitive' } } },
+          { user: { lastName: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+          { user: { companyName: { contains: search, mode: 'insensitive' } } },
+          { user: { agent: { firstName: { contains: search, mode: 'insensitive' } } } },
+          { user: { agent: { lastName: { contains: search, mode: 'insensitive' } } } }
+        ];
       }
 
       const [data, total] = await Promise.all([
@@ -49,7 +57,10 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
-          include: { user: true, items: true }
+          include: { 
+            user: { include: { agent: true } }, 
+            items: true 
+          }
         }),
         b2bPrisma.b2BOrder.count({ where })
       ]);

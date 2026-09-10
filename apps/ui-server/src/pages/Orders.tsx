@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ShoppingCart, Inbox, AlertTriangle, CheckCircle, Clock, MapPin, Package, Tag, Box, Image as ImageIcon } from 'lucide-react';
+import { ShoppingCart, Inbox, AlertTriangle, CheckCircle, Clock, MapPin, Package, Tag, Box, Image as ImageIcon, Search, X } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Loader from '../components/ui/Loader';
 import Badge from '../components/ui/Badge';
@@ -33,11 +33,18 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [loadingProduct, setLoadingProduct] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchOrders = async (showLoading = true) => {
+  const fetchOrders = async (showLoading = true, searchStr = searchQuery) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/orders?limit=50`, {
+      const qs = new URLSearchParams();
+      qs.set('limit', '50');
+      if (searchStr) qs.set('search', searchStr);
+      
+      const res = await fetch(`${API_URL}/api/admin/orders?${qs.toString()}`, {
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'X-Store-Context': currentStore
@@ -213,9 +220,43 @@ export default function Orders() {
               ]}
             />
             {(activeTab === 'orders' || activeTab === 'pending') && (
-              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
-                <ShoppingCart size={16} /> Sincronizza Ora
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }}>
+                    <Search size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cerca per agente, cliente, numero..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchOrders(true, searchQuery)}
+                    style={{
+                      padding: '0.5rem 1rem 0.5rem 2.2rem',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      fontSize: '0.85rem',
+                      width: '280px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,200,0,0.1)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => { setSearchQuery(''); fetchOrders(true, ''); }}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
+                  <ShoppingCart size={16} /> Sincronizza Ora
+                </button>
+              </div>
             )}
           </div>
         </StickyHeader>
