@@ -240,7 +240,8 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product: any) => {
-              const isOutOfStock = (product.stock || 0) <= 0;
+              const totalStock = (product.stock_main || 0) + (product.stock_ek || 0) || product.stock || 0;
+              const isOutOfStock = totalStock <= 0;
               return (
                 <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative">
                   <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="relative w-full h-48 bg-white flex items-center justify-center p-4 border-b border-gray-100 group">
@@ -263,8 +264,22 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                   <div className="p-4 flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-2">
                       <div className="text-xs font-mono font-bold text-gray-500">{product.sku}</div>
-                      <div className="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800]">
-                        Disp: {product.stock || 0}
+                      <div className="flex flex-col gap-0.5 items-end">
+                        {(product.stock_main > 0 || (!('stock_main' in product) && product.stock > 0)) && (
+                          <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800]">
+                            Pronta: {product.stock_main ?? product.stock}
+                          </div>
+                        )}
+                        {product.stock_ek > 0 && (
+                          <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700">
+                            7gg: {product.stock_ek}
+                          </div>
+                        )}
+                        {!(product.stock_main > 0) && !(product.stock_ek > 0) && (!('stock_main' in product) && !(product.stock > 0) || ('stock_main' in product)) && (
+                          <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600">
+                            Esaurito
+                          </div>
+                        )}
                       </div>
                     </div>
                     
