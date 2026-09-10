@@ -72,9 +72,27 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
       >
         {products.map((prod, idx) => (
           <div key={idx} className="snap-start shrink-0 w-[200px] md:w-[240px] bg-white border border-gray-100 rounded shadow-sm hover:shadow-md transition-shadow group relative flex flex-col">
-            <div className="absolute top-2 right-2 z-10 text-xs font-bold bg-[#00C800] text-white px-2 py-1 rounded">
+            <div className="absolute top-2 right-2 z-10 text-[10px] font-bold bg-[#00C800] text-white px-2 py-0.5 rounded shadow-sm">
               B2B
             </div>
+            <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+              {(prod.stock_main > 0 || (!('stock_main' in prod) && prod.stock > 0)) && (
+                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800] border border-[#00C800]/20 shadow-sm backdrop-blur-sm">
+                  2GG: {prod.stock_main ?? prod.stock}
+                </div>
+              )}
+              {prod.stock_ek > 0 && (
+                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200 shadow-sm backdrop-blur-sm">
+                  7GG: {prod.stock_ek}
+                </div>
+              )}
+              {!(prod.stock_main > 0) && !(prod.stock_ek > 0) && (!('stock_main' in prod) && !(prod.stock > 0) || ('stock_main' in prod)) && (
+                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
+                  Esaurito
+                </div>
+              )}
+            </div>
+            
             <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="w-full aspect-square p-4 flex items-center justify-center bg-white relative">
               {prod.image_url ? (
                 <img src={prod.image_url} alt={prod.title} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
