@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const impersonatedClientName = cookieStore.get('impersonatedClientName')?.value;
 
   return (
-    <html lang="it">
+    <html lang="it" className="max-w-[100vw] overflow-x-hidden">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
           <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
