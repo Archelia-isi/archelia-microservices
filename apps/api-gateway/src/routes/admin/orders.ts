@@ -59,7 +59,7 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         where: { sku: { in: allSkus } },
         select: { sku: true, title: true, originalName: true }
       });
-      const productMap = new Map(products.map(p => [p.sku, p.title || p.originalName]));
+      const productMap = new Map(products.map(p => [p.sku, p.originalName || p.title]));
 
       const formattedData = data.map((o: any) => ({
         id: o.id,
