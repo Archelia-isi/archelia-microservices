@@ -64,10 +64,13 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         currency: 'EUR',
         status: o.status,
         fulfillmentStatus: o.status === 'APPROVED' ? 'unfulfilled' : 'pending',
+        user: o.user, // Pass the full user object for B2B
+        items: o.items, // Pass the full items array for B2B
         shopifyCustomer: o.user ? {
           firstName: o.user.firstName,
           lastName: o.user.lastName,
-          email: o.user.email
+          email: o.user.email,
+          companyName: o.user.companyName
         } : null,
         zucchettiQueue: { status: o.status === 'APPROVED' ? 'PENDING' : 'WAITING' }, // Mock queue for UI
       }));

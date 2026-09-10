@@ -201,8 +201,8 @@ export default function Orders() {
         pointerEvents: isAppReady ? 'auto' : 'none',
         transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
-        <StickyHeader>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        <StickyHeader paddingY="sm" backgroundOpacity={0}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
             <Tabs 
               activeTab={activeTab}
               onChange={(id) => setActiveTab(id as any)}
@@ -220,9 +220,9 @@ export default function Orders() {
           </div>
         </StickyHeader>
 
-        <div style={{ padding: '2rem' }}>
+        <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
           {(activeTab === 'orders' || activeTab === 'pending') ? (
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+          <GlassPanel padding="none">
             {loading && orders.length === 0 ? (
               <div className="flex-center p-8">
                 <div className="loading-spinner"></div>
@@ -241,14 +241,14 @@ export default function Orders() {
               <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ backgroundColor: 'var(--color-bg-alt)', borderBottom: '1px solid var(--color-border)' }}>
-                    <th className="text-left font-bold" style={{ padding: '1rem' }}>ID Ordine</th>
-                    <th className="text-left font-bold" style={{ padding: '1rem' }}>Data</th>
-                    <th className="text-left font-bold" style={{ padding: '1rem' }}>Cliente</th>
-                    <th className="text-left font-bold" style={{ padding: '1rem' }}>Totale</th>
-                    <th className="text-left font-bold" style={{ padding: '1rem' }}>Stato {currentStore === 'B2B' ? '' : 'Zucchetti'}</th>
-                  </tr>
-                </thead>
+                <tr>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>ID Ordine</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Data</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Cliente</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Totale</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Stato {currentStore === 'B2B' ? '' : 'Zucchetti'}</th>
+                </tr>
+              </thead>
                 <tbody>
                   {displayedOrders.map((order: any) => (
                     <tr 
@@ -303,7 +303,7 @@ export default function Orders() {
             </table>
           </div>
         )}
-        </div>
+        </GlassPanel>
         ) : (
           <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
             <GlassPanel padding="lg" radius="lg" style={{ marginBottom: '0' }}>
