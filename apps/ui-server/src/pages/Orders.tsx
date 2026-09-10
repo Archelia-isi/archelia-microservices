@@ -437,8 +437,8 @@ export default function Orders() {
                            Totale riga: €{(item.finalPrice * item.quantity).toFixed(2)}
                          </div>
                        )}
-                       {scontoPerc > 0 && (
-                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {getDiscountString(scontoPerc)}</div>
+                       {(item.discountString || scontoPerc > 0) && (
+                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {item.discountString ? item.discountString : getDiscountString(scontoPerc)}</div>
                        )}
                     </div>
                   </div>
