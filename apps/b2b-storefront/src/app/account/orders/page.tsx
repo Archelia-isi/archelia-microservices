@@ -17,7 +17,7 @@ export default async function AccountOrdersPage() {
   });
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
+    <div>
       <h1 className="text-3xl font-bold mb-8">I miei Ordini e Preventivi</h1>
 
       {orders.length === 0 ? (

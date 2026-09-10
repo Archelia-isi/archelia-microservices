@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
               {isAuthenticated ? (
                 <>
-                  <Link href="/account/orders" className="hover:text-green-400 transition-colors">I miei Ordini</Link>
+                  <Link href="/account" className="hover:text-green-400 transition-colors">Area Privata</Link>
                   <Link href="/cart" className="hover:text-green-400 transition-colors flex items-center gap-2">
                     Carrello
                     {cartItemCount > 0 && (
