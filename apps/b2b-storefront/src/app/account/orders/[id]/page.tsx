@@ -58,7 +58,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       ...item,
       basePrice,
       product: p ? {
-        title: p.title || p.original_name,
+        title: (p.original_name || p.title) + ' - ' + p.sku,
         imageUrl: p.image_url || '/placeholder.png',
         sku: p.sku
       } : null

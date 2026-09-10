@@ -78,7 +78,7 @@ export default async function Home() {
                 <div className="w-full h-full bg-gray-50 rounded"></div>
               )}
             </div>
-            <div className="text-[10px] text-gray-500 text-center line-clamp-1 w-full px-1" title={prod.title || prod.original_name}>{prod.title || prod.original_name || 'Prodotto'}</div>
+            <div className="text-[10px] text-gray-500 text-center line-clamp-1 w-full px-1" title={`${prod.original_name || prod.title} - ${prod.sku || prod.natural_sku}`}>{prod.original_name || prod.title || 'Prodotto'} - {prod.sku || prod.natural_sku}</div>
           </Link>
         ))}
       </div>

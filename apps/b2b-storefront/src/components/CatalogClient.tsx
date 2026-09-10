@@ -269,8 +269,8 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                     </div>
                     
                     <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="flex-1">
-                      <h3 className="text-sm font-bold text-gray-900 line-clamp-3 mb-4 hover:text-[#00C800] transition-colors leading-snug" title={product.title || product.original_name}>
-                        {product.title || product.original_name}
+                      <h3 className="text-sm font-bold text-gray-900 line-clamp-3 mb-4 hover:text-[#00C800] transition-colors leading-snug" title={`${product.original_name || product.title} - ${product.sku || product.natural_sku}`}>
+                        {product.original_name || product.title} - {product.sku || product.natural_sku}
                       </h3>
                     </Link>
                     

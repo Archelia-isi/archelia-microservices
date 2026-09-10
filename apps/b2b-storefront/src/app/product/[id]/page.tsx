@@ -125,13 +125,13 @@ export default async function ProductPage({ params }: { params: { id: string } }
         <span>/</span>
         <Link prefetch={true} href="/catalog" className="hover:text-[#00C800] transition-colors">Catalogo Prodotti</Link>
         <span>/</span>
-        <span className="text-gray-900 font-bold truncate max-w-[200px] md:max-w-md">{product.title || product.original_name}</span>
+        <span className="text-gray-900 font-bold truncate max-w-[200px] md:max-w-md">{product.original_name || product.title} - {product.sku || product.natural_sku}</span>
       </nav>
 
       <div className="flex flex-col lg:flex-row gap-12">
         {/* IMAGE GALLERY */}
         <div className="w-full lg:w-1/2 flex flex-col gap-4">
-          <ProductGallery images={images} alt={product.title || product.original_name || 'Prodotto'} inStock={product.stock > 0} />
+          <ProductGallery images={images} alt={product.original_name || product.title || 'Prodotto'} inStock={product.stock > 0} />
         </div>
 
         {/* PRODUCT INFO & BUY BOX */}
@@ -142,7 +142,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
           </div>
 
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            {product.title || product.original_name}
+            {product.original_name || product.title} - {product.sku || product.natural_sku}
           </h1>
 
           {/* BUY BOX (Client Component per gestire quantità) */}
