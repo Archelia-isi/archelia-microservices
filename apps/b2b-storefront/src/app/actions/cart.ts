@@ -181,46 +181,29 @@ export async function removeFromCart(itemId: string) {
   return { success: true };
 }
 
-export async function resumeDraftOrder(orderId: string) {
+export async function acceptDraftOrder(orderId: string) {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
     const order = await prisma.b2BOrder.findUnique({
-      where: { id: orderId },
-      include: { items: true }
+      where: { id: orderId }
     });
 
     if (!order) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'DRAFT') return { success: false, error: 'L\'ordine non è un preventivo' };
     if (order.userId !== session.userId) return { success: false, error: 'Non autorizzato' };
 
-    await prisma.b2BCart.deleteMany({
-      where: { userId: session.userId, status: 'ACTIVE' }
+    // Set order status to PENDING_AGENT_REVIEW (so the agent sees that the client accepted it)
+    await prisma.b2BOrder.update({
+      where: { id: orderId },
+      data: { status: 'PENDING_AGENT_REVIEW' }
     });
 
-    await prisma.b2BCart.create({
-      data: {
-        userId: session.userId,
-        status: 'ACTIVE',
-        items: {
-          create: order.items.map(item => ({
-            sku: item.sku,
-            quantity: item.quantity,
-            extraDiscount: 0,
-            extraDiscountMinQty: null
-          }))
-        }
-      }
-    });
-
-    await prisma.b2BOrder.delete({ where: { id: orderId } });
-
-    revalidatePath('/cart');
     revalidatePath('/account/orders');
     return { success: true };
   } catch (error: any) {
-    console.error('resumeDraftOrder error:', error);
+    console.error('acceptDraftOrder error:', error);
     return { success: false, error: error.message };
   }
 }

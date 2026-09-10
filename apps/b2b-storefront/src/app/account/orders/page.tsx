@@ -2,7 +2,7 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import ResumeDraftButton from './ResumeDraftButton';
+import AcceptDraftButton from './AcceptDraftButton';
 
 export default async function AccountOrdersPage() {
   const session = await verifySession();
@@ -72,7 +72,7 @@ export default async function AccountOrdersPage() {
                   </div>
                   
                   {isDraft && (
-                    <ResumeDraftButton orderId={order.id} />
+                    <AcceptDraftButton orderId={order.id} />
                   )}
                 </div>
               </div>
