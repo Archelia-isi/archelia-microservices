@@ -194,10 +194,10 @@ export async function acceptDraftOrder(orderId: string) {
     if (order.status !== 'DRAFT') return { success: false, error: 'L\'ordine non è un preventivo' };
     if (order.userId !== session.userId) return { success: false, error: 'Non autorizzato' };
 
-    // Set order status to PENDING_AGENT_REVIEW (so the agent sees that the client accepted it)
+    // Set order status to APPROVED (direct approval by the client)
     await prisma.b2BOrder.update({
       where: { id: orderId },
-      data: { status: 'PENDING_AGENT_REVIEW' }
+      data: { status: 'APPROVED' }
     });
 
     revalidatePath('/account/orders');
