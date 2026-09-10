@@ -37,7 +37,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
       const p = await getProductById(item.sku) as any;
       if (!p) continue;
 
-      let originalPrice = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
+      let originalPrice = Number(p.price_b2b || 0);
       let finalPrice = originalPrice;
       
       if (genericDiscount > 0) {

@@ -35,7 +35,7 @@ export default async function Home() {
 
   const mapPrices = (products: any[]) => {
     return products.map(p => {
-      let finalPrice = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
+      let finalPrice = Number(p.price_b2b || 0);
       if (genericDiscount > 0) {
         finalPrice = finalPrice * (1 - (genericDiscount / 100));
       }

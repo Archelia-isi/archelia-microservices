@@ -75,7 +75,7 @@ export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0 }: { 
   };
 
   const getDiscountedPrice = (product: any) => {
-    let final = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
+    let final = Number(product.price_b2b || 0);
     if (userDiscount > 0) {
       final = final * (1 - (userDiscount / 100));
     }

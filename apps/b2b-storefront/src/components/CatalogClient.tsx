@@ -281,18 +281,8 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                       {isAuthenticated ? (
                         <>
                           <div>
-                            {product.price_b2b && product.price && product.price_b2b < product.price && (
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <span className="text-[10px] text-gray-400 line-through">
-                                  € {Number(product.price).toFixed(2).replace('.', ',')}
-                                </span>
-                                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                                  -{Math.round((1 - (product.price_b2b / product.price)) * 100)}%
-                                </span>
-                              </div>
-                            )}
                             <div className="text-lg font-bold text-gray-900 leading-none">
-                              € {Number(product.price_b2b || product.price || 0).toFixed(2).replace('.', ',')}
+                              € {Number(product.price_b2b || 0).toFixed(2).replace('.', ',')}
                             </div>
                           </div>
                           <AddToCartButton 
