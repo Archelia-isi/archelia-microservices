@@ -10,6 +10,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@archelia/b2b-database": "^1.0.0",
     "@archelia/core": "*",
     "@archelia/database": "*",
     "@archelia/shopify": "*",
