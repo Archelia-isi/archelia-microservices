@@ -56,13 +56,11 @@ export default async function CartPage() {
   const finalItems = populatedItems.map(item => {
     if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0, basePrice: 0 };
     
-    let originalPrice = Number(item.product.price);
+    let originalPrice = Number(item.product.priceB2b) > 0 ? Number(item.product.priceB2b) : Number(item.product.price);
     let basePrice = originalPrice;
     
     if (genericDiscount > 0) {
       basePrice = basePrice * (1 - (genericDiscount / 100));
-    } else if (Number(item.product.priceB2b) > 0) {
-      basePrice = Number(item.product.priceB2b);
     }
 
     let finalPrice = basePrice;

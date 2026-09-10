@@ -47,10 +47,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     
     let basePrice = item.originalPrice;
     if (p) {
+      basePrice = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
       if (genericDiscount > 0) {
         basePrice = basePrice * (1 - (genericDiscount / 100));
-      } else if (Number(p.price_b2b) > 0) {
-        basePrice = Number(p.price_b2b);
       }
     }
 
