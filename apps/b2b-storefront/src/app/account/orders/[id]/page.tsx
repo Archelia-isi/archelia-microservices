@@ -39,13 +39,28 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     statusText = 'Approvato';
   }
 
+  const { getEffectiveDiscount } = await import('@/lib/discount');
+  const genericDiscount = await getEffectiveDiscount();
+
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const p = await getProductById(item.sku) as any;
+    
+    let basePrice = item.originalPrice;
+    if (p) {
+      if (genericDiscount > 0) {
+        basePrice = basePrice * (1 - (genericDiscount / 100));
+      } else if (Number(p.price_b2b) > 0) {
+        basePrice = Number(p.price_b2b);
+      }
+    }
+
     return {
       ...item,
+      basePrice,
       product: p ? {
         title: p.title || p.original_name,
-        imageUrl: p.image_url || '/placeholder.png'
+        imageUrl: p.image_url || '/placeholder.png',
+        sku: p.sku
       } : null
     };
   }));
@@ -91,13 +106,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             {populatedItems.map((item) => (
               <div key={item.id} className="grid grid-cols-12 gap-4 p-4 items-center">
                 <div className="col-span-6 flex items-center gap-4">
-                  <div className="w-16 h-16 relative bg-white border border-gray-200 rounded flex-shrink-0">
-                    <Image
-                      src={item.product?.imageUrl || '/placeholder.png'}
-                      alt={item.sku}
-                      fill
-                      className="object-contain p-1"
-                    />
+                  <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
+                    <img src={item.product?.imageUrl || '/placeholder.png'} alt={item.product?.title || item.sku} className="object-contain w-full h-full" />
                   </div>
                   <div>
                     <div className="font-bold text-gray-900 line-clamp-2 leading-tight">
@@ -111,15 +121,32 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                   {item.quantity} pz.
                 </div>
 
-                <div className="col-span-2 text-right">
-                  <div className="font-bold text-gray-900">
-                    € {item.finalPrice.toFixed(2).replace('.', ',')}
-                  </div>
-                  {item.originalPrice > item.finalPrice && (
-                    <div className="text-xs text-gray-400 line-through">
-                      € {item.originalPrice.toFixed(2).replace('.', ',')}
+                <div className="col-span-2 text-right flex flex-col items-end">
+                  {item.originalPrice > (item.basePrice || item.finalPrice) && (
+                    <div className="flex items-center justify-end gap-1 mb-0.5">
+                      <span className="text-[10px] text-gray-400 line-through">
+                        € {item.originalPrice.toFixed(2).replace('.', ',')}
+                      </span>
+                      <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                        -{Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%
+                      </span>
                     </div>
                   )}
+                  
+                  {item.basePrice > item.finalPrice && (
+                    <div className="flex items-center justify-end gap-1 mb-0.5">
+                      <span className="text-[11px] text-gray-500 line-through">
+                        € {item.basePrice.toFixed(2).replace('.', ',')}
+                      </span>
+                      <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1 rounded">
+                        -{Math.round((1 - (item.finalPrice / item.basePrice)) * 100)}% Extra
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="font-bold text-sm text-gray-900">
+                    € {item.finalPrice.toFixed(2).replace('.', ',')}
+                  </div>
                 </div>
 
                 <div className="col-span-2 text-right font-bold text-[#00C800]">
