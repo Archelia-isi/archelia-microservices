@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Inbox, AlertTriangle, CheckCircle, Clock, MapPin, Package, Tag, Box, Image as ImageIcon } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Loader from '../components/ui/Loader';
@@ -19,7 +19,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pending' | 'settings'>('orders');
 
   // Settings state
   const [notificationSettings, setNotificationSettings] = useState<{ orderNotificationEmails: string[], telegramChatId: string }>({
@@ -189,7 +189,7 @@ export default function Orders() {
   return (
     <>
       <AppSplashScreen 
-        isAppReady={isAppReady} 
+        isLoading={!isAppReady} 
         appName="Gestione Ordini" 
         icon={<ShoppingCart size={32} color="var(--color-primary)" />} 
       />
@@ -231,6 +231,7 @@ export default function Orders() {
                 </p>
               </div>
             ) : (
+              <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead>
                   <tr style={{ backgroundColor: 'var(--color-bg-alt)', borderBottom: '1px solid var(--color-border)' }}>
@@ -242,7 +243,7 @@ export default function Orders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedOrders.map(order => (
+                  {displayedOrders.map((order: any) => (
                     <tr 
                       key={order.id} 
                       style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', transition: 'background 0.2s' }}
@@ -276,7 +277,7 @@ export default function Orders() {
                       )}
                     </td>
                     <td style={{ padding: '1rem', fontWeight: 500 }}>
-                      €{order.totalPrice?.toFixed(2) || '0.00'}
+                      €{order.totalPrice?.toFixed(2) || '0.00'}</td>
                     <td style={{ padding: '1rem' }}>
                       {getStatusBadge(order.zucchettiQueue?.status, order.status)}
                     </td>
