@@ -386,6 +386,21 @@ export default function Orders() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {selectedOrder.items?.map((item: any) => {
                   const scontoPerc = item.originalPrice > item.finalPrice ? Math.round(((item.originalPrice - item.finalPrice) / item.originalPrice) * 100) : 0;
+                  
+                  const getDiscountString = (perc: number) => {
+                    const map: Record<number, string> = {
+                      46: "40+10",
+                      55: "50+10",
+                      49: "40+15",
+                      60: "50+20",
+                      51: "40+10+10",
+                      37: "30+10",
+                      28: "20+10",
+                      19: "10+10"
+                    };
+                    return map[perc] ? `${map[perc]}%` : `${perc}%`;
+                  };
+
                   return (
                   <div 
                     key={item.id} 
@@ -411,19 +426,28 @@ export default function Orders() {
                       </p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                       {scontoPerc > 0 && (
-                         <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginRight: '0.5rem' }}>€{item.originalPrice?.toFixed(2)}</span>
+                       <div style={{ marginBottom: '0.2rem' }}>
+                         {scontoPerc > 0 && (
+                           <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginRight: '0.5rem' }}>€{item.originalPrice?.toFixed(2)}</span>
+                         )}
+                         <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>€{item.finalPrice?.toFixed(2)} {item.quantity > 1 ? 'cad.' : ''}</span>
+                       </div>
+                       {item.quantity > 1 && (
+                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)', marginTop: '0.2rem' }}>
+                           Totale riga: €{(item.finalPrice * item.quantity).toFixed(2)}
+                         </div>
                        )}
-                       <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>€{item.finalPrice?.toFixed(2)}</span>
                        {scontoPerc > 0 && (
-                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {scontoPerc}%</div>
+                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {getDiscountString(scontoPerc)}</div>
                        )}
                     </div>
                   </div>
                 )})}
               </div>
               <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', textAlign: 'right' }}>
-                <p style={{ fontSize: '1.2rem', fontWeight: 700, marginTop: '0.5rem' }}>Totale: €{selectedOrder.totalPrice?.toFixed(2)}</p>
+                <p style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)' }}>Imponibile: €{selectedOrder.subtotalPrice?.toFixed(2) || '0.00'}</p>
+                <p style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)' }}>IVA: €{((selectedOrder.totalPrice || 0) - (selectedOrder.subtotalPrice || selectedOrder.totalPrice || 0)).toFixed(2)}</p>
+                <p style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--color-text-primary)' }}>Totale: €{selectedOrder.totalPrice?.toFixed(2)}</p>
               </div>
             </div>
           </div>
