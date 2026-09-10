@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { prisma } from '@archelia/database';
+import { prisma as b2bPrisma } from '@archelia/b2b-database';
 import { authenticate, requireAdmin } from '../auth.js';
 import { log } from '@archelia/core';
 
@@ -32,8 +33,6 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
     const storeContext = request.headers['x-store-context'] as string;
 
     if (storeContext === 'B2B') {
-      const { prisma: b2bPrisma } = await import('@archelia/b2b-database');
-      
       const where: any = {};
       if (status) {
         where.status = status;
