@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../../../node_modules/@prisma/client-b2b"
+  output   = "../../node_modules/@prisma/client-b2b"
 }
 
 datasource db {
@@ -44,6 +44,7 @@ model B2BUser {
 
   sessions           B2BSession[]
   carts              B2BCart[]
+  orders             B2BOrder[]
 
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -74,6 +75,7 @@ model B2BCart {
   userId    String?
   user      B2BUser?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   status    CartStatus    @default(ACTIVE)
+  linkedOrderId String?
 
   items     B2BCartItem[]
 
@@ -84,15 +86,17 @@ model B2BCart {
 }
 
 model B2BCartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  cart      B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  cartId          String
+  cart            B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
   
-  sku       String
-  quantity  Int      @default(1)
+  sku             String
+  quantity        Int      @default(1)
+  extraDiscount   Float?   @default(0)
+  extraDiscountMinQty Int?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([cartId, sku])
   @@map("b2b_cart_items")
@@ -100,7 +104,53 @@ model B2BCartItem {
 
 enum CartStatus {
   ACTIVE
+  REVIEW
   CHECKOUT_PENDING
   COMPLETED
   ABANDONED
+}
+
+model B2BOrder {
+  id                    String          @id @default(cuid())
+  userId                String          // Il cliente finale
+  user                  B2BUser         @relation(fields: [userId], references: [id])
+  createdById           String          // Può essere il cliente stesso o l'agente
+  status                OrderStatus     @default(DRAFT)
+  
+  zucchettiOrderRef     String?         // Riferimento o numero ordine in Zucchetti
+  totalAmount           Float           @default(0)
+  totalIva              Float           @default(0)
+  
+  notes                 String?
+
+  items                 B2BOrderItem[]
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@map("b2b_orders")
+}
+
+model B2BOrderItem {
+  id              String    @id @default(cuid())
+  orderId         String
+  order           B2BOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  sku             String
+  quantity        Int       @default(1)
+  originalPrice   Float
+  finalPrice      Float     // Prezzo scontato finale
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("b2b_order_items")
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_AGENT_REVIEW
+  APPROVED
+  SENT_TO_ZUCCHETTI
+  ERROR
 }
