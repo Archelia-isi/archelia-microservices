@@ -11,6 +11,8 @@ interface AddToCartBoxProps {
 
 export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps) {
   const [quantity, setQuantity] = useState(1);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const decreaseQuantity = () => {
@@ -39,11 +41,11 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
     }
   };
 
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleAddToCart = () => {
     if (!isLoggedIn) {
-      alert("Devi accedere per poter aggiungere prodotti all'ordine.");
+      setErrorMessage("Devi accedere per poter aggiungere prodotti all'ordine.");
+      setShowErrorModal(true);
       return;
     }
     
@@ -52,14 +54,11 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
       if (res.success) {
         // Optimistic UI update
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: res.cartItemCount } }));
-        setIsSuccess(true);
         setQuantity(1);
         
-        setTimeout(() => {
-          setIsSuccess(false);
-        }, 2000);
       } else {
-        alert(`Errore: ${res.error}`);
+        setErrorMessage(res.error || 'Errore sconosciuto');
+        setShowErrorModal(true);
       }
     });
   };
@@ -68,6 +67,7 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
   const discountPercentage = hasDiscount ? Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100) : 0;
 
   return (
+    <>
     <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm sticky top-24">
       <div className="mb-4">
         <div className="text-xs text-gray-500 mb-1">Prezzo Riservato B2B</div>
@@ -130,24 +130,13 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
           <button 
             onClick={handleAddToCart}
             disabled={isPending || quantity < 1}
-            className={`flex-1 h-12 rounded flex items-center justify-center font-bold text-lg transition-colors ${
-              isSuccess 
-                ? 'bg-green-600 text-white' 
-                : 'bg-black text-white hover:bg-gray-900 disabled:bg-gray-300'
-            }`}
+            className="flex-1 h-12 rounded flex items-center justify-center font-bold text-lg transition-colors bg-black text-white hover:bg-gray-900 disabled:bg-gray-300"
           >
             {isPending ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-            ) : isSuccess ? (
-              <span className="flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Aggiunto
-              </span>
             ) : (
               <span className="flex items-center gap-2">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,5 +148,64 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
           </button>
       </div>
     </div>
+
+      {showErrorModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowErrorModal(false); }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden relative" onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+            <button 
+              type="button"
+              onClick={() => setShowErrorModal(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-black bg-gray-100 hover:bg-gray-200 rounded-full p-1 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+                        <div className="p-5">
+              <h3 className="text-red-600 font-bold text-lg mb-4 text-center">Impossibile Aggiungere</h3>
+              <p className="text-sm text-gray-600 mb-6 text-center">{errorMessage}</p>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative w-20 h-20 bg-gray-50 border border-gray-100 rounded flex-shrink-0">
+                  <img 
+                    src={product.image_url || '/placeholder.png'} 
+                    alt={product.title} 
+                    className="object-contain w-full h-full p-1"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-gray-900 leading-tight mb-1 line-clamp-2">{product.original_name || product.title}</h4>
+                  {hasDiscount ? (
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 line-through">€ {product.originalPriceB2b.toFixed(2)}</span>
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">-{discountPercentage}%</span>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 leading-none">€ {product.price_b2b?.toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <span className="text-lg font-bold text-gray-900">€ {product.price_b2b?.toFixed(2)}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 h-12">
+                <div className="flex items-center justify-between border border-gray-300 rounded w-28 bg-white">
+                  <button type="button" onClick={decreaseQuantity} className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-l">-</button>
+                  <span className="text-base font-bold select-none">{quantity}</span>
+                  <button type="button" onClick={increaseQuantity} className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-r">+</button>
+                </div>
+                <button 
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isPending}
+                  className="flex-1 bg-black text-white hover:bg-[#00C800] transition-colors font-bold text-sm rounded shadow-md"
+                >
+                  Aggiungi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

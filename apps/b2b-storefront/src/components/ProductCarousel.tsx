@@ -112,7 +112,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
                     </div>
                   </div>
                 )}
-                <AddToCartButton sku={prod.sku} isLoggedIn={isLoggedIn} />
+                <AddToCartButton product={prod} isLoggedIn={isLoggedIn} />
               </div>
             </div>
           </div>

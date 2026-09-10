@@ -296,7 +296,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                             </div>
                           </div>
                           <AddToCartButton 
-                            sku={product.sku} 
+                            product={product} 
                             isLoggedIn={isAuthenticated} 
                             disabled={isOutOfStock}
                             text={isOutOfStock ? 'Esaurito' : 'Aggiungi'}
