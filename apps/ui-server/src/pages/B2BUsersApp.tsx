@@ -195,6 +195,15 @@ export default function B2BUsersApp() {
     }
     toast.dismiss('check-u');
 
+    let matchedAgentId = formData.agentId;
+    if (c.zucchettiAgentCode) {
+      const foundAgent = agents.find(a => a.zucchettiCode === c.zucchettiAgentCode);
+      if (foundAgent) {
+        matchedAgentId = foundAgent.id;
+        toast.success(`Agente auto-assegnato: ${foundAgent.companyName || foundAgent.username}`);
+      }
+    }
+
     setFormData({
       ...formData,
       username: finalUsername,
@@ -205,6 +214,7 @@ export default function B2BUsersApp() {
       zucchettiPriceList: c.zucchettiPriceList || '',
       customerType: c.customerType || '',
       fido: c.fido || 0,
+      agentId: matchedAgentId,
       discount: c.discount || 0,
       address: c.address || '',
       city: c.city || '',

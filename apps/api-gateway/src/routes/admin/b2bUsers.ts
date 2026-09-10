@@ -383,7 +383,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            zip: c.an___cap || c.An___cap || '',
            province: c.anprovin || c.Anprovin || '',
            phone: c.antelefo || c.Antelefo || '',
-           email: c.an_email || c.An_email || ''
+           email: c.an_email || c.An_email || '',
+           zucchettiAgentCode: c.ancodag1 || c.Ancodag1 || ''
          };
       });
 
