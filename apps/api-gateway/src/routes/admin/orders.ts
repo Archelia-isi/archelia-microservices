@@ -8,7 +8,7 @@ import { log } from '@archelia/core';
 export async function adminOrdersRoutes(app: FastifyInstance) {
   const fastify = app.withTypeProvider<ZodTypeProvider>();
 
-  // Elenco Ordini Shopify
+  // Elenco Ordini
   fastify.get('/api/admin/orders', { 
     preHandler: [requireAdmin],
     schema: {
@@ -28,18 +28,66 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const storeType = (request.headers['x-store-context'] as 'RETAIL' | 'B2B') || 'RETAIL';
     const { page, limit, search, status } = request.query;
+    const storeContext = request.headers['x-store-context'] as string;
 
-    const where: any = { storeType };
+    if (storeContext === 'B2B') {
+      const { prisma: b2bPrisma } = await import('@archelia/b2b-database');
+      
+      const where: any = {};
+      if (status) {
+        where.status = status;
+      }
+      if (search) {
+        // ... (we can add basic search for b2b if needed, currently skip)
+      }
+
+      const [data, total] = await Promise.all([
+        b2bPrisma.b2BOrder.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+          include: { user: true }
+        }),
+        b2bPrisma.b2BOrder.count({ where })
+      ]);
+
+      const formattedData = data.map(o => ({
+        id: o.id,
+        orderNumber: `#${o.id.slice(-6).toUpperCase()}`,
+        shopifyOrderId: o.id, // For UI compatibility
+        createdAt: o.createdAt,
+        totalPrice: o.totalAmount + o.totalIva,
+        subtotalPrice: o.totalAmount,
+        currency: 'EUR',
+        status: o.status,
+        fulfillmentStatus: o.status === 'APPROVED' ? 'unfulfilled' : 'pending',
+        shopifyCustomer: o.user ? {
+          firstName: o.user.firstName,
+          lastName: o.user.lastName,
+          email: o.user.email
+        } : null,
+        zucchettiQueue: { status: o.status === 'APPROVED' ? 'PENDING' : 'WAITING' }, // Mock queue for UI
+      }));
+
+      return reply.status(200).send({
+        data: formattedData,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      });
+    }
+
+    // Default RETAIL logic
+    const where: any = {};
     if (search) {
       where.OR = [
-        { shopifyOrderId: { contains: search, mode: 'insensitive' } },
         { orderNumber: { contains: search, mode: 'insensitive' } },
-        { shopifyCustomerId: { contains: search, mode: 'insensitive' } }
+        { shopifyOrderId: { contains: search, mode: 'insensitive' } },
+        { tags: { contains: search, mode: 'insensitive' } }
       ];
     }
-    // TODO: Aggiungere filtro status (es. su zucchettiQueue.status se necessario)
 
     const [data, total] = await Promise.all([
       prisma.zelShopifyOrder.findMany({
@@ -52,7 +100,6 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
       prisma.zelShopifyOrder.count({ where })
     ]);
 
-    // Arricchimento dei dati cliente manualmente
     const customerIds = data.map(o => o.shopifyCustomerId).filter(Boolean) as string[];
     const customers = await prisma.zelShopifyCustomer.findMany({
       where: { shopifyId: { in: customerIds } }
