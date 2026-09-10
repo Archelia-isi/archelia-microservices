@@ -1,9 +1,11 @@
 'use server';
 
 import { verifySession } from '@/lib/session';
+import { getCart, saveCartToRedis, generateItemId, RedisCart } from '@/lib/cart';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { cookies } from "next/headers";
+
 
 export async function getTargetUserId(session: any) {
   if (session.user.role === 'AGENT') {
@@ -21,7 +23,7 @@ export async function getCartQuery() {
   if (reviewOrderId) {
     return { status: 'REVIEW' as const, linkedOrderId: reviewOrderId };
   }
-  return { status: 'ACTIVE' as const };
+  return { status: 'ACTIVE' as const, linkedOrderId: undefined };
 }
 
 export async function addToCart(sku: string, quantity: number) {
@@ -33,19 +35,11 @@ export async function addToCart(sku: string, quantity: number) {
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
+    
+    // Read from Redis (fallback to Postgres if missing)
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
 
-    // Trova il carrello attivo (o di revisione)
-    let cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, ...cartQuery },
-    });
-
-    if (!cart) {
-      cart = await prisma.b2BCart.create({
-        data: { userId: targetUserId, ...cartQuery },
-      });
-    }
-
-    // Leggi l'eventuale extra sconto dall'agente per i nuovi prodotti
+    // Read possible extra discount for agents
     let agentExtraDiscount = 0;
     if (session.user.role === 'AGENT') {
       const cookieVal = cookies().get('agentExtraDiscount')?.value;
@@ -54,41 +48,24 @@ export async function addToCart(sku: string, quantity: number) {
       }
     }
 
-    // Controlla se l'articolo è già nel carrello
-    const existingItem = await prisma.b2BCartItem.findUnique({
-      where: {
-        cartId_sku: {
-          cartId: cart.id,
-          sku: sku,
-        },
-      },
-    });
+    const existingItemIndex = cart.items.findIndex(i => i.sku === sku);
 
-    if (existingItem) {
-      await prisma.b2BCartItem.update({
-        where: { id: existingItem.id },
-        data: { 
-          quantity: existingItem.quantity + quantity,
-          // Se è l'agente che aggiunge, aggiorniamo lo sconto extra? O lo lasciamo com'è?
-          // Lasciamo l'extra sconto esistente, per sicurezza.
-        },
-      });
+    if (existingItemIndex >= 0) {
+      cart.items[existingItemIndex].quantity += quantity;
     } else {
-      await prisma.b2BCartItem.create({
-        data: {
-          cartId: cart.id,
-          sku: sku,
-          quantity: quantity,
-          extraDiscount: agentExtraDiscount,
-          extraDiscountMinQty: agentExtraDiscount > 0 ? quantity : null,
-        },
+      cart.items.push({
+        id: generateItemId(),
+        sku: sku,
+        quantity: quantity,
+        extraDiscount: agentExtraDiscount > 0 ? agentExtraDiscount : null,
+        extraDiscountMinQty: agentExtraDiscount > 0 ? quantity : null
       });
     }
 
+    // Save to Redis and trigger background sync
+    await saveCartToRedis(cart);
     revalidatePath('/cart');
-    revalidatePath('/catalog');
-    
-    return { success: true };
+    return { success: true, cartItemCount: cart.items.length };
   } catch (error: any) {
     console.error('Cart action error:', error);
     return { success: false, error: error.message };
@@ -99,42 +76,55 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
   const session = await verifySession();
   if (!session) return { success: false };
 
-  if (quantity <= 0) {
-    await prisma.b2BCartItem.delete({ where: { id: itemId } });
-  } else {
-    const dataToUpdate: any = { quantity };
-    if (resetExtraDiscount) {
-      dataToUpdate.extraDiscount = 0;
-      dataToUpdate.extraDiscountMinQty = null;
-    }
-    
-    await prisma.b2BCartItem.update({
-      where: { id: itemId },
-      data: dataToUpdate,
-    });
-  }
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
 
-  revalidatePath('/cart');
-  return { success: true };
+    if (quantity <= 0) {
+      cart.items = cart.items.filter(i => i.id !== itemId);
+    } else {
+      const itemIndex = cart.items.findIndex(i => i.id === itemId);
+      if (itemIndex >= 0) {
+        cart.items[itemIndex].quantity = quantity;
+        if (resetExtraDiscount) {
+          cart.items[itemIndex].extraDiscount = null;
+          cart.items[itemIndex].extraDiscountMinQty = null;
+        }
+      }
+    }
+
+    await saveCartToRedis(cart);
+    revalidatePath('/cart');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Update quantity error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function updateCartItemExtraDiscount(itemId: string, discount: number) {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 
-  const item = await prisma.b2BCartItem.findUnique({ where: { id: itemId } });
-  if (!item) return { success: false };
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
 
-  await prisma.b2BCartItem.update({
-    where: { id: itemId },
-    data: { 
-      extraDiscount: discount >= 0 ? discount : 0,
-      extraDiscountMinQty: discount > 0 ? item.quantity : null
-    },
-  });
+    const itemIndex = cart.items.findIndex(i => i.id === itemId);
+    if (itemIndex >= 0) {
+      cart.items[itemIndex].extraDiscount = discount > 0 ? discount : null;
+      cart.items[itemIndex].extraDiscountMinQty = discount > 0 ? cart.items[itemIndex].quantity : null;
+      await saveCartToRedis(cart);
+    revalidatePath('/cart');
+    }
 
-  revalidatePath('/cart');
-  return { success: true };
+    return { success: true };
+  } catch (error: any) {
+    console.error('Update discount error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function massUpdateCartExtraDiscount(discount: number) {
@@ -144,26 +134,17 @@ export async function massUpdateCartExtraDiscount(discount: number) {
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
-    
-    const cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, ...cartQuery },
-      include: { items: true },
-    });
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
 
-    if (cart && cart.items.length > 0) {
-      // Dobbiamo ciclare per impostare il minQty alla quantità attuale di ogni singolo prodotto
+    if (cart.items.length > 0) {
       for (const item of cart.items) {
-        await prisma.b2BCartItem.update({
-          where: { id: item.id },
-          data: { 
-            extraDiscount: discount >= 0 ? discount : 0,
-            extraDiscountMinQty: discount > 0 ? item.quantity : null
-          },
-        });
+        item.extraDiscount = discount > 0 ? discount : null;
+        item.extraDiscountMinQty = discount > 0 ? item.quantity : null;
       }
+      await saveCartToRedis(cart);
+    revalidatePath('/cart');
     }
 
-    revalidatePath('/cart');
     return { success: true };
   } catch (error: any) {
     console.error('massUpdate error:', error);
@@ -175,10 +156,20 @@ export async function removeFromCart(itemId: string) {
   const session = await verifySession();
   if (!session) return { success: false };
 
-  await prisma.b2BCartItem.delete({ where: { id: itemId } });
-  
-  revalidatePath('/cart');
-  return { success: true };
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+
+    cart.items = cart.items.filter(i => i.id !== itemId);
+    await saveCartToRedis(cart);
+    revalidatePath('/cart');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Remove item error:', error);
+    return { success: false, error: error.message };
+  }
 }
 
 export async function acceptDraftOrder(orderId: string) {
@@ -194,17 +185,14 @@ export async function acceptDraftOrder(orderId: string) {
     if (order.status !== 'DRAFT') return { success: false, error: 'L\'ordine non è un preventivo' };
     if (order.userId !== session.userId) return { success: false, error: 'Non autorizzato' };
 
-    // Set order status to APPROVED (direct approval by the client)
     await prisma.b2BOrder.update({
       where: { id: orderId },
       data: { status: 'APPROVED' }
     });
 
-    revalidatePath('/account/orders');
     return { success: true };
   } catch (error: any) {
     console.error('acceptDraftOrder error:', error);
     return { success: false, error: error.message };
   }
 }
-

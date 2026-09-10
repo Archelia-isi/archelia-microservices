@@ -6,6 +6,8 @@ import { verifySession } from '@/lib/session';
 import { logout } from './actions/auth';
 import CategoryMenu from '../components/CategoryMenu';
 import { prisma } from '@archelia/b2b-database';
+import { getCart } from '@/lib/cart';
+import CartBadge from '@/components/CartBadge';
 import { cookies } from 'next/headers';
 import AgentImpersonatorClient from '../components/AgentImpersonatorClient';
 
@@ -17,10 +19,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   
   let cartItemCount = 0;
   if (session) {
-    const cart = await prisma.b2BCart.findFirst({
-      where: { userId: session.userId, status: 'ACTIVE' },
-      include: { items: true }
-    });
+    const targetUserId = session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value
+      ? (await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } }))?.id || session.userId
+      : session.userId;
+    const cart = await getCart(targetUserId, "ACTIVE");
     if (cart) {
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
     }
@@ -78,14 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {isAuthenticated ? (
                 <>
                   <Link prefetch={true} href="/account" className="hover:text-green-400 transition-colors">Area Privata</Link>
-                  <Link prefetch={true} href="/cart" className="hover:text-green-400 transition-colors flex items-center gap-2">
-                    Carrello
-                    {cartItemCount > 0 && (
-                      <span className="bg-[#00C800] text-black text-xs font-bold px-2 py-0.5 rounded-full">
-                        {cartItemCount}
-                      </span>
-                    )}
-                  </Link>
+                  <CartBadge initialCount={cartItemCount} />
                   <form action={logout}>
                     <button type="submit" className="hover:text-green-400 transition-colors">Esci</button>
                   </form>
