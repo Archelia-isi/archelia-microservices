@@ -180,3 +180,48 @@ export async function removeFromCart(itemId: string) {
   revalidatePath('/cart');
   return { success: true };
 }
+
+export async function resumeDraftOrder(orderId: string) {
+  const session = await verifySession();
+  if (!session) return { success: false, error: 'Non autorizzato' };
+
+  try {
+    const order = await prisma.b2BOrder.findUnique({
+      where: { id: orderId },
+      include: { items: true }
+    });
+
+    if (!order) return { success: false, error: 'Ordine non trovato' };
+    if (order.status !== 'DRAFT') return { success: false, error: 'L\'ordine non è un preventivo' };
+    if (order.userId !== session.userId) return { success: false, error: 'Non autorizzato' };
+
+    await prisma.b2BCart.deleteMany({
+      where: { userId: session.userId, status: 'ACTIVE' }
+    });
+
+    await prisma.b2BCart.create({
+      data: {
+        userId: session.userId,
+        status: 'ACTIVE',
+        items: {
+          create: order.items.map(item => ({
+            sku: item.sku,
+            quantity: item.quantity,
+            extraDiscount: 0,
+            extraDiscountMinQty: null
+          }))
+        }
+      }
+    });
+
+    await prisma.b2BOrder.delete({ where: { id: orderId } });
+
+    revalidatePath('/cart');
+    revalidatePath('/account/orders');
+    return { success: true };
+  } catch (error: any) {
+    console.error('resumeDraftOrder error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
