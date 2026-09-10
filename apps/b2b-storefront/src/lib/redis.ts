@@ -7,11 +7,16 @@ const redisUser = process.env.REDISUSER || 'default';
 const redisUrl = process.env.REDIS_URL;
 
 export const redis = redisUrl 
-  ? new Redis(redisUrl, { lazyConnect: true })
+  ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 3 })
   : new Redis({
       host: redisHost,
       port: redisPort,
       password: redisPassword,
       username: redisUser,
-      lazyConnect: true
+      lazyConnect: true,
+      maxRetriesPerRequest: 3
     });
+
+redis.on('error', (err) => {
+  console.error('Redis connection error in Next.js:', err);
+});

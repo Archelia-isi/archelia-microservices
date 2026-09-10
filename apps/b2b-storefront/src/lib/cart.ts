@@ -31,7 +31,12 @@ function generateId() {
 
 export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACTIVE', linkedOrderId?: string): Promise<RedisCart> {
   const key = getCartKey(userId, status, linkedOrderId);
-  const data = await redis.get(key);
+  let data = null;
+  try {
+    data = await redis.get(key);
+  } catch (error) {
+    console.error('Redis GET failed, falling back to Prisma:', error);
+  }
   
   if (data) {
     try {
@@ -77,14 +82,22 @@ export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACT
   };
 
   // Save to Redis (TTL 30 days)
-  await redis.set(key, JSON.stringify(redisCart), 'EX', 60 * 60 * 24 * 30);
+  try {
+    await redis.set(key, JSON.stringify(redisCart), 'EX', 60 * 60 * 24 * 30);
+  } catch (error) {
+    console.error('Redis SET failed:', error);
+  }
   
   return redisCart;
 }
 
 export async function saveCartToRedis(cart: RedisCart): Promise<void> {
   const key = getCartKey(cart.userId, cart.status, cart.linkedOrderId || undefined);
-  await redis.set(key, JSON.stringify(cart), 'EX', 60 * 60 * 24 * 30);
+  try {
+    await redis.set(key, JSON.stringify(cart), 'EX', 60 * 60 * 24 * 30);
+  } catch (error) {
+    console.error('Redis SET failed:', error);
+  }
   
   // Trigger background sync
   syncCartToPostgres(cart).catch(err => {
