@@ -36,7 +36,7 @@ export default async function CartPage() {
       product: p ? {
         id: p.id,
         sku: p.sku,
-        title: (p.original_name || p.title) + ' - ' + p.sku,
+        title: p.original_name || p.title,
         original_name: p.original_name,
         price: p.price || 0,
         priceB2b: p.price_b2b || p.price || 0,

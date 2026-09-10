@@ -125,7 +125,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
         <span>/</span>
         <Link prefetch={true} href="/catalog" className="hover:text-[#00C800] transition-colors">Catalogo Prodotti</Link>
         <span>/</span>
-        <span className="text-gray-900 font-bold truncate max-w-[200px] md:max-w-md">{product.original_name || product.title} - {product.sku || product.natural_sku}</span>
+        <span className="text-gray-900 font-bold truncate max-w-[200px] md:max-w-md">{product.original_name || product.title}</span>
       </nav>
 
       <div className="flex flex-col lg:flex-row gap-12">
@@ -141,9 +141,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
             <span className="text-xs font-mono text-gray-400">SKU: {product.sku || product.natural_sku || 'N/D'}</span>
           </div>
 
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-6">
-            {product.original_name || product.title} - {product.sku || product.natural_sku}
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
+            {product.original_name || product.title}
           </h1>
+          <div className="text-sm text-gray-500 mb-6">
+            CODICE PRODOTTO: <span className="font-mono font-medium">{product.sku || product.natural_sku}</span>
+          </div>
 
           {/* BUY BOX (Client Component per gestire quantità) */}
           <AddToCartBox product={product} isLoggedIn={isAuthenticated} />

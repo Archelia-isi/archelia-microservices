@@ -119,7 +119,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
           <Link prefetch={true} href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-[#00C800] line-clamp-2">
             {p.title}
           </Link>
-          <span className="text-xs text-gray-500 font-mono mt-1">SKU: {p.sku}</span>
+          <span className="text-[10px] text-gray-500 font-mono mt-1 uppercase">CODICE PRODOTTO: {p.sku}</span>
           {p.stock > 0 ? (
             <span className="text-xs text-[#00C800] mt-1">Disponibile ({p.stock})</span>
           ) : (

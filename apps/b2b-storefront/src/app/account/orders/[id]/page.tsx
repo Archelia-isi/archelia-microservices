@@ -113,7 +113,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                     <div className="font-bold text-gray-900 line-clamp-2 leading-tight">
                       {item.product?.title || 'Prodotto Sconosciuto'}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">SKU: {item.sku}</div>
+                    <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wide">CODICE PRODOTTO: <span className="font-mono">{item.sku}</span></div>
                   </div>
                 </div>
 

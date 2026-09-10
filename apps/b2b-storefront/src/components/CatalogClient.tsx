@@ -269,9 +269,12 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                     </div>
                     
                     <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="flex-1">
-                      <h3 className="text-sm font-bold text-gray-900 line-clamp-3 mb-4 hover:text-[#00C800] transition-colors leading-snug" title={`${product.original_name || product.title} - ${product.sku || product.natural_sku}`}>
-                        {product.original_name || product.title} - {product.sku || product.natural_sku}
+                      <h3 className="text-sm font-bold text-gray-900 line-clamp-2 mb-1 hover:text-[#00C800] transition-colors leading-snug" title={product.original_name || product.title}>
+                        {product.original_name || product.title}
                       </h3>
+                      <div className="text-[11px] text-gray-500 mb-4 uppercase tracking-wide">
+                        CODICE PRODOTTO: <span className="font-mono">{product.sku || product.natural_sku}</span>
+                      </div>
                     </Link>
                     
                     <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">

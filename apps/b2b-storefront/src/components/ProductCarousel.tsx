@@ -88,11 +88,11 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
               <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{prod.vendor || 'IZZO'}</span>
               <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
                 <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="hover:text-[#00C800] transition-colors">
-                  {prod.original_name || prod.title} - {prod.sku || prod.natural_sku}
+                  {prod.original_name || prod.title}
                 </Link>
               </h3>
-              <div className="text-xs text-gray-500 mb-3 font-mono truncate">
-                SKU: {prod.sku || 'N/D'}
+              <div className="text-[10px] text-gray-500 mb-3 uppercase tracking-wide truncate">
+                CODICE PRODOTTO: <span className="font-mono">{prod.sku || prod.natural_sku || 'N/D'}</span>
               </div>
               <div className="mt-auto flex flex-col gap-3">
                 {isLoggedIn && (
