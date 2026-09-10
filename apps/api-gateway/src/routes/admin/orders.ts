@@ -31,6 +31,8 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { page, limit, search, status } = request.query;
     const storeContext = request.headers['x-store-context'] as string;
+    
+    console.log('[DEBUG] X-Store-Context received:', storeContext, 'Headers:', request.headers);
 
     if (storeContext === 'B2B') {
       const where: any = {};
