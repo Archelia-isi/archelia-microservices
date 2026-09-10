@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { prisma } from '@archelia/database';
+import { prisma as b2bPrisma } from '@archelia/b2b-database';
 import { authenticate, requireAdmin } from '../auth.js';
 import { log } from '@archelia/core';
 
@@ -30,16 +31,24 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { page, limit, search, status } = request.query;
     const storeContext = request.headers['x-store-context'] as string;
+    
+    console.log('[DEBUG] X-Store-Context received:', storeContext, 'Headers:', request.headers);
 
     if (storeContext === 'B2B') {
-      const { prisma: b2bPrisma } = await import('@archelia/b2b-database');
-      
       const where: any = {};
       if (status) {
         where.status = status;
       }
       if (search) {
-        // ... (we can add basic search for b2b if needed, currently skip)
+        where.OR = [
+          { id: { contains: search, mode: 'insensitive' } },
+          { user: { firstName: { contains: search, mode: 'insensitive' } } },
+          { user: { lastName: { contains: search, mode: 'insensitive' } } },
+          { user: { email: { contains: search, mode: 'insensitive' } } },
+          { user: { companyName: { contains: search, mode: 'insensitive' } } },
+          { user: { agent: { firstName: { contains: search, mode: 'insensitive' } } } },
+          { user: { agent: { lastName: { contains: search, mode: 'insensitive' } } } }
+        ];
       }
 
       const [data, total] = await Promise.all([
@@ -48,12 +57,22 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           skip: (page - 1) * limit,
           take: limit,
-          include: { user: true }
+          include: { 
+            user: { include: { agent: true } }, 
+            items: true 
+          }
         }),
         b2bPrisma.b2BOrder.count({ where })
       ]);
 
-      const formattedData = data.map(o => ({
+      const allSkus = [...new Set(data.flatMap(o => o.items.map((i: any) => i.sku)))];
+      const products = await prisma.product.findMany({
+        where: { sku: { in: allSkus } },
+        select: { sku: true, title: true, originalName: true }
+      });
+      const productMap = new Map(products.map(p => [p.sku, p.originalName || p.title]));
+
+      const formattedData = data.map((o: any) => ({
         id: o.id,
         orderNumber: `#${o.id.slice(-6).toUpperCase()}`,
         shopifyOrderId: o.id, // For UI compatibility
@@ -63,10 +82,16 @@ export async function adminOrdersRoutes(app: FastifyInstance) {
         currency: 'EUR',
         status: o.status,
         fulfillmentStatus: o.status === 'APPROVED' ? 'unfulfilled' : 'pending',
+        user: o.user, // Pass the full user object for B2B
+        items: o.items.map((item: any) => ({
+          ...item,
+          title: productMap.get(item.sku) || item.sku
+        })), // Pass the enriched items array for B2B
         shopifyCustomer: o.user ? {
           firstName: o.user.firstName,
           lastName: o.user.lastName,
-          email: o.user.email
+          email: o.user.email,
+          companyName: o.user.companyName
         } : null,
         zucchettiQueue: { status: o.status === 'APPROVED' ? 'PENDING' : 'WAITING' }, // Mock queue for UI
       }));

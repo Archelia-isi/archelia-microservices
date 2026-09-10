@@ -250,13 +250,81 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   // GET /api/admin/zucchetti/customers/search
   app.get('/zucchetti/customers/search', {
     schema: {
-      querystring: z.object({ q: z.string() })
+      querystring: z.object({ q: z.string(), type: z.string().optional() })
     }
   }, async (request, reply) => {
-    const { q } = request.query;
+    const { q, type } = request.query;
     if (!q || q.length < 3) return { results: [] };
     
     try {
+      if (type === 'AGENT') {
+        const rawRes: any = await zucchettiClient.query('zzna_agenti', { limit: '1000', offset: '0' }, 'A0002');
+        let agents = [];
+        if (rawRes && rawRes.data) agents = rawRes.data;
+        else if (rawRes && rawRes.dataset) agents = rawRes.dataset;
+        else if (rawRes && Array.isArray(rawRes)) agents = rawRes;
+        else if (rawRes && rawRes.zzna_agenti) agents = Array.isArray(rawRes.zzna_agenti) ? rawRes.zzna_agenti : [rawRes.zzna_agenti];
+
+        const lowerQ = q.toLowerCase();
+        const filtered = agents.filter((a: any) => {
+           const name = (a.agdesage || '').toLowerCase();
+           const code = (a.agcodage || '').toLowerCase();
+           return name.includes(lowerQ) || code.includes(lowerQ);
+        });
+
+        const mapped = filtered.map((a: any) => ({
+           zucchettiCode: a.agcodage || '',
+           companyName: a.agdesage || '',
+           vatNumber: '',
+           fido: 0,
+           zucchettiPriceList: '',
+           customerType: 'AGENTE',
+           discount: 0,
+           address: a.agindage || '',
+           city: a.agcitage || '',
+           zip: a.agagecap || '',
+           province: a.agproage || '',
+           phone: a.agtelefo || '',
+           email: a.ag_email || ''
+        }));
+        
+        return { results: mapped };
+      }
+
+      if (type === 'ADMIN') {
+        const rawRes: any = await zucchettiClient.query('zzna_persone', { limit: '1000', offset: '0' }, 'A0002');
+        let persons = [];
+        if (rawRes && rawRes.data) persons = rawRes.data;
+        else if (rawRes && rawRes.dataset) persons = rawRes.dataset;
+        else if (rawRes && Array.isArray(rawRes)) persons = rawRes;
+        else if (rawRes && rawRes.zzna_persone) persons = Array.isArray(rawRes.zzna_persone) ? rawRes.zzna_persone : [rawRes.zzna_persone];
+
+        const lowerQ = q.toLowerCase();
+        const filtered = persons.filter((p: any) => {
+           const name = (p.cotitle || '').toLowerCase();
+           const code = (p.cocompanyid || '').toLowerCase();
+           return name.includes(lowerQ) || code.includes(lowerQ);
+        });
+
+        const mapped = filtered.map((p: any) => ({
+           zucchettiCode: p.cocompanyid || '',
+           companyName: p.cotitle || '',
+           vatNumber: p.coiva || p.cofiscalcode || '',
+           fido: 0,
+           zucchettiPriceList: '',
+           customerType: 'PERSONA',
+           discount: 0,
+           address: '',
+           city: '',
+           zip: '',
+           province: '',
+           phone: '',
+           email: ''
+        }));
+        
+        return { results: mapped };
+      }
+
       // Fetch discounts from Zucchetti
       let discountsMap: Record<string, string> = {};
       try {
@@ -307,7 +375,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            companyName: c.andescri || c.Andescri || '',
            vatNumber: c.anpariva || c.Anpariva || '',
            fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
-           zucchettiPriceList: '', // TODO: Aggiungere listino se Zucchetti espone il campo
+           zucchettiPriceList: '',
            customerType: typeDesc,
            discount: baseDiscount,
            address: c.anindiri || c.Anindiri || '',
@@ -315,7 +383,8 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            zip: c.an___cap || c.An___cap || '',
            province: c.anprovin || c.Anprovin || '',
            phone: c.antelefo || c.Antelefo || '',
-           email: c.an_email || c.An_email || ''
+           email: c.an_email || c.An_email || '',
+           zucchettiAgentCode: c.ancodag1 || c.Ancodag1 || ''
          };
       });
 

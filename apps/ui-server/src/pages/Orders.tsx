@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ShoppingCart, Inbox, AlertTriangle, CheckCircle, Clock, MapPin, Package, Tag, Box, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ShoppingCart, Inbox, AlertTriangle, CheckCircle, Clock, MapPin, Package, Tag, Box, Image as ImageIcon, Search, X } from 'lucide-react';
 import GlassPanel from '../components/ui/GlassPanel';
 import Loader from '../components/ui/Loader';
 import Badge from '../components/ui/Badge';
@@ -19,7 +19,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAppReady, setIsAppReady] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'pending' | 'settings'>('orders');
 
   // Settings state
   const [notificationSettings, setNotificationSettings] = useState<{ orderNotificationEmails: string[], telegramChatId: string }>({
@@ -33,11 +33,18 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [loadingProduct, setLoadingProduct] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchOrders = async (showLoading = true) => {
+  const fetchOrders = async (showLoading = true, searchStr = searchQuery) => {
     if (showLoading) setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/orders?limit=50`, {
+      const qs = new URLSearchParams();
+      qs.set('limit', '50');
+      if (searchStr) qs.set('search', searchStr);
+      
+      const res = await fetch(`${API_URL}/api/admin/orders?${qs.toString()}`, {
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'X-Store-Context': currentStore
@@ -144,7 +151,12 @@ export default function Orders() {
   };
 
 
-  const getStatusBadge = (queueStatus: string | undefined) => {
+  const getStatusBadge = (queueStatus: string | undefined, b2bStatus?: string) => {
+    if (currentStore === 'B2B') {
+      if (b2bStatus === 'DRAFT') return <Badge variant="neutral"><Clock size={12}/> Bozza Cliente</Badge>;
+      if (b2bStatus === 'PENDING_AGENT_REVIEW') return <Badge variant="warning"><Clock size={12}/> Da Approvare</Badge>;
+      if (b2bStatus === 'APPROVED') return <Badge variant="success"><CheckCircle size={12}/> Approvato</Badge>;
+    }
     switch (queueStatus) {
       case 'COMPLETED': return <Badge variant="success"><CheckCircle size={12}/> Inviato ERP</Badge>;
       case 'FAILED': return <Badge variant="danger"><AlertTriangle size={12}/> Fallito ERP</Badge>;
@@ -152,6 +164,12 @@ export default function Orders() {
       default: return <Badge variant="neutral">Solo Shopify</Badge>;
     }
   };
+
+  const displayedOrders = useMemo(() => {
+    if (currentStore !== 'B2B') return orders;
+    if (activeTab === 'pending') return orders.filter(o => o.status === 'DRAFT' || o.status === 'PENDING_AGENT_REVIEW');
+    return orders.filter(o => o.status === 'APPROVED' || o.status === 'SENT_TO_ZUCCHETTI' || o.status === 'ERROR');
+  }, [orders, activeTab, currentStore]);
 
   const handleProductClick = async (sku: string) => {
     setLoadingProduct(true);
@@ -180,7 +198,7 @@ export default function Orders() {
       <AppSplashScreen 
         isLoading={!isAppReady} 
         appName="Gestione Ordini" 
-        icon={<ShoppingCart size={56} />} 
+        icon={<ShoppingCart size={32} color="var(--color-primary)" />} 
       />
       <div style={{ 
         padding: '0', 
@@ -190,7 +208,6 @@ export default function Orders() {
         pointerEvents: isAppReady ? 'auto' : 'none',
         transition: 'opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1)'
       }}>
-        
         <StickyHeader paddingY="sm" backgroundOpacity={0}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 2rem' }}>
             <Tabs 
@@ -198,83 +215,128 @@ export default function Orders() {
               onChange={(id) => setActiveTab(id as any)}
               tabs={[
                 { id: 'orders', label: 'Lista Ordini', icon: <ShoppingCart size={14} /> },
+                ...(currentStore === 'B2B' ? [{ id: 'pending', label: 'Da Approvare', icon: <Clock size={14} /> }] : []),
                 { id: 'settings', label: 'Impostazioni Notifiche', icon: <Settings size={14} /> }
               ]}
             />
-            {activeTab === 'orders' && (
-              <button className="btn-primary flex-center" style={{ gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
-                <ShoppingCart size={16} /> Sincronizza Ora
-              </button>
+            {(activeTab === 'orders' || activeTab === 'pending') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }}>
+                    <Search size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cerca per agente, cliente, numero..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchOrders(true, searchQuery)}
+                    style={{
+                      padding: '0.5rem 1rem 0.5rem 2.2rem',
+                      borderRadius: 'var(--radius-full)',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      fontSize: '0.85rem',
+                      width: '280px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,200,0,0.1)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => { setSearchQuery(''); fetchOrders(true, ''); }}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => fetchOrders(true)}>
+                  <ShoppingCart size={16} /> Sincronizza Ora
+                </button>
+              </div>
             )}
           </div>
         </StickyHeader>
 
         <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
-          {activeTab === 'orders' ? (
+          {(activeTab === 'orders' || activeTab === 'pending') ? (
           <GlassPanel padding="none">
             {loading && orders.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center' }}><Loader size="md" /></div>
-            ) : orders.length === 0 ? (
-          <div style={{ padding: '5rem 2rem', textAlign: 'center' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', boxShadow: 'var(--shadow-sm)' }}>
-              <Inbox size={28} color="var(--color-text-muted)" />
-            </div>
-            <h3 className="text-h2" style={{ marginBottom: '0.5rem', fontSize: '18px' }}>Nessun ordine trovato</h3>
-            <p className="text-body" style={{ color: 'var(--color-text-muted)', maxWidth: '400px', margin: '0 auto 2rem auto' }}>
-              Non ci sono ordini caricati nel database locale.
-            </p>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
+              <div className="flex-center p-8">
+                <div className="loading-spinner"></div>
+              </div>
+            ) : displayedOrders.length === 0 ? (
+              <div className="flex-center flex-col p-12 text-center">
+                <div className="flex-center mb-4" style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'var(--color-bg-alt)' }}>
+                  <Inbox size={28} color="var(--color-text-muted)" />
+                </div>
+                <h3 className="text-h2" style={{ marginBottom: '0.5rem', fontSize: '18px' }}>Nessun ordine trovato</h3>
+                <p className="text-body" style={{ color: 'var(--color-text-muted)', maxWidth: '400px', margin: '0 auto 2rem auto' }}>
+                  Non ci sono ordini in questa sezione.
+                </p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+                <thead>
                 <tr>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>ID Ordine</th>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Data</th>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Cliente</th>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Totale</th>
-                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Stato Zucchetti</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>ID Ordine</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Data</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Cliente</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Totale</th>
+                  <th style={{ padding: '1rem', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.85rem', textAlign: 'left' }}>Stato {currentStore === 'B2B' ? '' : 'Zucchetti'}</th>
                 </tr>
               </thead>
-              <tbody>
-                {orders.map(order => (
-                  <tr 
-                    key={order.id} 
-                    style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', transition: 'background 0.2s' }}
-                    onClick={() => setSelectedOrder(order)}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-alt)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-                        {order.orderNumber ? (order.orderNumber.startsWith('#') ? order.orderNumber : `#${order.orderNumber}`) : `#${order.shopifyOrderId}`}
+                <tbody>
+                  {displayedOrders.map((order: any) => (
+                    <tr 
+                      key={order.id} 
+                      style={{ borderBottom: '1px solid var(--color-border)', cursor: 'pointer', transition: 'background 0.2s' }}
+                      onClick={() => setSelectedOrder(order)}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-alt)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                          {order.orderNumber ? (order.orderNumber.startsWith('#') ? order.orderNumber : `#${order.orderNumber}`) : `#${order.shopifyOrderId}`}
                       </span>
                     </td>
                     <td style={{ padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
                       {new Date(order.createdAt).toLocaleString('it-IT')}
                     </td>
                     <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                      {order.shopifyCustomer ? (
+                      {currentStore === 'B2B' && order.shopifyCustomer ? (
                         <>
-                          {order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}
-                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                            {order.shopifyCustomer.companyName || `${order.shopifyCustomer.firstName || ''} ${order.shopifyCustomer.lastName || ''}`}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                             {order.shopifyCustomer.email}
-                          </span>
+                          </div>
+                        </>
+                      ) : order.shopifyCustomer ? (
+                        <>
+                          <div style={{ color: 'var(--color-text-primary)' }}>{order.shopifyCustomer.firstName} {order.shopifyCustomer.lastName}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            {order.shopifyCustomer.email}
+                          </div>
                         </>
                       ) : (
                         <>
-                          {order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name} 
-                          <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ color: 'var(--color-text-primary)' }}>{order.zucchettiQueue?.payload?.customer?.first_name} {order.zucchettiQueue?.payload?.customer?.last_name}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                             {order.zucchettiQueue?.payload?.customer?.email || order.shopifyCustomerId || '-'}
-                          </span>
+                          </div>
                         </>
                       )}
                     </td>
                     <td style={{ padding: '1rem', fontWeight: 500 }}>
-                      €{order.totalPrice?.toFixed(2) || '0.00'}
-                    </td>
+                      €{order.totalPrice?.toFixed(2) || '0.00'}</td>
                     <td style={{ padding: '1rem' }}>
-                      {getStatusBadge(order.zucchettiQueue?.status)}
+                      {getStatusBadge(order.zucchettiQueue?.status, order.status)}
                     </td>
                   </tr>
                 ))}
@@ -348,7 +410,89 @@ export default function Orders() {
 
       {/* MODAL DETTAGLIO ORDINE */}
       <Modal isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={`Dettaglio Ordine ${selectedOrder?.orderNumber || selectedOrder?.shopifyOrderId || ''}`}>
-        {selectedOrder && selectedOrder.zucchettiQueue?.payload ? (
+        {currentStore === 'B2B' && selectedOrder ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <GlassPanel padding="sm">
+                <h4 style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Package size={14} /> Dati Cliente
+                </h4>
+                <p style={{ fontWeight: 600 }}>{selectedOrder.user?.companyName || `${selectedOrder.user?.firstName || ''} ${selectedOrder.user?.lastName || ''}`}</p>
+                <p style={{ fontSize: '0.9rem' }}>{selectedOrder.user?.email}</p>
+                <p style={{ fontSize: '0.9rem' }}>P.IVA: {selectedOrder.user?.vatNumber}</p>
+              </GlassPanel>
+            </div>
+            <div>
+              <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Prodotti Preventivati</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {selectedOrder.items?.map((item: any) => {
+                  const scontoPerc = item.originalPrice > item.finalPrice ? Math.round(((item.originalPrice - item.finalPrice) / item.originalPrice) * 100) : 0;
+                  
+                  const getDiscountString = (perc: number) => {
+                    const map: Record<number, string> = {
+                      46: "40+10",
+                      55: "50+10",
+                      49: "40+15",
+                      60: "50+20",
+                      51: "40+10+10",
+                      37: "30+10",
+                      28: "20+10",
+                      19: "10+10"
+                    };
+                    return map[perc] ? `${map[perc]}%` : `${perc}%`;
+                  };
+
+                  return (
+                  <div 
+                    key={item.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '1rem', 
+                      background: 'var(--color-bg-alt)', 
+                      borderRadius: 'var(--radius-md)',
+                      cursor: 'pointer',
+                      border: '1px solid transparent',
+                      transition: 'border 0.2s'
+                    }}
+                    onClick={() => handleProductClick(item.sku)}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                  >
+                    <div>
+                      <p style={{ fontWeight: 600, marginBottom: '0.2rem' }}>{item.title || item.sku}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Tag size={12} /> SKU: {item.sku} <span style={{ color: 'var(--color-border)' }}>|</span> Q.tà: {item.quantity}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                       <div style={{ marginBottom: '0.2rem' }}>
+                         {scontoPerc > 0 && (
+                           <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginRight: '0.5rem' }}>€{item.originalPrice?.toFixed(2)}</span>
+                         )}
+                         <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>€{item.finalPrice?.toFixed(2)} {item.quantity > 1 ? 'cad.' : ''}</span>
+                       </div>
+                       {item.quantity > 1 && (
+                         <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)', marginTop: '0.2rem' }}>
+                           Totale riga: €{(item.finalPrice * item.quantity).toFixed(2)}
+                         </div>
+                       )}
+                       {(item.discountString || scontoPerc > 0) && (
+                         <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.2rem' }}>Sconto {item.discountString ? item.discountString : getDiscountString(scontoPerc)}</div>
+                       )}
+                    </div>
+                  </div>
+                )})}
+              </div>
+              <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)', textAlign: 'right' }}>
+                <p style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)' }}>Imponibile: €{selectedOrder.subtotalPrice?.toFixed(2) || '0.00'}</p>
+                <p style={{ fontSize: '0.95rem', color: 'var(--color-text-muted)' }}>IVA: €{((selectedOrder.totalPrice || 0) - (selectedOrder.subtotalPrice || selectedOrder.totalPrice || 0)).toFixed(2)}</p>
+                <p style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--color-text-primary)' }}>Totale: €{selectedOrder.totalPrice?.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        ) : selectedOrder && selectedOrder.zucchettiQueue?.payload ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* Info Cliente & Indirizzo */}

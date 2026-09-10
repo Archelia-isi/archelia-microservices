@@ -127,7 +127,9 @@ export default function B2BUsersApp() {
     if (zucchettiSearch.length < 3) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}`, {
+      const typeParam = formData.role === 'AGENT' ? '&type=AGENT' : formData.role === 'ADMIN' ? '&type=ADMIN' : '';
+      const url = `${API_URL}/api/admin/zucchetti/customers/search?q=${encodeURIComponent(zucchettiSearch)}${typeParam}`;
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -193,6 +195,15 @@ export default function B2BUsersApp() {
     }
     toast.dismiss('check-u');
 
+    let matchedAgentId = formData.agentId;
+    if (c.zucchettiAgentCode) {
+      const foundAgent = agents.find(a => a.zucchettiCode === c.zucchettiAgentCode);
+      if (foundAgent) {
+        matchedAgentId = foundAgent.id;
+        toast.success(`Agente auto-assegnato: ${foundAgent.companyName || foundAgent.username}`);
+      }
+    }
+
     setFormData({
       ...formData,
       username: finalUsername,
@@ -203,6 +214,7 @@ export default function B2BUsersApp() {
       zucchettiPriceList: c.zucchettiPriceList || '',
       customerType: c.customerType || '',
       fido: c.fido || 0,
+      agentId: matchedAgentId,
       discount: c.discount || 0,
       address: c.address || '',
       city: c.city || '',
@@ -390,7 +402,7 @@ export default function B2BUsersApp() {
               <div style={{ borderTop: '1px solid var(--color-border)', margin: '1rem 0' }}></div>
               
               <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
-                2. Cerca anagrafica da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : '(Clienti)'}
+                2. Cerca anagrafica da Zucchetti {formData.role === 'AGENT' ? '(Agenti)' : formData.role === 'ADMIN' ? '(Persone)' : '(Clienti)'}
               </label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <TextInput value={zucchettiSearch} onChange={e => setZucchettiSearch(e.target.value)} placeholder="Es. Ferramenta..." />

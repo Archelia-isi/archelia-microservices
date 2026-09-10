@@ -140,6 +140,7 @@ model B2BOrderItem {
   quantity        Int       @default(1)
   originalPrice   Float
   finalPrice      Float     // Prezzo scontato finale
+  discountString  String?   // Es: "40+10" oppure "50+5"
   
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
