@@ -8,7 +8,9 @@ import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
 
-export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART', cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
 

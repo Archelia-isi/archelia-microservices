@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { checkoutCart } from '../app/actions/checkout';
 import { useRouter } from 'next/navigation';
 
-export default function CheckoutButtons({ isAgent, isImpersonating, cartType = 'ZUCCHETTI' }: { isAgent: boolean, isImpersonating: boolean, cartType?: 'ZUCCHETTI' | 'ELMARK' }) {
+export default function CheckoutButtons({ isAgent, isImpersonating }: { isAgent: boolean, isImpersonating: boolean }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -16,7 +16,7 @@ export default function CheckoutButtons({ isAgent, isImpersonating, cartType = '
     }
 
     startTransition(async () => {
-      const res = await checkoutCart(action, cartType);
+      const res = await checkoutCart(action);
       if (res.success) {
         alert(action === 'PAUSE_CART' ? 'Ordine salvato in pausa con successo!' : 'Ordine inviato con successo!');
         router.push('/');
