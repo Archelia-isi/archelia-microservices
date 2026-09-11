@@ -21,7 +21,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     const cartQuery = await getCartQuery();
 
     const cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, ...cartQuery },
+      where: { userId: targetUserId, cartType: storeMode, ...cartQuery },
       include: { items: true },
     });
 
