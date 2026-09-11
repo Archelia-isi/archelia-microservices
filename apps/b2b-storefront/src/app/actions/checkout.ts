@@ -8,7 +8,7 @@ import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
 
-export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
+export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART', cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
 
@@ -27,8 +27,17 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     }
 
     // Calculate final prices and totals
-    const genericDiscount = await getEffectiveDiscount();
-    const extraDiscount = await getExtraAgentDiscount();
+    let genericDiscount = 0;
+    if (cartType === 'ZUCCHETTI') {
+       genericDiscount = await getEffectiveDiscount();
+    }
+    
+    // For Elmark, we need the user's elmarkDiscounts
+    let elmarkDiscounts: any = {};
+    if (cartType === 'ELMARK') {
+       const user = await prisma.b2BUser.findUnique({ where: { id: targetUserId }, select: { elmarkDiscounts: true } });
+       elmarkDiscounts = user?.elmarkDiscounts || {};
+    }
     
     let totalAmount = 0;
     const orderItemsData = [];
@@ -37,15 +46,22 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
       const p = await getProductById(item.sku) as any;
       if (!p) continue;
 
-      let originalPrice = Number(p.price_b2b || 0);
+      let originalPrice = Number(cartType === 'ELMARK' ? p.price : (p.price_b2b || p.price || 0));
       let finalPrice = originalPrice;
       
-      if (genericDiscount > 0) {
-        finalPrice = finalPrice * (1 - (genericDiscount / 100));
-      }
-
-      if (item.extraDiscount && item.extraDiscount > 0) {
-        finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+      if (cartType === 'ZUCCHETTI') {
+        if (genericDiscount > 0) {
+          finalPrice = finalPrice * (1 - (genericDiscount / 100));
+        }
+        if (item.extraDiscount && item.extraDiscount > 0) {
+          finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+        }
+      } else if (cartType === 'ELMARK') {
+        const discGroup = p.discgroup;
+        const discountPct = (discGroup && elmarkDiscounts[discGroup]) ? Number(elmarkDiscounts[discGroup]) : 0;
+        if (discountPct > 0) {
+          finalPrice = finalPrice * (1 - (discountPct / 100));
+        }
       }
 
       totalAmount += finalPrice * item.quantity;
@@ -85,6 +101,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         status: orderStatus,
         totalAmount,
         totalIva: totalAmount * 0.22,
+        notes: cartType === 'ELMARK' ? 'ORDINE ELMARK - ' + (action === 'PAUSE_CART' ? 'Preventivo' : 'Approvato') : '',
         items: {
           create: orderItemsData
         }

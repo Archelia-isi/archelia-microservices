@@ -76,6 +76,7 @@ model B2BCart {
   user      B2BUser?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   status    CartStatus    @default(ACTIVE)
   linkedOrderId String?
+  cartType  String        @default("ZUCCHETTI")
 
   items     B2BCartItem[]
 

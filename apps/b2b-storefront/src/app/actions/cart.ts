@@ -26,7 +26,7 @@ export async function getCartQuery() {
   return { status: 'ACTIVE' as const, linkedOrderId: undefined };
 }
 
-export async function addToCart(sku: string, quantity: number) {
+export async function addToCart(sku: string, quantity: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Non autorizzato' };
@@ -37,7 +37,7 @@ export async function addToCart(sku: string, quantity: number) {
     const cartQuery = await getCartQuery();
     
     // Read from Redis (fallback to Postgres if missing)
-    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
     // Read possible extra discount for agents
     let agentExtraDiscount = 0;
@@ -79,7 +79,7 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
-    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
     if (quantity <= 0) {
       cart.items = cart.items.filter(i => i.id !== itemId);
@@ -110,7 +110,7 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
-    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
     const itemIndex = cart.items.findIndex(i => i.id === itemId);
     if (itemIndex >= 0) {
@@ -134,7 +134,7 @@ export async function massUpdateCartExtraDiscount(discount: number) {
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
-    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
     if (cart.items.length > 0) {
       for (const item of cart.items) {
@@ -152,14 +152,14 @@ export async function massUpdateCartExtraDiscount(discount: number) {
   }
 }
 
-export async function removeFromCart(itemId: string) {
+export async function removeFromCart(itemId: string, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session) return { success: false };
 
   try {
     const targetUserId = await getTargetUserId(session);
     const cartQuery = await getCartQuery();
-    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId);
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
     cart.items = cart.items.filter(i => i.id !== itemId);
     await saveCartToRedis(cart);

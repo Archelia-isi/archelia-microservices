@@ -5,6 +5,7 @@ import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
 
 interface CatalogClientProps {
+  cartType?: 'ZUCCHETTI' | 'ELMARK';
   initialProducts: any[];
   query: string;
   isAuthenticated: boolean;

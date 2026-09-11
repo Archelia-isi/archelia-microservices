@@ -29,8 +29,8 @@ function generateId() {
   return 'c' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 }
 
-export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACTIVE', linkedOrderId?: string): Promise<RedisCart> {
-  const key = getCartKey(userId, status, linkedOrderId);
+export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACTIVE', linkedOrderId?: string, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI'): Promise<RedisCart> {
+  const key = getCartKey(userId, status, linkedOrderId, cartType);
   let data = null;
   try {
     data = await redis.get(key);
@@ -51,6 +51,7 @@ export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACT
     where: { 
       userId, 
       status, 
+      cartType,
       ...(status === 'REVIEW' && linkedOrderId ? { linkedOrderId } : {})
     },
     include: { items: true }
@@ -61,6 +62,7 @@ export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACT
       data: {
         userId,
         status,
+        cartType,
         linkedOrderId: status === 'REVIEW' ? linkedOrderId : null
       },
       include: { items: true }

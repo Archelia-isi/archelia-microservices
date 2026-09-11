@@ -65,6 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
 
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0 overflow-x-auto">
+              <ClientElmarkLogo />
               {session?.user?.role === 'AGENT' && (
                 <>
                   <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
@@ -77,10 +78,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </>
               )}
               <Link prefetch={true} href="/catalog" className="hover:text-green-400 transition-colors">Catalogo</Link>
+              {session?.user?.isElmarkCustomer && (
+                <Link prefetch={true} href="/elmark" className="text-blue-400 hover:text-blue-300 transition-colors font-bold">
+                  Catalogo Elmark
+                </Link>
+              )}
               {isAuthenticated ? (
                 <>
                   <Link prefetch={true} href="/account" className="hover:text-green-400 transition-colors">Area Privata</Link>
-                  <CartBadge initialCount={cartItemCount} />
+                  <CartBadge initialCount={cartItemCount} elmarkCount={elmarkCartCount} />
                   <form action={logout}>
                     <button type="submit" className="hover:text-green-400 transition-colors">Esci</button>
                   </form>
