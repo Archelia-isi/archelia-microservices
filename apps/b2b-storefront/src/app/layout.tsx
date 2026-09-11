@@ -69,6 +69,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               )}
               </Link>
               <CategoryMenu />
+              {session?.user?.role === 'AGENT' && impersonatedClientCode && (
+                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold max-w-[200px]">
+                   <span className="truncate">{impersonatedClientName}</span>
+                 </div>
+              )}
             </div>
 
             <form action="/catalog" method="GET" className="hidden md:flex flex-1 min-w-0 max-w-xl mx-3 md:mx-8 relative">
@@ -87,15 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0">
               {showElmark && <StoreSwitcher currentMode={storeMode} />}
-              {session?.user?.role === 'AGENT' && (
-                <>
-                  {impersonatedClientCode && (
-                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold">
-                       <span className="truncate max-w-[150px]">{impersonatedClientName}</span>
-                     </div>
-                  )}
-                </>
-              )}
+              
               <Link prefetch={true} href="/catalog" className="hover:text-brand-hover transition-colors">Catalogo</Link>
               
               {isAuthenticated ? (
