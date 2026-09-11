@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { setStoreMode } from '../app/actions/storeMode';
 
-export default function FastShippingBanner({ zucchettiProductId, stock }: { zucchettiProductId: string, stock: number }) {
+export default function FastShippingBanner({ zucchettiProductId, stock, elmarkProductId }: { zucchettiProductId: string, stock: number, elmarkProductId: string }) {
   const [isPending, setIsPending] = useState(false);
 
   const handleSwitch = async () => {
     setIsPending(true);
     await setStoreMode('ZUCCHETTI');
-    window.location.href = '/product/' + zucchettiProductId;
+    window.location.href = '/product/' + zucchettiProductId + '?fromElmark=true&elmarkId=' + elmarkProductId;
   };
 
   return (

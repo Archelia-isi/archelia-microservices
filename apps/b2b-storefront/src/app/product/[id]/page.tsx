@@ -4,6 +4,7 @@ import { getProductById, searchProducts } from '@archelia/typesense/dist/search.
 import ProductCarousel from '../../../components/ProductCarousel';
 import AddToCartBox from '../../../components/AddToCartBox';
 import FastShippingBanner from '../../../components/FastShippingBanner';
+import ReturnToElmarkBanner from '../../../components/ReturnToElmarkBanner';
 import ProductGallery from '../../../components/ProductGallery';
 import { Pool } from 'pg';
 
@@ -21,7 +22,7 @@ function getPool() {
   return pool;
 }
 
-export default async function ProductPage({ params }: { params: { id: string } }) {
+export default async function ProductPage({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
   const session = await verifySession();
   const isAuthenticated = !!session;
   const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
@@ -169,10 +170,14 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
           {/* BUY BOX (Client Component per gestire quantità) */}
           <AddToCartBox product={product} isLoggedIn={isAuthenticated} storeMode={storeMode} />
+          {storeMode === 'ZUCCHETTI' && searchParams.fromElmark === 'true' && typeof searchParams.elmarkId === 'string' && (
+            <ReturnToElmarkBanner elmarkProductId={searchParams.elmarkId} />
+          )}
           {storeMode === 'ELMARK' && zucchettiProductForBanner && zucchettiProductForBanner.stock_main > 0 && (
             <FastShippingBanner 
               zucchettiProductId={zucchettiProductForBanner.id} 
               stock={zucchettiProductForBanner.stock_main} 
+              elmarkProductId={product.id}
             />
           )}
 
