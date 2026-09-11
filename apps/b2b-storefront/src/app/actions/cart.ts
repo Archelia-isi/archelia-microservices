@@ -74,7 +74,9 @@ export async function addToCart(sku: string, quantity: number) {
   }
 }
 
-export async function updateCartItemQuantity(itemId: string, quantity: number, resetExtraDiscount: boolean = false, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function updateCartItemQuantity(itemId: string, quantity: number, resetExtraDiscount: boolean = false) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session) return { success: false };
 
@@ -105,7 +107,9 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
   }
 }
 
-export async function updateCartItemExtraDiscount(itemId: string, discount: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function updateCartItemExtraDiscount(itemId: string, discount: number) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 
@@ -129,7 +133,9 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
   }
 }
 
-export async function massUpdateCartExtraDiscount(discount: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function massUpdateCartExtraDiscount(discount: number) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 
@@ -154,7 +160,9 @@ export async function massUpdateCartExtraDiscount(discount: number, cartType: 'Z
   }
 }
 
-export async function removeFromCart(itemId: string, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function removeFromCart(itemId: string) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session) return { success: false };
 
