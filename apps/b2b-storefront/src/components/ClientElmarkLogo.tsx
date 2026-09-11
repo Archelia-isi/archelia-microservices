@@ -8,7 +8,7 @@ export default function ClientElmarkLogo() {
   if (pathname !== '/elmark') return null;
   
   return (
-    <div className="hidden md:flex items-center ml-4">
+    <div className="hidden md:flex items-center absolute right-4 md:right-8 top-1/2 -translate-y-1/2">
       <Image 
         src="/logo-elmark.png" 
         alt="Elmark" 

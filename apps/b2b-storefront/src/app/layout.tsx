@@ -40,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden`}>
-        <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
+        <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600 relative">
           <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-6 shrink-0">
               <Link prefetch={true} href="/" className="flex items-center pr-4 md:pr-10">
@@ -99,9 +99,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               ) : (
                 <Link prefetch={true} href="/login" className="hover:text-green-400 transition-colors">Area Clienti</Link>
               )}
-              <ClientElmarkLogo />
             </nav>
           </div>
+          <ClientElmarkLogo />
         </header>
         <main className="flex-grow max-w-7xl mx-auto w-full p-4">
           {children}
