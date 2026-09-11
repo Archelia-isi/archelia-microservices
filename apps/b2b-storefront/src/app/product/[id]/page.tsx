@@ -150,7 +150,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
           </div>
 
           {/* BUY BOX (Client Component per gestire quantità) */}
-          <AddToCartBox product={product} isLoggedIn={isAuthenticated} />
+          <AddToCartBox product={product} isLoggedIn={isAuthenticated} storeMode={storeMode} />
 
           {/* Removed tech specs from here */}
         </div>
