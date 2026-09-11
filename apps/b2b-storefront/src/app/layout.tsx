@@ -107,7 +107,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               )}
             </nav>
           </div>
-          
+          {storeMode === 'ELMARK' && (
+            <div className="hidden md:flex items-center absolute right-4 md:right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Image 
+                src="/logo-izzo.png" 
+                alt="Izzo Distribuzione" 
+                width={150} 
+                height={50} 
+                className="object-contain h-10 w-auto"
+                priority
+              />
+            </div>
+          )}
         </header>
         <main className="flex-grow max-w-7xl mx-auto w-full p-4">
           {children}
