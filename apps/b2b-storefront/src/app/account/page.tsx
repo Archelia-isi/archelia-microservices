@@ -6,6 +6,10 @@ import Link from 'next/link';
 export default async function AccountDashboard() {
   const session = await verifySession();
   if (!session) redirect('/login');
+  
+  if (session.user.role === 'AGENT') {
+    redirect('/account/impersonate');
+  }
 
   const user = await prisma.b2BUser.findUnique({
     where: { id: session.userId },
