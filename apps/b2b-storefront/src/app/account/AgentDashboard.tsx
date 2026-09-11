@@ -182,9 +182,9 @@ export default async function AgentDashboard({ user }: { user: any }) {
               const diffHours = Math.floor(diffMins / 60);
               const diffDays = Math.floor(diffHours / 24);
               let timeStr = '';
-              if (diffMins < 60) timeStr = \`${diffMins} min fa\`;
-              else if (diffHours < 24) timeStr = \`${diffHours} ore fa\`;
-              else timeStr = \`${diffDays} gg fa\`;
+              if (diffMins < 60) timeStr = `${diffMins} min fa`;
+              else if (diffHours < 24) timeStr = `${diffHours} ore fa`;
+              else timeStr = `${diffDays} gg fa`;
 
               return (
                 <div key={order.id} className="relative pl-6">
@@ -196,7 +196,7 @@ export default async function AgentDashboard({ user }: { user: any }) {
                   <div className="text-xs text-gray-500 mb-2">#{order.id.slice(-6).toUpperCase()}</div>
                   <div className="flex justify-between items-end">
                     <div className="font-bold">€ {(order.totalAmount + order.totalIva).toFixed(2).replace('.', ',')}</div>
-                    <div className={\`text-xs px-2 py-1 rounded ${statusBadge}\`}>
+                    <div className={`text-xs px-2 py-1 rounded ${statusBadge}`}>
                       {statusText}
                     </div>
                   </div>
