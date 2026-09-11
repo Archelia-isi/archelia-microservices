@@ -40,7 +40,6 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
   
   const applyPricing = (p: any) => {
     p.originalPriceB2b = Number(p.price_b2b || 0);
