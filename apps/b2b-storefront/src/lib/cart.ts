@@ -10,7 +10,8 @@ export interface RedisCartItem {
 }
 
 export interface RedisCart {
-  id: string; // cuid of the cart in Postgres
+  id: string;
+  cartType: 'ZUCCHETTI' | 'ELMARK'; // cuid of the cart in Postgres
   userId: string;
   status: 'ACTIVE' | 'REVIEW';
   linkedOrderId: string | null;
@@ -71,6 +72,7 @@ export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACT
 
   const redisCart: RedisCart = {
     id: dbCart.id,
+    cartType: (dbCart.cartType as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI',
     userId: dbCart.userId!,
     status: dbCart.status as 'ACTIVE' | 'REVIEW',
     linkedOrderId: dbCart.linkedOrderId,
@@ -94,7 +96,7 @@ export async function getCart(userId: string, status: 'ACTIVE' | 'REVIEW' = 'ACT
 }
 
 export async function saveCartToRedis(cart: RedisCart): Promise<void> {
-  const key = getCartKey(cart.userId, cart.status, cart.linkedOrderId || undefined);
+  const key = getCartKey(cart.userId, cart.status, cart.linkedOrderId || undefined, cart.cartType || 'ZUCCHETTI');
   try {
     await redis.set(key, JSON.stringify(cart), 'EX', 60 * 60 * 24 * 30);
   } catch (error) {
