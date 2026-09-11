@@ -3,12 +3,12 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import CatalogClient from '../../components/CatalogClient';
+import { cookies } from 'next/headers';
 
-export default async function CatalogPage({
-  searchParams,
-}: {
-  searchParams: { q?: string; l1?: string; l2?: string; l3?: string };
-}) {
+export default async function CatalogPage({ searchParams }: { searchParams: { q?: string; l1?: string; l2?: string; l3?: string } }) {
+  const cookieStore = cookies();
+  const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const catalogSource = storeMode === 'ELMARK' ? 'elmark' : 'zucchetti';
   const session = await verifySession();
   if (session?.user?.mustChangePassword) {
     redirect('/setup-password');
@@ -18,8 +18,7 @@ export default async function CatalogPage({
 
   const query = searchParams.q || '*';
   // Richiedi fino a 250 prodotti per popolare i filtri in modo ricco (replicando il comportamento del tema originale)
-  const results = await searchProducts(query, { 
-    b2bMode: true, 
+  const results = await searchProducts(query, { catalogSource, b2bMode: true, 
     limit: 250,
     l1: searchParams.l1,
     l2: searchParams.l2,
@@ -62,7 +61,7 @@ export default async function CatalogPage({
             </p>
           ) : (
             <p className="text-sm text-gray-500 mt-1">
-              Catalogo pubblico. <Link prefetch={true} href="/login" className="text-[#00C800] hover:underline font-bold">Accedi</Link> per visualizzare i prezzi B2B e acquistare.
+              Catalogo pubblico. <Link prefetch={true} href="/login" className="text-brand-main hover:underline font-bold">Accedi</Link> per visualizzare i prezzi B2B e acquistare.
             </p>
           )}
         </div>
@@ -73,11 +72,11 @@ export default async function CatalogPage({
             name="q"
             defaultValue={query === '*' ? '' : query}
             placeholder="Cerca prodotti o inserisci SKU..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00C800] focus:border-transparent transition-all shadow-sm font-medium"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-main focus:border-transparent transition-all shadow-sm font-medium"
           />
           <button 
             type="submit" 
-            className="px-6 py-2 bg-[#00C800] text-white font-bold uppercase tracking-wider rounded-md hover:bg-green-600 transition-colors shadow-sm text-sm"
+            className="px-6 py-2 bg-brand-main text-white font-bold uppercase tracking-wider rounded-md hover:bg-green-600 transition-colors shadow-sm text-sm"
           >
             Cerca
           </button>

@@ -4,8 +4,12 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import HeroCarousel from '../components/HeroCarousel';
 import ProductCarousel from '../components/ProductCarousel';
+import { cookies } from 'next/headers';
 
 export default async function Home() {
+  const cookieStore = cookies();
+  const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const catalogSource = storeMode === 'ELMARK' ? 'elmark' : 'zucchetti';
   const session = await verifySession();
   if (session?.user?.mustChangePassword) {
     redirect('/setup-password');
@@ -14,12 +18,12 @@ export default async function Home() {
   let illumRes, battRes, eletRes, civileRes, novitaRes, promoRes;
   
   try {
-    const illumReq = searchProducts('illuminazione', { b2bMode: true });
-    const battReq = searchProducts('batterie', { b2bMode: true });
-    const eletReq = searchProducts('elettrico', { b2bMode: true });
-    const civileReq = searchProducts('serie civile', { b2bMode: true });
-    const novitaReq = searchProducts('*', { b2bMode: true }); // Removed invalid sortBy
-    const promoReq = searchProducts('led', { b2bMode: true });
+    const illumReq = searchProducts('illuminazione', { b2bMode: true, catalogSource });
+    const battReq = searchProducts('batterie', { b2bMode: true, catalogSource });
+    const eletReq = searchProducts('elettrico', { b2bMode: true, catalogSource });
+    const civileReq = searchProducts('serie civile', { b2bMode: true, catalogSource });
+    const novitaReq = searchProducts('*', { b2bMode: true, catalogSource }); // Removed invalid sortBy
+    const promoReq = searchProducts('led', { b2bMode: true, catalogSource });
     
     [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([illumReq, battReq, eletReq, civileReq, novitaReq, promoReq]);
   } catch (error) {

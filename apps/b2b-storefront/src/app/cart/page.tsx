@@ -118,7 +118,7 @@ export default async function CartPage() {
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-500 mb-4">Il tuo carrello è vuoto.</p>
-          <Link prefetch={true} href="/catalog" className="inline-block bg-[#00C800] text-white px-6 py-2 font-bold rounded hover:bg-green-600 transition-colors">
+          <Link prefetch={true} href="/catalog" className="inline-block bg-brand-main text-white px-6 py-2 font-bold rounded hover:bg-brand-hover transition-colors">
             Inizia gli acquisti
           </Link>
         </div>

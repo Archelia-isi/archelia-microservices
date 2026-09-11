@@ -11,3 +11,21 @@ input[type='number']::-webkit-outer-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+@layer base {
+  :root {
+    --brand-main: #00C800; /* Izzo green */
+    --brand-hover: #16a34a; /* green-600 */
+    --brand-border: #14532d; /* green-900 */
+    --brand-light: #f0fdf4; /* green-50 */
+    --brand-dark: #052e16; /* green-950 */
+  }
+
+  .theme-elmark {
+    --brand-main: #3b82f6; /* Elmark blue-500 */
+    --brand-hover: #2563eb; /* blue-600 */
+    --brand-border: #1e3a8a; /* blue-900 */
+    --brand-light: #eff6ff; /* blue-50 */
+    --brand-dark: #172554; /* blue-950 */
+  }
+}

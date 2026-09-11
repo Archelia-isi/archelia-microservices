@@ -25,7 +25,7 @@ export default function AcceptDraftButton({ orderId }: { orderId: string }) {
     <button 
       onClick={handleAccept}
       disabled={isPending}
-      className="bg-[#00C800] text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-600 transition-colors disabled:opacity-50"
+      className="bg-brand-main text-white px-4 py-2 rounded text-sm font-bold hover:bg-brand-hover transition-colors disabled:opacity-50"
     >
       {isPending ? 'Attendere...' : 'Approva Preventivo'}
     </button>

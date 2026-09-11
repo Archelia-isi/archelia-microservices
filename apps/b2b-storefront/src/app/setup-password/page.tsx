@@ -65,7 +65,7 @@ export default async function SetupPasswordPage({ searchParams }: { searchParams
           
           <button 
             type="submit"
-            className="w-full mt-2 bg-green-600 text-white font-medium py-2.5 px-4 rounded-md hover:bg-green-700 transition-colors shadow-sm"
+            className="w-full mt-2 bg-brand-hover text-white font-medium py-2.5 px-4 rounded-md hover:bg-green-700 transition-colors shadow-sm"
           >
             Salva e Accedi
           </button>

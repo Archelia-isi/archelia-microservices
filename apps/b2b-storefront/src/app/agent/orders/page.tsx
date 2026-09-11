@@ -85,7 +85,7 @@ export default async function AgentOrdersPage() {
                 }}>
                   <button 
                     type="submit"
-                    className="bg-[#00C800] hover:bg-green-600 text-white font-bold py-2 px-6 rounded transition-colors"
+                    className="bg-brand-main hover:bg-brand-hover text-white font-bold py-2 px-6 rounded transition-colors"
                   >
                     Apri e Revisiona
                   </button>

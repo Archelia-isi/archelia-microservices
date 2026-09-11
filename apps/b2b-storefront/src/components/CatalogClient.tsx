@@ -165,7 +165,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wider">{filterKey}</h3>
                     {hasActive && !isOpen && (
-                      <span className="text-[#00C800] text-[10px]">●</span>
+                      <span className="text-brand-main text-[10px]">●</span>
                     )}
                   </div>
                   <span className="text-gray-400 text-lg font-light leading-none">
@@ -184,7 +184,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                           <div className="relative flex items-center justify-center w-4 h-4 mt-0.5">
                             <input
                               type="checkbox"
-                              className="appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:bg-[#00C800] checked:border-[#00C800] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00C800]/20 cursor-pointer"
+                              className="appearance-none w-4 h-4 border border-gray-300 rounded-sm checked:bg-brand-main checked:border-brand-main transition-colors focus:outline-none focus:ring-2 focus:ring-[#00C800]/20 cursor-pointer"
                               checked={isChecked}
                               onChange={() => handleFilterToggle(filterKey, val)}
                             />
@@ -234,7 +234,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <p className="text-lg">Nessun prodotto corrisponde ai filtri selezionati</p>
-            <button onClick={clearFilters} className="mt-4 px-6 py-2 bg-[#00C800] text-white font-medium rounded-md hover:bg-green-600 transition-colors">
+            <button onClick={clearFilters} className="mt-4 px-6 py-2 bg-brand-main text-white font-medium rounded-md hover:bg-brand-hover transition-colors">
               Azzera Filtri
             </button>
           </div>
@@ -245,12 +245,12 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
               const isOutOfStock = totalStock <= 0;
               return (
                 <div key={product.id} className="w-full bg-white border border-gray-100 rounded shadow-sm hover:shadow-md transition-shadow group relative flex flex-col">
-            <div className="absolute top-2 right-2 z-10 text-[10px] font-bold bg-[#00C800] text-white px-2 py-0.5 rounded shadow-sm">
+            <div className="absolute top-2 right-2 z-10 text-[10px] font-bold bg-brand-main text-white px-2 py-0.5 rounded shadow-sm">
               B2B
             </div>
             <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
               {(product.stock_main > 0 || (!('stock_main' in product) && product.stock > 0)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800] border border-[#00C800]/20 shadow-sm backdrop-blur-sm">
+                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
                   2GG: {product.stock_main ?? product.stock}
                 </div>
               )}
@@ -278,7 +278,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
             <div className="p-4 pt-2 flex flex-col flex-grow border-t border-gray-50">
               <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{product.vendor || 'IZZO'}</span>
               <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
-                <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="hover:text-[#00C800] transition-colors">
+                <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="hover:text-brand-main transition-colors">
                   {product.original_name || product.title}
                 </Link>
               </h3>
@@ -305,7 +305,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
                 )}
                 {!isAuthenticated && (
                   <div className="w-full text-center mt-2">
-                    <Link prefetch={true} href="/login" className="text-xs font-bold uppercase tracking-wider text-[#00C800] hover:text-green-700 block w-full bg-[#00C800]/10 rounded py-2 transition-colors">
+                    <Link prefetch={true} href="/login" className="text-xs font-bold uppercase tracking-wider text-brand-main hover:text-brand-border block w-full bg-brand-main/10 rounded py-2 transition-colors">
                       Accedi
                     </Link>
                   </div>

@@ -1,0 +1,20 @@
+const dotenv = require('dotenv');
+dotenv.config();
+async function main() {
+  const res = await fetch(`${process.env.ZUCCHETTI_BASE_URL}/servlet/api/SPVQRProducer/zzna_clienti?company=A0002&limit=100000&offset=0`, {
+    headers: { 'Authorization': 'Basic ' + Buffer.from(`${process.env.ZUCCHETTI_USERNAME}:${process.env.ZUCCHETTI_PASSWORD}`).toString('base64') }
+  });
+  const data = JSON.parse(await res.text());
+  const clients = data.data;
+  const categories = {};
+  clients.forEach(c => {
+    ['antipcon', 'ancatcon', 'anconsup', 'anforgiu'].forEach(key => {
+       if(!categories[key]) categories[key] = new Set();
+       categories[key].add(c[key]);
+    });
+  });
+  for(const k in categories) {
+    console.log(`${k}:`, Array.from(categories[k]).slice(0, 10));
+  }
+}
+main();

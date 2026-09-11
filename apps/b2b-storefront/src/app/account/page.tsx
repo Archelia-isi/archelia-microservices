@@ -58,7 +58,7 @@ export default async function AccountDashboard() {
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Ultimi Ordini e Preventivi</h2>
-          <Link prefetch={true} href="/account/orders" className="text-[#00C800] hover:underline font-medium">
+          <Link prefetch={true} href="/account/orders" className="text-brand-main hover:underline font-medium">
             Vedi tutti &rarr;
           </Link>
         </div>
@@ -78,7 +78,7 @@ export default async function AccountDashboard() {
                 statusColor = 'text-yellow-600 font-medium';
               } else if (order.status === 'APPROVED') {
                 statusText = 'Approvato';
-                statusColor = 'text-green-600 font-medium';
+                statusColor = 'text-brand-hover font-medium';
               }
 
               return (

@@ -1,0 +1,298 @@
+scheduling build on Metal builder "builder-wpwior"
+fetched snapshot sha256:b8241ef788175a05d7c0274e31802c8e6060106932045ef12a16b319b4c3e40b (169 MB bytes)
+[INFO] fetching snapshot
+[INFO] uploading snapshot
+[INFO] modified file: apps/ui-server/src/pages/SuppliersApp.tsx (11710b -> 11877b)
+[INFO] unpacking archive
+using build driver railpack-v0.35.0
+                   
+╭─────────────────╮
+│ Railpack 0.35.0 │
+╰─────────────────╯
+
+  ⚠ No node package manager detected, using npm
+  ↳ Detected Node
+  ↳ Using npm package manager
+  ↳ Found workspace with 19 packages
+  ↳ Custom start command detected, skipping Caddy start
+            
+  Packages  
+  ──────────
+  node  │  22.23.1  │  railpack default (22)
+            
+  Steps     
+  ──────────
+  ▸ install
+    $ npm install
+         
+  ▸ build
+    $ npm run build
+            
+  Deploy    
+  ──────────
+    $ npm run start --workspace=@archelia/ui-server
+
+[INFO] resolve image config for docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0
+[INFO] resolve image config for docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0
+[INFO] docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0@sha256:bc73534934e7929ab3dc41765fb7e25c8c69d9be98c43ef8792fea51f65317bd
+[INFO] docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0@sha256:bc73534934e7929ab3dc41765fb7e25c8c69d9be98c43ef8792fea51f65317bd
+[INFO] docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0@sha256:bc73534934e7929ab3dc41765fb7e25c8c69d9be98c43ef8792fea51f65317bd
+[INFO] docker-image://ghcr.io/railwayapp/railpack-frontend:v0.35.0@sha256:bc73534934e7929ab3dc41765fb7e25c8c69d9be98c43ef8792fea51f65317bd
+[INFO] load build definition from ./railpack-plan.json
+[INFO] load build definition from ./railpack-plan.json
+[INFO] load build definition from ./railpack-plan.json
+[INFO] load build definition from ./railpack-plan.json
+[INFO] copy /app/node_modules
+[INFO] copy /usr/local/bin/mise
+[INFO] create mise config
+[INFO] copy / /app
+[INFO] copy / /app
+[INFO] mkdir /etc/mise
+[INFO] loading .
+[INFO] install apt packages: libatomic1
+[INFO] copy /app
+[INFO] install mise packages: node
+[INFO] npm run build
+[INFO] mkdir -p /app/node_modules/.cache
+[INFO] [railpack] secrets hash
+[INFO] copy /mise/installs
+[INFO] copy /mise/shims
+[INFO] npm install
+[INFO] docker-image://ghcr.io/railwayapp/railpack-builder:mise-2026.7.15
+[INFO] [railpack] merge $packages:apt:runtime, $packages:mise, $build, $build
+[INFO] copy /root/.cache
+[INFO] copy /etc/mise/config.toml
+[INFO] docker-image://ghcr.io/railwayapp/railpack-runtime:mise-2026.7.15
+[INFO] copy /root/.local/state/mise
+[INFO] docker-image://ghcr.io/railwayapp/railpack-runtime:mise-2026.7.15
+[INFO] [railpack] secrets hash
+[INFO] loading .
+[INFO] docker-image://ghcr.io/railwayapp/railpack-builder:mise-2026.7.15
+[INFO] docker-image://ghcr.io/railwayapp/railpack-runtime:mise-2026.7.15
+[INFO] docker-image://ghcr.io/railwayapp/railpack-builder:mise-2026.7.15
+[INFO] loading .
+[INFO] [railpack] secrets hash
+[INFO] [railpack] secrets hash
+[INFO] loading .
+[INFO] mkdir /etc/mise
+[INFO] create mise config
+[INFO] install mise packages: node
+[INFO] install mise packages: node
+[INFO] copy / /app
+[INFO] copy / /app
+[INFO] mkdir -p /app/node_modules/.cache
+[INFO] mkdir -p /app/node_modules/.cache
+[INFO] npm install
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] npm warn deprecated @types/sharp@0.32.0: This is a stub types definition. sharp provides its own type definitions, so you do not need this installed.
+
+[INFO] npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+
+[INFO] npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+
+[INFO] npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+[INFO] npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+[INFO] npm warn deprecated jpeg-exif@1.1.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+[INFO] npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+[INFO] npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+
+[INFO] npm warn deprecated glob@11.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+[INFO] 
+> archelia-microservices@1.0.0 postinstall
+> npm run generate --workspace=@archelia/database && npm run build --workspace=@archelia/database && npm run build --workspace=@archelia/core && npm run build --workspace=@archelia/zucchetti && npm run build --workspace=@archelia/shopify && npm run build --workspace=@archelia/typesense && npm run build --workspace=@archelia/ai && npm run build --workspace=@archelia/worker-analytics
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/database@1.0.0 generate
+> prisma generate
+
+
+[INFO] Loaded Prisma config from prisma.config.ts.
+
+
+[INFO] Prisma schema loaded from prisma/schema.prisma.
+
+[INFO] 
+✔ Generated Prisma Client (v7.8.0) to ./../../node_modules/@prisma/client in 399ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/database@1.0.0 build
+> tsc
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/core@1.0.0 build
+> tsc
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/zucchetti@1.0.0 build
+> tsc
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/shopify@1.0.0 build
+> tsc -b
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/typesense@1.0.0 build
+> tsc
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/ai@1.0.0 build
+> tsc
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/worker-analytics@1.0.0 build
+> tsc -b
+
+
+[INFO] 
+added 1206 packages, and audited 1226 packages in 31s
+
+[INFO] 
+20 vulnerabilities (10 moderate, 10 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+[INFO] npm install
+[INFO] copy / /app
+[INFO] copy / /app
+[INFO] npm run build
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> archelia-microservices@1.0.0 build
+> if [ -n "$RAILWAY_SERVICE_NAME" ]; then npm run build --workspace=@archelia/$RAILWAY_SERVICE_NAME --if-present; else npm run build --workspaces --if-present; fi
+
+
+[INFO] npm warn config production Use `--omit=dev` instead.
+
+[INFO] 
+> @archelia/ui-server@1.0.0 build
+> tsc -b && vite build
+
+
+[INFO] docker-image://ghcr.io/railwayapp/railpack-runtime:mise-2026.7.15
+[INFO] vite v8.1.3 building client environment for production...
+
+[INFO] transforming...
+[INFO] ✓ 3774 modules transformed.
+
+[INFO] rendering chunks...
+
+[INFO] computing gzip size...
+
+[INFO] dist/index.html                     0.85 kB │ gzip:   0.47 kB
+dist/assets/index-K-BYleZ9.css    104.67 kB │ gzip:  18.43 kB
+dist/assets/index-LJuIbcUa.js   2,965.82 kB │ gzip: 808.33 kB
+
+
+[INFO] [INEFFECTIVE_DYNAMIC_IMPORT] ../../node_modules/react-hot-toast/dist/index.mjs is dynamically imported by src/pages/OSSettingsApp.tsx but also statically imported by src/components/os/DesktopOS.tsx, src/components/os/LoginScreen.tsx, src/components/os/StartMenu.tsx, src/pages/AnalyticsApp.tsx, src/pages/ImagesApp.tsx, ..., dynamic import will not move module into another chunk.
+
+
+[INFO] [plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+[INFO] ✓ built in 4.67s
+
+[INFO] vite v8.1.3 building client environment for production...
+
+[INFO] transforming...
+[INFO] ✓ 2 modules transformed.
+
+[INFO] rendering chunks...
+
+[INFO] computing gzip size...
+
+[INFO] dist-electron/main.js  1.25 kB │ gzip: 0.71 kB
+
+
+[INFO] ✓ built in 19ms
+
+[INFO] vite v8.1.3 building client environment for production...
+
+[INFO] transforming...
+[INFO] ✓ 2 modules transformed.
+
+[INFO] rendering chunks...
+
+[INFO] computing gzip size...
+
+[INFO] dist-electron/preload.mjs  0.32 kB │ gzip: 0.17 kB
+
+
+[INFO] ✓ built in 11ms
+
+[INFO] npm run build
+[INFO] copy /root/.cache
+[INFO] copy /root/.cache
+[INFO] copy /mise/shims
+[INFO] copy /mise/installs
+[INFO] copy /usr/local/bin/mise
+[INFO] copy /etc/mise/config.toml
+[INFO] copy /root/.local/state/mise
+[INFO] install apt packages: libatomic1
+[INFO] install apt packages: libatomic1
+[INFO] copy /root/.local/state/mise
+[INFO] copy /app/node_modules
+[INFO] copy /app
+[INFO] copy /app
+[INFO] [railpack] merge $packages:apt:runtime, $packages:mise, $build, $build
+[INFO] [railpack] merge $packages:apt:runtime, $packages:mise, $build, $build
+[INFO] exporting to docker image format
+[INFO] exporting to docker image format
+containerimage.descriptor: eyJtZWRpYVR5cGUiOiJhcHBsaWNhdGlvbi92bmQub2NpLmltYWdlLm1hbmlmZXN0LnYxK2pzb24iLCJkaWdlc3QiOiJzaGEyNTY6NDQ1MGI5N2IzNWQ1ZjgyOTg3NTJhYTA5ZjMwNDJlOGFmNTUzNzBiY2RlMmJjYjRjMjljNGYxYThjNmJhZTc0MCIsInNpemUiOjIzOTQsImFubm90YXRpb25zIjp7Im9yZy5vcGVuY29udGFpbmVycy5pbWFnZS5jcmVhdGVkIjoiMjAyNi0wOC0wOFQxMTo0NDoxOFoifSwicGxhdGZvcm0iOnsiYXJjaGl0ZWN0dXJlIjoiYW1kNjQiLCJvcyI6ImxpbnV4In19
+containerimage.config.digest: sha256:12c6eddc1186bd04f4a48c66b6f4cd17a6b9fb444f79c1f6591460707a203984
+containerimage.digest: sha256:4450b97b35d5f8298752aa09f3042e8af55370bcde2bcb4c29c4f1a8c6bae740
+[INFO] image push
+[INFO] image push
+[INFO] image push

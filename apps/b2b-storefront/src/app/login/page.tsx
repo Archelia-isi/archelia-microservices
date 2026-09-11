@@ -49,7 +49,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-gray-700">Password</label>
-              <a href="#" className="text-xs text-green-600 hover:text-green-600">Password dimenticata?</a>
+              <a href="#" className="text-xs text-brand-hover hover:text-brand-hover">Password dimenticata?</a>
             </div>
             <input 
               name="password" 
@@ -62,14 +62,14 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
           
           <button 
             type="submit"
-            className="w-full mt-2 bg-green-600 text-white font-medium py-2.5 px-4 rounded-md hover:bg-green-700 transition-colors shadow-sm"
+            className="w-full mt-2 bg-brand-hover text-white font-medium py-2.5 px-4 rounded-md hover:bg-green-700 transition-colors shadow-sm"
           >
             Accedi
           </button>
         </form>
         
         <div className="mt-8 text-center text-sm text-gray-500 border-t border-gray-100 pt-6">
-          Non hai un account B2B? <a href="#" className="text-green-600 hover:text-green-600 font-medium">Richiedi accesso</a>
+          Non hai un account B2B? <a href="#" className="text-brand-hover hover:text-brand-hover font-medium">Richiedi accesso</a>
         </div>
       </div>
     </div>

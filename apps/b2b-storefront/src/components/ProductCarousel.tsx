@@ -37,11 +37,11 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
   return (
     <section className="w-full px-4 mt-12 mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-[#00C800] pl-3">{title}</h2>
+        <h2 className="text-xl font-bold text-gray-900 border-l-4 border-brand-main pl-3">{title}</h2>
         
         <div className="flex items-center gap-4">
           {viewAllLink && (
-            <Link prefetch={true} href={viewAllLink} className="text-sm font-medium text-[#00C800] hover:underline">
+            <Link prefetch={true} href={viewAllLink} className="text-sm font-medium text-brand-main hover:underline">
               Vedi tutti &gt;
             </Link>
           )}
@@ -72,12 +72,12 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
       >
         {products.map((prod, idx) => (
           <div key={idx} className="snap-start shrink-0 w-[200px] md:w-[240px] bg-white border border-gray-100 rounded shadow-sm hover:shadow-md transition-shadow group relative flex flex-col">
-            <div className="absolute top-2 right-2 z-10 text-[10px] font-bold bg-[#00C800] text-white px-2 py-0.5 rounded shadow-sm">
+            <div className="absolute top-2 right-2 z-10 text-[10px] font-bold bg-brand-main text-white px-2 py-0.5 rounded shadow-sm">
               B2B
             </div>
             <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
               {(prod.stock_main > 0 || (!('stock_main' in prod) && prod.stock > 0)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#00C800]/10 text-[#00C800] border border-[#00C800]/20 shadow-sm backdrop-blur-sm">
+                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
                   2GG: {prod.stock_main ?? prod.stock}
                 </div>
               )}
@@ -105,7 +105,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
             <div className="p-4 pt-2 flex flex-col flex-grow border-t border-gray-50">
               <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{prod.vendor || 'IZZO'}</span>
               <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
-                <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="hover:text-[#00C800] transition-colors">
+                <Link prefetch={true} href={`/product/${prod.id || prod.sku}`} className="hover:text-brand-main transition-colors">
                   {prod.original_name || prod.title}
                 </Link>
               </h3>

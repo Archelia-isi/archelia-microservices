@@ -27,10 +27,10 @@ export default function ProductGallery({ images, alt, inStock }: ProductGalleryP
     <div className="flex flex-col gap-4">
       <div className="w-full aspect-square bg-white border border-gray-100 rounded-lg p-8 shadow-sm flex items-center justify-center relative overflow-hidden group">
         <div className="absolute top-4 left-4 z-10 flex gap-2">
-          <span className="bg-[#00C800] text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded">B2B</span>
+          <span className="bg-brand-main text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded">B2B</span>
           {inStock && (
             <span className="bg-gray-900 text-white text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00C800]"></div> In Stock
+              <div className="w-1.5 h-1.5 rounded-full bg-brand-main"></div> In Stock
             </span>
           )}
         </div>
@@ -50,7 +50,7 @@ export default function ProductGallery({ images, alt, inStock }: ProductGalleryP
               onClick={() => setMainImage(img)}
               className={`flex-shrink-0 w-20 h-20 bg-white border rounded-md p-2 flex items-center justify-center transition-all ${
                 mainImage === img 
-                  ? 'border-[#00C800] shadow-[0_0_0_1px_#00C800]' 
+                  ? 'border-brand-main shadow-[0_0_0_1px_#00C800]' 
                   : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
               }`}
             >

@@ -92,14 +92,14 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
           </>
         ) : (
           <div className="text-sm font-medium text-gray-500 mt-2">
-            <Link prefetch={true} href="/login" className="text-[#00C800] underline">Accedi</Link> per visualizzare i prezzi
+            <Link prefetch={true} href="/login" className="text-brand-main underline">Accedi</Link> per visualizzare i prezzi
           </div>
         )}
         
         <div className="text-right">
           <p className="text-xs text-gray-500 font-medium mb-1">Disponibilità Magazzino</p>
           {(product.stock_main > 0 || (!('stock_main' in product) && product.stock > 0)) && (
-            <p className="text-[#00C800] font-bold text-sm leading-tight mb-0.5">{product.stock_main ?? product.stock} PZ spedito entro 2 giorni</p>
+            <p className="text-brand-main font-bold text-sm leading-tight mb-0.5">{product.stock_main ?? product.stock} PZ spedito entro 2 giorni</p>
           )}
           {product.stock_ek > 0 && (
             <p className="text-blue-600 font-bold text-sm leading-tight mb-0.5">{product.stock_ek} PZ spedito entro 7 giorni</p>
@@ -123,7 +123,7 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
             onChange={handleInputChange}
             onBlur={handleBlur}
             min={1} 
-            className="w-full h-12 text-center font-bold text-gray-900 border-x border-gray-300 focus:outline-none focus:border-[#00C800] focus:ring-1 focus:ring-[#00C800]"
+            className="w-full h-12 text-center font-bold text-gray-900 border-x border-gray-300 focus:outline-none focus:border-brand-main focus:ring-1 focus:ring-[#00C800]"
           />
           <button 
             type="button"
@@ -201,7 +201,7 @@ export default function AddToCartBox({ product, isLoggedIn }: AddToCartBoxProps)
                   type="button"
                   onClick={handleAddToCart}
                   disabled={isPending}
-                  className="flex-1 bg-black text-white hover:bg-[#00C800] transition-colors font-bold text-sm rounded shadow-md"
+                  className="flex-1 bg-black text-white hover:bg-brand-main transition-colors font-bold text-sm rounded shadow-md"
                 >
                   Aggiungi
                 </button>

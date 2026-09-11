@@ -26,7 +26,9 @@ export async function getCartQuery() {
   return { status: 'ACTIVE' as const, linkedOrderId: undefined };
 }
 
-export async function addToCart(sku: string, quantity: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
+export async function addToCart(sku: string, quantity: number) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
   const session = await verifySession();
   if (!session) {
     return { success: false, error: 'Non autorizzato' };

@@ -40,7 +40,7 @@ export default function CheckoutButtons({ isAgent, isImpersonating, cartType = '
         <button 
           disabled={isPending || !isImpersonating}
           onClick={() => handleCheckout('SEND_TO_ZUCCHETTI')}
-          className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-[#00C800] transition-colors w-full sm:w-auto disabled:opacity-50"
+          className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-brand-main transition-colors w-full sm:w-auto disabled:opacity-50"
           title={!isImpersonating ? "Devi impersonare un cliente per inviare l'ordine" : ""}
         >
           {isPending ? 'Attendere...' : 'Invia Ordine'}
@@ -54,7 +54,7 @@ export default function CheckoutButtons({ isAgent, isImpersonating, cartType = '
     <button 
       disabled={isPending}
       onClick={() => handleCheckout('SEND_TO_ZUCCHETTI')}
-      className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-[#00C800] transition-colors w-full sm:w-auto disabled:opacity-50"
+      className="bg-black text-white px-8 py-3 rounded font-bold hover:bg-brand-main transition-colors w-full sm:w-auto disabled:opacity-50"
     >
       {isPending ? 'Elaborazione...' : 'Invia Ordine (Revisione Agente)'}
     </button>

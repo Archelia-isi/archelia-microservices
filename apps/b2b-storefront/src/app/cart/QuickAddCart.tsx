@@ -163,7 +163,7 @@ export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0 }: { 
           className={`w-full sm:w-auto px-6 py-2 rounded text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
             !selectedProduct || isPending
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-[#00C800] text-white hover:bg-[#00b000]'
+              : 'bg-brand-main text-white hover:bg-[#00b000]'
           }`}
         >
           {isPending ? 'Aggiunta...' : 'Aggiungi'}

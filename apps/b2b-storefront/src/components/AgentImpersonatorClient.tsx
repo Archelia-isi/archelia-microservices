@@ -51,7 +51,7 @@ export default function AgentImpersonatorClient({ currentCode, currentName }: { 
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-3 py-1.5 rounded-sm border text-xs font-bold transition-colors ${
-          currentCode ? 'bg-[#00C800] text-black border-[#00C800]' : 'bg-transparent text-gray-300 border-gray-600 hover:text-white'
+          currentCode ? 'bg-brand-main text-black border-brand-main' : 'bg-transparent text-gray-300 border-gray-600 hover:text-white'
         }`}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

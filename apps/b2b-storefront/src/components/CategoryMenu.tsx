@@ -29,7 +29,7 @@ export default function CategoryMenu() {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-white hover:text-green-400 transition-colors bg-white/10 px-4 py-2 rounded-md font-medium z-[60] relative"
+        className="flex items-center gap-2 text-white hover:text-brand-hover transition-colors bg-white/10 px-4 py-2 rounded-md font-medium z-[60] relative"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -64,7 +64,7 @@ export default function CategoryMenu() {
                 }}
                 className={`w-full flex flex-col items-center justify-center p-4 gap-2 text-[10px] sm:text-xs font-bold border-l-4 transition-colors border-b border-gray-50 ${
                   isActive 
-                  ? 'border-green-500 text-green-500 bg-white' 
+                  ? 'border-brand-main text-brand-main bg-white' 
                   : 'border-transparent text-[#1B2141] hover:bg-gray-50'
                 }`}
               >
@@ -88,12 +88,12 @@ export default function CategoryMenu() {
                       onMouseEnter={() => setActiveSubId(sub.id)}
                       className={`w-full flex justify-between items-center p-4 px-6 text-sm text-left transition-colors border-b border-gray-50 ${
                         isSubActive 
-                        ? 'text-green-600 font-bold bg-gray-50' 
+                        ? 'text-brand-hover font-bold bg-gray-50' 
                         : 'text-[#1B2141] font-bold hover:bg-gray-50'
                       }`}
                     >
                       {sub.name.toUpperCase()}
-                      <svg className={`w-4 h-4 ${isSubActive ? 'text-green-600' : 'text-gray-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className={`w-4 h-4 ${isSubActive ? 'text-brand-hover' : 'text-gray-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -104,7 +104,7 @@ export default function CategoryMenu() {
                 <Link prefetch={true} 
                   href={`/catalog?l1=${activeRoot.id}`}
                   onClick={() => setIsOpen(false)}
-                  className="text-green-600 text-sm font-bold hover:underline"
+                  className="text-brand-hover text-sm font-bold hover:underline"
                 >
                   Vedi tutto {activeRoot.name.toUpperCase()} &rsaquo;
                 </Link>
@@ -124,7 +124,7 @@ export default function CategoryMenu() {
                       key={child.id}
                       href={`/catalog?l1=${activeRoot!.id}&l2=${activeSub.id}&l3=${child.id}`}
                       onClick={() => setIsOpen(false)}
-                      className="p-4 px-8 text-sm text-gray-600 font-medium hover:text-green-600 hover:bg-gray-50 transition-colors flex justify-between items-center border-b border-gray-50"
+                      className="p-4 px-8 text-sm text-gray-600 font-medium hover:text-brand-hover hover:bg-gray-50 transition-colors flex justify-between items-center border-b border-gray-50"
                     >
                       {child.name.toUpperCase()}
                       <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,7 +142,7 @@ export default function CategoryMenu() {
                 <Link prefetch={true} 
                   href={`/catalog?l1=${activeRoot!.id}&l2=${activeSub.id}`}
                   onClick={() => setIsOpen(false)}
-                  className="text-green-600 text-sm font-bold hover:underline"
+                  className="text-brand-hover text-sm font-bold hover:underline"
                 >
                   Vedi tutto {activeSub.name.toUpperCase()} &rsaquo;
                 </Link>

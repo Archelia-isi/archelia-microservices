@@ -116,12 +116,12 @@ export default function CartItemClient({ item, isAgent, cartType = 'ZUCCHETTI' }
           <img src={p.imageUrl} alt={p.title} className="object-contain w-full h-full" />
         </div>
         <div className="flex flex-col">
-          <Link prefetch={true} href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-[#00C800] line-clamp-2">
+          <Link prefetch={true} href={`/product/${p.sku}`} className="font-bold text-sm text-gray-900 hover:text-brand-main line-clamp-2">
             {p.title}
           </Link>
           <span className="text-[10px] text-gray-500 font-mono mt-1 uppercase">CODICE PRODOTTO: {p.sku}</span>
           {p.stock > 0 ? (
-            <span className="text-xs text-[#00C800] mt-1">Disponibile ({p.stock})</span>
+            <span className="text-xs text-brand-main mt-1">Disponibile ({p.stock})</span>
           ) : (
             <span className="text-xs text-orange-500 mt-1">In arrivo</span>
           )}

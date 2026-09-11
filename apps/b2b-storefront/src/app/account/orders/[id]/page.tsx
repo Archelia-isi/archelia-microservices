@@ -148,7 +148,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                   </div>
                 </div>
 
-                <div className="col-span-2 text-right font-bold text-[#00C800]">
+                <div className="col-span-2 text-right font-bold text-brand-main">
                   € {(item.finalPrice * item.quantity).toFixed(2).replace('.', ',')}
                 </div>
               </div>
