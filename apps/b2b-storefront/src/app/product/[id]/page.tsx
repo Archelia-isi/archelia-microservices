@@ -46,8 +46,13 @@ export default async function ProductPage({ params }: { params: { id: string } }
   let zucchettiProductForBanner: any = null;
   if (storeMode === 'ELMARK' && product.sku) {
     try {
+      // Search for the elmark code in Typesense
       const results = await searchProducts(product.sku);
-      zucchettiProductForBanner = results.find((p: any) => p.sku === product.sku && p.catalog_source !== 'elmark');
+      // Zucchetti SKUs are often prefixed like 'XX.1234'. We check if the sku ends with '.' + product.sku
+      zucchettiProductForBanner = results.find((p: any) => 
+        p.catalog_source !== 'elmark' && 
+        (p.sku === product.sku || p.sku.endsWith('.' + product.sku))
+      );
     } catch (e) {
       console.error("Failed to fetch zucchetti counterpart:", e);
     }
