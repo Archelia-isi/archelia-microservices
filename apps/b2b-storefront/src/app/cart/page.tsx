@@ -75,7 +75,7 @@ export default async function CartPage() {
 
     // Solo l'extra discount del singolo item viene calcolato
     // (L'extra discount globale è già stato spalmato sugli items via DB o in addToCart)
-    if (item.extraDiscount && item.extraDiscount > 0) {
+    if (storeMode === 'ZUCCHETTI' && item.extraDiscount && item.extraDiscount > 0) {
       finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
     }
 
@@ -117,11 +117,11 @@ export default async function CartPage() {
         {cartQuery.status === 'REVIEW' ? 'Revisione Ordine' : 'Il tuo Carrello'}
       </h1>
       
-      {session.user.role === 'AGENT' && (
+      {session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI' && cartQuery.status !== 'REVIEW' && (
         <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
       )}
 
-      <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />
+      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />}
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">
@@ -142,7 +142,7 @@ export default async function CartPage() {
             
             <div className="divide-y divide-gray-100">
               {finalItems.map((item) => (
-                <CartItemClient key={item.id} item={item} isAgent={session.user.role === 'AGENT'} />
+                <CartItemClient key={item.id} item={item} isAgent={session.user.role === 'AGENT'} storeMode={storeMode} isReviewing={cartQuery.status === 'REVIEW' && storeMode === 'ELMARK'} />
               ))}
             </div>
           </div>

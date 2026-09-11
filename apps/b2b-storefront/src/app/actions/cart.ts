@@ -43,7 +43,7 @@ export async function addToCart(sku: string, quantity: number) {
 
     // Read possible extra discount for agents
     let agentExtraDiscount = 0;
-    if (session.user.role === 'AGENT') {
+    if (session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI') {
       const cookieVal = cookies().get('agentExtraDiscount')?.value;
       if (cookieVal) {
         agentExtraDiscount = parseFloat(cookieVal) || 0;
@@ -112,6 +112,7 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
   const cartType = storeMode;
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
+  if (cartType === 'ELMARK') return { success: false, error: 'Sconti extra non permessi su Elmark' };
 
   try {
     const targetUserId = await getTargetUserId(session);

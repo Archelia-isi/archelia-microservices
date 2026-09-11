@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart, updateCartItemExtraDiscount } from '../actions/cart';
 
-export default function CartItemClient({ item, isAgent = false }: { item: any, isAgent?: boolean }) {
+export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUCCHETTI', isReviewing = false }: { item: any, isAgent?: boolean, storeMode?: 'ZUCCHETTI' | 'ELMARK', isReviewing?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
@@ -17,7 +17,9 @@ export default function CartItemClient({ item, isAgent = false }: { item: any, i
       <div className="grid grid-cols-12 gap-4 p-4 items-center">
         <div className="col-span-12 text-gray-500">
           Prodotto {item.sku} non più disponibile.
-          <button onClick={() => startTransition(() => { removeFromCart(item.id); })} className="text-red-500 ml-4 hover:underline">Rimuovi</button>
+          {!isReviewing && <button onClick={() => startTransition(() => { removeFromCart(item.id); })}
+          disabled={isPending || isReviewing}
+          style={{ display: isReviewing ? 'none' : 'flex' }} className="text-red-500 ml-4 hover:underline">Rimuovi</button>}
         </div>
       </div>
     );
