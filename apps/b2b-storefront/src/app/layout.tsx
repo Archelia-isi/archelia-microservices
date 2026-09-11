@@ -37,7 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-green-600">
           <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-6 shrink-0">
-              <Link prefetch={true} href="/" className="flex items-center">
+              <Link prefetch={true} href="/" className="flex items-center pr-4 md:pr-10">
                 <Image 
                   src="/logo-izzo.png" 
                   alt="Izzo Distribuzione" 
