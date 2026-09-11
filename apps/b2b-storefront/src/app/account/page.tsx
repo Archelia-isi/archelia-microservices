@@ -7,9 +7,7 @@ export default async function AccountDashboard() {
   const session = await verifySession();
   if (!session) redirect('/login');
   
-  if (session.user.role === 'AGENT') {
-    redirect('/account/impersonate');
-  }
+  // if agent, render agent dashboard below
 
   const user = await prisma.b2BUser.findUnique({
     where: { id: session.userId },
@@ -23,6 +21,11 @@ export default async function AccountDashboard() {
     orderBy: { createdAt: 'desc' },
     take: 3,
   });
+
+  if (session.user.role === 'AGENT') {
+    const AgentDashboard = (await import('./AgentDashboard')).default;
+    return <AgentDashboard user={user} />;
+  }
 
   return (
     <div>
