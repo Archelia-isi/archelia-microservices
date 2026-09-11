@@ -41,12 +41,14 @@ export default async function CartPage() {
         image_url: p.image_url || '/placeholder.png',
         imageUrl: p.image_url || '/placeholder.png',
         unit: p.unit || 'PZ',
-        stock: p.stock || 0
+        stock: p.stock || 0,
+        discgroup: p.discgroup || ''
       } : null
     };
   }));
 
   // Calcola il totale con gli sconti applicati
+  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
   const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraAgentDiscount = await getExtraAgentDiscount();
@@ -57,8 +59,16 @@ export default async function CartPage() {
     let originalPrice = Number(item.product.priceB2b) > 0 ? Number(item.product.priceB2b) : Number(item.product.price);
     let basePrice = originalPrice;
     
-    if (genericDiscount > 0) {
-      basePrice = basePrice * (1 - (genericDiscount / 100));
+    if (storeMode === 'ELMARK') {
+      const dGroup = item.product.discgroup || '';
+      const groupDisc = elmarkDiscounts[dGroup] || 0;
+      if (groupDisc > 0) {
+        basePrice = basePrice * (1 - (groupDisc / 100));
+      }
+    } else {
+      if (genericDiscount > 0) {
+        basePrice = basePrice * (1 - (genericDiscount / 100));
+      }
     }
 
     let finalPrice = basePrice;
