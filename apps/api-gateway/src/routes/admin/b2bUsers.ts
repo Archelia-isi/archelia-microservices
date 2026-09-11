@@ -13,7 +13,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
   // --- Recupera le categorie di sconto Elmark dalla tabella dei prodotti processati ---
-  fastify.get('/elmark-groups', async (request, reply) => {
+  app.get('/b2b-users/elmark-groups', async (request, reply) => {
     try {
       const groups = await prisma.$queryRaw`SELECT DISTINCT discgroup as id FROM elmark_processed_products WHERE discgroup IS NOT NULL AND discgroup != '' ORDER BY id`;
       return reply.send({ success: true, groups });
