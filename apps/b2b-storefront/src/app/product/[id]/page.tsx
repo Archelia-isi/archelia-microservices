@@ -7,6 +7,7 @@ import ProductGallery from '../../../components/ProductGallery';
 import { Pool } from 'pg';
 
 import { verifySession } from '@/lib/session';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,17 +38,33 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const genericDiscount = await getEffectiveDiscount();
   const extraDiscount = await getExtraAgentDiscount();
 
-  if (isAuthenticated) {
-    product.originalPriceB2b = Number(product.price_b2b || 0);
-    let finalPrice = product.originalPriceB2b;
-    if (genericDiscount > 0) {
-      finalPrice = finalPrice * (1 - (genericDiscount / 100));
-    }
-    if (extraDiscount > 0) {
-      finalPrice = finalPrice * (1 - (extraDiscount / 100));
-    }
+    const cookieStore = cookies();
+  const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  
+  const applyPricing = (p: any) => {
+    p.originalPriceB2b = Number(p.price_b2b || 0);
+    let finalPrice = p.originalPriceB2b;
     
-    product.price_b2b = finalPrice;
+    if (storeMode === 'ELMARK') {
+      const dGroup = p.discgroup || '';
+      const groupDisc = elmarkDiscounts[dGroup] || 0;
+      if (groupDisc > 0) {
+        finalPrice = finalPrice * (1 - (groupDisc / 100));
+      }
+    } else {
+      if (genericDiscount > 0) {
+        finalPrice = finalPrice * (1 - (genericDiscount / 100));
+      }
+      if (extraDiscount > 0) {
+        finalPrice = finalPrice * (1 - (extraDiscount / 100));
+      }
+    }
+    p.price_b2b = finalPrice;
+  };
+
+  if (isAuthenticated) {
+    applyPricing(product);
   }
 
   // Fetch full image list from main database
@@ -86,18 +103,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
     .filter((p: any) => p.id !== product.id && p.sku !== product.sku)
     .map((p: any) => {
       // Apply B2B pricing to related products
-      if (isAuthenticated) {
-        p.originalPriceB2b = Number(p.price_b2b || 0);
-        let finalPrice = p.originalPriceB2b;
-        if (genericDiscount > 0) {
-          finalPrice = finalPrice * (1 - (genericDiscount / 100));
-        }
-        if (extraDiscount > 0) {
-          finalPrice = finalPrice * (1 - (extraDiscount / 100));
-        }
-        
-        p.price_b2b = finalPrice;
-      }
+      if (isAuthenticated) { applyPricing(p); }
       return p;
     })
     .slice(0, 10);

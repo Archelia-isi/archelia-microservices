@@ -9,8 +9,8 @@ export default function StoreSwitcher({ currentMode }: { currentMode: 'ZUCCHETTI
 
   const handleSwitch = async (mode: 'ZUCCHETTI' | 'ELMARK') => {
     setIsPending(true);
-    setIsOpen(false);
     await setStoreMode(mode);
+    window.location.href = '/';
   };
 
   return (
