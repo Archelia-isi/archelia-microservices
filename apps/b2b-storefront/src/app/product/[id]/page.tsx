@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getProductById, searchProducts } from '@archelia/typesense/dist/search.js';
 import ProductCarousel from '../../../components/ProductCarousel';
 import AddToCartBox from '../../../components/AddToCartBox';
+import FastShippingBanner from '../../../components/FastShippingBanner';
 import ProductGallery from '../../../components/ProductGallery';
 import { Pool } from 'pg';
 
@@ -40,6 +41,17 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  
+  // Find Zucchetti counterpart for 2GG shipping banner
+  let zucchettiProductForBanner: any = null;
+  if (storeMode === 'ELMARK' && product.sku) {
+    try {
+      const results = await searchProducts(product.sku);
+      zucchettiProductForBanner = results.find((p: any) => p.sku === product.sku && p.catalog_source !== 'elmark');
+    } catch (e) {
+      console.error("Failed to fetch zucchetti counterpart:", e);
+    }
+  }
   
   const applyPricing = (p: any) => {
     p.originalPriceB2b = Number(p.price_b2b || 0);
@@ -151,6 +163,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
           {/* BUY BOX (Client Component per gestire quantità) */}
           <AddToCartBox product={product} isLoggedIn={isAuthenticated} storeMode={storeMode} />
+          {storeMode === 'ELMARK' && zucchettiProductForBanner && zucchettiProductForBanner.stock_main > 0 && (
+            <FastShippingBanner 
+              zucchettiProductId={zucchettiProductForBanner.id} 
+              stock={zucchettiProductForBanner.stock_main} 
+            />
+          )}
 
           {/* Removed tech specs from here */}
         </div>
