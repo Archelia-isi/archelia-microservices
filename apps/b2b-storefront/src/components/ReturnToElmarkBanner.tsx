@@ -1,10 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { setStoreMode } from '../app/actions/storeMode';
 
 export default function ReturnToElmarkBanner({ elmarkProductId }: { elmarkProductId: string }) {
   const [isPending, setIsPending] = useState(false);
+
+  // Remove the query parameters from the URL so that if the user navigates away and clicks BACK,
+  // the banner won't reappear permanently in their history.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('fromElmark')) {
+        url.searchParams.delete('fromElmark');
+        url.searchParams.delete('elmarkId');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, []);
 
   const handleSwitch = async () => {
     setIsPending(true);
