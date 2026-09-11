@@ -11,7 +11,7 @@ interface CatalogClientProps {
   isAuthenticated: boolean;
 }
 
-export default function CatalogClient({ initialProducts, query, isAuthenticated }: CatalogClientProps) {
+export default function CatalogClient({ initialProducts, query, isAuthenticated, storeMode = 'ZUCCHETTI' }: CatalogClientProps & { storeMode?: 'ZUCCHETTI' | 'ELMARK' }) {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [openFilterGroup, setOpenFilterGroup] = useState<string | null>(null);
@@ -249,20 +249,34 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated 
               B2B
             </div>
             <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-              {(product.stock_main > 0 || (!('stock_main' in product) && product.stock > 0)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
-                  2GG: {product.stock_main ?? product.stock}
-                </div>
-              )}
-              {product.stock_ek > 0 && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200 shadow-sm backdrop-blur-sm">
-                  7GG: {product.stock_ek}
-                </div>
-              )}
-              {!(product.stock_main > 0) && !(product.stock_ek > 0) && (!('stock_main' in product) && !(product.stock > 0) || ('stock_main' in product)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
-                  Esaurito
-                </div>
+              {storeMode === 'ELMARK' ? (
+                product.stock > 0 ? (
+                  <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
+                    7GG: {product.stock}
+                  </div>
+                ) : (
+                  <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
+                    Esaurito
+                  </div>
+                )
+              ) : (
+                <>
+                  {(product.stock_main > 0 || (!('stock_main' in product) && product.stock > 0)) && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
+                      2GG: {product.stock_main ?? product.stock}
+                    </div>
+                  )}
+                  {product.stock_ek > 0 && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200 shadow-sm backdrop-blur-sm">
+                      7GG: {product.stock_ek}
+                    </div>
+                  )}
+                  {!(product.stock_main > 0) && !(product.stock_ek > 0) && (!('stock_main' in product) && !(product.stock > 0) || ('stock_main' in product)) && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
+                      Esaurito
+                    </div>
+                  )}
+                </>
               )}
             </div>
             

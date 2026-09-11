@@ -76,20 +76,34 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
               B2B
             </div>
             <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-              {(prod.stock_main > 0 || (!('stock_main' in prod) && prod.stock > 0)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
-                  2GG: {prod.stock_main ?? prod.stock}
-                </div>
-              )}
-              {prod.stock_ek > 0 && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200 shadow-sm backdrop-blur-sm">
-                  7GG: {prod.stock_ek}
-                </div>
-              )}
-              {!(prod.stock_main > 0) && !(prod.stock_ek > 0) && (!('stock_main' in prod) && !(prod.stock > 0) || ('stock_main' in prod)) && (
-                <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
-                  Esaurito
-                </div>
+              {storeMode === 'ELMARK' ? (
+                prod.stock > 0 ? (
+                  <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
+                    7GG: {prod.stock}
+                  </div>
+                ) : (
+                  <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
+                    Esaurito
+                  </div>
+                )
+              ) : (
+                <>
+                  {(prod.stock_main > 0 || (!('stock_main' in prod) && prod.stock > 0)) && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-brand-main/10 text-brand-main border border-brand-main/20 shadow-sm backdrop-blur-sm">
+                      2GG: {prod.stock_main ?? prod.stock}
+                    </div>
+                  )}
+                  {prod.stock_ek > 0 && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 border border-blue-200 shadow-sm backdrop-blur-sm">
+                      7GG: {prod.stock_ek}
+                    </div>
+                  )}
+                  {!(prod.stock_main > 0) && !(prod.stock_ek > 0) && (!('stock_main' in prod) && !(prod.stock > 0) || ('stock_main' in prod)) && (
+                    <div className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm backdrop-blur-sm">
+                      Esaurito
+                    </div>
+                  )}
+                </>
               )}
             </div>
             

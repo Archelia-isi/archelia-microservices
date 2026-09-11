@@ -94,7 +94,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
         </form>
       </div>
 
-      <CatalogClient initialProducts={products} query={query} isAuthenticated={isAuthenticated} />
+      <CatalogClient initialProducts={products} query={query} isAuthenticated={isAuthenticated} storeMode={storeMode} />
     </div>
   );
 }
