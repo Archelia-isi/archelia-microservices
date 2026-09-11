@@ -71,7 +71,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
 
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0 overflow-x-auto">
-              <ClientElmarkLogo />
               {session?.user?.role === 'AGENT' && (
                 <>
                   <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
@@ -100,6 +99,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               ) : (
                 <Link prefetch={true} href="/login" className="hover:text-green-400 transition-colors">Area Clienti</Link>
               )}
+              <ClientElmarkLogo />
             </nav>
           </div>
         </header>
