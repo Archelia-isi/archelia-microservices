@@ -29,7 +29,7 @@ export default async function AgentOrdersPage() {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Ordini da Revisionare (Vaglio)</h1>
         <p className="text-gray-500 mt-2">Qui trovi tutti gli ordini inseriti dai tuoi clienti che necessitano della tua approvazione prima di essere inviati a Zucchetti.</p>
