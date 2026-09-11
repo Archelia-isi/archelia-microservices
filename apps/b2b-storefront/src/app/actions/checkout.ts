@@ -7,6 +7,7 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
+import { redis } from '@/lib/redis';
 
 export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
@@ -124,6 +125,16 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         console.error('Failed to delete old reviewed order', e);
       }
       cookies().delete('reviewingOrderId');
+    }
+
+    // Clear Redis Cart
+    const redisKey = cartQuery.status === 'REVIEW' 
+      ? `b2b_cart_v2:${targetUserId}:REVIEW:${cartQuery.linkedOrderId}:${storeMode}`
+      : `b2b_cart_v2:${targetUserId}:ACTIVE:${storeMode}`;
+    try {
+      await redis.del(redisKey);
+    } catch (e) {
+      console.error('Failed to clear redis cart', e);
     }
 
     // If orderStatus === 'APPROVED', we should push to Redis/Worker to send to Zucchetti. 

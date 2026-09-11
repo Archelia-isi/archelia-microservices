@@ -31,6 +31,9 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={true} href="/account/agent-orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Vaglio Ordini
                   </Link>
+                  <Link prefetch={true} href="/account/agent-completed" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                    Ordini Conclusi
+                  </Link>
                 </>
               ) : (
                 <>
