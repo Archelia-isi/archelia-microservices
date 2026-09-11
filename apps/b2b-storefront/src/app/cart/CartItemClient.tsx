@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart, updateCartItemExtraDiscount } from '../actions/cart';
 
-export default function CartItemClient({ item, isAgent = 'ZUCCHETTI' }: { item: any, isAgent?: boolean?: 'ZUCCHETTI' | 'ELMARK' }) {
+export default function CartItemClient({ item, isAgent = false }: { item: any, isAgent?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
