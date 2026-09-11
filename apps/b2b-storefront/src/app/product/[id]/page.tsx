@@ -5,6 +5,7 @@ import ProductCarousel from '../../../components/ProductCarousel';
 import AddToCartBox from '../../../components/AddToCartBox';
 import FastShippingBanner from '../../../components/FastShippingBanner';
 import ReturnToElmarkBanner from '../../../components/ReturnToElmarkBanner';
+import StoreModeEnforcer from '../../../components/StoreModeEnforcer';
 import ProductGallery from '../../../components/ProductGallery';
 import { Pool } from 'pg';
 
@@ -42,6 +43,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
 
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const expectedMode = product.catalog_source === 'elmark' ? 'ELMARK' : 'ZUCCHETTI';
   
   // Find Zucchetti counterpart for 2GG shipping banner
   let zucchettiProductForBanner: any = null;
@@ -169,6 +171,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
           </div>
 
           {/* BUY BOX (Client Component per gestire quantità) */}
+          <StoreModeEnforcer expectedMode={expectedMode} currentMode={storeMode} />
           <AddToCartBox product={product} isLoggedIn={isAuthenticated} storeMode={storeMode} />
           {storeMode === 'ZUCCHETTI' && searchParams.fromElmark === 'true' && typeof searchParams.elmarkId === 'string' && (
             <ReturnToElmarkBanner elmarkProductId={searchParams.elmarkId} />
