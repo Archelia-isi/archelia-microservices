@@ -21,12 +21,9 @@ export default async function CartPage() {
   const cartQuery = await getCartQuery();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
 
-  const cart = await prisma.b2BCart.findFirst({
-    where: { userId: targetUserId, cartType: storeMode, ...cartQuery },
-    include: { items: { orderBy: { createdAt: 'desc' } } },
-  });
-
-  const items = cart?.items || [];
+  const { getCart } = await import('@/lib/cart');
+  const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, storeMode);
+  const items = cart?.items ? [...cart.items].reverse() : [];
   
   // Fetch details for each item
   const populatedItems = await Promise.all(items.map(async (item) => {
