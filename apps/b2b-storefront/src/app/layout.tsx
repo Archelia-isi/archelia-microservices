@@ -23,11 +23,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
 
+  let showElmark = false;
   if (session) {
-    const targetUserId = session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value
-      ? (await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } }))?.id || session.userId
-      : session.userId;
-    const cart = await getCart(targetUserId, "ACTIVE", undefined, storeMode);
+    let targetUser = session.user;
+    if (session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value) {
+      const impersonated = await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } });
+      if (impersonated) targetUser = impersonated as any;
+    }
+    
+    // Mostriamo lo switcher Elmark se l'utente target (agente o cliente impersonato) ha Elmark sbloccato
+    showElmark = Boolean(targetUser.isElmarkCustomer) || targetUser.role === 'AGENT';
+
+    const cart = await getCart(targetUser.id, "ACTIVE", undefined, storeMode);
     if (cart) {
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
     }
@@ -80,7 +87,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </form>
 
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0">
-              {session?.user?.isElmarkCustomer && <StoreSwitcher currentMode={storeMode} />}
+              {showElmark && <StoreSwitcher currentMode={storeMode} />}
               {session?.user?.role === 'AGENT' && (
                 <>
                   <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
