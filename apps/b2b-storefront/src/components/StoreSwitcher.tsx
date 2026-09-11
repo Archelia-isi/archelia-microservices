@@ -20,7 +20,7 @@ export default function StoreSwitcher({ currentMode }: { currentMode: 'ZUCCHETTI
         disabled={isPending}
         className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold bg-white/10 hover:bg-white/20 transition-colors border border-white/20 disabled:opacity-50"
       >
-        <span>{currentMode === 'ZUCCHETTI' ? 'Izzo Distribuzione' : 'Catalogo Elmark'}</span>
+        <span>Scegli Negozio</span>
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>

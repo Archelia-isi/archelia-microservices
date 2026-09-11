@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </button>
             </form>
 
-            <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0 overflow-x-auto">
+            <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0">
               {session?.user?.isElmarkCustomer && <StoreSwitcher currentMode={storeMode} />}
               {session?.user?.role === 'AGENT' && (
                 <>
