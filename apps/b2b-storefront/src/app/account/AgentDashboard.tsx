@@ -120,7 +120,7 @@ export default async function AgentDashboard({ user }: { user: any }) {
           {/* Radar Clienti */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-bold mb-4 text-red-600">Radar Dormienti (>30gg)</h2>
+              <h2 className="text-lg font-bold mb-4 text-red-600">Radar Dormienti (&gt;30gg)</h2>
               {dormantClients.length > 0 ? (
                 <ul className="space-y-3">
                   {dormantClients.slice(0, 5).map(c => (
