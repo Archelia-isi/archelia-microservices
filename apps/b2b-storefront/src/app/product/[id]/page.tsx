@@ -49,7 +49,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
       // Search for the elmark code in Typesense
       const results = await searchProducts(product.sku);
       // Zucchetti SKUs are often prefixed like 'XX.1234'. We check if the sku ends with '.' + product.sku
-      zucchettiProductForBanner = results.find((p: any) => 
+      const documents = results.hits?.map((h: any) => h.document) || [];
+      zucchettiProductForBanner = documents.find((p: any) => 
         p.catalog_source !== 'elmark' && 
         (p.sku === product.sku || p.sku.endsWith('.' + product.sku))
       );
