@@ -72,7 +72,7 @@ export async function addToCart(sku: string, quantity: number, cartType: 'ZUCCHE
   }
 }
 
-export async function updateCartItemQuantity(itemId: string, quantity: number, resetExtraDiscount: boolean = false) {
+export async function updateCartItemQuantity(itemId: string, quantity: number, resetExtraDiscount: boolean = false, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session) return { success: false };
 
@@ -103,7 +103,7 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
   }
 }
 
-export async function updateCartItemExtraDiscount(itemId: string, discount: number) {
+export async function updateCartItemExtraDiscount(itemId: string, discount: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 
@@ -127,7 +127,7 @@ export async function updateCartItemExtraDiscount(itemId: string, discount: numb
   }
 }
 
-export async function massUpdateCartExtraDiscount(discount: number) {
+export async function massUpdateCartExtraDiscount(discount: number, cartType: 'ZUCCHETTI' | 'ELMARK' = 'ZUCCHETTI') {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Non autorizzato' };
 

@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart, updateCartItemExtraDiscount } from '../actions/cart';
 
-export default function CartItemClient({ item, isAgent }: { item: any, isAgent?: boolean }) {
+export default function CartItemClient({ item, isAgent, cartType = 'ZUCCHETTI' }: { item: any, isAgent?: boolean, cartType?: 'ZUCCHETTI' | 'ELMARK' }) {
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
@@ -17,7 +17,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
       <div className="grid grid-cols-12 gap-4 p-4 items-center">
         <div className="col-span-12 text-gray-500">
           Prodotto {item.sku} non più disponibile.
-          <button onClick={() => startTransition(() => { removeFromCart(item.id); })} className="text-red-500 ml-4 hover:underline">Rimuovi</button>
+          <button onClick={() => startTransition(() => { removeFromCart(item.id, cartType); })} className="text-red-500 ml-4 hover:underline">Rimuovi</button>
         </div>
       </div>
     );
@@ -61,8 +61,8 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
 
       const timer = setTimeout(() => {
         startTransition(() => {
-          if (newQty !== item.quantity) updateCartItemQuantity(item.id, newQty);
-          if (newDiscount !== (item.extraDiscount || 0) && isAgent) updateCartItemExtraDiscount(item.id, newDiscount);
+          if (newQty !== item.quantity) updateCartItemQuantity(item.id, newQty, false, cartType);
+          if (newDiscount !== (item.extraDiscount || 0) && isAgent) updateCartItemExtraDiscount(item.id, newDiscount, cartType);
         });
       }, 600);
       return () => clearTimeout(timer);
@@ -99,7 +99,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
     setShowModal({ show: false, newQty: 0, minQty: 0 });
     startTransition(() => {
       // Pass true for resetExtraDiscount
-      updateCartItemQuantity(item.id, qty, true);
+      updateCartItemQuantity(item.id, qty, true, cartType);
     });
   };
 
@@ -196,7 +196,7 @@ export default function CartItemClient({ item, isAgent }: { item: any, isAgent?:
       <div className="col-span-4 sm:col-span-2 flex flex-col items-end justify-center gap-2">
         <div className="font-bold text-gray-900">€ {total.toFixed(2).replace('.', ',')}</div>
         <button 
-          onClick={() => startTransition(() => { removeFromCart(item.id); })}
+          onClick={() => startTransition(() => { removeFromCart(item.id, cartType); })}
           disabled={isPending}
           className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
         >

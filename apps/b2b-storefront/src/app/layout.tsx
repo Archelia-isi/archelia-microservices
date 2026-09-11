@@ -8,6 +8,7 @@ import CategoryMenu from '../components/CategoryMenu';
 import { prisma } from '@archelia/b2b-database';
 import { getCart } from '@/lib/cart';
 import CartBadge from '@/components/CartBadge';
+import ClientElmarkLogo from '@/components/ClientElmarkLogo';
 import { cookies } from 'next/headers';
 import AgentImpersonatorClient from '../components/AgentImpersonatorClient';
 
@@ -18,6 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const isAuthenticated = !!session;
   
   let cartItemCount = 0;
+  let elmarkCartCount = 0;
   if (session) {
     const targetUserId = session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value
       ? (await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } }))?.id || session.userId
@@ -25,6 +27,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const cart = await getCart(targetUserId, "ACTIVE");
     if (cart) {
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
+    }
+    const elmarkCart = await getCart(targetUserId, "ACTIVE", undefined, "ELMARK");
+    if (elmarkCart) {
+      elmarkCartCount = elmarkCart.items.reduce((acc, item) => acc + item.quantity, 0);
     }
   }
   const cookieStore = cookies();

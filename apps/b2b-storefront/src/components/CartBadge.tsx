@@ -12,16 +12,20 @@ export default function CartBadge({ initialCount, elmarkCount = 0 }: { initialCo
   const count = isElmark ? elCountState : standardCount;
 
   useEffect(() => {
-    setCount(initialCount);
-  }, [initialCount]);
+    setStandardCount(initialCount);
+    setElCountState(elmarkCount);
+  }, [initialCount, elmarkCount]);
 
   useEffect(() => {
     const handleCartUpdate = (event: any) => {
       if (event.detail && typeof event.detail.count === 'number') {
-        setCount(event.detail.count);
-      } else {
-        // Fallback or optimistic increment
-        setCount((prev) => prev + 1);
+        if (event.detail.cartType === 'ELMARK') {
+          setElCountState(event.detail.count);
+        } else {
+          setStandardCount(event.detail.count);
+        }
+      } else if (typeof event.detail === 'number') {
+        setStandardCount(event.detail);
       }
     };
 

@@ -17,11 +17,11 @@ export interface RedisCart {
   items: RedisCartItem[];
 }
 
-const getCartKey = (userId: string, status: 'ACTIVE' | 'REVIEW', linkedOrderId?: string) => {
+const getCartKey = (userId: string, status: 'ACTIVE' | 'REVIEW', linkedOrderId?: string, cartType: string = 'ZUCCHETTI') => {
   if (status === 'REVIEW' && linkedOrderId) {
-    return `b2b_cart:${userId}:REVIEW:${linkedOrderId}`;
+    return `b2b_cart:${userId}:REVIEW:${linkedOrderId}:${cartType}`;
   }
-  return `b2b_cart:${userId}:ACTIVE`;
+  return `b2b_cart:${userId}:ACTIVE:${cartType}`;
 };
 
 // Generates a simple CUID-like ID for temporary assignment before Postgres sync
