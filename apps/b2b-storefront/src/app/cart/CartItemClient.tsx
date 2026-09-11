@@ -178,7 +178,7 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
         <div className="font-bold text-sm text-gray-900">€ {item.finalPrice.toFixed(2).replace('.', ',')}</div>
         <div className="text-xs text-gray-400">/ {p.unit}</div>
         
-        {isAgent && (
+        {isAgent && storeMode === 'ZUCCHETTI' && !isReviewing && (
           <div className="mt-2 flex items-center justify-end gap-1 text-xs">
             <span className="text-yellow-700 font-medium text-[10px]">Extra:</span>
             <input 

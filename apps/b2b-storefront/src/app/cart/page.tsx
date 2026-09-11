@@ -48,7 +48,17 @@ export default async function CartPage() {
   }));
 
   // Calcola il totale con gli sconti applicati
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  // Recupera elmarkDiscounts dell'utente target (il cliente impersonato)
+  let elmarkDiscounts: Record<string, number> = {};
+  if (session) {
+    let targetUser = session.user;
+    if (session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value) {
+      const { prisma } = await import('@archelia/b2b-database');
+      const impersonated = await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } });
+      if (impersonated) targetUser = impersonated as any;
+    }
+    elmarkDiscounts = (targetUser.elmarkDiscounts as Record<string, number>) || {};
+  }
   const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraAgentDiscount = await getExtraAgentDiscount();

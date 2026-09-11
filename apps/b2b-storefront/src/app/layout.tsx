@@ -10,7 +10,6 @@ import { getCart } from '@/lib/cart';
 import CartBadge from '@/components/CartBadge';
 import StoreSwitcher from '@/components/StoreSwitcher';
 import { cookies } from 'next/headers';
-import AgentImpersonatorClient from '../components/AgentImpersonatorClient';
 
 const assistant = Assistant({ subsets: ['latin'] });
 
@@ -90,13 +89,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {showElmark && <StoreSwitcher currentMode={storeMode} />}
               {session?.user?.role === 'AGENT' && (
                 <>
-                  <Link prefetch={true} href="/agent/orders" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">
-                    Vaglio Ordini
-                  </Link>
-                  <AgentImpersonatorClient 
-                    currentCode={impersonatedClientCode} 
-                    currentName={impersonatedClientName} 
-                  />
+                  {impersonatedClientCode && (
+                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold">
+                       <span className="truncate max-w-[150px]">{impersonatedClientName}</span>
+                     </div>
+                  )}
                 </>
               )}
               <Link prefetch={true} href="/catalog" className="hover:text-brand-hover transition-colors">Catalogo</Link>
