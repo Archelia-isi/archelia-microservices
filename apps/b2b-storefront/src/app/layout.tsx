@@ -45,13 +45,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden ${storeMode === 'ELMARK' ? 'theme-elmark' : ''}`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-brand-hover relative">
+          
+          {session?.user?.role === 'AGENT' && impersonatedClientCode && (
+             <div className="hidden md:flex items-center absolute left-4 top-1/2 -translate-y-1/2 gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black shadow-lg text-xs font-bold z-50">
+               <span className="truncate max-w-[200px]">{impersonatedClientName}</span>
+             </div>
+          )}
+
           <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-6 shrink-0">
-              {session?.user?.role === 'AGENT' && impersonatedClientCode && (
-                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold max-w-[200px]">
-                   <span className="truncate">{impersonatedClientName}</span>
-                 </div>
-              )}
+            <div className={`flex items-center gap-3 md:gap-6 shrink-0 ${session?.user?.role === 'AGENT' && impersonatedClientCode ? 'md:pl-[200px] 2xl:pl-0' : ''}`}>
               <Link prefetch={true} href="/" className="flex items-center pr-4 md:pr-10">
                 {storeMode === 'ELMARK' ? (
                 <Image 
