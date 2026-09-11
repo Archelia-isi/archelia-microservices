@@ -47,7 +47,7 @@ export default function ImpersonateClientPage({ initialCustomers }: { initialCus
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div 
           onClick={() => !isPending && handleSelect(null)}
-          className={`p-4 border rounded-lg cursor-pointer transition-colors \${isPending ? 'opacity-50' : 'hover:border-red-500 hover:bg-red-50'}`}
+          className={`p-4 border rounded-lg cursor-pointer transition-colors ${isPending ? 'opacity-50' : 'hover:border-red-500 hover:bg-red-50'}`}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
@@ -64,7 +64,7 @@ export default function ImpersonateClientPage({ initialCustomers }: { initialCus
           <div 
             key={c.zucchettiCode}
             onClick={() => !isPending && handleSelect(c)}
-            className={`p-4 border rounded-lg cursor-pointer transition-colors \${isPending ? 'opacity-50' : 'hover:border-brand-main hover:bg-gray-50'}`}
+            className={`p-4 border rounded-lg cursor-pointer transition-colors ${isPending ? 'opacity-50' : 'hover:border-brand-main hover:bg-gray-50'}`}
           >
             <div className="font-bold text-gray-900 text-lg mb-1">{c.companyName}</div>
             <div className="text-sm text-gray-500 flex justify-between">
