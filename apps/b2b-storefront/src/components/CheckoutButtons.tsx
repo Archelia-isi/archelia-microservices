@@ -30,9 +30,10 @@ export default function CheckoutButtons({ isAgent, isImpersonating }: { isAgent:
     return (
       <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
         <button 
-          disabled={isPending}
+          disabled={isPending || !isImpersonating}
           onClick={() => handleCheckout('PAUSE_CART')}
           className="bg-gray-200 text-black px-6 py-3 rounded font-bold hover:bg-gray-300 transition-colors w-full sm:w-auto disabled:opacity-50"
+          title={!isImpersonating ? "Devi impersonare un cliente per mettere in pausa" : ""}
         >
           {isPending ? 'Attendere...' : 'Metti in Pausa (Preventivo)'}
         </button>
