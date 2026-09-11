@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
 
-export default function ProductCarousel({ title, products, viewAllLink, isLoggedIn = false }: { title: string, products: any[], viewAllLink?: string, isLoggedIn?: boolean }) {
+export default function ProductCarousel({ title, products, viewAllLink, isLoggedIn = false, storeMode = 'ZUCCHETTI' }: { title: string, products: any[], viewAllLink?: string, isLoggedIn?: boolean, storeMode?: 'ZUCCHETTI' | 'ELMARK' }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
