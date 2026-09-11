@@ -47,6 +47,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-brand-hover relative">
           <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-6 shrink-0">
+              {session?.user?.role === 'AGENT' && impersonatedClientCode && (
+                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold max-w-[200px]">
+                   <span className="truncate">{impersonatedClientName}</span>
+                 </div>
+              )}
               <Link prefetch={true} href="/" className="flex items-center pr-4 md:pr-10">
                 {storeMode === 'ELMARK' ? (
                 <Image 
@@ -69,11 +74,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               )}
               </Link>
               <CategoryMenu />
-              {session?.user?.role === 'AGENT' && impersonatedClientCode && (
-                 <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black border-brand-main text-xs font-bold max-w-[200px]">
-                   <span className="truncate">{impersonatedClientName}</span>
-                 </div>
-              )}
             </div>
 
             <form action="/catalog" method="GET" className="hidden md:flex flex-1 min-w-0 max-w-xl mx-3 md:mx-8 relative">
