@@ -8,9 +8,17 @@ import { addToCart } from './cart';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-export async function duplicateOrderToCart(items: { sku: string, quantity: number }[]) {
+export async function duplicateOrderToCart(originalOrderUserId: string, items: { sku: string, quantity: number }[]) {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
+
+  if (session.user.role === 'AGENT') {
+    const targetUser = await prisma.b2BUser.findUnique({ where: { id: originalOrderUserId } });
+    if (targetUser && targetUser.zucchettiCode) {
+      cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
+      cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
+    }
+  }
 
   for (const item of items) {
     if (item.quantity > 0) {
@@ -18,11 +26,11 @@ export async function duplicateOrderToCart(items: { sku: string, quantity: numbe
       if (!res?.success) return { success: false, error: res?.error || 'Errore carrello' };
     }
   }
-  revalidatePath('/cart');
+  revalidatePath('/', 'layout');
   return { success: true };
 }
 
-export async function createDraftFromOrder(originalOrderUserId: string, items: { sku: string, quantity: number, extraDiscount?: number }[]) {
+export async function createDraftFromOrder(originalOrderUserId: string, items: { sku: string, quantity: number, extraDiscount?: number }[], action: 'DRAFT' | 'APPROVED' = 'DRAFT') {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Solo per agenti' };
@@ -87,7 +95,7 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
   const order = await prisma.b2BOrder.create({
     data: {
       userId: originalOrderUserId,
-      status: 'DRAFT',
+      status: action,
       totalAmount,
       totalIva,
       createdById: session.userId,

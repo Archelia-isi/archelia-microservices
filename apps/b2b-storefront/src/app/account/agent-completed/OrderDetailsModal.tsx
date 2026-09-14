@@ -85,7 +85,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
       return;
     }
 
-    const res = await duplicateOrderToCart(itemsToAdd);
+    const res = await duplicateOrderToCart(order.userId, itemsToAdd);
     if (res.success) {
       alert('Articoli aggiunti al carrello!');
       closeModal();
@@ -379,11 +379,18 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                     Aggiungi al Carrello
                   </button>
                   <button 
-                    onClick={handleDirectReorder}
+                    onClick={() => handleDirectReorder('DRAFT')}
                     disabled={isSubmitting}
                     className="px-6 py-2.5 bg-brand-main text-white rounded font-bold hover:bg-brand-hover transition-colors disabled:opacity-50 shadow-sm"
                   >
-                    Crea Preventivo (Vaglio)
+                    Metti in Pausa
+                  </button>
+                  <button 
+                    onClick={() => handleDirectReorder('APPROVED')}
+                    disabled={isSubmitting}
+                    className="px-6 py-2.5 bg-green-600 text-white rounded font-bold hover:bg-green-700 transition-colors disabled:opacity-50 shadow-sm"
+                  >
+                    Invia Ordine
                   </button>
                 </>
               )}
