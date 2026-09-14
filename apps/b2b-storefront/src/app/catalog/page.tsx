@@ -27,11 +27,11 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
   
   const hits = results?.hits || [];
   
-  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraDiscount = await getExtraAgentDiscount();
 
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  const elmarkDiscounts = typeof getEffectiveElmarkDiscounts === "function" ? await getEffectiveElmarkDiscounts() : (session?.user?.elmarkDiscounts as Record<string, number> || {});
 
   const products = hits.map((h: any) => {
     const product = { ...h.document };

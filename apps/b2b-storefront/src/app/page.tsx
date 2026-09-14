@@ -31,11 +31,12 @@ export default async function Home() {
   }
   
   const isAuthenticated = !!session;
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  
 
-  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraDiscount = await getExtraAgentDiscount();
+  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
 
   const mapPrices = (products: any[]) => {
     return products.map(p => {

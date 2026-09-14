@@ -26,3 +26,28 @@ export async function getExtraAgentDiscount() {
   const extraStr = cookieStore.get('agentExtraDiscount')?.value;
   return extraStr ? parseFloat(extraStr) || 0 : 0;
 }
+
+import { prisma } from '@archelia/b2b-database';
+
+export async function getEffectiveElmarkDiscounts(): Promise<Record<string, number>> {
+  const session = await verifySession();
+  if (!session) return {};
+
+  let discounts = (session.user.elmarkDiscounts as Record<string, number>) || {};
+
+  if (session.user.role === 'AGENT') {
+    const cookieStore = cookies();
+    const impersonatedClientId = cookieStore.get('impersonatedClientId')?.value;
+    if (impersonatedClientId) {
+      const impUser = await prisma.b2BUser.findUnique({
+        where: { id: impersonatedClientId },
+        select: { elmarkDiscounts: true }
+      });
+      if (impUser) {
+        discounts = (impUser.elmarkDiscounts as Record<string, number>) || {};
+      }
+    }
+  }
+
+  return discounts;
+}

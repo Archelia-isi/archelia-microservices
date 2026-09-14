@@ -26,7 +26,7 @@ function getPool() {
 export default async function ProductPage({ params, searchParams }: { params: { id: string }, searchParams: { [key: string]: string | string[] | undefined } }) {
   const session = await verifySession();
   const isAuthenticated = !!session;
-  const elmarkDiscounts = session?.user?.elmarkDiscounts as Record<string, number> || {};
+  
 
   const productRaw = await getProductById(params.id);
 
@@ -37,9 +37,10 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const product: any = productRaw;
 
   // Apply B2B pricing for the main product
-  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
+  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraDiscount = await getExtraAgentDiscount();
+  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
 
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
