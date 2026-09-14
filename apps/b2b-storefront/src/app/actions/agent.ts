@@ -62,7 +62,7 @@ export async function startOrderReview(orderId: string) {
     });
 
     if (!order) return { success: false, error: 'Ordine non trovato' };
-    if (order.status !== 'PENDING_AGENT_REVIEW') return { success: false, error: 'Ordine non in revisione' };
+    if (order.status !== 'PENDING_AGENT_REVIEW' && order.status !== 'DRAFT') return { success: false, error: 'Ordine non in revisione' };
     if (order.user.agentId !== session.userId) return { success: false, error: 'Cliente non assegnato' };
 
     // Setup impersonation cookies if not already
