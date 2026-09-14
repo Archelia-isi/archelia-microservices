@@ -358,7 +358,10 @@ export async function runBulkSync() {
 
   const skuToDiscgroup = new Map<string, string>();
   for (const ep of elmarkProducts) {
-    if (ep.discgroup) skuToDiscgroup.set(ep.sku, ep.discgroup);
+    if (ep.discgroup) {
+      skuToDiscgroup.set(ep.sku, ep.discgroup);
+      if (ep.elmarkCode) skuToDiscgroup.set(ep.elmarkCode, ep.discgroup);
+    }
   }
   
   // Transform ElmarkProducts to look like normal Products for Typesense
