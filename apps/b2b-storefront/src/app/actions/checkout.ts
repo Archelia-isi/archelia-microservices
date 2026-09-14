@@ -52,20 +52,28 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
       let originalPrice = Number(cartType === 'ELMARK' ? p.price : (p.price_b2b || p.price || 0));
       let finalPrice = originalPrice;
       
+      let stdDisc = 0;
+      let extDisc = 0;
+
       if (cartType === 'ZUCCHETTI') {
-        if (genericDiscount > 0) {
-          finalPrice = finalPrice * (1 - (genericDiscount / 100));
+        stdDisc = genericDiscount || 0;
+        extDisc = item.extraDiscount || 0;
+        if (stdDisc > 0) {
+          finalPrice = finalPrice * (1 - (stdDisc / 100));
         }
-        if (item.extraDiscount && item.extraDiscount > 0) {
-          finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+        if (extDisc > 0) {
+          finalPrice = finalPrice * (1 - (extDisc / 100));
         }
       } else if (cartType === 'ELMARK') {
         const discGroup = p.discgroup;
-        const discountPct = (discGroup && elmarkDiscounts[discGroup]) ? Number(elmarkDiscounts[discGroup]) : 0;
-        if (discountPct > 0) {
-          finalPrice = finalPrice * (1 - (discountPct / 100));
+        stdDisc = (discGroup && elmarkDiscounts[discGroup]) ? Number(elmarkDiscounts[discGroup]) : 0;
+        if (stdDisc > 0) {
+          finalPrice = finalPrice * (1 - (stdDisc / 100));
         }
       }
+
+      let dStr = stdDisc > 0 ? `${stdDisc}%` : '';
+      if (extDisc > 0) dStr += (dStr ? ` + ${extDisc}% Extra` : `${extDisc}% Extra`);
 
       totalAmount += finalPrice * item.quantity;
       
@@ -74,6 +82,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         quantity: item.quantity,
         originalPrice,
         finalPrice,
+        discountString: dStr || null
       });
     }
 

@@ -7,19 +7,40 @@ import { duplicateOrderToCart, createDraftFromOrder } from '@/app/actions/orders
 
 export default function OrderDetailsModal({ order }: { order: any }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<'VIEW' | 'REORDER'>('VIEW');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [extraDiscounts, setExtraDiscounts] = useState<Record<string, number>>({});
   const [globalExtra, setGlobalExtra] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const openModal = () => {
-    // Initialize quantities from original order
+    setMode('VIEW');
+    setIsOpen(true);
+  };
+  
+  const startReorder = () => {
     const initialQty: Record<string, number> = {};
+    const initialExtra: Record<string, number> = {};
+    
     order.items.forEach((item: any) => {
       initialQty[item.id] = item.quantity;
+      
+      // Try to extract historical extra discount
+      let extra = 0;
+      if (item.discountString) {
+        const match = item.discountString.match(/\+ (\d+(?:\.\d+)?)% Extra/);
+        if (match) extra = parseFloat(match[1]);
+      } else {
+        // Fallback for old orders: if final < original, guess if there's a weird discount
+        const calcDisc = Math.round((1 - (item.finalPrice / item.originalPrice)) * 100);
+        // We can't know for sure what was base vs extra in old orders without discountString.
+      }
+      initialExtra[item.id] = extra;
     });
+    
     setQuantities(initialQty);
-    setIsOpen(true);
+    setExtraDiscounts(initialExtra);
+    setMode('REORDER');
   };
 
   const handleQtyChange = (itemId: string, newQty: number) => {
@@ -112,6 +133,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
 
             {/* Body */}
             <div className="p-6 overflow-y-auto flex-1">
+              {mode === 'REORDER' && (
               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-4">
                 <span className="font-medium text-yellow-800">Sconto Extra Globale (%):</span>
                 <input 
@@ -129,12 +151,19 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   Applica a tutti
                 </button>
               </div>
+              )}
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="pb-3 font-medium text-gray-500">Codice (SKU)</th>
-                    <th className="pb-3 font-medium text-gray-500 text-center">Quantità per Riordino</th>
-                    <th className="pb-3 font-medium text-gray-500 text-center">Sconto Extra %</th>
+                    {mode === 'REORDER' ? (
+                      <>
+                        <th className="pb-3 font-medium text-gray-500 text-center">Quantità per Riordino</th>
+                        <th className="pb-3 font-medium text-gray-500 text-center">Sconto Extra %</th>
+                      </>
+                    ) : (
+                      <th className="pb-3 font-medium text-gray-500 text-center">Quantità Storica</th>
+                    )}
                     <th className="pb-3 font-medium text-gray-500 text-right">Sconto Orig.</th>
                     <th className="pb-3 font-medium text-gray-500 text-right">Prezzo Pagato</th>
                   </tr>
@@ -143,68 +172,95 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   {order.items.map((item: any) => (
                     <tr key={item.id}>
                       <td className="py-4 font-medium">{item.sku}</td>
-                      <td className="py-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) - 1)}
-                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                          >-</button>
+                      {mode === 'REORDER' ? (
+                      <>
+                        <td className="py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              type="button"
+                              onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) - 1)}
+                              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                            >-</button>
+                            <input 
+                              type="number" 
+                              min="0"
+                              value={quantities[item.id] || 0}
+                              onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 0)}
+                              className="w-16 text-center border border-gray-200 rounded p-1"
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) + 1)}
+                              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                            >+</button>
+                          </div>
+                        </td>
+                        <td className="py-4 text-center">
                           <input 
                             type="number" 
                             min="0"
-                            value={quantities[item.id] || 0}
-                            onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 0)}
-                            className="w-16 text-center border border-gray-200 rounded p-1"
+                            max="100"
+                            placeholder="%"
+                            value={extraDiscounts[item.id] || ''}
+                            onChange={(e) => handleExtraDiscChange(item.id, parseFloat(e.target.value) || 0)}
+                            className="w-16 text-center border border-gray-200 rounded p-1 bg-yellow-50"
                           />
-                          <button 
-                            type="button"
-                            onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) + 1)}
-                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                          >+</button>
-                        </div>
+                        </td>
+                      </>
+                    ) : (
+                      <td className="py-4 text-center font-bold text-gray-700">{item.quantity} pz</td>
+                    )}
+                      <td className="py-4 text-right text-gray-500">
+                        {item.discountString || (`${Math.round((1 - (item.finalPrice / (item.originalPrice || 1))) * 100)}%`)}
                       </td>
-                      <td className="py-4 text-center">
-                        <input 
-                          type="number" 
-                          min="0"
-                          max="100"
-                          placeholder="%"
-                          value={extraDiscounts[item.id] || ''}
-                          onChange={(e) => handleExtraDiscChange(item.id, parseFloat(e.target.value) || 0)}
-                          className="w-16 text-center border border-gray-200 rounded p-1 bg-yellow-50"
-                        />
-                      </td>
-                      <td className="py-4 text-right text-gray-500">{item.discountString || 'Nessuno'}</td>
                       <td className="py-4 text-right font-bold">€ {item.finalPrice.toFixed(2).replace('.', ',')}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {mode === 'REORDER' && (
               <div className="mt-4 p-4 bg-blue-50 text-blue-800 text-sm rounded flex gap-2">
                 <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p>Modificando le quantità qui, puoi inviare i prodotti direttamente al carrello o creare un nuovo ordine in Pausa. I prezzi e gli sconti base verranno ricalcolati al listino odierno. Eventuali <strong>sconti extra</strong> applicati a questo ordine non verranno mantenuti.</p>
+                <p>In modalità Riordino, i prezzi e gli sconti base verranno ricalcolati al listino odierno. Abbiamo pre-compilato la colonna <strong>Sconto Extra %</strong> con i valori del vecchio ordine (se noti), ma puoi modificarli a tuo piacimento prima di confermare.</p>
               </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-4">
-              <button 
-                onClick={handleAddToCart}
-                disabled={isSubmitting}
-                className="px-6 py-2 bg-white border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Aggiungi al Carrello
-              </button>
-              <button 
-                onClick={handleDirectReorder}
-                disabled={isSubmitting}
-                className="px-6 py-2 bg-black text-white rounded font-bold hover:bg-brand-main hover:text-black transition-colors disabled:opacity-50"
-              >
-                Crea Ordine In Pausa (Vaglio)
-              </button>
+              {mode === 'VIEW' ? (
+                <button 
+                  onClick={startReorder}
+                  className="px-6 py-2 bg-black text-white rounded font-bold hover:bg-brand-main hover:text-black transition-colors"
+                >
+                  Avvia Riordino
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setMode('VIEW')}
+                    className="px-6 py-2 bg-white border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Annulla
+                  </button>
+                  <button 
+                    onClick={handleAddToCart}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-white border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Aggiungi al Carrello
+                  </button>
+                  <button 
+                    onClick={handleDirectReorder}
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-brand-main text-white rounded font-bold hover:bg-brand-hover transition-colors disabled:opacity-50"
+                  >
+                    Conferma Riordino (Vaglio)
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
