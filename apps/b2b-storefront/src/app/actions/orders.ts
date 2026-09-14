@@ -101,3 +101,29 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
   revalidatePath('/account/agent-orders');
   return { success: true, orderId: order.id };
 }
+
+export async function getPopulatedOrderDetails(orderId: string) {
+  const session = await verifySession();
+  if (!session) return { success: false };
+
+  const order = await prisma.b2BOrder.findUnique({
+    where: { id: orderId },
+    include: { items: true }
+  });
+  if (!order) return { success: false };
+
+  const populatedItems = await Promise.all(order.items.map(async (item) => {
+    const prod = await getProductById(item.sku) as any;
+    return {
+      ...item,
+      product: prod ? {
+        title: prod.title || prod.original_name,
+        imageUrl: prod.image_url || '/placeholder.png',
+        stock: prod.stock || 0,
+        unit: prod.unit || 'PZ'
+      } : null
+    };
+  }));
+
+  return { success: true, items: populatedItems };
+}
