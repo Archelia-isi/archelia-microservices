@@ -8,6 +8,8 @@ import { duplicateOrderToCart, createDraftFromOrder } from '@/app/actions/orders
 export default function OrderDetailsModal({ order }: { order: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [extraDiscounts, setExtraDiscounts] = useState<Record<string, number>>({});
+  const [globalExtra, setGlobalExtra] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const openModal = () => {
@@ -25,6 +27,20 @@ export default function OrderDetailsModal({ order }: { order: any }) {
     setQuantities(prev => ({ ...prev, [itemId]: newQty }));
   };
 
+  const handleExtraDiscChange = (itemId: string, val: number) => {
+    if (val < 0) return;
+    setExtraDiscounts(prev => ({ ...prev, [itemId]: val }));
+  };
+  
+  const applyGlobalExtra = () => {
+    if (globalExtra <= 0) return;
+    const newDiscs: Record<string, number> = {};
+    order.items.forEach((item: any) => {
+      newDiscs[item.id] = globalExtra;
+    });
+    setExtraDiscounts(newDiscs);
+  };
+
   const handleAddToCart = async () => {
     if (!confirm('Vuoi aggiungere tutti questi articoli al tuo carrello attuale? (Le quantità modificate verranno rispettate, e i prezzi aggiornati a listino odierno).')) return;
     setIsSubmitting(true);
@@ -32,7 +48,11 @@ export default function OrderDetailsModal({ order }: { order: any }) {
     // Prepare items array
     const itemsToAdd = order.items
       .filter((item: any) => quantities[item.id] > 0)
-      .map((item: any) => ({ sku: item.sku, quantity: quantities[item.id] }));
+      .map((item: any) => ({ 
+        sku: item.sku, 
+        quantity: quantities[item.id],
+        extraDiscount: extraDiscounts[item.id] || 0
+      }));
 
     const res = await duplicateOrderToCart(itemsToAdd);
     setIsSubmitting(false);
@@ -45,7 +65,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
   };
 
   const handleDirectReorder = async () => {
-    if (!confirm('Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità? Gli sconti extra applicati all\'ordine originale verranno rimossi.')) return;
+    if (!confirm('Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità e sconti extra?')) return;
     setIsSubmitting(true);
     
     const itemsToAdd = order.items
@@ -92,11 +112,29 @@ export default function OrderDetailsModal({ order }: { order: any }) {
 
             {/* Body */}
             <div className="p-6 overflow-y-auto flex-1">
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-4">
+                <span className="font-medium text-yellow-800">Sconto Extra Globale (%):</span>
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="100" 
+                  value={globalExtra || ''} 
+                  onChange={e => setGlobalExtra(parseFloat(e.target.value) || 0)}
+                  className="w-20 border border-yellow-300 rounded p-1 text-center"
+                />
+                <button 
+                  onClick={applyGlobalExtra}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 px-4 rounded text-sm transition-colors"
+                >
+                  Applica a tutti
+                </button>
+              </div>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="pb-3 font-medium text-gray-500">Codice (SKU)</th>
                     <th className="pb-3 font-medium text-gray-500 text-center">Quantità per Riordino</th>
+                    <th className="pb-3 font-medium text-gray-500 text-center">Sconto Extra %</th>
                     <th className="pb-3 font-medium text-gray-500 text-right">Sconto Orig.</th>
                     <th className="pb-3 font-medium text-gray-500 text-right">Prezzo Pagato</th>
                   </tr>
@@ -125,6 +163,17 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
                           >+</button>
                         </div>
+                      </td>
+                      <td className="py-4 text-center">
+                        <input 
+                          type="number" 
+                          min="0"
+                          max="100"
+                          placeholder="%"
+                          value={extraDiscounts[item.id] || ''}
+                          onChange={(e) => handleExtraDiscChange(item.id, parseFloat(e.target.value) || 0)}
+                          className="w-16 text-center border border-gray-200 rounded p-1 bg-yellow-50"
+                        />
                       </td>
                       <td className="py-4 text-right text-gray-500">{item.discountString || 'Nessuno'}</td>
                       <td className="py-4 text-right font-bold">€ {item.finalPrice.toFixed(2).replace('.', ',')}</td>

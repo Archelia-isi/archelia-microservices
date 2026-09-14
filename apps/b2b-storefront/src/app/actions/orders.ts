@@ -22,7 +22,7 @@ export async function duplicateOrderToCart(items: { sku: string, quantity: numbe
   return { success: true };
 }
 
-export async function createDraftFromOrder(originalOrderUserId: string, items: { sku: string, quantity: number }[]) {
+export async function createDraftFromOrder(originalOrderUserId: string, items: { sku: string, quantity: number, extraDiscount?: number }[]) {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') return { success: false, error: 'Solo per agenti' };
@@ -64,8 +64,11 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
       }
     }
     
-    // NO EXTRA DISCOUNT as requested by user
-    const finalPrice = basePrice;
+    // Apply extra discount if provided
+    let finalPrice = basePrice;
+    if (item.extraDiscount && item.extraDiscount > 0) {
+      finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+    }
     const lineTotal = finalPrice * item.quantity;
     const lineIva = lineTotal * 0.22; // Hardcoded 22% for simplicity
     
