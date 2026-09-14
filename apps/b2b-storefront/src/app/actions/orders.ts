@@ -103,6 +103,7 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
 }
 
 export async function getPopulatedOrderDetails(orderId: string) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const session = await verifySession();
   if (!session) return { success: false };
 
@@ -111,11 +112,41 @@ export async function getPopulatedOrderDetails(orderId: string) {
     include: { items: true }
   });
   if (!order) return { success: false };
+  
+  const targetUser = await prisma.b2BUser.findUnique({ where: { id: order.userId } });
+  let elmarkDiscounts: Record<string, number> = targetUser ? (targetUser.elmarkDiscounts as Record<string, number> || {}) : {};
+  let genericDiscount = targetUser ? (targetUser.discount || 0) : 0;
 
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const prod = await getProductById(item.sku) as any;
+    
+    let currentOriginalPrice = 0;
+    let currentBasePrice = 0;
+    let currentStdDisc = 0;
+    
+    if (prod) {
+       currentOriginalPrice = Number(prod.price_b2b) > 0 ? Number(prod.price_b2b) : Number(prod.price || 0);
+       currentBasePrice = currentOriginalPrice;
+       if (storeMode === 'ELMARK') {
+         const dGroup = prod.discgroup || '';
+         const groupDisc = elmarkDiscounts[dGroup] || 0;
+         if (groupDisc > 0) {
+           currentBasePrice = currentBasePrice * (1 - (groupDisc / 100));
+           currentStdDisc = groupDisc;
+         }
+       } else {
+         if (genericDiscount > 0) {
+           currentBasePrice = currentBasePrice * (1 - (genericDiscount / 100));
+           currentStdDisc = genericDiscount;
+         }
+       }
+    }
+
     return {
       ...item,
+      currentOriginalPrice,
+      currentBasePrice,
+      currentStdDisc,
       product: prod ? {
         title: prod.title || prod.original_name,
         imageUrl: prod.image_url || '/placeholder.png',
