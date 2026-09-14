@@ -95,8 +95,12 @@ export default function OrderDetailsModal({ order }: { order: any }) {
     setIsSubmitting(false);
   };
 
-  const handleDirectReorder = async () => {
-    if (!confirm('Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità e sconti extra?')) return;
+  const handleDirectReorder = async (action: 'DRAFT' | 'APPROVED') => {
+    const msg = action === 'DRAFT' 
+      ? 'Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità e sconti extra?' 
+      : 'Sei sicuro di voler INVIARE direttamente questo ordine?';
+      
+    if (!confirm(msg)) return;
     setIsSubmitting(true);
     const itemsToAdd = populatedItems
       .filter((item: any) => quantities[item.id] > 0)
@@ -112,9 +116,9 @@ export default function OrderDetailsModal({ order }: { order: any }) {
       return;
     }
 
-    const res = await createDraftFromOrder(order.userId, itemsToAdd);
+    const res = await createDraftFromOrder(order.userId, itemsToAdd, action);
     if (res.success) {
-      alert('Preventivo in Pausa creato con successo!');
+      alert(action === 'DRAFT' ? 'Preventivo in Pausa creato con successo!' : 'Ordine INVIATO con successo!');
       closeModal();
     } else {
       alert('Errore: ' + res.error);
