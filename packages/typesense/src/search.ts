@@ -7,8 +7,8 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
       query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
       query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
       sort_by: (!q || q === '*') 
-        ? 'stock_main:desc,stock_ek:desc,natural_sku:asc' 
-        : '_text_match:desc,stock_main:desc,stock_ek:desc',
+        ? 'stock:desc,natural_sku:asc' 
+        : '_text_match:desc,stock:desc',
       per_page: options?.limit || 50
     };
     
