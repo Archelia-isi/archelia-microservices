@@ -37,6 +37,12 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
 
   const targetUser = await prisma.b2BUser.findUnique({ where: { id: originalOrderUserId } });
   if (!targetUser) return { success: false, error: 'Utente non trovato' };
+  
+  // Auto-impersonate client in the session as well
+  if (targetUser.zucchettiCode) {
+    cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
+    cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
+  }
 
   let elmarkDiscounts: Record<string, number> = (targetUser.elmarkDiscounts as Record<string, number>) || {};
   let genericDiscount = targetUser.discount || 0;
@@ -105,8 +111,7 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
     }
   });
 
-  revalidatePath('/account/agent-completed');
-  revalidatePath('/account/agent-orders');
+  revalidatePath('/', 'layout');
   return { success: true, orderId: order.id };
 }
 
