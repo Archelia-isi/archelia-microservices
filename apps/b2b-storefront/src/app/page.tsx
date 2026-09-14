@@ -39,7 +39,7 @@ export default async function Home() {
 
   const mapPrices = (products: any[]) => {
     return products.map(p => {
-      p.originalPriceB2b = Number(p.price_b2b || 0);
+      p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
       let finalPrice = p.originalPriceB2b;
       
       if (storeMode === 'ELMARK') {

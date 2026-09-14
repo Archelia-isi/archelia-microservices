@@ -37,7 +37,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
     const product = { ...h.document };
     
     if (isAuthenticated) {
-      product.originalPriceB2b = Number(product.price_b2b || 0);
+      product.originalPriceB2b = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
       let finalPrice = product.originalPriceB2b;
       
       if (storeMode === 'ELMARK') {

@@ -37,7 +37,7 @@ export default async function CartPage() {
         title: p.original_name || p.title,
         original_name: p.original_name,
         price: p.price || 0,
-        priceB2b: p.price_b2b || 0,
+        priceB2b: Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0),
         image_url: p.image_url || '/placeholder.png',
         imageUrl: p.image_url || '/placeholder.png',
         unit: p.unit || 'PZ',
