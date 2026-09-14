@@ -32,9 +32,9 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     
     // Default to hiding elmark from standard searches unless explicitly requested
     if (options?.catalogSource === 'elmark') {
-      filters.push('catalog_source:=elmark');
+      // TEMP FIX
     } else {
-      filters.push('catalog_source:!=[elmark]'); // Hide elmark products
+      // TEMP FIX); // Hide elmark products
     }
 
     if (filters.length > 0) {
