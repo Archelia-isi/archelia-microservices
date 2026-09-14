@@ -17,6 +17,7 @@ export async function duplicateOrderToCart(originalOrderUserId: string, items: {
     if (targetUser && targetUser.zucchettiCode) {
       cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
       cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
+      cookies().set('impersonatedClientName', targetUser.businessName || '');
     }
   }
 
@@ -42,6 +43,7 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
   if (targetUser.zucchettiCode) {
     cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
     cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
+      cookies().set('impersonatedClientName', targetUser.businessName || '');
   }
 
   let elmarkDiscounts: Record<string, number> = (targetUser.elmarkDiscounts as Record<string, number>) || {};
