@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import Link from 'next/link';
+import OrderDetailsModal from './OrderDetailsModal';
 
 export default async function AgentCompletedOrdersPage() {
   const session = await verifySession();
@@ -64,6 +65,7 @@ export default async function AgentCompletedOrdersPage() {
               </div>
               
               <div className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <OrderDetailsModal order={order} />
                 <div className="flex gap-8 text-sm">
                   <div>
                     <span className="text-gray-500 block">Articoli:</span>

@@ -1,0 +1,165 @@
+'use client';
+
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { it } from 'date-fns/locale';
+import { duplicateOrderToCart, createDraftFromOrder } from '@/app/actions/orders';
+
+export default function OrderDetailsModal({ order }: { order: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const openModal = () => {
+    // Initialize quantities from original order
+    const initialQty: Record<string, number> = {};
+    order.items.forEach((item: any) => {
+      initialQty[item.id] = item.quantity;
+    });
+    setQuantities(initialQty);
+    setIsOpen(true);
+  };
+
+  const handleQtyChange = (itemId: string, newQty: number) => {
+    if (newQty < 0) return;
+    setQuantities(prev => ({ ...prev, [itemId]: newQty }));
+  };
+
+  const handleAddToCart = async () => {
+    if (!confirm('Vuoi aggiungere tutti questi articoli al tuo carrello attuale? (Le quantità modificate verranno rispettate, e i prezzi aggiornati a listino odierno).')) return;
+    setIsSubmitting(true);
+    
+    // Prepare items array
+    const itemsToAdd = order.items
+      .filter((item: any) => quantities[item.id] > 0)
+      .map((item: any) => ({ sku: item.sku, quantity: quantities[item.id] }));
+
+    const res = await duplicateOrderToCart(itemsToAdd);
+    setIsSubmitting(false);
+    if (res.success) {
+      alert('Prodotti aggiunti al carrello con successo!');
+      setIsOpen(false);
+    } else {
+      alert('Errore: ' + res.error);
+    }
+  };
+
+  const handleDirectReorder = async () => {
+    if (!confirm('Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità? Gli sconti extra applicati all\'ordine originale verranno rimossi.')) return;
+    setIsSubmitting(true);
+    
+    const itemsToAdd = order.items
+      .filter((item: any) => quantities[item.id] > 0)
+      .map((item: any) => ({ sku: item.sku, quantity: quantities[item.id] }));
+
+    const res = await createDraftFromOrder(order.userId, itemsToAdd);
+    setIsSubmitting(false);
+    if (res.success) {
+      alert('Ordine creato e messo in Pausa. Lo troverai nella sezione Vaglio Ordini.');
+      setIsOpen(false);
+    } else {
+      alert('Errore: ' + res.error);
+    }
+  };
+
+  return (
+    <>
+      <button 
+        onClick={openModal}
+        className="bg-black hover:bg-brand-main hover:text-black text-white font-bold py-2 px-6 rounded transition-colors text-sm"
+      >
+        Vedi Dettagli
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <div>
+                <h2 className="text-xl font-bold">Dettagli Ordine #{order.id.slice(-6).toUpperCase()}</h2>
+                <p className="text-sm text-gray-500">
+                  {order.user.companyName} &bull; {format(new Date(order.createdAt), "d MMMM yyyy", { locale: it })}
+                </p>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="pb-3 font-medium text-gray-500">Codice (SKU)</th>
+                    <th className="pb-3 font-medium text-gray-500 text-center">Quantità per Riordino</th>
+                    <th className="pb-3 font-medium text-gray-500 text-right">Sconto Orig.</th>
+                    <th className="pb-3 font-medium text-gray-500 text-right">Prezzo Pagato</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {order.items.map((item: any) => (
+                    <tr key={item.id}>
+                      <td className="py-4 font-medium">{item.sku}</td>
+                      <td className="py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) - 1)}
+                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                          >-</button>
+                          <input 
+                            type="number" 
+                            min="0"
+                            value={quantities[item.id] || 0}
+                            onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 0)}
+                            className="w-16 text-center border border-gray-200 rounded p-1"
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => handleQtyChange(item.id, (quantities[item.id] || 0) + 1)}
+                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                          >+</button>
+                        </div>
+                      </td>
+                      <td className="py-4 text-right text-gray-500">{item.discountString || 'Nessuno'}</td>
+                      <td className="py-4 text-right font-bold">€ {item.finalPrice.toFixed(2).replace('.', ',')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-4 p-4 bg-blue-50 text-blue-800 text-sm rounded flex gap-2">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>Modificando le quantità qui, puoi inviare i prodotti direttamente al carrello o creare un nuovo ordine in Pausa. I prezzi e gli sconti base verranno ricalcolati al listino odierno. Eventuali <strong>sconti extra</strong> applicati a questo ordine non verranno mantenuti.</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-4">
+              <button 
+                onClick={handleAddToCart}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-white border border-gray-300 rounded font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Aggiungi al Carrello
+              </button>
+              <button 
+                onClick={handleDirectReorder}
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-black text-white rounded font-bold hover:bg-brand-main hover:text-black transition-colors disabled:opacity-50"
+              >
+                Crea Ordine In Pausa (Vaglio)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
