@@ -3,6 +3,7 @@
 import { prisma } from '@archelia/b2b-database';
 import { createSession, deleteSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
 export async function login(formData: FormData) {
@@ -44,6 +45,9 @@ export async function login(formData: FormData) {
   // Creazione sessione
   await createSession(user.id);
   
+  // Forza sempre l'ingresso sul negozio Izzo Distribuzione al login
+  cookies().set('b2b_store_mode', 'ZUCCHETTI', { path: '/', maxAge: 60 * 60 * 24 * 365 });
+  
   // Se ha usato la password provvisoria o mustChangePassword è true, forziamo il reset
   if (user.mustChangePassword || user.tempPassword === password) {
     redirect('/setup-password');
@@ -54,6 +58,8 @@ export async function login(formData: FormData) {
 
 export async function logout() {
   await deleteSession();
+  // Resetta al negozio principale in fase di logout
+  cookies().set('b2b_store_mode', 'ZUCCHETTI', { path: '/', maxAge: 60 * 60 * 24 * 365 });
   redirect('/login');
 }
 
