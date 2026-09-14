@@ -128,7 +128,11 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
     // Parse tags arrays if they are strings
     let keywordsArray: string[] = [];
     if (product.keywords) {
-      keywordsArray = product.keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+      if (Array.isArray(product.keywords)) {
+        keywordsArray = product.keywords;
+      } else if (typeof product.keywords === 'string') {
+        keywordsArray = product.keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+      }
     }
     
     let semanticTagsArray: string[] = [];
