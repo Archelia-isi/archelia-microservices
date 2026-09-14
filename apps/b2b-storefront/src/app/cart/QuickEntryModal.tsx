@@ -286,7 +286,7 @@ export default function QuickEntryModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Inserimento Rapido (Excel)</h2>
+            <h2 className="text-xl font-bold text-gray-900">Inserimento Rapido</h2>
             <p className="text-sm text-gray-500">Cerca i codici e inserisci le quantità. Aggiungi nuove righe selezionando l'ultima.</p>
           </div>
           <button 
