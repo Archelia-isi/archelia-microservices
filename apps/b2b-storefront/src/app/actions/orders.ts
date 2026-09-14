@@ -87,7 +87,7 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
       status: 'DRAFT',
       totalAmount,
       totalIva,
-      cartType: storeMode,
+      createdById: session.userId,
       items: {
         create: orderItemsData
       }
