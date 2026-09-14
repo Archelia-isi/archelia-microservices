@@ -5,6 +5,7 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import Link from 'next/link';
 import CartItemClient from './CartItemClient';
 import QuickAddCart from './QuickAddCart';
+import QuickEntryWrapper from './QuickEntryWrapper';
 import AgentExtraDiscount from '../../components/AgentExtraDiscount';
 import CheckoutButtons from '../../components/CheckoutButtons';
 import { cookies } from 'next/headers';
@@ -131,7 +132,21 @@ export default async function CartPage() {
         <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
       )}
 
-      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />}
+      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && (
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />
+          </div>
+          <div>
+            <QuickEntryWrapper 
+              userDiscount={genericDiscount} 
+              extraDiscount={extraAgentDiscount} 
+              elmarkDiscounts={elmarkDiscounts}
+              storeMode={storeMode}
+            />
+          </div>
+        </div>
+      )}
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">

@@ -207,3 +207,53 @@ export async function acceptDraftOrder(orderId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function addMultipleToCart(items: { sku: string, quantity: number }[]) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const cartType = storeMode;
+  const session = await verifySession();
+  if (!session) {
+    return { success: false, error: 'Non autorizzato' };
+  }
+
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const cartQuery = await getCartQuery();
+    
+    // Read from Redis
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
+
+    // Read possible extra discount for agents
+    let agentExtraDiscount = 0;
+    if (session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI') {
+      const cookieVal = cookies().get('agentExtraDiscount')?.value;
+      if (cookieVal) {
+        agentExtraDiscount = parseFloat(cookieVal) || 0;
+      }
+    }
+
+    for (const item of items) {
+      if (item.quantity <= 0) continue;
+      const existingItemIndex = cart.items.findIndex(i => i.sku === item.sku);
+      if (existingItemIndex >= 0) {
+        cart.items[existingItemIndex].quantity += item.quantity;
+      } else {
+        cart.items.push({
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+          sku: item.sku,
+          quantity: item.quantity,
+          extraDiscount: agentExtraDiscount > 0 ? agentExtraDiscount : null,
+          extraDiscountMinQty: agentExtraDiscount > 0 ? item.quantity : null
+        });
+      }
+    }
+
+    // Save to Redis and trigger background sync
+    await saveCartToRedis(cart);
+    revalidatePath('/cart');
+    return { success: true, cartItemCount: cart.items.length };
+  } catch (error: any) {
+    console.error('Mass cart action error:', error);
+    return { success: false, error: error.message };
+  }
+}
