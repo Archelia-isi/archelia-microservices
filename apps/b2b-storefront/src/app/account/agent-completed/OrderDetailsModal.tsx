@@ -45,9 +45,16 @@ export default function OrderDetailsModal({ order }: { order: any }) {
         const match = item.discountString.match(/\+ (\d+(?:\.\d+)?)% Extra/);
         if (match) extra = parseFloat(match[1]);
       } else {
-         const calcDisc = Math.round((1 - (item.finalPrice / (item.originalPrice || 1))) * 100);
+         const totalDiscPct = 1 - (item.finalPrice / (item.originalPrice || 1));
+         const stdDec = (item.currentStdDisc || 0) / 100;
+         if (stdDec > 0 && stdDec < 1) {
+           const oneMinusExtra = (1 - totalDiscPct) / (1 - stdDec);
+           extra = Math.round((1 - oneMinusExtra) * 100);
+         } else {
+           extra = 0; // If no standard discount, it's just a flat discount, hard to guess extra
+         }
       }
-      initialExtra[item.id] = extra;
+      initialExtra[item.id] = extra > 0 ? extra : 0;
     });
     
     setQuantities(initialQty);
@@ -194,7 +201,22 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                       }
 
                       const lineTotal = finalPrc * qty;
-                      const historicalDiscString = item.discountString || `${Math.round((1 - (item.finalPrice / (item.originalPrice || 1))) * 100)}%`;
+                      
+                      let historicalDiscString = item.discountString;
+                      if (!historicalDiscString) {
+                        const totalDiscPct = 1 - (item.finalPrice / (item.originalPrice || 1));
+                        const stdDec = (item.currentStdDisc || 0) / 100;
+                        if (stdDec > 0 && stdDec < 1) {
+                          const oneMinusExtra = (1 - totalDiscPct) / (1 - stdDec);
+                          const computedExtra = Math.round((1 - oneMinusExtra) * 100);
+                          historicalDiscString = `${item.currentStdDisc}%`;
+                          if (computedExtra > 0) {
+                            historicalDiscString += ` + ${computedExtra}% Extra`;
+                          }
+                        } else {
+                          historicalDiscString = `${Math.round(totalDiscPct * 100)}%`;
+                        }
+                      }
                       
                       return (
                         <div key={item.id} className={`grid grid-cols-12 gap-4 p-4 items-center ${qty === 0 ? 'opacity-50' : ''}`}>
