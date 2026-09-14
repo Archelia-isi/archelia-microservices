@@ -124,19 +124,11 @@ export default async function CartPage() {
         </div>
       )}
 
-      <h1 className="text-3xl font-bold mb-8">
-        {cartQuery.status === 'REVIEW' ? 'Revisione Ordine' : 'Il tuo Carrello'}
-      </h1>
-      
-      {session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI' && cartQuery.status !== 'REVIEW' && (
-        <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
-      )}
-
-      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && (
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+        <h1 className="text-3xl font-bold">
+          {cartQuery.status === 'REVIEW' ? 'Revisione Ordine' : 'Il tuo Carrello'}
+        </h1>
+        {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && (
           <div>
             <QuickEntryWrapper 
               userDiscount={genericDiscount} 
@@ -145,8 +137,14 @@ export default async function CartPage() {
               storeMode={storeMode}
             />
           </div>
-        </div>
+        )}
+      </div>
+      
+      {session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI' && cartQuery.status !== 'REVIEW' && (
+        <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
       )}
+
+      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />}
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">

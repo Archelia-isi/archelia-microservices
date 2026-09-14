@@ -214,7 +214,7 @@ export default function QuickEntryModal({
   elmarkDiscounts?: Record<string, number>,
   storeMode?: 'ZUCCHETTI' | 'ELMARK'
 }) {
-  const [rows, setRows] = useState<RowData[]>(Array.from({ length: 5 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: 1 })));
+  const [rows, setRows] = useState<RowData[]>(Array.from({ length: 2 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: 1 })));
   const [isPending, startTransition] = useTransition();
 
   const handleFocus = (index: number) => {
