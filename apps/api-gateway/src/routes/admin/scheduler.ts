@@ -26,6 +26,8 @@ const JOB_MAPPINGS: Record<string, JobMapping> = {
   // Varianti isolate per B2B
   'sync-shopify-push-b2b': { queue: shopifyQueue, command: 'SYNC_ALL_PRODUCTS', label: '🛍️ Sync Shopify (Tutto) [B2B]', defaultInterval: 1, defaultUnit: 'days', storeType: 'B2B', baseId: 'sync-shopify-push' },
   'sync-stock-b2b': { queue: shopifyQueue, command: 'SYNC_STOCK_ONLY', label: '📦 Sync Stock Shopify [B2B]', defaultInterval: 30, defaultUnit: 'minutes', storeType: 'B2B', baseId: 'sync-stock' },
+  'sync-typesense': { queue: typesenseQueue, command: 'SYNC_TYPESENSE', label: '🔎 Sync Massiva Typesense', defaultInterval: 1, defaultUnit: 'days' },
+  'sync-typesense-promo': { queue: typesenseQueue, command: 'SYNC_TYPESENSE_PROMO', label: '⚡ Fast Sync Promozioni', defaultInterval: 30, defaultUnit: 'seconds' },
 };
 
 function resolveJobId(id: string, storeType: string): string {
