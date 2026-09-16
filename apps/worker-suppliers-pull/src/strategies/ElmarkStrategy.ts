@@ -53,14 +53,15 @@ export class ElmarkStrategy implements ISupplierStrategy {
       
       try {
         const values: any[] = [];
+        const crypto = require('crypto');
         const placeholdersRaw = batch.map((item, i) => {
-          const offset = i * 3;
-          values.push(item.id, JSON.stringify(item), 'false');
-          return `($${offset + 1}, $${offset + 2}::jsonb, $${offset + 3}, NOW(), NOW())`;
+          const offset = i * 4;
+          values.push(crypto.randomUUID(), item.id, JSON.stringify(item), 'false');
+          return `($${offset + 1}, $${offset + 2}, $${offset + 3}::jsonb, $${offset + 4}, NOW(), NOW())`;
         }).join(', ');
 
         const queryRaw = `
-          INSERT INTO elmark_raw_products ("elmarkId", "rawData", "processed", "createdAt", "updatedAt")
+          INSERT INTO elmark_raw_products ("id", "elmarkId", "rawData", "processed", "createdAt", "updatedAt")
           VALUES ${placeholdersRaw}
           ON CONFLICT ("elmarkId") DO UPDATE 
           SET "rawData" = EXCLUDED."rawData", "updatedAt" = EXCLUDED."updatedAt";
@@ -124,6 +125,26 @@ export class ElmarkStrategy implements ISupplierStrategy {
                 imageUrl: item.picture_url || ''
               }
             });
+
+            // FASE 1.6: Allineamento giacenze e prezzi anche su elmark_processed_products
+            // in modo che il frontend (che legge il record processato) abbia dati live.
+            try {
+              const purchasePrice = price - (price * purchaseDiscount);
+              await prisma.elmarkProcessedProduct.update({
+                where: { elmarkCode: elmarkId },
+                data: {
+                  price: price,
+                  purchasePrice: purchasePrice,
+                  stockEk: totalStock,
+                  stock: totalStock, // elmark_processed_products ha stock e stockEk separati
+                  discgroup: discgroup
+                }
+              });
+            } catch (processedUpdateErr) {
+              // Il record in elmark_processed_products potrebbe non esistere ancora se il prodotto è nuovo
+              // e non è passato per l'equalizzatore. Ignoriamo silenziosamente l'errore P2025 (Record to update not found).
+            }
+
           } catch (e: any) {
             logger.warn(`[ElmarkStrategy] Errore inserimento Product skeleton per ${item.id}: ${e.message}`);
           }
