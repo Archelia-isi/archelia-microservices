@@ -257,6 +257,7 @@ export default function TypesenseApp() {
                       onChange={(e) => setLocalValues(prev => ({...prev, [job.id]: { ...prev[job.id], unit: e.target.value }}))}
                       style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--color-border-light)', outline: 'none', background: 'white', fontSize: '13px' }}
                     >
+                      <option value="seconds">Secondi</option>
                       <option value="minutes">Minuti</option>
                       <option value="hours">Ore</option>
                       <option value="days">Giorni</option>
