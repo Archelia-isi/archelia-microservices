@@ -334,7 +334,7 @@ export async function runBulkSync() {
   console.log('Starting bulk sync to Typesense...');
   
   // 1. Initialize schema (force recreate to ensure new fields are applied)
-  await initializeTypesenseSchema(true);
+  await initializeTypesenseSchema(false);
 
   // 1.5 Fetch active promos
   console.log('Fetching active promos...');
