@@ -128,7 +128,7 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
     // Parse tags arrays if they are strings
     let keywordsArray: string[] = [];
     if (product.keywords) {
-      keywordsArray = product.keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
+      keywordsArray = Array.isArray(product.keywords) ? product.keywords : (typeof product.keywords === 'string' ? product.keywords.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
     }
     
     let semanticTagsArray: string[] = [];
@@ -366,22 +366,23 @@ export async function runBulkSync() {
       id: `elmark_${ep.id}`,
       sku: ep.elmarkCode || ep.sku,
       title: ep.title || ep.originalName || '',
-      original_name: ep.originalName || ep.title || '',
+      originalName: ep.originalName || ep.title || '',
       description: ep.description || '',
-      technical_desc: ep.technicalDesc || '',
-      meta_description: ep.metaDescription || '',
+      technicalDesc: ep.technicalDesc || '',
+      metaDescription: ep.metaDescription || '',
       brand: 'ELMARK',
-      product_group: ep.productGroup || '',
+      productGroup: ep.productGroup || '',
       family: ep.family || '',
       category: ep.category || '',
       unit: ep.unit || 'PZ',
       price: ep.price,
-      price_b2b: ep.price,
+      priceB2b: ep.price,
       discgroup: ep.discgroup || '',
       stock: ep.stock,
       stock_main: ep.stock,
       stock_ek: ep.stockEk,
-      image_url: ep.imageUrl || '',
+      imageUrl: ep.imageUrl || '',
+      imageUrls: ep.imageUrl ? [ep.imageUrl] : [],
       publishedOnWeb: true, // we want them searchable in B2B
       publishedOnB2b: true,
       keywords: kws,
