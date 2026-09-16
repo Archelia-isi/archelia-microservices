@@ -353,7 +353,10 @@ export async function runBulkSync() {
 
   const skuToDiscgroup = new Map<string, string>();
   for (const ep of elmarkProducts) {
-    if (ep.discgroup) skuToDiscgroup.set(ep.sku, ep.discgroup);
+    if (ep.discgroup) {
+      skuToDiscgroup.set(ep.sku, ep.discgroup);
+      if (ep.elmarkCode) skuToDiscgroup.set(ep.elmarkCode, ep.discgroup);
+    }
   }
   
   // Transform ElmarkProducts to look like normal Products for Typesense
@@ -408,7 +411,7 @@ export async function runBulkSync() {
         if (shopifyId) {
           promoData = promoMap.get(`gid://shopify/Product/${shopifyId}`) || promoMap.get(shopifyId);
         }
-        product.discgroup = skuToDiscgroup.get(product.sku) || '';
+        product.discgroup = product.discgroup || skuToDiscgroup.get(product.sku) || '';
         await syncProductToTypesense(product, promoData);
         synced++;
       } catch (e) {
