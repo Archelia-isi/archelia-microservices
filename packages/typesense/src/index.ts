@@ -49,6 +49,7 @@ export async function initializeTypesenseSchema(forceRecreate: boolean = false) 
           { name: 'keywords', type: 'string[]', optional: true },
           { name: 'semantic_tags', type: 'string[]', optional: true },
           { name: 'sku_prefixes', type: 'string[]', optional: true },
+          { name: 'catalog_source', type: 'string', facet: true, optional: true },
           { name: 'natural_sku', type: 'string', optional: true, sort: true },
           { name: 'is_in_promo', type: 'bool', facet: true, optional: true },
           { name: 'promo_type', type: 'string', facet: true, optional: true },
