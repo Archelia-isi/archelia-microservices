@@ -203,7 +203,8 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
       promo_badge: promoData?.promo_badge || '',
       promo_badge_color: promoData?.promo_badge_color || '',
       promo_start: promoData?.promo_start || '',
-      promo_end: promoData?.promo_end || ''
+      promo_end: promoData?.promo_end || '',
+      catalog_source: product.catalog_source || 'zucchetti'
     };
 
     await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().upsert(document);
