@@ -77,13 +77,15 @@ export class ElmarkStrategy implements ISupplierStrategy {
             const sku = `ELM.${elmarkId}`;
             
             // Calcolo giacenza
-            const qties = item.quantities;
             let totalStock = 0;
-            if (qties) {
+            if (item.availability && item.availability.quantity) {
+              totalStock = parseFloat(item.availability.quantity) || 0;
+            } else if (item.quantities) {
+              const qties = item.quantities;
               if (Array.isArray(qties)) {
-                totalStock = qties.reduce((acc: number, curr: any) => acc + (parseInt(curr.qty) || 0), 0);
+                totalStock = qties.reduce((acc: number, curr: any) => acc + (parseFloat(curr.qty) || 0), 0);
               } else if (qties.qty) {
-                totalStock = parseInt(qties.qty) || 0;
+                totalStock = parseFloat(qties.qty) || 0;
               }
             }
 
