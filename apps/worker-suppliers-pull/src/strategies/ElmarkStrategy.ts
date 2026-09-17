@@ -69,83 +69,87 @@ export class ElmarkStrategy implements ISupplierStrategy {
 
         await prisma.$executeRawUnsafe(queryRaw, ...values);
 
-        // --- FASE 1.5 & 1.6: INSERIMENTO SCHELETRO E AGGIORNAMENTO PROCESSED ---
-        // Ottimizzato con Bulk Query RAW SQL per non bloccare il loop
-        const productsValues = [];
-        const productsPlaceholders = [];
-        
-        const processedValues = [];
-        const processedPlaceholders = [];
-
-        for (let i = 0; i < batch.length; i++) {
-          const item = batch[i];
-          const elmarkId = item.id;
-          const sku = `ELM.${elmarkId}`;
-          
-          let totalStock = 0;
-          if (item.availability && item.availability.quantity) {
-            totalStock = parseFloat(item.availability.quantity) || 0;
-          } else if (item.quantities) {
-            const qties = item.quantities;
-            if (Array.isArray(qties)) {
-              totalStock = qties.reduce((acc, curr) => acc + (parseFloat(curr.qty) || 0), 0);
-            } else if (qties.qty) {
-              totalStock = parseFloat(qties.qty) || 0;
+        // --- FASE 1.5: INSERIMENTO SCHELETRO PRODOTTO ---
+        // Estraiamo prezzo e giacenza per averli subito aggiornati per Zucchetti
+        for (const item of batch) {
+          try {
+            const elmarkId = item.id;
+            const sku = `ELM.${elmarkId}`;
+            
+            // Calcolo giacenza
+            let totalStock = 0;
+            if (item.availability && item.availability.quantity) {
+              totalStock = parseFloat(item.availability.quantity) || 0;
+            } else if (item.quantities) {
+              const qties = item.quantities;
+              if (Array.isArray(qties)) {
+                totalStock = qties.reduce((acc: number, curr: any) => acc + (parseFloat(curr.qty) || 0), 0);
+              } else if (qties.qty) {
+                totalStock = parseFloat(qties.qty) || 0;
+              }
             }
+
+            // Calcolo Sconto d'acquisto (come vecchio Phase 1.5)
+            const discgroup = item.discgroup || '';
+            let purchaseDiscount = 0;
+            if (discgroup === 'C' || discgroup === 'E2' || discgroup === 'F') purchaseDiscount = 0.25;
+            if (discgroup === 'E1' || discgroup === 'L') purchaseDiscount = 0.50;
+
+            let price = 0;
+            if (item.endcustprice?.price_exclvat) {
+              price = parseFloat(item.endcustprice.price_exclvat) || 0;
+            } else if (Array.isArray(item.endcustprice) && item.endcustprice[0]?.price_exclvat) {
+              price = parseFloat(item.endcustprice[0].price_exclvat) || 0;
+            }
+
+            // Dimensioni
+            const netWeight = parseFloat(item.netweight || '0');
+            const grossWeight = parseFloat(item.grossweight || '0');
+            const volume = parseFloat(item.volume || '0');
+
+            await prisma.product.upsert({
+              where: { sku: sku },
+              create: {
+                sku: sku,
+                zucchettiCode: sku, // Temporaneo finché non va in Zucchetti
+                brand: 'ELMARK',
+                title: item.title || item.name || '',
+                price: price,
+                stockEk: totalStock,
+                netWeight: netWeight,
+                grossWeight: grossWeight,
+                volume: volume,
+                imageUrl: item.picture_url || ''
+              },
+              update: {
+                price: price,
+                stockEk: totalStock,
+                imageUrl: item.picture_url || ''
+              }
+            });
+
+            // FASE 1.6: Allineamento giacenze e prezzi anche su elmark_processed_products
+            // in modo che il frontend (che legge il record processato) abbia dati live.
+            try {
+              const purchasePrice = price - (price * purchaseDiscount);
+              await prisma.elmarkProcessedProduct.update({
+                where: { elmarkCode: elmarkId },
+                data: {
+                  price: price,
+                  purchasePrice: purchasePrice,
+                  stockEk: totalStock,
+                  stock: totalStock, // elmark_processed_products ha stock e stockEk separati
+                  discgroup: discgroup
+                }
+              });
+            } catch (processedUpdateErr) {
+              // Il record in elmark_processed_products potrebbe non esistere ancora se il prodotto è nuovo
+              // e non è passato per l'equalizzatore. Ignoriamo silenziosamente l'errore P2025 (Record to update not found).
+            }
+
+          } catch (e: any) {
+            logger.warn(`[ElmarkStrategy] Errore inserimento Product skeleton per ${item.id}: ${e.message}`);
           }
-
-          const discgroup = item.discgroup || '';
-          let purchaseDiscount = 0;
-          if (discgroup === 'C' || discgroup === 'E2' || discgroup === 'F') purchaseDiscount = 0.25;
-          if (discgroup === 'E1' || discgroup === 'L') purchaseDiscount = 0.50;
-
-          let price = 0;
-          if (item.endcustprice?.price_exclvat) {
-            price = parseFloat(item.endcustprice.price_exclvat) || 0;
-          } else if (Array.isArray(item.endcustprice) && item.endcustprice[0]?.price_exclvat) {
-            price = parseFloat(item.endcustprice[0].price_exclvat) || 0;
-          }
-
-          const netWeight = parseFloat(item.netweight || '0');
-          const grossWeight = parseFloat(item.grossweight || '0');
-          const volume = parseFloat(item.volume || '0');
-          const title = item.title || item.name || '';
-          const imageUrl = item.picture_url || '';
-          const purchasePrice = price - (price * purchaseDiscount);
-
-          // Prepare per products
-          const offset = i * 11;
-          productsValues.push(crypto.randomUUID(), sku, sku, 'ELMARK', title, price, totalStock, netWeight, grossWeight, volume, imageUrl);
-          productsPlaceholders.push(`(${offset + 1}, ${offset + 2}, ${offset + 3}, ${offset + 4}, ${offset + 5}, ${offset + 6}, ${offset + 7}, ${offset + 8}, ${offset + 9}, ${offset + 10}, ${offset + 11})`);
-
-          // Prepare per elmark_processed_products
-          const offsetP = i * 5;
-          processedValues.push(elmarkId, price, purchasePrice, totalStock, discgroup);
-          processedPlaceholders.push(`(${offsetP + 1}::text, ${offsetP + 2}::numeric, ${offsetP + 3}::numeric, ${offsetP + 4}::numeric, ${offsetP + 5}::text)`);
-        }
-
-        if (productsPlaceholders.length > 0) {
-          const queryProducts = `
-            INSERT INTO products ("id", "sku", "zucchettiCode", "brand", "title", "price", "stockEk", "netWeight", "grossWeight", "volume", "imageUrl")
-            VALUES ${productsPlaceholders.join(', ')}
-            ON CONFLICT ("sku") DO UPDATE
-            SET price = EXCLUDED.price, "stockEk" = EXCLUDED."stockEk", "imageUrl" = EXCLUDED."imageUrl";
-          `;
-          await prisma.$executeRawUnsafe(queryProducts, ...productsValues);
-
-          const queryProcessed = `
-            UPDATE elmark_processed_products AS p
-            SET 
-              price = c.price,
-              "purchasePrice" = c.purchasePrice,
-              "stockEk" = c.stockEk,
-              stock = c.stockEk,
-              discgroup = c.discgroup,
-              "updatedAt" = NOW()
-            FROM (VALUES ${processedPlaceholders.join(', ')}) AS c("elmarkCode", price, "purchasePrice", "stockEk", discgroup)
-            WHERE p."elmarkCode" = c."elmarkCode";
-          `;
-          await prisma.$executeRawUnsafe(queryProcessed, ...processedValues);
         }
 
         processedCount += batch.length;
