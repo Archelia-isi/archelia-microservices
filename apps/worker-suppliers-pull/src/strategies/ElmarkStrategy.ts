@@ -6,6 +6,7 @@ import { env, log as logger, imageService } from '@archelia/core';
 import { v2 as cloudinary } from 'cloudinary';
 // @ts-ignore
 import sax from 'sax';
+import crypto from 'crypto';
 
 export class ElmarkStrategy implements ISupplierStrategy {
   getSupplierId(): string {
@@ -53,7 +54,6 @@ export class ElmarkStrategy implements ISupplierStrategy {
       
       try {
         const values: any[] = [];
-        const crypto = require('crypto');
         const placeholdersRaw = batch.map((item, i) => {
           const offset = i * 4;
           values.push(crypto.randomUUID(), item.id, JSON.stringify(item), 'false');
