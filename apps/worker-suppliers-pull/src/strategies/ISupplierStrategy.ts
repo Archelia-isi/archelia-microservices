@@ -14,6 +14,11 @@ export interface ISupplierStrategy {
   /**
    * (Opzionale) Sincronizzazione stock/prezzi
    */
+  pullFastStockAndPrices?(job: Job): Promise<void>;
+
+  /**
+   * (Opzionale) Sincronizzazione stock/prezzi verso ERP
+   */
   syncStockAndPrices?(job: Job): Promise<void>;
 
   /**

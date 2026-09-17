@@ -242,6 +242,206 @@ export class ElmarkStrategy implements ISupplierStrategy {
     logger.info(`[ElmarkStrategy] Importazione catalogo completata con successo. Totale record processati: ${processedCount}`, { module: 'sync' });
   }
 
+  
+  async pullFastStockAndPrices(job: Job): Promise<void> {
+    logger.info('[ElmarkStrategy] Inizio pull rapido stock e prezzi (XML Stream)...', { module: 'sync' });
+    
+    const response = await fetch('https://api.elmarkgroup.eu/api/Elmark/GetItems', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/xml' },
+      body: 'elmarkstore-int'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Elmark API: ${response.statusText}`);
+    }
+
+    const rawText = await response.text();
+    let xmlString: string = '';
+    try {
+      xmlString = JSON.parse(rawText);
+    } catch (e) {
+      xmlString = rawText;
+    }
+
+    logger.info(`[ElmarkStrategy] XML ottenuto per pull veloce. Lunghezza: ${xmlString.length}. Avvio parsing...`, { module: 'sync' });
+
+    const sax = require('sax');
+    const crypto = require('crypto');
+    const saxStream = sax.createStream(true, { trim: true });
+    
+    let objectStack: any[] = [];
+    let currentObj: any = null;
+    let currentText = '';
+    let itemsToUpdate: any[] = [];
+    
+    let processedCount = 0;
+    
+    const flushBatch = async () => {
+      if (itemsToUpdate.length === 0) return;
+      const batch = [...itemsToUpdate];
+      itemsToUpdate = [];
+      
+      try {
+        const productsValues: any[] = [];
+        const productsPlaceholders: string[] = [];
+        const processedValues: any[] = [];
+        const processedPlaceholders: string[] = [];
+
+        for (let i = 0; i < batch.length; i++) {
+          const item = batch[i];
+          const elmarkId = item.id;
+          const sku = `ELM.${elmarkId}`;
+          
+          let totalStock = 0;
+          if (item.availability && item.availability.quantity) {
+            totalStock = parseFloat(item.availability.quantity) || 0;
+          } else if (item.quantities) {
+            const qties = item.quantities;
+            if (Array.isArray(qties)) {
+              totalStock = qties.reduce((acc: number, curr: any) => acc + (parseFloat(curr.qty) || 0), 0);
+            } else if (qties.qty) {
+              totalStock = parseFloat(qties.qty) || 0;
+            }
+          }
+
+          const discgroup = item.discgroup || '';
+          let purchaseDiscount = 0;
+          if (discgroup === 'C' || discgroup === 'E2' || discgroup === 'F') purchaseDiscount = 0.25;
+          if (discgroup === 'E1' || discgroup === 'L') purchaseDiscount = 0.50;
+
+          let price = 0;
+          if (item.endcustprice?.price_exclvat) {
+            price = parseFloat(item.endcustprice.price_exclvat) || 0;
+          } else if (Array.isArray(item.endcustprice) && item.endcustprice[0]?.price_exclvat) {
+            price = parseFloat(item.endcustprice[0].price_exclvat) || 0;
+          }
+          const purchasePrice = price - (price * purchaseDiscount);
+
+          const offsetP = i * 5;
+          processedValues.push(elmarkId, price, purchasePrice, totalStock, discgroup);
+          processedPlaceholders.push(`(${offsetP + 1}::text, ${offsetP + 2}::numeric, ${offsetP + 3}::numeric, ${offsetP + 4}::numeric, ${offsetP + 5}::text)`);
+
+          const offset = i * 3;
+          productsValues.push(sku, price, totalStock);
+          productsPlaceholders.push(`(${offset + 1}::text, ${offset + 2}::numeric, ${offset + 3}::numeric)`);
+        }
+
+        if (processedPlaceholders.length > 0) {
+          const queryProcessed = `
+            UPDATE elmark_processed_products AS p
+            SET 
+              price = c.price,
+              "purchasePrice" = c.purchasePrice,
+              "stockEk" = c.stockEk,
+              stock = c.stockEk,
+              discgroup = c.discgroup,
+              "updatedAt" = NOW()
+            FROM (VALUES ${processedPlaceholders.join(', ')}) AS c("elmarkCode", price, "purchasePrice", "stockEk", discgroup)
+            WHERE p."elmarkCode" = c."elmarkCode";
+          `;
+          await prisma.$executeRawUnsafe(queryProcessed, ...processedValues);
+          
+          const queryProducts = `
+            UPDATE products AS p
+            SET 
+              price = c.price,
+              "stockEk" = c.stockEk,
+              "updatedAt" = NOW()
+            FROM (VALUES ${productsPlaceholders.join(', ')}) AS c("sku", price, "stockEk")
+            WHERE p."sku" = c."sku";
+          `;
+          await prisma.$executeRawUnsafe(queryProducts, ...productsValues);
+        }
+
+        processedCount += batch.length;
+        logger.info(`[ElmarkStrategy FastPull] Aggiornati ${batch.length} record. Totale: ${processedCount}`, { module: 'sync' });
+      } catch (e: any) {
+        logger.error(`[ElmarkStrategy FastPull] Errore aggiornamento batch raw: ${e.message}`, { error: e, module: 'sync' });
+      }
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      saxStream.on('error', (e: any) => reject(e));
+      saxStream.on('end', async () => {
+        await flushBatch();
+        resolve();
+      });
+
+      saxStream.on('opentag', (node: any) => {
+        if (node.name === 'item' && !currentObj) {
+          currentObj = {};
+          objectStack.push({ name: node.name, obj: currentObj });
+        } else if (currentObj) {
+          objectStack.push({ name: node.name, obj: {} });
+        } else {
+          objectStack.push({ name: node.name, obj: null });
+        }
+        currentText = '';
+      });
+
+      saxStream.on('text', (text: string) => currentText += text);
+      saxStream.on('cdata', (text: string) => currentText += text);
+
+      saxStream.on('closetag', (tagName: string) => {
+        const popped = objectStack.pop();
+        if (!popped) return;
+
+        if (popped.name === 'item' && popped.obj === currentObj && currentObj !== null) {
+          if (currentObj && currentObj.id) {
+            itemsToUpdate.push(currentObj);
+          }
+          currentObj = null;
+        } else if (currentObj) {
+          const parent = objectStack[objectStack.length - 1];
+          if (parent && parent.obj) {
+            const val = Object.keys(popped.obj).length === 0 ? currentText.trim() : popped.obj;
+            if (parent.obj[popped.name] !== undefined) {
+              if (!Array.isArray(parent.obj[popped.name])) {
+                parent.obj[popped.name] = [parent.obj[popped.name]];
+              }
+              parent.obj[popped.name].push(val);
+            } else {
+              parent.obj[popped.name] = val;
+            }
+          }
+        }
+      });
+
+      const chunkSize = 1024 * 1024; // 1MB
+      let offset = 0;
+
+      const processChunk = async () => {
+        try {
+          if (offset >= xmlString.length) {
+            if (itemsToUpdate.length > 0) {
+              await flushBatch();
+            }
+            saxStream.end();
+            return;
+          }
+          const chunk = xmlString.substring(offset, offset + chunkSize);
+          offset += chunkSize;
+          
+          saxStream.write(chunk);
+
+          if (itemsToUpdate.length >= 200) {
+            await flushBatch();
+          }
+
+          setImmediate(processChunk);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      processChunk();
+    });
+
+    await job.updateProgress(100);
+    logger.info(`[ElmarkStrategy FastPull] Completato con successo. Totale: ${processedCount}`, { module: 'sync' });
+  }
+
   async syncStockAndPrices(job: Job): Promise<void> {
     logger.info('[ElmarkStrategy] Sincronizzazione Stock verso Zucchetti in corso...', { module: 'sync' });
     

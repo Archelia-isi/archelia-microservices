@@ -45,7 +45,10 @@ async function bootstrap() {
           if (strategy.syncImages) await strategy.syncImages(job);
         } else if (action === 'IMPORT_CATALOG') {
           await strategy.importCatalog(job);
-        } else if ((action === 'SYNC_STOCK' || action === 'STOCK_PRICES') && strategy.syncStockAndPrices) {
+        } else if (action === 'STOCK_PRICES') {
+          if (strategy.pullFastStockAndPrices) await strategy.pullFastStockAndPrices(job);
+          if (strategy.syncStockAndPrices) await strategy.syncStockAndPrices(job);
+        } else if (action === 'SYNC_STOCK' && strategy.syncStockAndPrices) {
           await strategy.syncStockAndPrices(job);
         } else if (action === 'SYNC_IMAGES' && strategy.syncImages) {
           await strategy.syncImages(job);
