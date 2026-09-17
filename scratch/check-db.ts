@@ -1,6 +1,14 @@
-import { prisma } from '@archelia/database';
-async function main() {
-  const p = await prisma.product.findUnique({ where: { sku: 'CA1.KOSH001' } });
-  console.log(p?.price, p?.priceB2b);
-}
-main().catch(console.error);
+import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+prisma.schedulerConfig.findMany().then(c => {
+  console.log(c);
+  process.exit(0);
+});
