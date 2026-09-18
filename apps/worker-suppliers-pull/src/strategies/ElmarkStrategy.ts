@@ -318,11 +318,11 @@ export class ElmarkStrategy implements ISupplierStrategy {
 
           const offsetP = i * 5;
           processedValues.push(elmarkId, price, purchasePrice, totalStock, discgroup);
-          processedPlaceholders.push(`(${offsetP + 1}::text, ${offsetP + 2}::numeric, ${offsetP + 3}::numeric, ${offsetP + 4}::numeric, ${offsetP + 5}::text)`);
+          processedPlaceholders.push(`($${offsetP + 1}::text, $${offsetP + 2}::numeric, $${offsetP + 3}::numeric, $${offsetP + 4}::numeric, $${offsetP + 5}::text)`);
 
           const offset = i * 3;
           productsValues.push(sku, price, totalStock);
-          productsPlaceholders.push(`(${offset + 1}::text, ${offset + 2}::numeric, ${offset + 3}::numeric)`);
+          productsPlaceholders.push(`($${offset + 1}::text, $${offset + 2}::numeric, $${offset + 3}::numeric)`);
         }
 
         if (processedPlaceholders.length > 0) {
