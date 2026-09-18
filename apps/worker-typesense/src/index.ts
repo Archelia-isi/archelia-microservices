@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { log, createRedisConnection } from '@archelia/core';
-import { runBulkSync, syncPromotionsToTypesense } from '@archelia/typesense';
+import { runBulkSync, syncPromotionsToTypesense, runFastStockPriceSync } from '@archelia/typesense';
 
 log.info('🚀 Avvio worker-typesense in corso...', { module: 'worker-typesense' });
 
@@ -14,6 +14,11 @@ const worker = new Worker(
           log.info('Avvio Bulk Sync su Typesense...', { module: 'worker-typesense' });
           await runBulkSync();
           log.info('Bulk Sync Typesense completato.', { module: 'worker-typesense' });
+          break;
+        case 'SYNC_TYPESENSE_FAST_STOCK':
+          log.info('Avvio Fast Sync Stock/Prezzi su Typesense...', { module: 'worker-typesense' });
+          await runFastStockPriceSync();
+          log.info('Fast Sync Stock/Prezzi Typesense completato.', { module: 'worker-typesense' });
           break;
         case 'SYNC_TYPESENSE_PROMO':
           log.info('Avvio Fast Sync Promozioni su Typesense...', { module: 'worker-typesense' });

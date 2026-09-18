@@ -1,3 +1,4 @@
+import { createRedisConnection } from "@archelia/core";
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 import { shopifyPromoService, TypesensePromoData } from '@archelia/shopify';
 import { prisma } from '@archelia/database';
@@ -441,3 +442,86 @@ Bulk sync complete!`);
 /**
  * Esegue una ricerca Typesense con le priorità definite dal cliente.
  */
+
+export async function runFastStockPriceSync() {
+  console.log('Starting fast stock/price sync to Typesense...');
+  const redis = createRedisConnection();
+  
+  // Recupera l'ultimo sync (se non esiste, prendi gli ultimi 15 minuti)
+  const lastSyncStr = await redis.get('typesense:last_fast_stock_sync');
+  let lastSync = lastSyncStr ? new Date(lastSyncStr) : new Date(Date.now() - 15 * 60 * 1000);
+  
+  // Salva subito il timestamp attuale per il prossimo run
+  const newSyncTime = new Date();
+  await redis.set('typesense:last_fast_stock_sync', newSyncTime.toISOString());
+
+  // 1. Cerca Elmark modificati di recente
+  console.log(`Fetching recently modified Elmark products (since ${lastSync.toISOString()})...`);
+  const recentElmark = await prisma.elmarkProcessedProduct.findMany({
+    where: { updatedAt: { gte: lastSync } },
+    select: { id: true, elmarkCode: true, sku: true, price: true, stockEk: true, stock: true }
+  });
+
+  // 2. Cerca Standard modificati di recente
+  console.log(`Fetching recently modified Standard products (since ${lastSync.toISOString()})...`);
+  const recentStandard = await prisma.product.findMany({
+    where: { updatedAt: { gte: lastSync } },
+    select: { id: true, sku: true, price: true, stock: true, stockEk: true }
+  });
+
+  if (recentElmark.length === 0 && recentStandard.length === 0) {
+    console.log('Nessun prodotto da aggiornare.');
+    return { synced: 0, failed: 0 };
+  }
+
+  const docsToUpdate: any[] = [];
+
+  // Mappa Elmark
+  for (const ep of recentElmark) {
+    docsToUpdate.push({
+      id: `elmark_${ep.id}`,
+      price: ep.price ? Number(ep.price) : 0,
+      priceB2b: ep.price ? Number(ep.price) : 0,
+      stock: ep.stock || 0,
+      stock_main: ep.stock || 0,
+      stock_ek: ep.stockEk || 0
+    });
+  }
+
+  // Mappa Standard
+  for (const p of recentStandard) {
+    docsToUpdate.push({
+      id: p.id.toString(), // Gli standard usano l'UUID diretto
+      price: p.price ? Number(p.price) : 0,
+      priceB2b: p.price ? Number(p.price) : 0,
+      stock: p.stock || 0,
+      stock_main: p.stock || 0,
+      stock_ek: p.stockEk || 0
+    });
+  }
+
+  console.log(`Found ${docsToUpdate.length} documents to fast update.`);
+
+  let synced = 0;
+  let failed = 0;
+  const batchSize = 500;
+
+  for (let i = 0; i < docsToUpdate.length; i += batchSize) {
+    const batch = docsToUpdate.slice(i, i + batchSize);
+    try {
+      const results = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().import(batch, { action: 'update' });
+      // results restituisce un array di oggetti per ogni documento, indicando success/error
+      const successCount = results.filter((r: any) => r.success).length;
+      const errorCount = results.filter((r: any) => !r.success).length;
+      synced += successCount;
+      failed += errorCount;
+      console.log(`Batch import (update): ${successCount} success, ${errorCount} errors.`);
+    } catch (e: any) {
+      console.error(`Errore critico in batch update:`, e.message || e);
+      failed += batch.length;
+    }
+  }
+
+  console.log(`✅ Fast Stock/Price sync completato. Aggiornati: ${synced}, Falliti: ${failed}`);
+  return { synced, failed };
+}

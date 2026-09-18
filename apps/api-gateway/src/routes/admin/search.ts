@@ -64,6 +64,22 @@ export async function adminSearchRoutes(app: FastifyInstance) {
     return reply.status(200).send({ success: true, message: 'Fast Sync Promozioni accodato.' });
   });
 
+  // Trigger Sincronizzazione Fast Stock/Prezzi Typesense
+  fastify.post('/api/admin/typesense/sync-stock', { 
+    preHandler: [requireAdmin],
+    schema: {
+      response: { 200: z.object({ success: z.boolean(), message: z.string() }) }
+    }
+  }, async (request, reply) => {
+    log.info('🔄 [Admin] Richiesto trigger Typesense Fast Sync Stock', { module: 'api-gateway:search' });
+    const { Queue } = await import('bullmq');
+    const { redis } = await import('@archelia/core');
+    const typesenseQueue = new Queue('typesense-commands', { connection: redis as any });
+    await typesenseQueue.add('SYNC_TYPESENSE_FAST_STOCK', { source: 'admin-ui' });
+    return reply.status(200).send({ success: true, message: 'Fast Sync Stock/Prezzi accodato.' });
+  });
+
+
   // Search Diretta su Typesense
   fastify.get('/api/admin/typesense/search', { 
     schema: {

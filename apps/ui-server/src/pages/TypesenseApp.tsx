@@ -42,7 +42,7 @@ export default function TypesenseApp() {
       });
       if (res.ok) {
         const data = await res.json();
-        const typesenseJobs = data.filter((j: any) => j.id === 'sync-typesense' || j.id === 'sync-typesense-promo');
+        const typesenseJobs = data.filter((j: any) => j.id === 'sync-typesense' || j.id === 'sync-typesense-promo' || j.id === 'sync-typesense-stock');
         setSchedulerJobs(typesenseJobs);
         
         const newLocalVals: any = {};
@@ -80,7 +80,24 @@ export default function TypesenseApp() {
     }
   };
 
-  const handleFastSyncPromo = async () => {
+  
+  const handleFastSyncStock = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/typesense/sync-stock`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        toast.success('Fast Sync Stock/Prezzi accodato!');
+      } else {
+        toast.error('Errore durante il sync');
+      }
+    } catch (e) {
+      toast.error('Errore di connessione');
+    }
+  };
+
+const handleFastSyncPromo = async () => {
     try {
       const res = await fetch(`${API_URL}/api/admin/typesense/sync-promo`, { 
         method: 'POST',
@@ -200,6 +217,9 @@ export default function TypesenseApp() {
               </p>
               
               <div style={{ display: 'flex', gap: '12px' }}>
+                <Button variant="primary" onClick={handleFastSyncStock} style={{ flex: 1, justifyContent: 'center', background: '#27ae60', borderColor: '#2ecc71' }}>
+                  Fast Sync Stock
+                </Button>
                 <Button variant="primary" onClick={handleFastSyncPromo} style={{ flex: 1, justifyContent: 'center', background: '#f39c12', borderColor: '#e67e22' }}>
                   Fast Sync Promozioni
                 </Button>
