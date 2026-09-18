@@ -290,7 +290,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
               )}
             </Link>
             <div className="p-4 pt-2 flex flex-col flex-grow border-t border-gray-50">
-              <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{product.vendor || 'IZZO'}</span>
+              <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{product.brand || product.vendor || 'IZZO'}</span>
               <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
                 <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="hover:text-brand-main transition-colors">
                   {product.original_name || product.title}

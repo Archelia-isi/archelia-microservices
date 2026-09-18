@@ -113,7 +113,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const searchQuery = product.category || product.brand || '*';
   let relatedProductsRes: any;
   try {
-    relatedProductsRes = await searchProducts(searchQuery, { b2bMode: true });
+    relatedProductsRes = await searchProducts(searchQuery, { b2bMode: true, catalogSource: storeMode === 'ELMARK' ? 'elmark' : 'zucchetti' });
   } catch (e) {
     console.error('Failed to fetch related products:', e);
   }
