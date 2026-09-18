@@ -330,9 +330,9 @@ export class ElmarkStrategy implements ISupplierStrategy {
             UPDATE elmark_processed_products AS p
             SET 
               price = c.price,
-              "purchasePrice" = c.purchasePrice,
-              "stockEk" = c.stockEk,
-              stock = c.stockEk,
+              "purchasePrice" = c."purchasePrice",
+              "stockEk" = c."stockEk",
+              stock = c."stockEk",
               discgroup = c.discgroup,
               "updatedAt" = NOW()
             FROM (VALUES ${processedPlaceholders.join(', ')}) AS c("elmarkCode", price, "purchasePrice", "stockEk", discgroup)
@@ -344,7 +344,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
             UPDATE products AS p
             SET 
               price = c.price,
-              "stockEk" = c.stockEk,
+              "stockEk" = c."stockEk",
               "updatedAt" = NOW()
             FROM (VALUES ${productsPlaceholders.join(', ')}) AS c("sku", price, "stockEk")
             WHERE p."sku" = c."sku";
