@@ -107,26 +107,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
             const grossWeight = parseFloat(item.grossweight || '0');
             const volume = parseFloat(item.volume || '0');
 
-            await prisma.product.upsert({
-              where: { sku: sku },
-              create: {
-                sku: sku,
-                zucchettiCode: sku, // Temporaneo finché non va in Zucchetti
-                brand: 'ELMARK',
-                title: item.title || item.name || '',
-                price: price,
-                stockEk: totalStock,
-                netWeight: netWeight,
-                grossWeight: grossWeight,
-                volume: volume,
-                imageUrl: item.picture_url || ''
-              },
-              update: {
-                price: price,
-                stockEk: totalStock,
-                imageUrl: item.picture_url || ''
-              }
-            });
+            // RIMOSSO: Non creiamo più prodotti fantasma ELM.* nella tabella products
 
             // FASE 1.6: Allineamento giacenze e prezzi anche su elmark_processed_products
             // in modo che il frontend (che legge il record processato) abbia dati live.
