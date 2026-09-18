@@ -266,8 +266,6 @@ export class ElmarkStrategy implements ISupplierStrategy {
 
     logger.info(`[ElmarkStrategy] XML ottenuto per pull veloce. Lunghezza: ${xmlString.length}. Avvio parsing...`, { module: 'sync' });
 
-    const sax = require('sax');
-    const crypto = require('crypto');
     const saxStream = sax.createStream(true, { trim: true });
     
     let objectStack: any[] = [];
