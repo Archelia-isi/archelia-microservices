@@ -81,9 +81,6 @@ export default function QuickAddReorder({ userId, userDiscount = 0, onAdd }: { u
       final = final * (1 - (userDiscount / 100));
     }
     
-    if (extraDiscount > 0) {
-      final = final * (1 - (extraDiscount / 100));
-    }
     return final;
   };
 
