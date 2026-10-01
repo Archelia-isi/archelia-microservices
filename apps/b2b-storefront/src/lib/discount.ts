@@ -37,10 +37,10 @@ export async function getEffectiveElmarkDiscounts(): Promise<Record<string, numb
 
   if (session.user.role === 'AGENT') {
     const cookieStore = cookies();
-    const impersonatedClientId = cookieStore.get('impersonatedClientId')?.value;
-    if (impersonatedClientId) {
+    const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
+    if (impersonatedClientCode) {
       const impUser = await prisma.b2BUser.findUnique({
-        where: { id: impersonatedClientId },
+        where: { zucchettiCode: impersonatedClientCode },
         select: { elmarkDiscounts: true }
       });
       if (impUser) {
