@@ -171,7 +171,13 @@ export async function getPopulatedOrderDetails(orderId: string) {
     };
   }));
 
-  return { success: true, items: populatedItems };
+  return { 
+    success: true, 
+    items: populatedItems,
+    elmarkDiscounts,
+    genericDiscount,
+    storeMode 
+  };
 }
 
 export async function getPopulatedProductForReorder(sku: string, userId: string) {

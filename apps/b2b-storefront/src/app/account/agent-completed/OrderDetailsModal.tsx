@@ -17,6 +17,11 @@ export default function OrderDetailsModal({ order }: { order: any }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [populatedItems, setPopulatedItems] = useState<any[]>([]);
+  const [storeConfig, setStoreConfig] = useState<{
+    elmarkDiscounts: Record<string, number>;
+    genericDiscount: number;
+    storeMode: string;
+  } | null>(null);
 
   const handleQuickAdd = (newItem: any, qty: number) => {
     // Append the newly fetched item
@@ -35,6 +40,11 @@ export default function OrderDetailsModal({ order }: { order: any }) {
       const res = await getPopulatedOrderDetails(order.id);
       if (res.success && res.items) {
         setPopulatedItems(res.items);
+        setStoreConfig({
+          elmarkDiscounts: res.elmarkDiscounts || {},
+          genericDiscount: res.genericDiscount || 0,
+          storeMode: res.storeMode || 'ZUCCHETTI'
+        });
       } else {
         setPopulatedItems(order.items.map((i: any) => ({ ...i, product: null })));
       }
@@ -157,9 +167,17 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                 <h2 className="text-xl font-bold text-gray-900">
                   {mode === 'VIEW' ? `Dettagli Ordine #${order.id.slice(-6).toUpperCase()}` : 'Creazione Preventivo / Riordino'}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1 uppercase">
-                  {format(new Date(order.createdAt), "d MMMM yyyy", { locale: it })}
-                </p>
+                <div className="text-sm text-gray-500 mt-1 uppercase flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                  <span>{format(new Date(order.createdAt), "d MMMM yyyy", { locale: it })}</span>
+                  {order.user && (
+                    <>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="font-semibold text-gray-700">
+                        {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
               <button 
                 onClick={closeModal}
@@ -186,6 +204,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   {mode === 'REORDER' && (
                     <QuickAddReorder 
                       userId={order.userId}
+                      storeConfig={storeConfig}
                       onAdd={handleQuickAdd}
                     />
                   )}

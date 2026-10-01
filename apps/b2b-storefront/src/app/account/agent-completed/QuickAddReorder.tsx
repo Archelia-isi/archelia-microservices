@@ -4,7 +4,15 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefix } from '../../actions/search';
 import { getPopulatedProductForReorder } from '../../actions/orders';
 
-export default function QuickAddReorder({ userId, userDiscount = 0, onAdd }: { userId: string, userDiscount?: number, onAdd: (item: any, qty: number) => void }) {
+export default function QuickAddReorder({ 
+  userId, 
+  storeConfig, 
+  onAdd 
+}: { 
+  userId: string, 
+  storeConfig?: { elmarkDiscounts: Record<string, number>, genericDiscount: number, storeMode: string } | null, 
+  onAdd: (item: any, qty: number) => void 
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -77,8 +85,19 @@ export default function QuickAddReorder({ userId, userDiscount = 0, onAdd }: { u
 
   const getDiscountedPrice = (product: any) => {
     let final = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
-    if (userDiscount > 0) {
-      final = final * (1 - (userDiscount / 100));
+    
+    if (storeConfig) {
+      if (storeConfig.storeMode === 'ELMARK') {
+        const dGroup = product.discgroup || '';
+        const groupDisc = storeConfig.elmarkDiscounts[dGroup] || 0;
+        if (groupDisc > 0) {
+          final = final * (1 - (groupDisc / 100));
+        }
+      } else {
+        if (storeConfig.genericDiscount > 0) {
+          final = final * (1 - (storeConfig.genericDiscount / 100));
+        }
+      }
     }
     
     return final;
