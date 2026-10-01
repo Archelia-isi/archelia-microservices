@@ -374,7 +374,6 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   </div>
                   </div>
                 </div>
-              </div>
               )}
             </div>
 
