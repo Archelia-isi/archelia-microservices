@@ -5,16 +5,19 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
-export default async function AgentOrdersPage() {
+export default async function AgentOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') {
     redirect('/');
   }
 
+  const currentTab = searchParams.tab === 'elmark' ? 'ELMARK' : 'ZUCCHETTI';
+
   // Trova gli ordini PENDING_AGENT_REVIEW dei clienti assegnati all'agente
   const pendingOrders = await prisma.b2BOrder.findMany({
     where: {
       status: { in: ['PENDING_AGENT_REVIEW', 'DRAFT'] },
+      storeMode: currentTab,
       user: {
         agentId: session.userId,
       },
@@ -30,9 +33,24 @@ export default async function AgentOrdersPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Ordini da Revisionare (Vaglio)</h1>
         <p className="text-gray-500 mt-2">Qui trovi tutti gli ordini inseriti dai tuoi clienti che necessitano della tua approvazione prima di essere inviati a Zucchetti.</p>
+      </div>
+
+      <div className="flex border-b border-gray-200 mb-6">
+        <Link 
+          href="/account/agent-orders?tab=zucchetti"
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${currentTab === 'ZUCCHETTI' ? 'border-brand-main text-brand-main' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Izzo Distribuzione
+        </Link>
+        <Link 
+          href="/account/agent-orders?tab=elmark"
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${currentTab === 'ELMARK' ? 'border-brand-main text-brand-main' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Elmark
+        </Link>
       </div>
 
       {pendingOrders.length === 0 ? (
@@ -41,7 +59,7 @@ export default async function AgentOrdersPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900">Nessun ordine in attesa</h3>
-          <p className="text-gray-500 mt-2">Al momento non ci sono ordini da revisionare.</p>
+          <p className="text-gray-500 mt-2">Al momento non ci sono ordini da revisionare per questa divisione.</p>
         </div>
       ) : (
         <div className="grid gap-4">

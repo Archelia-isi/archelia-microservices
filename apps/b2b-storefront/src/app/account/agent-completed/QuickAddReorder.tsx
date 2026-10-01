@@ -41,7 +41,8 @@ export default function QuickAddReorder({
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(query);
+      const mode = storeConfig?.storeMode || 'ZUCCHETTI';
+      const data = await searchBySkuPrefix(query, mode);
       setResults(data);
       setIsOpen(true);
     }, 300);

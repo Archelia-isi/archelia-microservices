@@ -117,6 +117,7 @@ model B2BOrder {
   user                  B2BUser         @relation(fields: [userId], references: [id])
   createdById           String          // Può essere il cliente stesso o l'agente
   status                OrderStatus     @default(DRAFT)
+  storeMode             String          @default("ZUCCHETTI")
   
   zucchettiOrderRef     String?         // Riferimento o numero ordine in Zucchetti
   totalAmount           Float           @default(0)

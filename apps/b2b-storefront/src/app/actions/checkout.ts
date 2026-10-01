@@ -111,6 +111,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         userId: targetUserId,
         createdById: createdById,
         status: orderStatus,
+        storeMode: storeMode,
         totalAmount,
         totalIva: totalAmount * 0.22,
         notes: cartType === 'ELMARK' ? 'ORDINE ELMARK - ' + (action === 'PAUSE_CART' ? 'Preventivo' : 'Approvato') : '',

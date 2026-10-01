@@ -6,16 +6,19 @@ import { it } from 'date-fns/locale';
 import Link from 'next/link';
 import OrderDetailsModal from './OrderDetailsModal';
 
-export default async function AgentCompletedOrdersPage() {
+export default async function AgentCompletedOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') {
     redirect('/');
   }
 
+  const currentTab = searchParams.tab === 'elmark' ? 'ELMARK' : 'ZUCCHETTI';
+
   // Trova gli ordini APPROVED (o conclusi) dei clienti assegnati all'agente
   const completedOrders = await prisma.b2BOrder.findMany({
     where: {
       status: 'APPROVED',
+      storeMode: currentTab,
       user: {
         agentId: session.userId,
       },
@@ -31,9 +34,24 @@ export default async function AgentCompletedOrdersPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Ordini Conclusi</h1>
         <p className="text-gray-500 mt-2">Storico degli ordini dei tuoi clienti inviati con successo a Zucchetti.</p>
+      </div>
+
+      <div className="flex border-b border-gray-200 mb-6">
+        <Link 
+          href="/account/agent-completed?tab=zucchetti"
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${currentTab === 'ZUCCHETTI' ? 'border-brand-main text-brand-main' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Izzo Distribuzione
+        </Link>
+        <Link 
+          href="/account/agent-completed?tab=elmark"
+          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${currentTab === 'ELMARK' ? 'border-brand-main text-brand-main' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Elmark
+        </Link>
       </div>
 
       {completedOrders.length === 0 ? (
@@ -42,7 +60,7 @@ export default async function AgentCompletedOrdersPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 13l4 4L19 7" />
           </svg>
           <h3 className="text-lg font-medium text-gray-900">Nessun ordine completato</h3>
-          <p className="text-gray-500 mt-2">I tuoi clienti non hanno ancora ordini conclusi.</p>
+          <p className="text-gray-500 mt-2">I tuoi clienti non hanno ancora ordini conclusi per questa divisione.</p>
         </div>
       ) : (
         <div className="grid gap-4">
