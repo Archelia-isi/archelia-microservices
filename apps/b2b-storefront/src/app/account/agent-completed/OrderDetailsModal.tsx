@@ -6,6 +6,8 @@ import { it } from 'date-fns/locale';
 import { duplicateOrderToCart, createDraftFromOrder, getPopulatedOrderDetails } from '@/app/actions/orders';
 import Link from 'next/link';
 
+import QuickAddReorder from './QuickAddReorder';
+
 export default function OrderDetailsModal({ order }: { order: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<'VIEW' | 'REORDER'>('VIEW');
@@ -15,6 +17,15 @@ export default function OrderDetailsModal({ order }: { order: any }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [populatedItems, setPopulatedItems] = useState<any[]>([]);
+
+  const handleQuickAdd = (newItem: any, qty: number) => {
+    // Append the newly fetched item
+    setPopulatedItems(prev => [newItem, ...prev]);
+    // Set its initial quantity
+    setQuantities(prev => ({ ...prev, [newItem.id]: qty }));
+    // Extra discount is 0 by default for new items
+    setExtraDiscounts(prev => ({ ...prev, [newItem.id]: 0 }));
+  };
 
   const openModal = async () => {
     setMode('VIEW');
@@ -171,10 +182,17 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   <p>Caricamento prodotti...</p>
                 </div>
               ) : (
-                <div className="flex flex-col m-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="flex flex-col m-6 gap-6">
+                  {mode === 'REORDER' && (
+                    <QuickAddReorder 
+                      userId={order.userId}
+                      onAdd={handleQuickAdd}
+                    />
+                  )}
                   
-                  {/* Table Header like Cart */}
-                  <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm text-gray-500 font-medium">
+                  <div className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm">
+                    {/* Table Header like Cart */}
+                    <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm text-gray-500 font-medium">
                     <div className="col-span-12 sm:col-span-5">Prodotto</div>
                     <div className="col-span-4 sm:col-span-2 text-center">Quantità</div>
                     <div className="col-span-4 sm:col-span-3 text-right">Prezzo Unit.</div>
@@ -354,7 +372,9 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                       );
                     })}
                   </div>
+                  </div>
                 </div>
+              </div>
               )}
             </div>
 

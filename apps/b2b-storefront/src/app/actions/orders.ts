@@ -173,3 +173,55 @@ export async function getPopulatedOrderDetails(orderId: string) {
 
   return { success: true, items: populatedItems };
 }
+
+export async function getPopulatedProductForReorder(sku: string, userId: string) {
+  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  const session = await verifySession();
+  if (!session) return { success: false };
+
+  const targetUser = await prisma.b2BUser.findUnique({ where: { id: userId } });
+  let elmarkDiscounts: Record<string, number> = targetUser ? (targetUser.elmarkDiscounts as Record<string, number> || {}) : {};
+  let genericDiscount = targetUser ? (targetUser.discount || 0) : 0;
+
+  const prod = await getProductById(sku) as any;
+  if (!prod) return { success: false, error: 'Prodotto non trovato' };
+
+  let currentOriginalPrice = 0;
+  let currentBasePrice = 0;
+  let currentStdDisc = 0;
+  
+  currentOriginalPrice = Number(prod.price_b2b) > 0 ? Number(prod.price_b2b) : Number(prod.price || 0);
+  currentBasePrice = currentOriginalPrice;
+  if (storeMode === 'ELMARK') {
+    const dGroup = prod.discgroup || '';
+    const groupDisc = elmarkDiscounts[dGroup] || 0;
+    if (groupDisc > 0) {
+      currentBasePrice = currentBasePrice * (1 - (groupDisc / 100));
+      currentStdDisc = groupDisc;
+    }
+  } else {
+    if (genericDiscount > 0) {
+      currentBasePrice = currentBasePrice * (1 - (genericDiscount / 100));
+      currentStdDisc = genericDiscount;
+    }
+  }
+
+  const populatedItem = {
+    id: `quick_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    sku: prod.sku,
+    quantity: 1, // default
+    originalPrice: currentOriginalPrice,
+    finalPrice: currentBasePrice,
+    currentOriginalPrice,
+    currentBasePrice,
+    currentStdDisc,
+    product: {
+      title: prod.title || prod.original_name,
+      imageUrl: prod.image_url || '/placeholder.png',
+      stock: prod.stock || 0,
+      unit: prod.unit || 'PZ'
+    }
+  };
+
+  return { success: true, item: populatedItem };
+}
