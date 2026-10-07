@@ -481,7 +481,7 @@ export async function runFastStockPriceSync() {
     docsToUpdate.push({
       id: `elmark_${ep.id}`,
       price: ep.price ? Number(ep.price) : 0,
-      priceB2b: ep.price ? Number(ep.price) : 0,
+      price_b2b: ep.price ? Number(ep.price) : 0,
       stock: ep.stock || 0,
       stock_main: ep.stock || 0,
       stock_ek: ep.stockEk || 0
@@ -493,7 +493,7 @@ export async function runFastStockPriceSync() {
     docsToUpdate.push({
       id: p.id.toString(), // Gli standard usano l'UUID diretto
       price: p.price ? Number(p.price) : 0,
-      priceB2b: p.price ? Number(p.price) : 0,
+      price_b2b: p.price ? Number(p.price) : 0,
       stock: p.stock || 0,
       stock_main: p.stock || 0,
       stock_ek: p.stockEk || 0
