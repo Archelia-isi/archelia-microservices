@@ -33,6 +33,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     // Mostriamo lo switcher Elmark se l'utente target (agente o cliente impersonato) ha Elmark sbloccato
     showElmark = Boolean(targetUser.isElmarkCustomer) || targetUser.role === 'AGENT';
 
+    // Se sono su Elmark ma non hanno i permessi, li cacciamo su Izzo
+    if (storeMode === 'ELMARK' && !showElmark) {
+      const { redirect } = await import('next/navigation');
+      redirect('https://www.izzodistribuzione.it');
+    }
+
     const cart = await getCart(targetUser.id, "ACTIVE", undefined, storeMode);
     if (cart) {
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
