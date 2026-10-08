@@ -1,0 +1,36 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || '';
+  
+  // Determine store mode from hostname
+  const isElmark = hostname.includes('elmark.izzodistribuzione.it');
+  const storeMode = isElmark ? 'ELMARK' : 'ZUCCHETTI';
+  
+  // Overwrite the request cookie so all Server Components and Actions see the correct mode
+  request.cookies.set('b2b_store_mode', storeMode);
+
+  // Forward the modified request
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    }
+  });
+
+  // Also set the cookie on the browser for client components
+  response.cookies.set('b2b_store_mode', storeMode, { 
+    path: '/', 
+    sameSite: 'lax', 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 60 * 24 * 365 
+  });
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
+};

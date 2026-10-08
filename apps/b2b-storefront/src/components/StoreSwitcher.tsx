@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { setStoreMode } from '../app/actions/storeMode';
 
 export default function StoreSwitcher({ currentMode }: { currentMode: 'ZUCCHETTI' | 'ELMARK' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
-  const handleSwitch = async (mode: 'ZUCCHETTI' | 'ELMARK') => {
+  const handleSwitch = (mode: 'ZUCCHETTI' | 'ELMARK') => {
     setIsPending(true);
-    await setStoreMode(mode);
-    window.location.href = '/';
+    if (mode === 'ELMARK') {
+      window.location.href = 'https://elmark.izzodistribuzione.it';
+    } else {
+      window.location.href = 'https://www.izzodistribuzione.it';
+    }
   };
 
   return (
