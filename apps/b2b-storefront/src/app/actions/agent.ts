@@ -69,6 +69,9 @@ export async function startOrderReview(orderId: string) {
     cookies().set('impersonatedClientCode', order.user.zucchettiCode || '', { path: '/', maxAge: 86400 });
     cookies().set('impersonatedClientName', order.user.companyName || '', { path: '/', maxAge: 86400 });
     cookies().set('impersonatedClientDiscount', String(order.user.discount || 0), { path: '/', maxAge: 86400 });
+    
+    // FORZA il cookie del negozio in modo che l'agente veda il carrello corretto (Izzo vs Elmark)
+    cookies().set('b2b_store_mode', order.storeMode, { path: '/', maxAge: 86400, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
     // Clean up any old REVIEW cart for this user
     await prisma.b2BCart.deleteMany({
@@ -80,6 +83,7 @@ export async function startOrderReview(orderId: string) {
       data: {
         userId: order.userId,
         status: 'REVIEW',
+        cartType: order.storeMode, // <-- Fondamentale: preserva se era Elmark o Zucchetti
         linkedOrderId: order.id,
         items: {
           create: order.items.map(item => ({
