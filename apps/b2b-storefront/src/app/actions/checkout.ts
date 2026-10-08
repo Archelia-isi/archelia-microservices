@@ -20,12 +20,10 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     const createdById = session.userId;
     const cartQuery = await getCartQuery();
 
-    const cart = await prisma.b2BCart.findFirst({
-      where: { userId: targetUserId, cartType: storeMode, ...cartQuery },
-      include: { items: true },
-    });
+    const { getCart } = await import('@/lib/cart');
+    const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
-    if (!cart || cart.items.length === 0) {
+    if (!cart || !cart.items || cart.items.length === 0) {
       return { success: false, error: 'Il carrello è vuoto' };
     }
 
