@@ -144,7 +144,7 @@ export default async function CartPage() {
         <AgentExtraDiscount initialDiscount={extraAgentDiscount} />
       )}
 
-      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} />}
+      {!(cartQuery.status === 'REVIEW' && storeMode === 'ELMARK') && <QuickAddCart userDiscount={genericDiscount} extraDiscount={extraAgentDiscount} storeMode={storeMode} />}
 
       {finalItems.length === 0 ? (
         <div className="bg-white p-8 text-center rounded-lg shadow-sm border border-gray-200">

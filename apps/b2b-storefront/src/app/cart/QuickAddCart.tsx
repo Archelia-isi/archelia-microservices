@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefix } from '../actions/search';
 import { addToCart } from '../actions/cart';
 
-export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0 }: { userDiscount?: number, extraDiscount?: number }) {
+export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0, storeMode = 'ZUCCHETTI' }: { userDiscount?: number, extraDiscount?: number, storeMode?: 'ZUCCHETTI' | 'ELMARK' }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -33,7 +33,7 @@ export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0 }: { 
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(query);
+      const data = await searchBySkuPrefix(query, storeMode);
       setResults(data);
       setIsOpen(true);
     }, 300);
