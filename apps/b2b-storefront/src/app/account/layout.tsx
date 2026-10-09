@@ -41,10 +41,13 @@ export default async function AccountLayout({ children }: { children: React.Reac
                     Bacheca
                   </Link>
                   <Link prefetch={true} href="/account/orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
-                    I Miei Ordini
+                    Ordini Conclusi
+                  </Link>
+                  <Link prefetch={true} href="/account/sent-orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                    Ordini Inviati
                   </Link>
                   <Link prefetch={true} href="/account/quotes" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
-                    I Miei Preventivi
+                    Preventivi
                   </Link>
                 </>
               )}

@@ -15,7 +15,7 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
   const quotes = await prisma.b2BOrder.findMany({
     where: { 
       userId: session.userId,
-      status: { in: ['DRAFT', 'PENDING_AGENT_REVIEW'] },
+      status: 'DRAFT',
       storeMode: currentTab
     },
     orderBy: { createdAt: 'desc' },
@@ -24,7 +24,7 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">I miei Preventivi</h1>
+      <h1 className="text-3xl font-bold mb-6">Preventivi</h1>
 
       {session.user.isElmarkCustomer && (
         <div className="flex border-b border-gray-200 mb-6">
