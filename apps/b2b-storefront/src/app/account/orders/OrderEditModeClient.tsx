@@ -5,6 +5,7 @@ import QuickAddOrderClient from './QuickAddOrderClient';
 import DeleteSentOrderButton from './DeleteSentOrderButton';
 import { lockOrderForEdit, unlockOrder } from '@/app/actions/orderLock';
 import { updateOrderItemQuantity, removeOrderItem } from '@/app/actions/order';
+import QuantityInput from './QuantityInput';
 
 export default function OrderEditModeClient({ 
   order, 
@@ -123,21 +124,10 @@ export default function OrderEditModeClient({
 
               <div className="col-span-3 flex items-center justify-center">
                 {isEditing ? (
-                  <div className="flex items-center border border-gray-300 rounded">
-                    <button 
-                      onClick={() => handleUpdateQty(item.id, item.quantity - 1)}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border-r border-gray-300"
-                    >
-                      -
-                    </button>
-                    <span className="px-4 py-1 font-bold w-12 text-center">{item.quantity}</span>
-                    <button 
-                      onClick={() => handleUpdateQty(item.id, item.quantity + 1)}
-                      className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-600 border-l border-gray-300"
-                    >
-                      +
-                    </button>
-                  </div>
+                  <QuantityInput 
+                    initialQuantity={item.quantity} 
+                    onUpdate={(newQty) => handleUpdateQty(item.id, newQty)} 
+                  />
                 ) : (
                   <span className="font-medium">{item.quantity} pz.</span>
                 )}
