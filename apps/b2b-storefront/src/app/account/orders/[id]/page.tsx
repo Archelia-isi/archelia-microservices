@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import AcceptDraftButton from '../AcceptDraftButton';
 import DeleteSentOrderButton from '../DeleteSentOrderButton';
-import QuickAddOrderClient from '../QuickAddOrderClient';
+import OrderEditModeClient from '../OrderEditModeClient';
 
 export default async function OrderDetailsPage({ params }: { params: { id: string } }) {
   const session = await verifySession();
@@ -16,7 +16,11 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   const order = await prisma.b2BOrder.findUnique({
     where: { id: params.id },
-    include: { items: true }
+    include: { 
+      items: {
+        orderBy: { id: 'asc' }
+      } 
+    }
   });
 
   if (!order || order.userId !== session.userId) {
@@ -68,8 +72,6 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   }));
 
   if (isPending) {
-    // Dynamically import to avoid server-side issues with child components if any, or just import at the top
-    const OrderEditModeClient = (await import('../OrderEditModeClient')).default;
     return (
       <div>
         <div className="mb-6">
