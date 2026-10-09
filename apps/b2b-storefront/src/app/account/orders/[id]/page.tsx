@@ -5,8 +5,8 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import Link from 'next/link';
 import Image from 'next/image';
 import AcceptDraftButton from '../AcceptDraftButton';
-import DeleteSentOrderButton from './DeleteSentOrderButton';
-import QuickAddOrderClient from './QuickAddOrderClient';
+import DeleteSentOrderButton from '../DeleteSentOrderButton';
+import QuickAddOrderClient from '../QuickAddOrderClient';
 
 export default async function OrderDetailsPage({ params }: { params: { id: string } }) {
   const session = await verifySession();
