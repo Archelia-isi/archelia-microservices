@@ -36,9 +36,10 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
     return { success: false };
   }
 
+  const cookieOpts: any = { path: '/', maxAge: 86400 };
+  if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+
   if (zucchettiCode) {
-    const cookieOpts: any = { path: '/', maxAge: 86400 };
-    if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
     cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
     cookies().set('impersonatedClientName', companyName || '', cookieOpts);
     cookies().set('impersonatedClientDiscount', String(discount || 0), cookieOpts);
