@@ -60,19 +60,31 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
 
     const existingItem = order.items.find(i => i.sku.toUpperCase() === sku.toUpperCase());
     
-    let discount = 0;
+    let stdDisc = 0;
+    let extDisc = 0;
+
     if (order.storeMode === 'ZUCCHETTI') {
-      discount = await getEffectiveDiscount();
+      stdDisc = await getEffectiveDiscount();
+      if (session.user.role === 'AGENT') {
+        const cookieVal = cookies().get('agentExtraDiscount')?.value;
+        if (cookieVal) extDisc = parseFloat(cookieVal) || 0;
+      }
     } else {
       const user = await prisma.b2BUser.findUnique({ where: { id: targetUserId }, select: { elmarkDiscounts: true } });
       const discMap = user?.elmarkDiscounts as any || {};
       const elmarkCode = product.elmarkCode;
       const grp = elmarkCode ? elmarkCode.split('.')[0] : null;
-      discount = grp && discMap[grp] ? parseFloat(discMap[grp]) : 0;
+      stdDisc = grp && discMap[grp] ? parseFloat(discMap[grp]) : 0;
     }
 
-    const originalPrice = product.price || 0;
-    const finalPrice = originalPrice * (1 - discount / 100);
+    let originalPrice = Number(order.storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
+    let finalPrice = originalPrice;
+    
+    if (stdDisc > 0) finalPrice = finalPrice * (1 - (stdDisc / 100));
+    if (extDisc > 0) finalPrice = finalPrice * (1 - (extDisc / 100));
+
+    let dStr = stdDisc > 0 ? `${stdDisc}%` : '';
+    if (extDisc > 0) dStr += (dStr ? ` + ${extDisc}% Extra` : `${extDisc}% Extra`);
 
     if (existingItem) {
       await prisma.b2BOrderItem.update({
@@ -81,7 +93,7 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
           quantity: existingItem.quantity + quantity,
           originalPrice,
           finalPrice,
-          discountString: discount > 0 ? `${discount}` : null
+          discountString: dStr || null
         }
       });
     } else {
@@ -92,7 +104,7 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
           quantity,
           originalPrice,
           finalPrice,
-          discountString: discount > 0 ? `${discount}` : null
+          discountString: dStr || null
         }
       });
     }
