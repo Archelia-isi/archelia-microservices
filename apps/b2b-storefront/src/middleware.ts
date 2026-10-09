@@ -10,6 +10,7 @@ export function middleware(request: NextRequest) {
   
   // Overwrite the request cookie so all Server Components and Actions see the correct mode
   request.cookies.set('b2b_store_mode', storeMode);
+  request.headers.set('cookie', request.cookies.toString());
 
   // Forward the modified request
   const response = NextResponse.next({
