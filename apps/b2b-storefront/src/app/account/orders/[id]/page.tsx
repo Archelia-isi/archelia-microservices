@@ -5,6 +5,8 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import Link from 'next/link';
 import Image from 'next/image';
 import AcceptDraftButton from '../AcceptDraftButton';
+import DeleteSentOrderButton from './DeleteSentOrderButton';
+import QuickAddOrderClient from './QuickAddOrderClient';
 
 export default async function OrderDetailsPage({ params }: { params: { id: string } }) {
   const session = await verifySession();
@@ -39,6 +41,16 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     statusText = 'Approvato';
   }
 
+  let backLink = '/account/orders';
+  let backText = 'Torna a Ordini Conclusi';
+  if (isPending) {
+    backLink = '/account/sent-orders';
+    backText = 'Torna a Ordini Inviati';
+  } else if (isDraft) {
+    backLink = '/account/quotes';
+    backText = 'Torna ai Preventivi';
+  }
+
   const { getEffectiveDiscount } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
 
@@ -67,8 +79,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   return (
     <div>
       <div className="mb-6">
-        <Link prefetch={true} href="/account/orders" className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">
-          &larr; Torna agli Ordini
+        <Link prefetch={true} href={backLink} className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">
+          &larr; {backText}
         </Link>
       </div>
 
@@ -91,7 +103,17 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
               <AcceptDraftButton orderId={order.id} />
             </div>
           )}
+
+          {isPending && (
+            <div className="flex-shrink-0">
+              <DeleteSentOrderButton orderId={order.id} />
+            </div>
+          )}
         </div>
+
+        {isPending && (
+          <QuickAddOrderClient orderId={order.id} />
+        )}
 
         <div className="p-0">
           <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 font-medium text-sm text-gray-500">
