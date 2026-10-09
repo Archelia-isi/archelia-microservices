@@ -18,22 +18,23 @@ export default function OrderEditModeClient({
   isAgent: boolean 
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleStartEdit = async () => {
-    startTransition(async () => {
-      const res = await lockOrderForEdit(order.id);
-      if (res.success) {
-        setIsEditing(true);
-      } else {
-        alert(res.error || 'Impossibile modificare l\'ordine al momento.');
-      }
-    });
+    setIsLocking(true);
+    const res = await lockOrderForEdit(order.id);
+    setIsLocking(false);
+    
+    if (res.success) {
+      setIsEditing(true);
+    } else {
+      alert(res.error || 'Impossibile modificare l\'ordine al momento.');
+    }
   };
 
   const handleEndEdit = async () => {
     setIsEditing(false);
-    // Optionally unlock, but it has a short TTL anyway.
     await unlockOrder(order.id);
   };
 
@@ -73,10 +74,10 @@ export default function OrderEditModeClient({
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}
-                  disabled={isPending}
+                  disabled={isLocking}
                   className="px-6 py-2 bg-black text-white hover:bg-gray-800 font-bold text-sm rounded transition-colors disabled:opacity-50"
                 >
-                  {isPending ? 'Attendere...' : 'Modifica Ordine'}
+                  {isLocking ? 'Attendere...' : 'Modifica Ordine'}
                 </button>
               )}
             </>
