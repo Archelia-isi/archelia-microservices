@@ -120,10 +120,14 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     });
 
     // Mark Cart as CHECKOUT_PENDING or delete it
-    await prisma.b2BCart.update({
-      where: { id: cart.id },
-      data: { status: 'COMPLETED' }
-    });
+    try {
+      await prisma.b2BCart.update({
+        where: { id: cart.id },
+        data: { status: 'COMPLETED' }
+      });
+    } catch (e) {
+      console.warn('Could not update cart in DB (already deleted or out of sync)', e);
+    }
 
     // Se stavamo revisionando un ordine, cancelliamo quello vecchio e puliamo il cookie
     if (cart.linkedOrderId) {
