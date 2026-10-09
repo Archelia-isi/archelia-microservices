@@ -113,7 +113,9 @@ export default async function CartPage() {
             const { cookies } = await import('next/headers');
             const { redirect } = await import('next/navigation');
             const { revalidatePath } = await import('next/cache');
-            cookies().delete('reviewingOrderId');
+            const deleteOpts: any = { path: '/', maxAge: 0 };
+            if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
+            cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });
             revalidatePath('/cart');
             redirect('/cart');
           }}>
