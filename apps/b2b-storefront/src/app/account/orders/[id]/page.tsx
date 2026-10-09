@@ -69,7 +69,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   if (isPending) {
     // Dynamically import to avoid server-side issues with child components if any, or just import at the top
-    const OrderEditModeClient = (await import('./OrderEditModeClient')).default;
+    const OrderEditModeClient = (await import('../OrderEditModeClient')).default;
     return (
       <div>
         <div className="mb-6">
