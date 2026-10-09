@@ -74,12 +74,15 @@ export default function QuickAddOrderClient({ orderId, storeMode = 'ZUCCHETTI', 
     }
   };
 
-  const getDiscountedPrice = (product: any) => {
-    let final = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
-    if (userDiscount > 0) {
-      final = final * (1 - (userDiscount / 100));
+  const getPriceData = (product: any) => {
+    let originalPrice = Number(storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
+    let finalPrice = originalPrice;
+    
+    if (storeMode === 'ZUCCHETTI' && userDiscount > 0) {
+      finalPrice = finalPrice * (1 - (userDiscount / 100));
     }
-    return final;
+    
+    return { originalPrice, finalPrice };
   };
 
   return (
@@ -105,8 +108,7 @@ export default function QuickAddOrderClient({ orderId, storeMode = 'ZUCCHETTI', 
           {isOpen && results.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
               {results.map((product) => {
-                const finalPrice = getDiscountedPrice(product);
-                const originalPrice = Number(product.price);
+                const { originalPrice, finalPrice } = getPriceData(product);
                 
                 return (
                   <div 
