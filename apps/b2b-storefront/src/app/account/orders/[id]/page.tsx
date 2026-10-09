@@ -112,7 +112,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
         </div>
 
         {isPending && (
-          <QuickAddOrderClient orderId={order.id} />
+          <QuickAddOrderClient orderId={order.id} storeMode={order.storeMode as any} userDiscount={genericDiscount} />
         )}
 
         <div className="p-0">

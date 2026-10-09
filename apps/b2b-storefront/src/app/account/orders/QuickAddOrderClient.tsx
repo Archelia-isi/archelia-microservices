@@ -1,26 +1,85 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { searchBySkuPrefix } from '@/app/actions/search';
 import { addQuickItemToOrder } from '@/app/actions/order';
 
-export default function QuickAddOrderClient({ orderId }: { orderId: string }) {
-  const [sku, setSku] = useState('');
-  const [quantity, setQuantity] = useState(1);
+export default function QuickAddOrderClient({ orderId, storeMode = 'ZUCCHETTI', userDiscount = 0 }: { orderId: string, storeMode?: 'ZUCCHETTI' | 'ELMARK', userDiscount?: number }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [quantity, setQuantity] = useState<number | string>(1);
+  const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounce search
+  useEffect(() => {
+    if (!query || selectedProduct?.sku === query) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const data = await searchBySkuPrefix(query, storeMode);
+      setResults(data);
+      setIsOpen(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, selectedProduct, storeMode]);
+
+  const handleSelect = (product: any) => {
+    setSelectedProduct(product);
+    setQuery(product.sku);
+    setIsOpen(false);
+    setQuantity(1);
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sku.trim()) return;
-
+    if (!selectedProduct) return;
+    
+    let qty = parseInt(String(quantity));
+    if (isNaN(qty) || qty < 1) qty = 1;
+    
     startTransition(async () => {
-      const res = await addQuickItemToOrder(orderId, sku.trim(), quantity);
+      const res = await addQuickItemToOrder(orderId, selectedProduct.sku, qty);
       if (res.success) {
-        setSku('');
+        setSelectedProduct(null);
+        setQuery('');
         setQuantity(1);
       } else {
         alert(res.error || 'Errore durante l\'aggiunta del prodotto');
       }
     });
+  };
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    if (selectedProduct && e.target.value !== selectedProduct.sku) {
+      setSelectedProduct(null);
+    }
+  };
+
+  const getDiscountedPrice = (product: any) => {
+    let final = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
+    if (userDiscount > 0) {
+      final = final * (1 - (userDiscount / 100));
+    }
+    return final;
   };
 
   return (
@@ -32,31 +91,78 @@ export default function QuickAddOrderClient({ orderId }: { orderId: string }) {
         Aggiunta Rapida per Codice (SKU)
       </h3>
       
-      <form onSubmit={handleAdd} className="flex gap-4">
-        <div className="flex-grow">
-          <input
-            type="text"
-            placeholder="Es. E1.12345"
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            disabled={isPending}
+      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-4 items-start sm:items-stretch">
+        <div className="relative flex-grow w-full" ref={dropdownRef}>
+          <input 
+            type="text" 
+            placeholder="Es. E1.12345" 
+            value={query}
+            onChange={handleQueryChange}
             className="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-brand-main focus:border-transparent outline-none"
-          />
-        </div>
-        <div className="w-24">
-          <input
-            type="number"
-            min="1"
-            value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
             disabled={isPending}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:ring-2 focus:ring-brand-main focus:border-transparent outline-none text-center"
+          />
+          
+          {isOpen && results.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
+              {results.map((product) => {
+                const finalPrice = getDiscountedPrice(product);
+                const originalPrice = Number(product.price);
+                
+                return (
+                  <div 
+                    key={product.sku}
+                    onClick={() => handleSelect(product)}
+                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
+                      <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-bold text-gray-900">{product.sku}</span>
+                      <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      {originalPrice > finalPrice && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-gray-400 line-through">
+                            € {originalPrice.toFixed(2).replace('.', ',')}
+                          </span>
+                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                            -{Math.round((1 - (finalPrice / originalPrice)) * 100)}%
+                          </span>
+                        </div>
+                      )}
+                      <span className="text-xs font-bold text-gray-900">
+                        € {finalPrice.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        <div className="w-full sm:w-24">
+          <input 
+            type="number" 
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            min="1"
+            className="w-full border border-gray-300 rounded px-4 py-2 text-center focus:ring-2 focus:ring-brand-main focus:border-transparent outline-none"
+            placeholder="Q.tà"
+            disabled={isPending}
           />
         </div>
-        <button
+        
+        <button 
           type="submit"
-          disabled={!sku.trim() || isPending}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-6 py-2 rounded transition-colors disabled:opacity-50"
+          disabled={!selectedProduct || isPending}
+          className={`w-full sm:w-auto px-6 py-2 rounded font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
+            !selectedProduct || isPending
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-brand-main text-white hover:bg-brand-hover'
+          }`}
         >
           {isPending ? 'Attendere...' : 'AGGIUNGI'}
         </button>
