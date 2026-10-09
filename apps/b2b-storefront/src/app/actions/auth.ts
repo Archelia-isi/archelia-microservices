@@ -45,8 +45,11 @@ export async function login(formData: FormData) {
   // Creazione sessione
   await createSession(user.id);
   
+  const cookieOpts: any = { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' };
+  if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+  
   // Forza sempre l'ingresso sul negozio Izzo Distribuzione al login
-  cookies().set('b2b_store_mode', 'ZUCCHETTI', { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+  cookies().set('b2b_store_mode', 'ZUCCHETTI', cookieOpts);
   
   // Se ha usato la password provvisoria o mustChangePassword è true, forziamo il reset
   if (user.mustChangePassword || user.tempPassword === password) {
@@ -58,8 +61,11 @@ export async function login(formData: FormData) {
 
 export async function logout() {
   await deleteSession();
+  const cookieOpts: any = { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' };
+  if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+  
   // Resetta al negozio principale in fase di logout
-  cookies().set('b2b_store_mode', 'ZUCCHETTI', { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+  cookies().set('b2b_store_mode', 'ZUCCHETTI', cookieOpts);
   redirect('https://www.izzodistribuzione.it/login');
 }
 

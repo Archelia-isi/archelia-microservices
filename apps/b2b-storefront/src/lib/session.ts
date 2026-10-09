@@ -17,13 +17,19 @@ export async function createSession(userId: string) {
   });
 
   // Set the cookie
-  cookies().set(SESSION_COOKIE_NAME, session.token, {
+  const cookieOptions: any = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     expires: expiresAt,
     sameSite: 'lax',
     path: '/',
-  });
+  };
+  
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.domain = '.izzodistribuzione.it';
+  }
+
+  cookies().set(SESSION_COOKIE_NAME, session.token, cookieOptions);
 }
 
 export async function deleteSession() {
@@ -33,7 +39,11 @@ export async function deleteSession() {
       where: { token },
     });
   }
-  cookies().delete(SESSION_COOKIE_NAME);
+  const cookieOptions: any = { path: '/' };
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.domain = '.izzodistribuzione.it';
+  }
+  cookies().delete({ name: SESSION_COOKIE_NAME, ...cookieOptions });
 }
 
 export async function verifySession() {

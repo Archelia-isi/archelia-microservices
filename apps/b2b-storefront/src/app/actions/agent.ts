@@ -37,13 +37,15 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
   }
 
   if (zucchettiCode) {
-    cookies().set('impersonatedClientCode', zucchettiCode, { path: '/', maxAge: 86400 });
-    cookies().set('impersonatedClientName', companyName || '', { path: '/', maxAge: 86400 });
-    cookies().set('impersonatedClientDiscount', String(discount || 0), { path: '/', maxAge: 86400 });
+    const cookieOpts: any = { path: '/', maxAge: 86400 };
+    if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+    cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
+    cookies().set('impersonatedClientName', companyName || '', cookieOpts);
+    cookies().set('impersonatedClientDiscount', String(discount || 0), cookieOpts);
   } else {
-    cookies().delete('impersonatedClientCode');
-    cookies().delete('impersonatedClientName');
-    cookies().delete('impersonatedClientDiscount');
+    cookies().delete({ name: 'impersonatedClientCode', ...cookieOpts, maxAge: 0 });
+    cookies().delete({ name: 'impersonatedClientName', ...cookieOpts, maxAge: 0 });
+    cookies().delete({ name: 'impersonatedClientDiscount', ...cookieOpts, maxAge: 0 });
   }
 
   return { success: true };
@@ -66,12 +68,17 @@ export async function startOrderReview(orderId: string) {
     if (order.user.agentId !== session.userId) return { success: false, error: 'Cliente non assegnato' };
 
     // Setup impersonation cookies if not already
-    cookies().set('impersonatedClientCode', order.user.zucchettiCode || '', { path: '/', maxAge: 86400 });
-    cookies().set('impersonatedClientName', order.user.companyName || '', { path: '/', maxAge: 86400 });
-    cookies().set('impersonatedClientDiscount', String(order.user.discount || 0), { path: '/', maxAge: 86400 });
+    const cookieOpts: any = { path: '/', maxAge: 86400 };
+    if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+    
+    cookies().set('impersonatedClientCode', order.user.zucchettiCode || '', cookieOpts);
+    cookies().set('impersonatedClientName', order.user.companyName || '', cookieOpts);
+    cookies().set('impersonatedClientDiscount', String(order.user.discount || 0), cookieOpts);
     
     // FORZA il cookie del negozio in modo che l'agente veda il carrello corretto (Izzo vs Elmark)
-    cookies().set('b2b_store_mode', order.storeMode, { path: '/', maxAge: 86400, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    const storeCookieOpts: any = { path: '/', maxAge: 86400, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' };
+    if (process.env.NODE_ENV === 'production') storeCookieOpts.domain = '.izzodistribuzione.it';
+    cookies().set('b2b_store_mode', order.storeMode, storeCookieOpts);
 
     // Clean up any old REVIEW cart for this user
     await prisma.b2BCart.deleteMany({
@@ -101,7 +108,7 @@ export async function startOrderReview(orderId: string) {
     });
 
     // Set cookie to activate review mode
-    cookies().set('reviewingOrderId', order.id, { path: '/', maxAge: 86400 });
+    cookies().set('reviewingOrderId', order.id, cookieOpts);
     
     return { success: true };
   } catch (error: any) {
