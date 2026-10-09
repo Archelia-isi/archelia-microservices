@@ -6,7 +6,7 @@ import Image from 'next/image';
 export default async function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
   const session = await verifySession();
   if (session) {
-    redirect('/catalog');
+    redirect('/');
   }
 
   return (

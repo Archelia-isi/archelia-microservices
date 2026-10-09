@@ -12,7 +12,7 @@ export default async function SetupPasswordPage({ searchParams }: { searchParams
 
   const user = await prisma.b2BUser.findUnique({ where: { id: session.userId } });
   if (!user || (!user.mustChangePassword && !user.tempPassword)) {
-    redirect('/catalog');
+    redirect('/');
   }
 
   return (
