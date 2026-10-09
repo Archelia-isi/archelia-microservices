@@ -56,18 +56,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const p = await getProductById(item.sku) as any;
-    
-    let basePrice = item.originalPrice;
-    if (p) {
-      basePrice = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
-      if (genericDiscount > 0) {
-        basePrice = basePrice * (1 - (genericDiscount / 100));
-      }
-    }
 
     return {
       ...item,
-      basePrice,
       product: p ? {
         title: (p.original_name || p.title) + ' - ' + p.sku,
         imageUrl: p.image_url || '/placeholder.png',
@@ -143,24 +134,13 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                 </div>
 
                 <div className="col-span-2 text-right flex flex-col items-end">
-                  {item.originalPrice > (item.basePrice || item.finalPrice) && (
+                  {item.originalPrice > item.finalPrice && (
                     <div className="flex items-center justify-end gap-1 mb-0.5">
                       <span className="text-[10px] text-gray-400 line-through">
                         € {item.originalPrice.toFixed(2).replace('.', ',')}
                       </span>
                       <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                        -{Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%
-                      </span>
-                    </div>
-                  )}
-                  
-                  {item.basePrice > item.finalPrice && (
-                    <div className="flex items-center justify-end gap-1 mb-0.5">
-                      <span className="text-[11px] text-gray-500 line-through">
-                        € {item.basePrice.toFixed(2).replace('.', ',')}
-                      </span>
-                      <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1 rounded">
-                        -{Math.round((1 - (item.finalPrice / item.basePrice)) * 100)}% Extra
+                        -{Math.round((1 - (item.finalPrice / item.originalPrice)) * 100)}%
                       </span>
                     </div>
                   )}
