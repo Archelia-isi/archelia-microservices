@@ -43,7 +43,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (cart) {
       cartItemCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
     }
+  } else {
+    // L'utente non è loggato. Non può visualizzare Elmark.
+    if (storeMode === 'ELMARK') {
+      const { redirect } = await import('next/navigation');
+      redirect('https://www.izzodistribuzione.it');
+    }
   }
+
   const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
   const impersonatedClientName = cookieStore.get('impersonatedClientName')?.value;
 

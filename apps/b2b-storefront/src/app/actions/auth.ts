@@ -50,17 +50,17 @@ export async function login(formData: FormData) {
   
   // Se ha usato la password provvisoria o mustChangePassword è true, forziamo il reset
   if (user.mustChangePassword || user.tempPassword === password) {
-    redirect('/setup-password');
+    redirect('https://www.izzodistribuzione.it/setup-password');
   }
 
-  redirect('/catalog');
+  redirect('https://www.izzodistribuzione.it');
 }
 
 export async function logout() {
   await deleteSession();
   // Resetta al negozio principale in fase di logout
   cookies().set('b2b_store_mode', 'ZUCCHETTI', { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-  redirect('/login');
+  redirect('https://www.izzodistribuzione.it/login');
 }
 
 export async function setupPassword(formData: FormData) {
@@ -87,5 +87,5 @@ export async function setupPassword(formData: FormData) {
     }
   });
 
-  redirect('/catalog');
+  redirect('https://www.izzodistribuzione.it');
 }
