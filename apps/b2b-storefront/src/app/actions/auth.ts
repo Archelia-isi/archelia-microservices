@@ -66,6 +66,15 @@ export async function logout() {
   
   // Resetta al negozio principale in fase di logout
   cookies().set('b2b_store_mode', 'ZUCCHETTI', cookieOpts);
+  
+  // Pulisci eventuali cookie residui di revisione ordine
+  const deleteOpts: any = { path: '/', maxAge: 0 };
+  if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
+  cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });
+  cookies().delete({ name: 'impersonatedClientCode', ...deleteOpts });
+  cookies().delete({ name: 'impersonatedClientName', ...deleteOpts });
+  cookies().delete({ name: 'impersonatedClientDiscount', ...deleteOpts });
+
   redirect('https://www.izzodistribuzione.it/login');
 }
 
