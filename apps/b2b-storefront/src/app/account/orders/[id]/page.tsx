@@ -55,8 +55,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     backText = 'Torna ai Preventivi';
   }
 
-  const { getEffectiveDiscount } = await import('@/lib/discount');
+  const { getEffectiveDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
+  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
 
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const p = await getProductById(item.sku) as any;
@@ -82,7 +83,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
         <OrderEditModeClient 
           order={order} 
           populatedItems={populatedItems} 
-          genericDiscount={genericDiscount} 
+          genericDiscount={genericDiscount}
+          elmarkDiscounts={elmarkDiscounts} 
           isAgent={session.user.role === 'AGENT'} 
         />
       </div>

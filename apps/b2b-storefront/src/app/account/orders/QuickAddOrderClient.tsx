@@ -4,7 +4,17 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefix } from '@/app/actions/search';
 import { addQuickItemToOrder } from '@/app/actions/order';
 
-export default function QuickAddOrderClient({ orderId, storeMode = 'ZUCCHETTI', userDiscount = 0 }: { orderId: string, storeMode?: 'ZUCCHETTI' | 'ELMARK', userDiscount?: number }) {
+export default function QuickAddOrderClient({ 
+  orderId, 
+  storeMode = 'ZUCCHETTI', 
+  userDiscount = 0,
+  elmarkDiscounts = {}
+}: { 
+  orderId: string, 
+  storeMode?: 'ZUCCHETTI' | 'ELMARK', 
+  userDiscount?: number,
+  elmarkDiscounts?: Record<string, number>
+}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
@@ -80,6 +90,12 @@ export default function QuickAddOrderClient({ orderId, storeMode = 'ZUCCHETTI', 
     
     if (storeMode === 'ZUCCHETTI' && userDiscount > 0) {
       finalPrice = finalPrice * (1 - (userDiscount / 100));
+    } else if (storeMode === 'ELMARK') {
+      const discGroup = product.discgroup;
+      const stdDisc = (discGroup && elmarkDiscounts[discGroup]) ? Number(elmarkDiscounts[discGroup]) : 0;
+      if (stdDisc > 0) {
+        finalPrice = finalPrice * (1 - (stdDisc / 100));
+      }
     }
     
     return { originalPrice, finalPrice };

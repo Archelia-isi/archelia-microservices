@@ -10,12 +10,14 @@ import QuantityInput from './QuantityInput';
 export default function OrderEditModeClient({ 
   order, 
   populatedItems, 
-  genericDiscount, 
+  genericDiscount,
+  elmarkDiscounts,
   isAgent 
 }: { 
   order: any, 
   populatedItems: any[], 
   genericDiscount: number,
+  elmarkDiscounts?: Record<string, number>,
   isAgent: boolean 
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -94,7 +96,12 @@ export default function OrderEditModeClient({
       </div>
 
       {isEditing && (
-        <QuickAddOrderClient orderId={order.id} storeMode={order.storeMode} userDiscount={genericDiscount} />
+        <QuickAddOrderClient 
+          orderId={order.id} 
+          storeMode={order.storeMode} 
+          userDiscount={genericDiscount} 
+          elmarkDiscounts={elmarkDiscounts}
+        />
       )}
 
       <div className="p-0">
