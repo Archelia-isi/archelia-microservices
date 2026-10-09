@@ -68,6 +68,16 @@ export async function startOrderReview(orderId: string) {
     if (order.status !== 'PENDING_AGENT_REVIEW' && order.status !== 'DRAFT') return { success: false, error: 'Ordine non in revisione' };
     if (order.user.agentId !== session.userId) return { success: false, error: 'Cliente non assegnato' };
 
+    // Check lock
+    const { redis } = await import('@/lib/redis');
+    const lockKey = `b2b_order_lock:${orderId}`;
+    const currentLock = await redis.get(lockKey);
+    if (currentLock && currentLock !== session.userId) {
+      return { success: false, error: 'Il cliente sta attualmente modificando questo ordine. Riprova più tardi.' };
+    }
+    // Lock it for the agent
+    await redis.set(lockKey, session.userId, 'EX', 3600 * 2); // 2 hours
+
     // Setup impersonation cookies if not already
     const cookieOpts: any = { path: '/', maxAge: 86400 };
     if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';

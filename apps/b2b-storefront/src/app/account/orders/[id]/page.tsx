@@ -67,6 +67,26 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     };
   }));
 
+  if (isPending) {
+    // Dynamically import to avoid server-side issues with child components if any, or just import at the top
+    const OrderEditModeClient = (await import('./OrderEditModeClient')).default;
+    return (
+      <div>
+        <div className="mb-6">
+          <Link prefetch={true} href={backLink} className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1">
+            &larr; {backText}
+          </Link>
+        </div>
+        <OrderEditModeClient 
+          order={order} 
+          populatedItems={populatedItems} 
+          genericDiscount={genericDiscount} 
+          isAgent={session.user.role === 'AGENT'} 
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -94,17 +114,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
               <AcceptDraftButton orderId={order.id} />
             </div>
           )}
-
-          {isPending && (
-            <div className="flex-shrink-0">
-              <DeleteSentOrderButton orderId={order.id} />
-            </div>
-          )}
         </div>
-
-        {isPending && (
-          <QuickAddOrderClient orderId={order.id} storeMode={order.storeMode as any} userDiscount={genericDiscount} />
-        )}
 
         <div className="p-0">
           <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 font-medium text-sm text-gray-500">

@@ -132,3 +132,64 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
     return { success: false, error: error.message };
   }
 }
+
+export async function removeOrderItem(orderId: string, itemId: string) {
+  const session = await verifySession();
+  if (!session) return { success: false, error: 'Non autorizzato' };
+
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
+    if (order.status !== 'PENDING_AGENT_REVIEW') return { success: false, error: 'Ordine non modificabile' };
+
+    await prisma.b2BOrderItem.delete({ where: { id: itemId } });
+
+    // Recalculate totals
+    const updatedOrder = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (updatedOrder) {
+      const totalAmount = updatedOrder.items.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+      await prisma.b2BOrder.update({
+        where: { id: orderId },
+        data: { totalAmount, totalIva: totalAmount * 0.22 }
+      });
+    }
+
+    revalidatePath(`/account/orders/${orderId}`);
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function updateOrderItemQuantity(orderId: string, itemId: string, quantity: number) {
+  const session = await verifySession();
+  if (!session) return { success: false, error: 'Non autorizzato' };
+  if (quantity < 1) return { success: false, error: 'Quantità non valida' };
+
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
+    if (order.status !== 'PENDING_AGENT_REVIEW') return { success: false, error: 'Ordine non modificabile' };
+
+    await prisma.b2BOrderItem.update({
+      where: { id: itemId },
+      data: { quantity }
+    });
+
+    const updatedOrder = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (updatedOrder) {
+      const totalAmount = updatedOrder.items.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+      await prisma.b2BOrder.update({
+        where: { id: orderId },
+        data: { totalAmount, totalIva: totalAmount * 0.22 }
+      });
+    }
+
+    revalidatePath(`/account/orders/${orderId}`);
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
