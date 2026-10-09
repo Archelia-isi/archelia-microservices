@@ -75,10 +75,10 @@ export default function QuickAddCart({ userDiscount = 0, extraDiscount = 0, stor
   };
 
   const getPriceData = (product: any) => {
-    let originalPrice = Number(cartType === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
+    let originalPrice = Number(storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
     let finalPrice = originalPrice;
     
-    if (cartType === 'ZUCCHETTI') {
+    if (storeMode === 'ZUCCHETTI') {
       if (userDiscount > 0) finalPrice = finalPrice * (1 - (userDiscount / 100));
       if (extraDiscount > 0) finalPrice = finalPrice * (1 - (extraDiscount / 100));
     }
