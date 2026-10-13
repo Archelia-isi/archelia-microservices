@@ -9,12 +9,9 @@ export default function SendSavedOrderButton({ orderId, className }: { orderId: 
   const router = useRouter();
 
   const handleSend = () => {
-    if (!confirm('Sei sicuro di voler inviare questo ordine all\'agente per la revisione?')) return;
-
     startTransition(async () => {
       const res = await sendSavedOrder(orderId);
       if (res.success) {
-        alert('Ordine inviato con successo per la revisione dell\'agente!');
         router.refresh();
       } else {
         alert(`Errore: ${res.error}`);

@@ -7,16 +7,10 @@ export default function AcceptDraftButton({ orderId }: { orderId: string }) {
   const [isPending, startTransition] = useTransition();
 
   const handleAccept = () => {
-    if (!confirm('Vuoi approvare e confermare questo preventivo? Verrà inviato come ordine definitivo.')) {
-      return;
-    }
-    
     startTransition(async () => {
       const res = await acceptDraftOrder(orderId);
       if (!res.success) {
         alert(`Errore: ${res.error}`);
-      } else {
-        alert('Preventivo approvato con successo!');
       }
     });
   };
