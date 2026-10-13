@@ -58,6 +58,8 @@ export default function QuickAddOrderClient({
     setQuantity(1);
   };
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
@@ -65,6 +67,7 @@ export default function QuickAddOrderClient({
     let qty = parseInt(String(quantity));
     if (isNaN(qty) || qty < 1) qty = 1;
     
+    setErrorMsg(null);
     startTransition(async () => {
       const res = await addQuickItemToOrder(orderId, selectedProduct.sku, qty);
       if (res.success) {
@@ -72,7 +75,7 @@ export default function QuickAddOrderClient({
         setQuery('');
         setQuantity(1);
       } else {
-        alert(res.error || 'Errore durante l\'aggiunta del prodotto');
+        setErrorMsg(res.error || 'Errore durante l\'aggiunta del prodotto');
       }
     });
   };
@@ -185,6 +188,11 @@ export default function QuickAddOrderClient({
           {isPending ? 'Attendere...' : 'AGGIUNGI'}
         </button>
       </form>
+      {errorMsg && (
+        <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded inline-block">
+          {errorMsg}
+        </p>
+      )}
     </div>
   );
 }

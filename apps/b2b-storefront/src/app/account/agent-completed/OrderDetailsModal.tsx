@@ -94,34 +94,24 @@ export default function OrderDetailsModal({ order }: { order: any }) {
   };
 
   const handleAddToCart = async () => {
-    if (!confirm('Vuoi aggiungere tutti questi articoli al tuo carrello attuale?')) return;
     setIsSubmitting(true);
     const itemsToAdd = populatedItems
       .filter((item: any) => quantities[item.id] > 0)
       .map((item: any) => ({ sku: item.sku, quantity: quantities[item.id] }));
       
     if (itemsToAdd.length === 0) {
-      alert('Nessun articolo selezionato');
       setIsSubmitting(false);
       return;
     }
 
     const res = await duplicateOrderToCart(order.userId, itemsToAdd);
     if (res.success) {
-      alert('Articoli aggiunti al carrello!');
       closeModal();
-    } else {
-      alert('Errore: ' + res.error);
     }
     setIsSubmitting(false);
   };
 
   const handleDirectReorder = async (action: 'DRAFT' | 'APPROVED') => {
-    const msg = action === 'DRAFT' 
-      ? 'Vuoi creare un nuovo ordine in Pausa (Preventivo) con queste quantità e sconti extra?' 
-      : 'Sei sicuro di voler INVIARE direttamente questo ordine?';
-      
-    if (!confirm(msg)) return;
     setIsSubmitting(true);
     const itemsToAdd = populatedItems
       .filter((item: any) => quantities[item.id] > 0)
@@ -132,17 +122,13 @@ export default function OrderDetailsModal({ order }: { order: any }) {
       }));
 
     if (itemsToAdd.length === 0) {
-      alert('Nessun articolo selezionato');
       setIsSubmitting(false);
       return;
     }
 
     const res = await createDraftFromOrder(order.userId, itemsToAdd, action);
     if (res.success) {
-      alert(action === 'DRAFT' ? 'Preventivo in Pausa creato con successo!' : 'Ordine INVIATO con successo!');
       closeModal();
-    } else {
-      alert('Errore: ' + res.error);
     }
     setIsSubmitting(false);
   };

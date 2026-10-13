@@ -23,11 +23,13 @@ export default function OrderEditModeClient({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
+  const [lockError, setLockError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isSavedOrder = order.status === 'DRAFT' && order.createdById === order.userId;
 
   const handleStartEdit = async () => {
+    setLockError(null);
     setIsLocking(true);
     const res = await lockOrderForEdit(order.id);
     setIsLocking(false);
@@ -35,7 +37,7 @@ export default function OrderEditModeClient({
     if (res.success) {
       setIsEditing(true);
     } else {
-      alert(res.error || 'Impossibile modificare l\'ordine al momento.');
+      setLockError(res.error || 'Impossibile modificare l\'ordine al momento.');
     }
   };
 
@@ -76,6 +78,11 @@ export default function OrderEditModeClient({
           <p className="text-gray-500 mt-1">
             Data: {new Date(order.createdAt).toLocaleDateString('it-IT')} {new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
           </p>
+          {lockError && (
+            <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded font-medium inline-block">
+              {lockError}
+            </p>
+          )}
         </div>
 
         <div className="flex-shrink-0 flex items-center gap-3">

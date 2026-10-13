@@ -57,12 +57,15 @@ export default function QuickAddReorder({
     setQuantity(1);
   };
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const handleAdd = () => {
     if (!selectedProduct) return;
     
     let qty = parseInt(String(quantity));
     if (isNaN(qty) || qty < 1) qty = 1;
     
+    setErrorMsg(null);
     startTransition(async () => {
       const res = await getPopulatedProductForReorder(selectedProduct.sku, userId);
       if (res.success && res.item) {
@@ -72,7 +75,7 @@ export default function QuickAddReorder({
         setQuery('');
         setQuantity(1);
       } else {
-        alert(`Errore: ${res.error || 'Prodotto non trovato'}`);
+        setErrorMsg(res.error || 'Prodotto non trovato');
       }
     });
   };
@@ -187,6 +190,11 @@ export default function QuickAddReorder({
           {isPending ? 'Aggiunta...' : 'Aggiungi'}
         </button>
       </div>
+      {errorMsg && (
+        <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded inline-block">
+          {errorMsg}
+        </p>
+      )}
     </div>
   );
 }

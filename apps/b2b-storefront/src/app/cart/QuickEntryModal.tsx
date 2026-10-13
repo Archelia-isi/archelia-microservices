@@ -215,6 +215,7 @@ export default function QuickEntryModal({
   storeMode?: 'ZUCCHETTI' | 'ELMARK'
 }) {
   const [rows, setRows] = useState<RowData[]>(Array.from({ length: 2 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: 1 })));
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleFocus = (index: number) => {
@@ -236,9 +237,10 @@ export default function QuickEntryModal({
   };
 
   const handleAddAll = () => {
+    setErrorMsg(null);
     const validRows = rows.filter(r => r.selectedProduct && parseInt(String(r.quantity)) > 0);
     if (validRows.length === 0) {
-      alert('Nessun prodotto valido selezionato.');
+      setErrorMsg('Nessun prodotto valido selezionato.');
       return;
     }
 
@@ -249,7 +251,7 @@ export default function QuickEntryModal({
       if (res.success) {
         onClose();
       } else {
-        alert(`Errore: ${res.error}`);
+        setErrorMsg(res.error || 'Errore durante l\'aggiunta al carrello');
       }
     });
   };
@@ -329,8 +331,15 @@ export default function QuickEntryModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-4">
-          <div className="text-lg text-gray-700">
-            Totale Preventivato: <span className="font-bold text-gray-900 text-xl">€ {grandTotal.toFixed(2).replace('.', ',')}</span>
+          <div className="flex flex-col gap-1">
+            <div className="text-lg text-gray-700">
+              Totale Preventivato: <span className="font-bold text-gray-900 text-xl">€ {grandTotal.toFixed(2).replace('.', ',')}</span>
+            </div>
+            {errorMsg && (
+              <span className="text-xs text-red-600 font-medium">
+                {errorMsg}
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
