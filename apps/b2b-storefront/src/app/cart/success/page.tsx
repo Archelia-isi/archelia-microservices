@@ -3,10 +3,12 @@ import Link from 'next/link';
 export default function CartSuccessPage({
   searchParams
 }: {
-  searchParams: { type?: string; orderId?: string }
+  searchParams: { type?: string; orderId?: string; tab?: string }
 }) {
   const isSaved = searchParams.type === 'saved';
   const isPaused = searchParams.type === 'paused';
+  const isElmark = searchParams.tab === 'elmark';
+  const tabParam = isElmark ? '?tab=elmark' : '';
   const orderRef = searchParams.orderId ? `#${searchParams.orderId.slice(-6).toUpperCase()}` : null;
 
   return (
@@ -64,10 +66,10 @@ export default function CartSuccessPage({
             prefetch={true}
             href={
               isSaved
-                ? '/account/saved-orders'
+                ? `/account/saved-orders${tabParam}`
                 : isPaused
-                ? '/account/quotes'
-                : '/account/sent-orders'
+                ? `/account/quotes${tabParam}`
+                : `/account/sent-orders${tabParam}`
             }
             className="px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
           >

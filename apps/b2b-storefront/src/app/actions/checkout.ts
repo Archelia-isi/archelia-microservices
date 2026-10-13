@@ -165,7 +165,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
     revalidatePath('/account/sent-orders');
     revalidatePath('/account');
 
-    return { success: true, orderId: order.id, status: orderStatus };
+    return { success: true, orderId: order.id, status: orderStatus, storeMode: order.storeMode };
   } catch (error: any) {
     console.error('Checkout error:', error);
     return { success: false, error: 'Errore durante il checkout: ' + error.message };

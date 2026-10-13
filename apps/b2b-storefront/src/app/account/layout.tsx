@@ -1,12 +1,17 @@
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await verifySession();
   if (!session) {
     redirect('/login');
   }
+
+  const cookieStore = cookies();
+  const storeMode = cookieStore.get('b2b_store_mode')?.value;
+  const tabParam = storeMode === 'ELMARK' ? '?tab=elmark' : '';
 
   return (
     <div className="max-w-7xl mx-auto py-4">
@@ -28,10 +33,10 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={true} href="/account/impersonate" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Impersonifica Cliente
                   </Link>
-                  <Link prefetch={true} href="/account/agent-orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/agent-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Vaglio Ordini
                   </Link>
-                  <Link prefetch={true} href="/account/agent-completed" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/agent-completed${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Conclusi
                   </Link>
                 </>
@@ -40,16 +45,16 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={true} href="/account" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Bacheca
                   </Link>
-                  <Link prefetch={true} href="/account/orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Conclusi
                   </Link>
-                  <Link prefetch={true} href="/account/sent-orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/sent-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Inviati
                   </Link>
-                  <Link prefetch={true} href="/account/saved-orders" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/saved-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Salvati
                   </Link>
-                  <Link prefetch={true} href="/account/quotes" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={true} href={`/account/quotes${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Preventivi
                   </Link>
                 </>

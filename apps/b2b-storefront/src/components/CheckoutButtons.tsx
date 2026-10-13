@@ -17,7 +17,8 @@ export default function CheckoutButtons({ isAgent, isImpersonating }: { isAgent:
       const res = await checkoutCart(action);
       if (res.success) {
         const type = action === 'SAVE_ORDER' ? 'saved' : action === 'PAUSE_CART' ? 'paused' : 'sent';
-        router.push(`/cart/success?type=${type}&orderId=${res.orderId || ''}`);
+        const tabParam = res.storeMode === 'ELMARK' ? '&tab=elmark' : '';
+        router.push(`/cart/success?type=${type}&orderId=${res.orderId || ''}${tabParam}`);
       } else {
         setErrorMessage(res.error || 'Si è verificato un errore durante l\'operazione.');
       }

@@ -2,10 +2,15 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
 export default async function AccountDashboard() {
   const session = await verifySession();
   if (!session) redirect('/login');
+
+  const cookieStore = cookies();
+  const storeMode = cookieStore.get('b2b_store_mode')?.value;
+  const tabParam = storeMode === 'ELMARK' ? '?tab=elmark' : '';
   
   // if agent, render agent dashboard below
 
@@ -65,7 +70,7 @@ export default async function AccountDashboard() {
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Ultimi Ordini e Preventivi</h2>
-          <Link prefetch={true} href="/account/orders" className="text-brand-main hover:underline font-medium">
+          <Link prefetch={true} href={`/account/orders${tabParam}`} className="text-brand-main hover:underline font-medium">
             Vedi tutti &rarr;
           </Link>
         </div>

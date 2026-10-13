@@ -27,6 +27,9 @@ export default function OrderEditModeClient({
   const [isPending, startTransition] = useTransition();
 
   const isSavedOrder = order.status === 'DRAFT' && order.createdById === order.userId;
+  const isElmark = order.storeMode === 'ELMARK';
+  const tabParam = isElmark ? '?tab=elmark' : '';
+  const redirectUrl = isSavedOrder ? `/account/saved-orders${tabParam}` : `/account/sent-orders${tabParam}`;
 
   const handleStartEdit = async () => {
     setLockError(null);
@@ -88,7 +91,7 @@ export default function OrderEditModeClient({
         <div className="flex-shrink-0 flex items-center gap-3">
           {!isEditing ? (
             <>
-              <DeleteSentOrderButton orderId={order.id} redirectUrl={isSavedOrder ? '/account/saved-orders' : '/account/sent-orders'} />
+              <DeleteSentOrderButton orderId={order.id} redirectUrl={redirectUrl} />
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}

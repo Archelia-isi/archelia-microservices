@@ -31,6 +31,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   const isPending = order.status === 'PENDING_AGENT_REVIEW';
   const isApproved = order.status === 'APPROVED';
   const isSavedOrder = isDraft && order.createdById === session.userId;
+  const isElmark = order.storeMode === 'ELMARK';
+  const tabParam = isElmark ? '?tab=elmark' : '';
 
   let statusColor = 'bg-gray-100 text-gray-800';
   let statusText = 'Sconosciuto';
@@ -49,16 +51,16 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     statusText = 'Approvato';
   }
 
-  let backLink = '/account/orders';
+  let backLink = `/account/orders${tabParam}`;
   let backText = 'Torna a Ordini Conclusi';
   if (isPending) {
-    backLink = '/account/sent-orders';
+    backLink = `/account/sent-orders${tabParam}`;
     backText = 'Torna a Ordini Inviati';
   } else if (isSavedOrder) {
-    backLink = '/account/saved-orders';
+    backLink = `/account/saved-orders${tabParam}`;
     backText = 'Torna a Ordini Salvati';
   } else if (isDraft) {
-    backLink = '/account/quotes';
+    backLink = `/account/quotes${tabParam}`;
     backText = 'Torna ai Preventivi';
   }
 

@@ -201,6 +201,11 @@ export async function acceptDraftOrder(orderId: string) {
       data: { status: 'APPROVED' }
     });
 
+    const { revalidatePath } = await import('next/cache');
+    revalidatePath('/account/quotes');
+    revalidatePath('/account/orders');
+    revalidatePath(`/account/orders/${orderId}`);
+
     return { success: true };
   } catch (error: any) {
     console.error('acceptDraftOrder error:', error);
