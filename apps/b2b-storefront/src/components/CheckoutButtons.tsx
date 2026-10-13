@@ -22,14 +22,12 @@ export default function CheckoutButtons({ isAgent, isImpersonating }: { isAgent:
       if (res.success) {
         if (action === 'SAVE_ORDER') {
           alert('Ordine salvato con successo! Lo trovi nella sezione "Ordini Salvati".');
-          router.push('/account/saved-orders');
         } else if (action === 'PAUSE_CART') {
           alert('Ordine salvato in pausa con successo!');
-          router.push('/');
         } else {
           alert('Ordine inviato con successo!');
-          router.push(isAgent ? '/' : '/account/sent-orders');
         }
+        router.refresh();
       } else {
         alert(`Errore: ${res.error}`);
       }

@@ -15,7 +15,7 @@ export default function SendSavedOrderButton({ orderId, className }: { orderId: 
       const res = await sendSavedOrder(orderId);
       if (res.success) {
         alert('Ordine inviato con successo per la revisione dell\'agente!');
-        router.push('/account/sent-orders');
+        router.refresh();
       } else {
         alert(`Errore: ${res.error}`);
       }
