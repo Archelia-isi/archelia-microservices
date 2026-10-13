@@ -30,12 +30,16 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   const isDraft = order.status === 'DRAFT';
   const isPending = order.status === 'PENDING_AGENT_REVIEW';
   const isApproved = order.status === 'APPROVED';
+  const isSavedOrder = isDraft && order.createdById === session.userId;
 
   let statusColor = 'bg-gray-100 text-gray-800';
   let statusText = 'Sconosciuto';
 
-  if (isDraft) {
+  if (isSavedOrder) {
     statusColor = 'bg-blue-100 text-blue-800 border-blue-200';
+    statusText = 'Ordine Salvato';
+  } else if (isDraft) {
+    statusColor = 'bg-purple-100 text-purple-800 border-purple-200';
     statusText = 'Preventivo in Pausa';
   } else if (isPending) {
     statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
@@ -50,6 +54,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   if (isPending) {
     backLink = '/account/sent-orders';
     backText = 'Torna a Ordini Inviati';
+  } else if (isSavedOrder) {
+    backLink = '/account/saved-orders';
+    backText = 'Torna a Ordini Salvati';
   } else if (isDraft) {
     backLink = '/account/quotes';
     backText = 'Torna ai Preventivi';
@@ -72,7 +79,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     };
   }));
 
-  if (isPending) {
+  if (isPending || isSavedOrder) {
     return (
       <div>
         <div className="mb-6">

@@ -9,7 +9,7 @@ import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
 import { redis } from '@/lib/redis';
 
-export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
+export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 'SAVE_ORDER') {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const cartType = storeMode;
   const session = await verifySession();
@@ -90,17 +90,25 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
 
     // Determine Status
     let orderStatus: 'DRAFT' | 'PENDING_AGENT_REVIEW' | 'APPROVED' = 'DRAFT';
+    let orderNotes = '';
     
     if (session.user.role === 'AGENT') {
       if (action === 'PAUSE_CART') {
         orderStatus = 'DRAFT'; // Preventivo in pausa
-        // TODO: Send Email Notification to Customer
+        orderNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Preventivo in pausa' : 'Preventivo in pausa';
       } else {
         orderStatus = 'APPROVED'; // Agente approva direttamente e manderà a Zucchetti
+        orderNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Approvato' : 'Approvato dall\'agente';
       }
     } else {
-      // It's a normal user. Orders must be reviewed by the agent first.
-      orderStatus = 'PENDING_AGENT_REVIEW';
+      if (action === 'SAVE_ORDER') {
+        orderStatus = 'DRAFT'; // Ordine salvato dal cliente
+        orderNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Salvato dal cliente' : 'Ordine salvato dal cliente';
+      } else {
+        // It's a normal user. Orders must be reviewed by the agent first.
+        orderStatus = 'PENDING_AGENT_REVIEW';
+        orderNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Inviato per revisione' : 'Inviato per revisione agente';
+      }
     }
 
     // Create Order
@@ -112,7 +120,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
         storeMode: storeMode,
         totalAmount,
         totalIva: totalAmount * 0.22,
-        notes: cartType === 'ELMARK' ? 'ORDINE ELMARK - ' + (action === 'PAUSE_CART' ? 'Preventivo' : 'Approvato') : '',
+        notes: orderNotes,
         items: {
           create: orderItemsData
         }
@@ -153,7 +161,9 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART') {
     // This will be handled by a queue later.
 
     revalidatePath('/cart');
-    revalidatePath('/dashboard'); // or wherever orders live
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account/sent-orders');
+    revalidatePath('/account');
 
     return { success: true, orderId: order.id, status: orderStatus };
   } catch (error: any) {

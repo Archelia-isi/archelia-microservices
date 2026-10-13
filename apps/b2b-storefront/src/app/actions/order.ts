@@ -19,12 +19,14 @@ export async function deleteSentOrder(orderId: string) {
       return { success: false, error: 'Ordine non trovato' };
     }
     
-    if (order.status !== 'PENDING_AGENT_REVIEW') {
-      return { success: false, error: 'Solo gli ordini inviati in attesa possono essere eliminati' };
+    if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
+      return { success: false, error: 'Questo ordine non può essere eliminato' };
     }
 
     await prisma.b2BOrder.delete({ where: { id: orderId } });
     revalidatePath('/account/sent-orders');
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account/quotes');
     return { success: true };
   } catch (error: any) {
     console.error('Delete order error:', error);
@@ -49,7 +51,7 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
       return { success: false, error: 'Ordine non trovato' };
     }
     
-    if (order.status !== 'PENDING_AGENT_REVIEW') {
+    if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
       return { success: false, error: 'Non puoi modificare questo ordine' };
     }
 
@@ -141,7 +143,7 @@ export async function removeOrderItem(orderId: string, itemId: string) {
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
-    if (order.status !== 'PENDING_AGENT_REVIEW') return { success: false, error: 'Ordine non modificabile' };
+    if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
 
     await prisma.b2BOrderItem.delete({ where: { id: itemId } });
 
@@ -171,7 +173,7 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
-    if (order.status !== 'PENDING_AGENT_REVIEW') return { success: false, error: 'Ordine non modificabile' };
+    if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
 
     await prisma.b2BOrderItem.update({
       where: { id: itemId },
@@ -191,5 +193,38 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
+  }
+}
+
+export async function sendSavedOrder(orderId: string) {
+  const session = await verifySession();
+  if (!session) return { success: false, error: 'Non autorizzato' };
+
+  try {
+    const targetUserId = await getTargetUserId(session);
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.userId !== targetUserId) {
+      return { success: false, error: 'Ordine non trovato' };
+    }
+
+    if (order.status !== 'DRAFT') {
+      return { success: false, error: 'Solo gli ordini salvati possono essere inviati' };
+    }
+
+    await prisma.b2BOrder.update({
+      where: { id: orderId },
+      data: { 
+        status: 'PENDING_AGENT_REVIEW',
+        notes: order.storeMode === 'ELMARK' ? 'ORDINE ELMARK - Inviato da ordini salvati' : 'Inviato da ordini salvati'
+      }
+    });
+
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account/sent-orders');
+    revalidatePath(`/account/orders/${orderId}`);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Send saved order error:', error);
+    return { success: false, error: error.message };
   }
 }

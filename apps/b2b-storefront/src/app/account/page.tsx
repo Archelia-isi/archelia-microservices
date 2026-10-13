@@ -78,10 +78,15 @@ export default async function AccountDashboard() {
               let statusColor = 'text-gray-500';
 
               if (order.status === 'DRAFT') {
-                statusText = 'Preventivo in Pausa';
-                statusColor = 'text-blue-600 font-medium';
+                if (order.createdById === session.userId) {
+                  statusText = 'Ordine Salvato';
+                  statusColor = 'text-blue-600 font-medium';
+                } else {
+                  statusText = 'Preventivo in Pausa';
+                  statusColor = 'text-purple-600 font-medium';
+                }
               } else if (order.status === 'PENDING_AGENT_REVIEW') {
-                statusText = 'In revisione';
+                statusText = 'Inviato (in revisione)';
                 statusColor = 'text-yellow-600 font-medium';
               } else if (order.status === 'APPROVED') {
                 statusText = 'Approvato';

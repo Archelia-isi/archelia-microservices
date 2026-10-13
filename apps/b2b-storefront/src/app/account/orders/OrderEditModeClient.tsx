@@ -6,6 +6,7 @@ import DeleteSentOrderButton from './DeleteSentOrderButton';
 import { lockOrderForEdit, unlockOrder } from '@/app/actions/orderLock';
 import { updateOrderItemQuantity, removeOrderItem } from '@/app/actions/order';
 import QuantityInput from './QuantityInput';
+import SendSavedOrderButton from './SendSavedOrderButton';
 
 export default function OrderEditModeClient({ 
   order, 
@@ -23,6 +24,8 @@ export default function OrderEditModeClient({
   const [isEditing, setIsEditing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const isSavedOrder = order.status === 'DRAFT' && order.createdById === order.userId;
 
   const handleStartEdit = async () => {
     setIsLocking(true);
@@ -61,9 +64,15 @@ export default function OrderEditModeClient({
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3">
             Dettagli Ordine #{order.id.slice(-6).toUpperCase()}
-            <span className="px-2 py-1 rounded text-xs font-semibold border bg-yellow-100 text-yellow-800 border-yellow-200 text-base">
-              In attesa di revisione
-            </span>
+            {isSavedOrder ? (
+              <span className="px-2 py-1 rounded text-xs font-semibold border bg-blue-100 text-blue-800 border-blue-200 text-base">
+                Ordine Salvato
+              </span>
+            ) : (
+              <span className="px-2 py-1 rounded text-xs font-semibold border bg-yellow-100 text-yellow-800 border-yellow-200 text-base">
+                In attesa di revisione
+              </span>
+            )}
           </h1>
           <p className="text-gray-500 mt-1">
             Data: {new Date(order.createdAt).toLocaleDateString('it-IT')} {new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
@@ -73,7 +82,7 @@ export default function OrderEditModeClient({
         <div className="flex-shrink-0 flex items-center gap-3">
           {!isEditing ? (
             <>
-              <DeleteSentOrderButton orderId={order.id} />
+              <DeleteSentOrderButton orderId={order.id} redirectUrl={isSavedOrder ? '/account/saved-orders' : '/account/sent-orders'} />
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}
@@ -82,6 +91,9 @@ export default function OrderEditModeClient({
                 >
                   {isLocking ? 'Attendere...' : 'Modifica Ordine'}
                 </button>
+              )}
+              {isSavedOrder && !isAgent && (
+                <SendSavedOrderButton orderId={order.id} />
               )}
             </>
           ) : (

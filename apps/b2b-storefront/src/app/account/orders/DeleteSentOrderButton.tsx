@@ -4,17 +4,17 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteSentOrder } from '@/app/actions/order';
 
-export default function DeleteSentOrderButton({ orderId }: { orderId: string }) {
+export default function DeleteSentOrderButton({ orderId, redirectUrl = '/account/sent-orders' }: { orderId: string, redirectUrl?: string }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const handleDelete = () => {
-    if (!confirm('Sei sicuro di voler eliminare definitivamente questo ordine inviato? L\'operazione è irreversibile.')) return;
+    if (!confirm('Sei sicuro di voler eliminare definitivamente questo ordine? L\'operazione è irreversibile.')) return;
     
     startTransition(async () => {
       const res = await deleteSentOrder(orderId);
       if (res.success) {
-        router.push('/account/sent-orders');
+        router.push(redirectUrl);
       } else {
         alert(res.error || 'Errore durante l\'eliminazione');
       }

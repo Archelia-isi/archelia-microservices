@@ -16,6 +16,7 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
     where: { 
       userId: session.userId,
       status: 'DRAFT',
+      createdById: { not: session.userId },
       storeMode: currentTab
     },
     orderBy: { createdAt: 'desc' },
