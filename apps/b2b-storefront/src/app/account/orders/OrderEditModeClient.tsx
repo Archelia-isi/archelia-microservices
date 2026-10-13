@@ -52,7 +52,6 @@ export default function OrderEditModeClient({
   };
 
   const handleRemove = (itemId: string) => {
-    if (!confirm('Rimuovere questo articolo?')) return;
     startTransition(async () => {
       await removeOrderItem(order.id, itemId);
     });

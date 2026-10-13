@@ -9,14 +9,10 @@ export default function DeleteSentOrderButton({ orderId, redirectUrl = '/account
   const router = useRouter();
 
   const handleDelete = () => {
-    if (!confirm('Sei sicuro di voler eliminare definitivamente questo ordine? L\'operazione è irreversibile.')) return;
-    
     startTransition(async () => {
       const res = await deleteSentOrder(orderId);
       if (res.success) {
         router.push(redirectUrl);
-      } else {
-        alert(res.error || 'Errore durante l\'eliminazione');
       }
     });
   };
