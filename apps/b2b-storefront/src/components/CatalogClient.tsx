@@ -296,8 +296,8 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
                   {product.original_name || product.title}
                 </Link>
               </h3>
-              <div className="text-[10px] text-gray-500 mb-3 uppercase tracking-wide truncate">
-                CODICE PRODOTTO: <span className="font-mono">{product.sku || product.natural_sku || 'N/D'}</span>
+              <div className="text-sm font-bold text-gray-900 font-mono mb-3 truncate" title={product.sku || product.natural_sku}>
+                {product.sku || product.natural_sku || 'N/D'}
               </div>
               <div className="mt-auto flex flex-col gap-3">
                 {isAuthenticated && (

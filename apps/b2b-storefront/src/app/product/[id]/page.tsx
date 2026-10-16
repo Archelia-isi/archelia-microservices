@@ -167,8 +167,8 @@ export default async function ProductPage({ params, searchParams }: { params: { 
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
             {product.original_name || product.title}
           </h1>
-          <div className="text-sm text-gray-500 mb-6">
-            CODICE PRODOTTO: <span className="font-mono font-medium">{product.sku || product.natural_sku}</span>
+          <div className="text-base font-bold text-gray-900 font-mono mb-6">
+            {product.sku || product.natural_sku}
           </div>
 
           {/* BUY BOX (Client Component per gestire quantità) */}

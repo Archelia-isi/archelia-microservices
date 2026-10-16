@@ -91,7 +91,7 @@ export default async function Home() {
               )}
             </div>
             <div className="text-[11px] font-bold text-gray-900 text-center line-clamp-1 w-full px-1" title={prod.original_name || prod.title}>{prod.original_name || prod.title || 'Prodotto'}</div>
-            <div className="text-[9px] text-gray-400 text-center mt-0.5">CODICE PRODOTTO: {prod.sku || prod.natural_sku}</div>
+            <div className="text-[11px] font-bold text-gray-800 font-mono text-center mt-0.5 truncate w-full px-1">{prod.sku || prod.natural_sku}</div>
           </Link>
         ))}
       </div>
