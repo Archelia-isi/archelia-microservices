@@ -172,7 +172,6 @@ function QuickEntryRow({
           min="1"
           disabled={!row.selectedProduct}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black disabled:bg-gray-100"
-          placeholder="1"
         />
       </div>
 

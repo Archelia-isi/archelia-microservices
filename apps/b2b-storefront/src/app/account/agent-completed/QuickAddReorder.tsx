@@ -174,7 +174,6 @@ export default function QuickAddReorder({
             onChange={(e) => setQuantity(e.target.value)}
             min="1"
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="1"
           />
         </div>
         

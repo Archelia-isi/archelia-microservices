@@ -171,7 +171,6 @@ export default function QuickAddOrderClient({
             onChange={(e) => setQuantity(e.target.value)}
             min="1"
             className="w-full border border-gray-300 rounded px-4 py-2 text-center focus:ring-2 focus:ring-brand-main focus:border-transparent outline-none"
-            placeholder="1"
             disabled={isPending}
           />
         </div>
