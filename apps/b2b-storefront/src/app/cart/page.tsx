@@ -32,6 +32,12 @@ export default async function CartPage() {
     if (linkedOrder?.storeMode) {
       storeMode = linkedOrder.storeMode as 'ZUCCHETTI' | 'ELMARK';
     }
+    if (session.user.role === 'AGENT') {
+      try {
+        const { redis } = await import('@/lib/redis');
+        await redis.set(`b2b_order_lock:${cartQuery.linkedOrderId}`, session.userId, 'EX', 3600 * 2);
+      } catch (e) {}
+    }
   }
 
   const { getCart } = await import('@/lib/cart');
@@ -125,6 +131,19 @@ export default async function CartPage() {
             const { cookies } = await import('next/headers');
             const { redirect } = await import('next/navigation');
             const { revalidatePath } = await import('next/cache');
+            const { prisma } = await import('@archelia/b2b-database');
+            const { redis } = await import('@/lib/redis');
+            const reviewingId = cookies().get('reviewingOrderId')?.value;
+            if (reviewingId) {
+              try {
+                await redis.del(`b2b_order_lock:${reviewingId}`);
+              } catch (e) {}
+              try {
+                await prisma.b2BCart.deleteMany({
+                  where: { linkedOrderId: reviewingId, status: 'REVIEW' }
+                });
+              } catch (e) {}
+            }
             const deleteOpts: any = { path: '/', maxAge: 0 };
             if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
             cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });

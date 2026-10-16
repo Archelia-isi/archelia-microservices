@@ -144,7 +144,17 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       } catch (e) {
         console.error('Failed to delete old reviewed order', e);
       }
-      cookies().delete('reviewingOrderId');
+      try {
+        await prisma.b2BCart.deleteMany({
+          where: { linkedOrderId: cart.linkedOrderId, status: 'REVIEW' }
+        });
+      } catch (e) {}
+      try {
+        await redis.del(`b2b_order_lock:${cart.linkedOrderId}`);
+      } catch (e) {}
+      const deleteOpts: any = { path: '/', maxAge: 0 };
+      if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
+      cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });
     }
 
     // Clear Redis Cart

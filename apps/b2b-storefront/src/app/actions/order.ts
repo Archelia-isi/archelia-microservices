@@ -7,12 +7,19 @@ import { getProductById } from '@archelia/typesense/dist/search.js';
 import { getEffectiveDiscount } from '@/lib/discount';
 import { getTargetUserId } from './cart';
 import { cookies } from 'next/headers';
+import { isOrderLockedForUser } from './orderLock';
+import { redis } from '@/lib/redis';
 
 export async function deleteSentOrder(orderId: string) {
   const session = await verifySession();
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
+    const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
+    if (locked) {
+      return { success: false, error: 'Impossibile eliminare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+    }
+
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) {
@@ -24,6 +31,10 @@ export async function deleteSentOrder(orderId: string) {
     }
 
     await prisma.b2BOrder.delete({ where: { id: orderId } });
+    try {
+      await redis.del(`b2b_order_lock:${orderId}`);
+    } catch (e) {}
+
     revalidatePath('/account/sent-orders');
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/quotes');
@@ -41,6 +52,11 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
   if (quantity <= 0) return { success: false, error: 'Quantità non valida' };
 
   try {
+    const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
+    if (locked) {
+      return { success: false, error: 'Impossibile modificare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+    }
+
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ 
       where: { id: orderId },
@@ -140,6 +156,11 @@ export async function removeOrderItem(orderId: string, itemId: string) {
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
+    const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
+    if (locked) {
+      return { success: false, error: 'Impossibile modificare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+    }
+
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
@@ -170,6 +191,11 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
   if (quantity < 1) return { success: false, error: 'Quantità non valida' };
 
   try {
+    const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
+    if (locked) {
+      return { success: false, error: 'Impossibile modificare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+    }
+
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
@@ -201,6 +227,11 @@ export async function sendSavedOrder(orderId: string) {
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
+    const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
+    if (locked) {
+      return { success: false, error: 'Impossibile inviare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+    }
+
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== targetUserId) {

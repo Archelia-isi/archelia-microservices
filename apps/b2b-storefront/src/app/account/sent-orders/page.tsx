@@ -3,6 +3,9 @@ import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import AcceptDraftButton from '../orders/AcceptDraftButton';
+import { isOrderLockedForUser } from '@/app/actions/orderLock';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AccountSentOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -21,6 +24,14 @@ export default async function AccountSentOrdersPage({ searchParams }: { searchPa
     orderBy: { createdAt: 'desc' },
     include: { items: true }
   });
+
+  const lockedOrderIds = new Set<string>();
+  await Promise.all(
+    quotes.map(async (q) => {
+      const locked = await isOrderLockedForUser(q.id, session.userId, session.user.role);
+      if (locked) lockedOrderIds.add(q.id);
+    })
+  );
 
   return (
     <div>
@@ -55,6 +66,7 @@ export default async function AccountSentOrdersPage({ searchParams }: { searchPa
           {quotes.map((quote) => {
             const isDraft = quote.status === 'DRAFT';
             const isPending = quote.status === 'PENDING_AGENT_REVIEW';
+            const isLocked = lockedOrderIds.has(quote.id);
 
             let statusColor = 'bg-gray-100 text-gray-800';
             let statusText = 'Sconosciuto';
@@ -62,6 +74,9 @@ export default async function AccountSentOrdersPage({ searchParams }: { searchPa
             if (isDraft) {
               statusColor = 'bg-blue-100 text-blue-800 border-blue-200';
               statusText = 'Preventivo in Pausa';
+            } else if (isLocked) {
+              statusColor = 'bg-orange-100 text-orange-800 border-orange-300';
+              statusText = "In revisione dall'agente";
             } else if (isPending) {
               statusColor = 'bg-yellow-100 text-yellow-800 border-yellow-200';
               statusText = 'In attesa di revisione';

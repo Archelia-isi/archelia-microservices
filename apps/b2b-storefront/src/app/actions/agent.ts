@@ -39,6 +39,19 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
   const cookieOpts: any = { path: '/', maxAge: 86400 };
   if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
 
+  // Clean up any active review lock if switching client
+  const reviewingOrderId = cookies().get('reviewingOrderId')?.value;
+  if (reviewingOrderId) {
+    try {
+      const { redis } = await import('@/lib/redis');
+      await redis.del(`b2b_order_lock:${reviewingOrderId}`);
+      await prisma.b2BCart.deleteMany({
+        where: { linkedOrderId: reviewingOrderId, status: 'REVIEW' }
+      });
+    } catch (e) {}
+    cookies().delete({ name: 'reviewingOrderId', ...cookieOpts, maxAge: 0 });
+  }
+
   if (zucchettiCode) {
     cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
     cookies().set('impersonatedClientName', companyName || '', cookieOpts);
@@ -92,6 +105,17 @@ export async function startOrderReview(orderId: string) {
     cookies().set('b2b_store_mode', order.storeMode, storeCookieOpts);
 
     // Clean up any old REVIEW cart for this user
+    const oldReviewCarts = await prisma.b2BCart.findMany({
+      where: { userId: order.userId, status: 'REVIEW' },
+      select: { linkedOrderId: true }
+    });
+    for (const oldCart of oldReviewCarts) {
+      if (oldCart.linkedOrderId && oldCart.linkedOrderId !== order.id) {
+        try {
+          await redis.del(`b2b_order_lock:${oldCart.linkedOrderId}`);
+        } catch (e) {}
+      }
+    }
     await prisma.b2BCart.deleteMany({
       where: { userId: order.userId, status: 'REVIEW' }
     });

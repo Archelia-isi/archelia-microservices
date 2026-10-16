@@ -13,16 +13,19 @@ export default function OrderEditModeClient({
   populatedItems, 
   genericDiscount,
   elmarkDiscounts,
-  isAgent 
+  isAgent,
+  isLockedByOther = false
 }: { 
   order: any, 
   populatedItems: any[], 
   genericDiscount: number,
   elmarkDiscounts?: Record<string, number>,
-  isAgent: boolean 
+  isAgent: boolean,
+  isLockedByOther?: boolean
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
+  const [lockedByAgent, setLockedByAgent] = useState(isLockedByOther);
   const [lockError, setLockError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -42,6 +45,7 @@ export default function OrderEditModeClient({
     if (res.success) {
       setIsEditing(true);
     } else {
+      setLockedByAgent(true);
       setLockError(res.error || 'Impossibile modificare l\'ordine al momento.');
     }
   };
@@ -54,13 +58,23 @@ export default function OrderEditModeClient({
   const handleUpdateQty = (itemId: string, newQty: number) => {
     if (newQty < 1) return;
     startTransition(async () => {
-      await updateOrderItemQuantity(order.id, itemId, newQty);
+      const res = await updateOrderItemQuantity(order.id, itemId, newQty);
+      if (!res.success) {
+        setIsEditing(false);
+        setLockedByAgent(true);
+        setLockError(res.error || 'Impossibile modificare l\'ordine.');
+      }
     });
   };
 
   const handleRemove = (itemId: string) => {
     startTransition(async () => {
-      await removeOrderItem(order.id, itemId);
+      const res = await removeOrderItem(order.id, itemId);
+      if (!res.success) {
+        setIsEditing(false);
+        setLockedByAgent(true);
+        setLockError(res.error || 'Impossibile modificare l\'ordine.');
+      }
     });
   };
 
@@ -68,11 +82,15 @@ export default function OrderEditModeClient({
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mt-6">
       <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
+          <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             Dettagli Ordine #{order.id.slice(-6).toUpperCase()}
             {isSavedOrder ? (
               <span className="px-2 py-1 rounded text-xs font-semibold border bg-blue-100 text-blue-800 border-blue-200 text-base">
                 Ordine Salvato
+              </span>
+            ) : lockedByAgent && !isAgent ? (
+              <span className="px-2.5 py-1 rounded text-xs font-bold border bg-orange-100 text-orange-800 border-orange-300 text-base">
+                In revisione dall&apos;agente
               </span>
             ) : (
               <span className="px-2 py-1 rounded text-xs font-semibold border bg-yellow-100 text-yellow-800 border-yellow-200 text-base">
@@ -88,6 +106,11 @@ export default function OrderEditModeClient({
               Cliente: {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`} (Cod. {order.user.zucchettiCode || 'N/A'})
             </p>
           )}
+          {lockedByAgent && !isAgent && !lockError && (
+            <p className="mt-2 text-sm text-orange-800 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded font-medium inline-block">
+              Il tuo agente sta attualmente revisionando questo ordine. Non è possibile modificarlo o eliminarlo durante la revisione.
+            </p>
+          )}
           {lockError && (
             <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded font-medium inline-block">
               {lockError}
@@ -99,13 +122,21 @@ export default function OrderEditModeClient({
           {!isEditing ? (
             <>
               {!isAgent && (
-                <DeleteSentOrderButton orderId={order.id} redirectUrl={redirectUrl} />
+                <DeleteSentOrderButton 
+                  orderId={order.id} 
+                  redirectUrl={redirectUrl} 
+                  disabled={lockedByAgent}
+                  onError={(err) => {
+                    setLockedByAgent(true);
+                    setLockError(err);
+                  }}
+                />
               )}
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}
-                  disabled={isLocking}
-                  className="px-6 py-2 bg-black text-white hover:bg-gray-800 font-bold text-sm rounded transition-colors disabled:opacity-50"
+                  disabled={isLocking || lockedByAgent}
+                  className="px-6 py-2 bg-black text-white hover:bg-gray-800 font-bold text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLocking ? 'Attendere...' : 'Modifica Ordine'}
                 </button>

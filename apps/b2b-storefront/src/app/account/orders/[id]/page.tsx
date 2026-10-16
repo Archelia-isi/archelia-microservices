@@ -7,6 +7,9 @@ import Image from 'next/image';
 import AcceptDraftButton from '../AcceptDraftButton';
 import DeleteSentOrderButton from '../DeleteSentOrderButton';
 import OrderEditModeClient from '../OrderEditModeClient';
+import { isOrderLockedForUser } from '@/app/actions/orderLock';
+
+export const dynamic = 'force-dynamic';
 
 export default async function OrderDetailsPage({ params }: { params: { id: string } }) {
   const session = await verifySession();
@@ -103,6 +106,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   }));
 
   if (isPending || isSavedOrder) {
+    const isLockedByOther = await isOrderLockedForUser(order.id, session.userId, session.user.role);
     return (
       <div>
         <div className="mb-6">
@@ -116,6 +120,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           genericDiscount={genericDiscount}
           elmarkDiscounts={elmarkDiscounts} 
           isAgent={session.user.role === 'AGENT'} 
+          isLockedByOther={isLockedByOther}
         />
       </div>
     );
