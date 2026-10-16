@@ -19,6 +19,7 @@ export default function QuickEntryWrapper({
   return (
     <>
       <button 
+        type="button"
         onClick={() => setIsOpen(true)}
         className="w-full sm:w-auto px-6 py-2.5 bg-green-600 text-white font-bold rounded shadow-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
       >

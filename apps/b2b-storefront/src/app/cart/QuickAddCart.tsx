@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { searchBySkuPrefix } from '../actions/search';
+import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { addToCart } from '../actions/cart';
 
 export default function QuickAddCart({ 
@@ -43,7 +43,7 @@ export default function QuickAddCart({
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(query, storeMode);
+      const data = await searchBySkuPrefixClient(query, storeMode);
       setResults(data);
       setIsOpen(true);
     }, 300);
@@ -118,8 +118,10 @@ export default function QuickAddCart({
         <div className="flex-1 relative">
           <input 
             type="text" 
+            autoComplete="off"
             placeholder="Es. E1.12345" 
             value={query}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             onChange={handleQueryChange}
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
           />
@@ -169,6 +171,7 @@ export default function QuickAddCart({
             type="number" 
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             min="1"
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black"
             placeholder="Q.tà"
@@ -176,6 +179,7 @@ export default function QuickAddCart({
         </div>
         
         <button 
+          type="button"
           onClick={handleAdd}
           disabled={!selectedProduct || isPending}
           className={`w-full sm:w-auto px-6 py-2 rounded text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${

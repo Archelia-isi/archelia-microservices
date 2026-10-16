@@ -37,10 +37,10 @@ export function middleware(request: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     maxAge: 60 * 60 * 24 * 365 
   };
-  if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
-
-  // Also set the cookie on the browser for client components
-  response.cookies.set('b2b_store_mode', storeMode, cookieOpts);
+  // Only set the cookie on the browser for client components if it differs
+  if (existingCookie !== storeMode) {
+    response.cookies.set('b2b_store_mode', storeMode, cookieOpts);
+  }
 
   return response;
 }

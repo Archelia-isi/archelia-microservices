@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { searchBySkuPrefix } from '../../actions/search';
+import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { getPopulatedProductForReorder } from '../../actions/orders';
 
 export default function QuickAddReorder({ 
@@ -42,7 +42,7 @@ export default function QuickAddReorder({
 
     const timer = setTimeout(async () => {
       const mode = storeConfig?.storeMode || 'ZUCCHETTI';
-      const data = await searchBySkuPrefix(query, mode);
+      const data = await searchBySkuPrefixClient(query, mode);
       setResults(data);
       setIsOpen(true);
     }, 300);

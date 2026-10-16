@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition, useCallback } from 'react';
-import { searchBySkuPrefix } from '../actions/search';
+import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { addMultipleToCart } from '../actions/cart';
 
 type RowData = {
@@ -11,7 +11,8 @@ type RowData = {
   quantity: number | string;
 };
 
-const generateId = () => Math.random().toString(36).substring(2, 9);
+let rowCounter = 0;
+const generateId = () => `qe_row_${Date.now()}_${++rowCounter}`;
 
 function QuickEntryRow({ 
   row, 
@@ -54,7 +55,7 @@ function QuickEntryRow({
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(row.query, storeMode);
+      const data = await searchBySkuPrefixClient(row.query, storeMode);
       setResults(data);
       setIsOpen(true);
     }, 300);
@@ -105,9 +106,11 @@ function QuickEntryRow({
       <div className="w-full md:w-64 relative flex-shrink-0">
         <input 
           type="text" 
+          autoComplete="off"
           placeholder="Cerca SKU o Titolo..." 
           value={row.query}
           onFocus={onFocus}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
           onChange={(e) => onChange({ ...row, query: e.target.value, selectedProduct: null })}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
         />
@@ -163,6 +166,7 @@ function QuickEntryRow({
           type="number" 
           value={row.quantity}
           onChange={(e) => onChange({ ...row, quantity: e.target.value })}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
           min="1"
           disabled={!row.selectedProduct}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black disabled:bg-gray-100"
@@ -292,6 +296,7 @@ export default function QuickEntryModal({
             <p className="text-sm text-gray-500">Cerca i codici e inserisci le quantità. Aggiungi nuove righe selezionando l'ultima.</p>
           </div>
           <button 
+            type="button"
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-900 rounded hover:bg-gray-200 transition-colors"
           >
@@ -344,12 +349,14 @@ export default function QuickEntryModal({
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button 
+              type="button"
               onClick={onClose}
               className="flex-1 sm:flex-none px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-100 transition-colors"
             >
               Annulla
             </button>
             <button 
+              type="button"
               onClick={handleAddAll}
               disabled={isPending}
               className="flex-1 sm:flex-none px-8 py-2.5 bg-brand-main text-white font-bold rounded shadow-sm hover:bg-brand-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"

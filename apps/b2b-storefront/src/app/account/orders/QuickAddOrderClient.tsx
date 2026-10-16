@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useTransition } from 'react';
-import { searchBySkuPrefix } from '@/app/actions/search';
+import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { addQuickItemToOrder } from '@/app/actions/order';
 
 export default function QuickAddOrderClient({ 
@@ -43,7 +43,7 @@ export default function QuickAddOrderClient({
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(query, storeMode);
+      const data = await searchBySkuPrefixClient(query, storeMode);
       setResults(data);
       setIsOpen(true);
     }, 300);
