@@ -54,13 +54,13 @@ function QuickEntryRow({
     }
 
     const timer = setTimeout(async () => {
-      const data = await searchBySkuPrefix(row.query);
+      const data = await searchBySkuPrefix(row.query, storeMode);
       setResults(data);
       setIsOpen(true);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [row.query, row.selectedProduct]);
+  }, [row.query, row.selectedProduct, storeMode]);
 
   const handleSelect = (product: any) => {
     onChange({ ...row, selectedProduct: product, query: product.sku });
@@ -68,7 +68,7 @@ function QuickEntryRow({
   };
 
   const getDiscountedPrice = (product: any) => {
-    let original = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
+    let original = Number(storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
     let final = original;
     
     if (storeMode === 'ELMARK') {

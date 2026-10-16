@@ -49,7 +49,7 @@ export default function QuickAddCart({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, selectedProduct]);
+  }, [query, selectedProduct, storeMode]);
 
   const handleSelect = (product: any) => {
     setSelectedProduct(product);
