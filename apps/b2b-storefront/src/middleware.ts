@@ -4,9 +4,21 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   
-  // Determine store mode from hostname
+  // Determine store mode from hostname or active review / existing cookie
   const isElmark = hostname.includes('elmark.izzodistribuzione.it');
-  const storeMode = isElmark ? 'ELMARK' : 'ZUCCHETTI';
+  let storeMode: 'ZUCCHETTI' | 'ELMARK' = isElmark ? 'ELMARK' : 'ZUCCHETTI';
+
+  const existingCookie = request.cookies.get('b2b_store_mode')?.value;
+  const isReviewing = request.cookies.get('reviewingOrderId')?.value;
+
+  if (!isElmark) {
+    if (isReviewing && existingCookie === 'ELMARK') {
+      storeMode = 'ELMARK';
+    } else if (!hostname.includes('izzodistribuzione.it') && existingCookie === 'ELMARK') {
+      // Localhost or Railway dev environment
+      storeMode = 'ELMARK';
+    }
+  }
   
   // Overwrite the request cookie so all Server Components and Actions see the correct mode
   request.cookies.set('b2b_store_mode', storeMode);

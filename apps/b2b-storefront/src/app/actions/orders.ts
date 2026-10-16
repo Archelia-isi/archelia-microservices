@@ -119,7 +119,6 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
 }
 
 export async function getPopulatedOrderDetails(orderId: string) {
-  const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const session = await verifySession();
   if (!session) return { success: false };
 
@@ -129,6 +128,7 @@ export async function getPopulatedOrderDetails(orderId: string) {
   });
   if (!order) return { success: false };
   
+  const storeMode = (order.storeMode as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const targetUser = await prisma.b2BUser.findUnique({ where: { id: order.userId } });
   let elmarkDiscounts: Record<string, number> = targetUser ? (targetUser.elmarkDiscounts as Record<string, number> || {}) : {};
   let genericDiscount = targetUser ? (targetUser.discount || 0) : 0;
@@ -141,7 +141,7 @@ export async function getPopulatedOrderDetails(orderId: string) {
     let currentStdDisc = 0;
     
     if (prod) {
-       currentOriginalPrice = Number(prod.price_b2b) > 0 ? Number(prod.price_b2b) : Number(prod.price || 0);
+       currentOriginalPrice = Number(storeMode === 'ELMARK' ? prod.price : (prod.price_b2b || prod.price || 0));
        currentBasePrice = currentOriginalPrice;
        if (storeMode === 'ELMARK') {
          const dGroup = prod.discgroup || '';

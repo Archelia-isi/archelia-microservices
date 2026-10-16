@@ -20,7 +20,17 @@ export default async function CartPage() {
 
   const targetUserId = await getTargetUserId(session);
   const cartQuery = await getCartQuery();
-  const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+  let storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
+
+  if (cartQuery.status === 'REVIEW' && cartQuery.linkedOrderId) {
+    const linkedOrder = await prisma.b2BOrder.findUnique({
+      where: { id: cartQuery.linkedOrderId },
+      select: { storeMode: true }
+    });
+    if (linkedOrder?.storeMode) {
+      storeMode = linkedOrder.storeMode as 'ZUCCHETTI' | 'ELMARK';
+    }
+  }
 
   const { getCart } = await import('@/lib/cart');
   const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, storeMode);

@@ -29,7 +29,9 @@ export default function OrderEditModeClient({
   const isSavedOrder = order.status === 'DRAFT' && order.createdById === order.userId;
   const isElmark = order.storeMode === 'ELMARK';
   const tabParam = isElmark ? '?tab=elmark' : '';
-  const redirectUrl = isSavedOrder ? `/account/saved-orders${tabParam}` : `/account/sent-orders${tabParam}`;
+  const redirectUrl = isAgent 
+    ? `/account/agent-orders${tabParam}` 
+    : (isSavedOrder ? `/account/saved-orders${tabParam}` : `/account/sent-orders${tabParam}`);
 
   const handleStartEdit = async () => {
     setLockError(null);
@@ -81,6 +83,11 @@ export default function OrderEditModeClient({
           <p className="text-gray-500 mt-1">
             Data: {new Date(order.createdAt).toLocaleDateString('it-IT')} {new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
           </p>
+          {order.user && isAgent && (
+            <p className="text-sm font-semibold text-gray-800 mt-1">
+              Cliente: {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`} (Cod. {order.user.zucchettiCode || 'N/A'})
+            </p>
+          )}
           {lockError && (
             <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded font-medium inline-block">
               {lockError}
@@ -91,7 +98,9 @@ export default function OrderEditModeClient({
         <div className="flex-shrink-0 flex items-center gap-3">
           {!isEditing ? (
             <>
-              <DeleteSentOrderButton orderId={order.id} redirectUrl={redirectUrl} />
+              {!isAgent && (
+                <DeleteSentOrderButton orderId={order.id} redirectUrl={redirectUrl} />
+              )}
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}
@@ -103,6 +112,22 @@ export default function OrderEditModeClient({
               )}
               {isSavedOrder && !isAgent && (
                 <SendSavedOrderButton orderId={order.id} />
+              )}
+              {isAgent && (
+                <button 
+                  onClick={async () => {
+                    const { startOrderReview } = await import('@/app/actions/agent');
+                    const res = await startOrderReview(order.id);
+                    if (res.success) {
+                      window.location.href = '/cart';
+                    } else {
+                      setLockError(res.error || 'Impossibile revisionare l\'ordine al momento.');
+                    }
+                  }}
+                  className="px-6 py-2 bg-brand-main text-white hover:bg-brand-hover font-bold text-sm rounded transition-colors"
+                >
+                  Apri e Revisiona nel Carrello
+                </button>
               )}
             </>
           ) : (

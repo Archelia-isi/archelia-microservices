@@ -120,6 +120,15 @@ export async function startOrderReview(orderId: string) {
 
     // Set cookie to activate review mode
     cookies().set('reviewingOrderId', order.id, cookieOpts);
+
+    // Clear stale Redis keys for review carts
+    try {
+      const { redis } = await import('@/lib/redis');
+      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ELMARK`);
+      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ZUCCHETTI`);
+    } catch (e) {
+      console.error('Failed to clear redis review cart', e);
+    }
     
     return { success: true };
   } catch (error: any) {

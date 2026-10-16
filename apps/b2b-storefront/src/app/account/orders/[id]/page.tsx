@@ -19,12 +19,17 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     include: { 
       items: {
         orderBy: { id: 'asc' }
-      } 
+      },
+      user: true
     }
   });
 
-  if (!order || order.userId !== session.userId) {
-    redirect('/account/orders');
+  const isAgent = session.user.role === 'AGENT';
+  const isOrderOwner = order?.userId === session.userId;
+  const isAssignedAgent = isAgent && order?.user?.agentId === session.userId;
+
+  if (!order || (!isOrderOwner && !isAssignedAgent)) {
+    redirect(isAgent ? '/account/agent-orders' : '/account/orders');
   }
 
   const isDraft = order.status === 'DRAFT';
@@ -53,7 +58,15 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   let backLink = `/account/orders${tabParam}`;
   let backText = 'Torna a Ordini Conclusi';
-  if (isPending) {
+  if (isAgent) {
+    if (isApproved) {
+      backLink = `/account/agent-completed${tabParam}`;
+      backText = 'Torna a Ordini Conclusi';
+    } else {
+      backLink = `/account/agent-orders${tabParam}`;
+      backText = 'Torna a Vaglio Ordini';
+    }
+  } else if (isPending) {
     backLink = `/account/sent-orders${tabParam}`;
     backText = 'Torna a Ordini Inviati';
   } else if (isSavedOrder) {
@@ -64,9 +77,17 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     backText = 'Torna ai Preventivi';
   }
 
-  const { getEffectiveDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
-  const genericDiscount = await getEffectiveDiscount();
-  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
+  let genericDiscount = 0;
+  let elmarkDiscounts: Record<string, number> = {};
+
+  if (isAgent && order.user) {
+    genericDiscount = order.user.discount || 0;
+    elmarkDiscounts = (order.user.elmarkDiscounts as Record<string, number>) || {};
+  } else {
+    const { getEffectiveDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
+    genericDiscount = await getEffectiveDiscount();
+    elmarkDiscounts = await getEffectiveElmarkDiscounts();
+  }
 
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const p = await getProductById(item.sku) as any;
@@ -120,6 +141,11 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             <p className="text-gray-500 mt-1">
               Data: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
             </p>
+            {isAgent && order.user && (
+              <p className="text-sm font-semibold text-gray-800 mt-1">
+                Cliente: {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`} (Cod. {order.user.zucchettiCode || 'N/A'})
+              </p>
+            )}
           </div>
 
           {isDraft && (

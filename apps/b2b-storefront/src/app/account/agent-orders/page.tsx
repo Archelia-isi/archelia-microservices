@@ -93,21 +93,31 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                   </div>
                 </div>
                 
-                <form action={async () => {
-                  'use server';
-                  const { startOrderReview } = await import('@/app/actions/agent');
-                  const res = await startOrderReview(order.id);
-                  if (res.success) {
-                    redirect('/cart');
-                  }
-                }}>
-                  <button 
-                    type="submit"
-                    className="bg-brand-main hover:bg-brand-hover text-white font-bold py-2 px-6 rounded transition-colors"
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Link 
+                    prefetch={true}
+                    href={`/account/orders/${order.id}`}
+                    className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex items-center justify-center"
                   >
-                    Apri e Revisiona
-                  </button>
-                </form>
+                    Dettagli
+                  </Link>
+
+                  <form action={async () => {
+                    'use server';
+                    const { startOrderReview } = await import('@/app/actions/agent');
+                    const res = await startOrderReview(order.id);
+                    if (res.success) {
+                      redirect('/cart');
+                    }
+                  }}>
+                    <button 
+                      type="submit"
+                      className="bg-brand-main hover:bg-brand-hover text-white font-bold py-2 px-6 rounded transition-colors"
+                    >
+                      Apri e Revisiona
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
           ))}
