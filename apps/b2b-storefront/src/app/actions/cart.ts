@@ -67,7 +67,8 @@ export async function addToCart(sku: string, quantity: number) {
     // Save to Redis and trigger background sync
     await saveCartToRedis(cart);
     revalidatePath('/cart');
-    return { success: true, cartItemCount: cart.items.length };
+    const totalCount = cart.items.reduce((acc, item) => acc + item.quantity, 0);
+    return { success: true, cartItemCount: totalCount };
   } catch (error: any) {
     console.error('Cart action error:', error);
     return { success: false, error: error.message };

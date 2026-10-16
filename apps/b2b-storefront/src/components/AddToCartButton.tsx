@@ -1,7 +1,6 @@
 'use client';
 
-import { useTransition, useState } from 'react';
-import { addToCart } from '../app/actions/cart';
+import { useState } from 'react';
 import Image from 'next/image';
 
 export default function AddToCartButton({ 
@@ -17,7 +16,7 @@ export default function AddToCartButton({
   text?: string,
   disabled?: boolean
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -34,7 +33,7 @@ export default function AddToCartButton({
     setQuantity(prev => (prev > 1 ? prev - 1 : 1));
   };
 
-  const handleAddToCart = (e?: React.MouseEvent) => {
+  const handleAddToCart = async (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -46,8 +45,14 @@ export default function AddToCartButton({
       return;
     }
     
-    startTransition(async () => {
-      const res = await addToCart(product.sku, quantity);
+    setIsPending(true);
+    try {
+      const response = await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku: product.sku, quantity })
+      });
+      const res = await response.json();
       if (res.success) {
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: res.cartItemCount } }));
         setQuantity(1);
@@ -56,7 +61,12 @@ export default function AddToCartButton({
         setErrorMessage(res.error || 'Errore sconosciuto');
         setShowErrorModal(true);
       }
-    });
+    } catch {
+      setErrorMessage('Errore di connessione');
+      setShowErrorModal(true);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const hasDiscount = isLoggedIn && product.originalPriceB2b && product.price_b2b < product.originalPriceB2b;

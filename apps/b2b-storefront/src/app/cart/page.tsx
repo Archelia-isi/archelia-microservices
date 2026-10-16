@@ -11,6 +11,8 @@ import CheckoutButtons from '../../components/CheckoutButtons';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from '../actions/cart';
 
+export const dynamic = 'force-dynamic';
+
 export default async function CartPage() {
   const session = await verifySession();
   if (!session) redirect('/login');

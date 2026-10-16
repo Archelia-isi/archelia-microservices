@@ -24,7 +24,7 @@ export default function CartBadge({ initialCount }: { initialCount: number }) {
   }, []);
 
   return (
-    <Link prefetch={true} href="/cart" className="hover:text-brand-hover transition-colors flex items-center gap-2">
+    <Link prefetch={false} href="/cart" className="hover:text-brand-hover transition-colors flex items-center gap-2">
       Carrello
       {count > 0 && (
         <span className="bg-brand-main text-black text-xs font-bold px-2 py-0.5 rounded-full">

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { addToCart } from '../app/actions/cart';
 
 interface AddToCartBoxProps {
   product: any;
@@ -13,7 +12,7 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
   const [quantity, setQuantity] = useState(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
@@ -42,25 +41,35 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
   };
 
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isLoggedIn) {
       setErrorMessage("Devi accedere per poter aggiungere prodotti all'ordine.");
       setShowErrorModal(true);
       return;
     }
     
-    startTransition(async () => {
-      const res = await addToCart(product.sku, quantity);
+    setIsPending(true);
+    try {
+      const response = await fetch('/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku: product.sku, quantity })
+      });
+      const res = await response.json();
       if (res.success) {
         // Optimistic UI update
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: res.cartItemCount } }));
         setQuantity(1);
-        
       } else {
         setErrorMessage(res.error || 'Errore sconosciuto');
         setShowErrorModal(true);
       }
-    });
+    } catch {
+      setErrorMessage('Errore di connessione');
+      setShowErrorModal(true);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const hasDiscount = isLoggedIn && product.originalPriceB2b && product.price_b2b < product.originalPriceB2b;
