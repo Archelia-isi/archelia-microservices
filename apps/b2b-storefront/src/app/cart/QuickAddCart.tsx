@@ -36,7 +36,7 @@ export default function QuickAddCart({
 
   // Debounce search
   useEffect(() => {
-    if (!query || selectedProduct?.sku === query) {
+    if (!query || !query.trim() || selectedProduct?.sku === query) {
       setResults([]);
       setIsOpen(false);
       return;
@@ -126,42 +126,48 @@ export default function QuickAddCart({
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
           />
           
-          {isOpen && results.length > 0 && (
+          {isOpen && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
-              {results.map((product) => {
-                const { originalPrice, finalPrice } = getPriceData(product);
-                
-                return (
-                  <div 
-                    key={product.sku}
-                    onClick={() => handleSelect(product)}
-                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
-                  >
-                    <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
-                      <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+              {results.length > 0 ? (
+                results.map((product) => {
+                  const { originalPrice, finalPrice } = getPriceData(product);
+                  
+                  return (
+                    <div 
+                      key={product.sku}
+                      onClick={() => handleSelect(product)}
+                      className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                    >
+                      <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
+                        <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-sm font-bold text-gray-900">{product.sku}</span>
+                        <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        {originalPrice > finalPrice && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400 line-through">
+                              € {originalPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                              -{Math.round((1 - (finalPrice / originalPrice)) * 100)}%
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs font-bold text-gray-900">
+                          € {finalPrice.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-sm font-bold text-gray-900">{product.sku}</span>
-                      <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      {originalPrice > finalPrice && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-gray-400 line-through">
-                            € {originalPrice.toFixed(2).replace('.', ',')}
-                          </span>
-                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                            -{Math.round((1 - (finalPrice / originalPrice)) * 100)}%
-                          </span>
-                        </div>
-                      )}
-                      <span className="text-xs font-bold text-gray-900">
-                        € {finalPrice.toFixed(2).replace('.', ',')}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="px-3 py-3 text-sm text-gray-500 text-center">
+                  Nessun risultato
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -48,7 +48,7 @@ function QuickEntryRow({
   }, []);
 
   useEffect(() => {
-    if (!row.query || row.selectedProduct?.sku === row.query) {
+    if (!row.query || !row.query.trim() || row.selectedProduct?.sku === row.query) {
       setResults([]);
       setIsOpen(false);
       return;
@@ -117,31 +117,37 @@ function QuickEntryRow({
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
         />
         
-        {isOpen && results.length > 0 && (
+        {isOpen && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
-            {results.map((product) => {
-              const prices = getDiscountedPrice(product);
-              return (
-                <div 
-                  key={product.sku}
-                  onClick={() => handleSelect(product)}
-                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
-                >
-                  <div className="w-8 h-8 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
-                    <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+            {results.length > 0 ? (
+              results.map((product) => {
+                const prices = getDiscountedPrice(product);
+                return (
+                  <div 
+                    key={product.sku}
+                    onClick={() => handleSelect(product)}
+                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="w-8 h-8 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
+                      <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-bold text-gray-900">{product.sku}</span>
+                      <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-bold text-gray-900">
+                        € {prices.final.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-sm font-bold text-gray-900">{product.sku}</span>
-                    <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs font-bold text-gray-900">
-                      € {prices.final.toFixed(2).replace('.', ',')}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="px-3 py-3 text-sm text-gray-500 text-center">
+                Nessun risultato
+              </div>
+            )}
           </div>
         )}
       </div>
