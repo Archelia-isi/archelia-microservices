@@ -50,14 +50,30 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   let zucchettiProductForBanner: any = null;
   if (storeMode === 'ELMARK' && product.sku) {
     try {
-      // Search for the elmark code in Typesense
-      const results = await searchProducts(product.sku);
-      // Zucchetti SKUs are often prefixed like 'XX.1234'. We check if the sku ends with '.' + product.sku
+      const cleanSku = String(product.sku).trim();
+      const baseCode = cleanSku.includes('.') ? cleanSku.split('.').slice(1).join('.') : cleanSku;
+      // Search for the elmark code in Typesense including B2B/unpublished products
+      const results = await searchProducts(baseCode, { b2bMode: true, includeUnpublished: true });
+      // Zucchetti SKUs are often prefixed like 'XX.1234'. We check if the sku ends with '.' + baseCode and has stock_main > 0
       const documents = results.hits?.map((h: any) => h.document) || [];
       zucchettiProductForBanner = documents.find((p: any) => 
         p.catalog_source !== 'elmark' && 
-        (p.sku === product.sku || p.sku.endsWith('.' + product.sku))
+        (p.sku === cleanSku || p.sku === baseCode || p.sku.endsWith('.' + baseCode) || p.sku.endsWith('.' + cleanSku)) &&
+        (p.stock_main > 0 || (!('stock_main' in p) && p.stock > 0))
       );
+
+      if (!zucchettiProductForBanner) {
+        const currentPool = getPool();
+        if (currentPool) {
+          const zRes = await currentPool.query(
+            'SELECT id, sku, stock AS stock_main FROM products WHERE (sku = $1 OR sku = $2 OR sku LIKE $3 OR sku LIKE $4) AND stock > 0 ORDER BY stock DESC LIMIT 1',
+            [cleanSku, baseCode, `%.${baseCode}`, `%.${cleanSku}`]
+          );
+          if (zRes.rows.length > 0) {
+            zucchettiProductForBanner = zRes.rows[0];
+          }
+        }
+      }
     } catch (e) {
       console.error("Failed to fetch zucchetti counterpart:", e);
     }
