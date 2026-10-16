@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { getCart, saveCartToRedis, generateItemId } from '@/lib/cart';
 import { getTargetUserId, getCartQuery } from '@/app/actions/cart';
+import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getAvailableStock } from '@/lib/stock';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +48,22 @@ export async function POST(request: NextRequest) {
     }
 
     const existingItemIndex = cart.items.findIndex(i => i.sku === sku);
+    const existingQty = existingItemIndex >= 0 ? cart.items[existingItemIndex].quantity : 0;
+
+    const product = await getProductById(sku);
+    if (product) {
+      const maxStock = getAvailableStock(product, storeMode);
+      if (existingQty + quantity > maxStock) {
+        return NextResponse.json({
+          success: false,
+          stockExceeded: true,
+          maxStock,
+          error: existingQty > 0
+            ? `Giacenza superata! Disponibili ${maxStock} pz (${existingQty} già nel carrello).`
+            : `Giacenza superata! Disponibili max ${maxStock} pz.`
+        }, { status: 400 });
+      }
+    }
 
     if (existingItemIndex >= 0) {
       cart.items[existingItemIndex].quantity += quantity;

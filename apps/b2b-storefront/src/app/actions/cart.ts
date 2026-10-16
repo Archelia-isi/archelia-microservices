@@ -5,6 +5,8 @@ import { getCart, saveCartToRedis, generateItemId, RedisCart } from '@/lib/cart'
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import { cookies } from "next/headers";
+import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getAvailableStock } from '@/lib/stock';
 
 
 export async function getTargetUserId(session: any) {
@@ -51,6 +53,22 @@ export async function addToCart(sku: string, quantity: number) {
     }
 
     const existingItemIndex = cart.items.findIndex(i => i.sku === sku);
+    const existingQty = existingItemIndex >= 0 ? cart.items[existingItemIndex].quantity : 0;
+
+    const product = await getProductById(sku);
+    if (product) {
+      const maxStock = getAvailableStock(product, storeMode);
+      if (existingQty + quantity > maxStock) {
+        return {
+          success: false,
+          stockExceeded: true,
+          maxStock,
+          error: existingQty > 0
+            ? `Giacenza superata! Disponibili ${maxStock} pz (${existingQty} già nel carrello).`
+            : `Giacenza superata! Disponibili max ${maxStock} pz.`
+        };
+      }
+    }
 
     if (existingItemIndex >= 0) {
       cart.items[existingItemIndex].quantity += quantity;
@@ -91,6 +109,18 @@ export async function updateCartItemQuantity(itemId: string, quantity: number, r
     } else {
       const itemIndex = cart.items.findIndex(i => i.id === itemId);
       if (itemIndex >= 0) {
+        const product = await getProductById(cart.items[itemIndex].sku);
+        if (product) {
+          const maxStock = getAvailableStock(product, storeMode);
+          if (quantity > maxStock) {
+            return {
+              success: false,
+              stockExceeded: true,
+              maxStock,
+              error: `Giacenza superata! Disponibili max ${maxStock} pz.`
+            };
+          }
+        }
         cart.items[itemIndex].quantity = quantity;
         if (resetExtraDiscount) {
           cart.items[itemIndex].extraDiscount = null;
@@ -229,6 +259,34 @@ export async function addMultipleToCart(items: { sku: string, quantity: number }
     // Read from Redis
     const cart = await getCart(targetUserId, cartQuery.status, cartQuery.linkedOrderId, cartType);
 
+    // Aggregate requested quantities per SKU and check stock
+    const requestedBySku = new Map<string, number>();
+    for (const item of items) {
+      if (item.quantity <= 0) continue;
+      requestedBySku.set(item.sku, (requestedBySku.get(item.sku) || 0) + item.quantity);
+    }
+
+    for (const [sku, reqQty] of Array.from(requestedBySku.entries())) {
+      const product = await getProductById(sku) as any;
+      if (product) {
+        const maxStock = getAvailableStock(product, storeMode);
+        const existingItem = cart.items.find(i => i.sku === sku);
+        const existingQty = existingItem ? existingItem.quantity : 0;
+        if (existingQty + reqQty > maxStock) {
+          return {
+            success: false,
+            stockExceeded: true,
+            sku,
+            maxStock,
+            existingQty,
+            error: existingQty > 0
+              ? `Giacenza superata per ${sku} (disp. max: ${maxStock} pz, già ${existingQty} nel carrello)`
+              : `Giacenza superata per ${sku} (disp. max: ${maxStock} pz)`
+          };
+        }
+      }
+    }
+
     // Read possible extra discount for agents
     let agentExtraDiscount = 0;
     if (session.user.role === 'AGENT' && storeMode === 'ZUCCHETTI') {
@@ -263,3 +321,4 @@ export async function addMultipleToCart(items: { sku: string, quantity: number }
     return { success: false, error: error.message };
   }
 }
+

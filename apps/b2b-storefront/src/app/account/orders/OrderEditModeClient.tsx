@@ -7,6 +7,7 @@ import { lockOrderForEdit, unlockOrder } from '@/app/actions/orderLock';
 import { updateOrderItemQuantity, removeOrderItem } from '@/app/actions/order';
 import QuantityInput from './QuantityInput';
 import SendSavedOrderButton from './SendSavedOrderButton';
+import { getAvailableStock } from '@/lib/stock';
 
 export default function OrderEditModeClient({ 
   order, 
@@ -58,11 +59,15 @@ export default function OrderEditModeClient({
   const handleUpdateQty = (itemId: string, newQty: number) => {
     if (newQty < 1) return;
     startTransition(async () => {
-      const res = await updateOrderItemQuantity(order.id, itemId, newQty);
+      const res: any = await updateOrderItemQuantity(order.id, itemId, newQty);
       if (!res.success) {
-        setIsEditing(false);
-        setLockedByAgent(true);
-        setLockError(res.error || 'Impossibile modificare l\'ordine.');
+        if (res.stockExceeded) {
+          setLockError(res.error || 'Giacenza superata.');
+        } else {
+          setIsEditing(false);
+          setLockedByAgent(true);
+          setLockError(res.error || 'Impossibile modificare l\'ordine.');
+        }
       }
     });
   };
@@ -210,6 +215,7 @@ export default function OrderEditModeClient({
                 {isEditing ? (
                   <QuantityInput 
                     initialQuantity={item.quantity} 
+                    maxStock={item.product ? getAvailableStock(item.product, order.storeMode) : undefined}
                     onUpdate={(newQty) => handleUpdateQty(item.id, newQty)} 
                   />
                 ) : (

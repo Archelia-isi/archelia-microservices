@@ -100,7 +100,10 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       product: p ? {
         title: (p.original_name || p.title) + ' - ' + p.sku,
         imageUrl: p.image_url || '/placeholder.png',
-        sku: p.sku
+        sku: p.sku,
+        stock: p.stock || 0,
+        stock_main: p.stock_main,
+        stock_ek: p.stock_ek
       } : null
     };
   }));

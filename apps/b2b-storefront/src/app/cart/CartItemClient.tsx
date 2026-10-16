@@ -4,13 +4,30 @@ import { useState, useTransition, useEffect, useRef } from 'react';
 
 import Link from 'next/link';
 import { updateCartItemQuantity, removeFromCart, updateCartItemExtraDiscount } from '../actions/cart';
+import { getAvailableStock } from '@/lib/stock';
 
 export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUCCHETTI', isReviewing = false }: { item: any, isAgent?: boolean, storeMode?: 'ZUCCHETTI' | 'ELMARK', isReviewing?: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [localQuantity, setLocalQuantity] = useState<number | string>(item.quantity);
   const [localExtraDiscount, setLocalExtraDiscount] = useState<number | string>(item.extraDiscount || 0);
   const [showModal, setShowModal] = useState({ show: false, newQty: 0, minQty: 0 });
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
+
+  const triggerStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setStockWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   if (!item.product) {
     return (
@@ -26,7 +43,9 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
   }
 
   const p = item.product;
+  const maxStock = getAvailableStock(p, storeMode);
   const parsedQuantity = parseInt(String(localQuantity)) || 1;
+  const isOverStock = parsedQuantity > maxStock;
   const total = item.finalPrice * parsedQuantity;
 
   // Sincronizza se il prop esterno cambia
@@ -48,7 +67,10 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
     if (isNaN(newQty)) return; // Ignora se il campo è momentaneamente vuoto
     
     if (newQty < 1) newQty = 1;
-    if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
+    if (newQty > maxStock) {
+      // Blocca il salvataggio se la quantità supera la giacenza reale
+      return;
+    }
 
     let newDiscount = parseFloat(String(localExtraDiscount));
     if (isNaN(newDiscount) || newDiscount < 0) newDiscount = 0;
@@ -69,25 +91,51 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [localQuantity, localExtraDiscount, item.id, item.quantity, item.extraDiscount, p.stock, isAgent]);
+  }, [localQuantity, localExtraDiscount, item.id, item.quantity, item.extraDiscount, maxStock, isAgent]);
 
   const handleIncrement = () => {
     let current = parseInt(String(localQuantity)) || 0;
-    if (current >= p.stock) return;
-    setLocalQuantity(current + 1);
+    const next = current + 1;
+    setLocalQuantity(next);
+    if (next > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata (0 pz disp.)'
+          : `Giacenza superata (max ${maxStock} pz)`
+      );
+    }
   };
 
   const handleDecrement = () => {
     let current = parseInt(String(localQuantity)) || 0;
     if (current <= 1) return;
-    setLocalQuantity(current - 1);
+    const next = current - 1;
+    setLocalQuantity(next);
+    if (next <= maxStock) {
+      setStockWarning(null);
+    }
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    setLocalQuantity(valStr);
+    const parsed = parseInt(valStr, 10);
+    if (!isNaN(parsed) && parsed > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata (0 pz disp.)'
+          : `Giacenza superata (max ${maxStock} pz)`
+      );
+    } else {
+      setStockWarning(null);
+    }
   };
 
   const handleBlur = () => {
     let newQty = parseInt(String(localQuantity));
-    if (isNaN(newQty) || newQty < 1) newQty = 1;
-    if (newQty > (p.stock || 9999)) newQty = p.stock || 9999;
-    setLocalQuantity(newQty);
+    if (isNaN(newQty) || newQty < 1) {
+      setLocalQuantity(1);
+    }
   };
 
   const handleDiscountBlur = () => {
@@ -122,16 +170,16 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
             {p.title}
           </Link>
           <span className="text-[10px] text-gray-500 font-mono mt-1 uppercase">CODICE PRODOTTO: {p.sku}</span>
-          {p.stock > 0 ? (
-            <span className="text-xs text-brand-main mt-1">Disponibile ({p.stock})</span>
+          {maxStock > 0 ? (
+            <span className="text-xs text-brand-main mt-1">Disponibile ({maxStock})</span>
           ) : (
             <span className="text-xs text-orange-500 mt-1">In arrivo</span>
           )}
         </div>
       </div>
       
-      <div className="col-span-4 sm:col-span-2 flex items-center justify-center">
-        <div className="flex items-center border border-gray-300 rounded overflow-hidden">
+      <div className="col-span-4 sm:col-span-2 flex flex-col items-center justify-center gap-1">
+        <div className={`flex items-center border rounded overflow-hidden transition-colors ${isOverStock ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
           <button 
             onClick={handleDecrement}
             className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 transition-colors"
@@ -139,17 +187,25 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
           <input 
             type="number"
             value={localQuantity}
-            onChange={(e) => setLocalQuantity(e.target.value)}
+            onChange={handleQuantityChange}
             onBlur={handleBlur}
-            className="w-10 h-8 text-center text-sm font-medium border-x border-gray-300 outline-none"
+            className={`w-12 h-8 text-center text-sm font-bold border-x outline-none transition-colors ${
+              isOverStock
+                ? 'text-red-600 border-red-300 bg-red-50'
+                : 'text-gray-900 border-gray-300 bg-white'
+            }`}
             min="1"
-            max={p.stock}
           />
           <button 
             onClick={handleIncrement}
             className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 transition-colors"
           >+</button>
         </div>
+        {stockWarning && (
+          <span className="text-[10px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-center animate-pulse">
+            {stockWarning}
+          </span>
+        )}
       </div>
       
       <div className="col-span-4 sm:col-span-2 text-right flex flex-col items-end">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { addToCart } from '../actions/cart';
+import { getAvailableStock } from '@/lib/stock';
 
 export default function QuickAddCart({ 
   userDiscount = 0, 
@@ -21,7 +22,24 @@ export default function QuickAddCart({
   const [quantity, setQuantity] = useState<number | string>('');
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const [serverOverStock, setServerOverStock] = useState(false);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const triggerStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setStockWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -56,9 +74,39 @@ export default function QuickAddCart({
     setQuery(product.sku);
     setIsOpen(false);
     setQuantity('');
+    setServerOverStock(false);
+    const avail = getAvailableStock(product, storeMode);
+    if (avail <= 0) {
+      triggerStockWarning('Giacenza superata! Prodotto esaurito (0 pz disponibili).');
+    } else {
+      setStockWarning(null);
+    }
   };
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const maxStock = selectedProduct ? getAvailableStock(selectedProduct, storeMode) : 0;
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    setQuantity(valStr);
+    setServerOverStock(false);
+    setErrorMsg(null);
+
+    if (selectedProduct) {
+      const parsed = parseInt(valStr, 10);
+      const eff = (valStr.trim() === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
+      if (eff > maxStock) {
+        triggerStockWarning(
+          maxStock <= 0
+            ? 'Giacenza superata! Prodotto esaurito (0 pz disponibili).'
+            : `Giacenza superata! Disponibili max ${maxStock} pz.`
+        );
+      } else {
+        setStockWarning(null);
+      }
+    }
+  };
 
   const handleAdd = () => {
     if (!selectedProduct) return;
@@ -66,14 +114,28 @@ export default function QuickAddCart({
     let qty = parseInt(String(quantity));
     if (isNaN(qty) || qty < 1) qty = 1;
     
+    if (qty > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata! Prodotto esaurito (0 pz disponibili).'
+          : `Giacenza superata! Disponibili max ${maxStock} pz.`
+      );
+      return;
+    }
+
     setErrorMsg(null);
     startTransition(async () => {
-      const res = await addToCart(selectedProduct.sku, qty);
+      const res: any = await addToCart(selectedProduct.sku, qty);
       if (res.success) {
         // Reset form
         setSelectedProduct(null);
         setQuery('');
         setQuantity('');
+        setStockWarning(null);
+        setServerOverStock(false);
+      } else if (res.stockExceeded) {
+        setServerOverStock(true);
+        triggerStockWarning(res.error || `Giacenza superata! Disponibili max ${maxStock} pz.`);
       } else {
         setErrorMsg(res.error || 'Errore durante l\'aggiunta al carrello');
       }
@@ -82,8 +144,10 @@ export default function QuickAddCart({
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
+    setServerOverStock(false);
     if (selectedProduct && e.target.value !== selectedProduct.sku) {
       setSelectedProduct(null);
+      setStockWarning(null);
     }
   };
 
@@ -146,6 +210,7 @@ export default function QuickAddCart({
     const parsed = parseInt(String(raw));
     return (raw === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
   })();
+  const isOverStock = Boolean(selectedProduct && (effectiveQty > maxStock || serverOverStock));
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 shadow-sm relative z-10" ref={dropdownRef}>
@@ -218,17 +283,21 @@ export default function QuickAddCart({
           )}
         </div>
         
-        <div className="w-full sm:w-28">
-          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1 sm:text-center">
+        <div className="w-full sm:w-28 relative">
+          <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 sm:text-center ${isOverStock ? 'text-red-600' : 'text-gray-500'}`}>
             Quantità
           </label>
           <input 
             type="number" 
             value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
+            onChange={handleQuantityChange}
             onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             min="1"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black"
+            className={`w-full border rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 transition-colors ${
+              isOverStock
+                ? 'border-red-500 bg-red-50 text-red-600 font-bold focus:ring-red-500'
+                : 'border-gray-300 text-gray-900 focus:ring-black'
+            }`}
           />
         </div>
         
@@ -237,7 +306,7 @@ export default function QuickAddCart({
           onClick={handleAdd}
           disabled={!selectedProduct || isPending}
           className={`w-full sm:w-auto h-[38px] px-6 py-2 rounded text-sm font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
-            !selectedProduct || isPending
+            !selectedProduct || isPending || isOverStock
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-brand-main text-white hover:bg-[#00b000]'
           }`}
@@ -245,6 +314,15 @@ export default function QuickAddCart({
           {isPending ? 'Aggiunta...' : 'Aggiungi'}
         </button>
       </div>
+
+      {stockWarning && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded animate-pulse">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{stockWarning}</span>
+        </div>
+      )}
 
       {selectedProduct && selectedPrices && (
         <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -286,8 +364,10 @@ export default function QuickAddCart({
             </div>
 
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Totale ({effectiveQty} pz)</span>
-              <span className="text-base font-bold text-gray-900">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${isOverStock ? 'text-red-600' : 'text-gray-500'}`}>
+                Totale ({effectiveQty} pz)
+              </span>
+              <span className={`text-base font-bold ${isOverStock ? 'text-red-600' : 'text-gray-900'}`}>
                 € {(selectedPrices.finalPrice * effectiveQty).toFixed(2).replace('.', ',')}
               </span>
             </div>

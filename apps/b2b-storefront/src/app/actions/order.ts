@@ -9,6 +9,7 @@ import { getTargetUserId } from './cart';
 import { cookies } from 'next/headers';
 import { isOrderLockedForUser } from './orderLock';
 import { redis } from '@/lib/redis';
+import { getAvailableStock } from '@/lib/stock';
 
 export async function deleteSentOrder(orderId: string) {
   const session = await verifySession();
@@ -77,6 +78,19 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
     }
 
     const existingItem = order.items.find(i => i.sku.toUpperCase() === sku.toUpperCase());
+    const existingQty = existingItem ? existingItem.quantity : 0;
+    const maxStock = getAvailableStock(product, (order.storeMode as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI');
+    if (existingQty + quantity > maxStock) {
+      return {
+        success: false,
+        stockExceeded: true,
+        maxStock,
+        existingQty,
+        error: existingQty > 0
+          ? `Giacenza superata (disp. max: ${maxStock} pz, già ${existingQty} nell'ordine)`
+          : `Giacenza superata (disp. max: ${maxStock} pz)`
+      };
+    }
     
     let stdDisc = 0;
     let extDisc = 0;
@@ -197,9 +211,25 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
     }
 
     const targetUserId = await getTargetUserId(session);
-    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
+
+    const targetItem = order.items.find(i => i.id === itemId);
+    if (targetItem) {
+      const product = await getProductById(targetItem.sku) as any;
+      if (product) {
+        const maxStock = getAvailableStock(product, (order.storeMode as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI');
+        if (quantity > maxStock) {
+          return {
+            success: false,
+            stockExceeded: true,
+            maxStock,
+            error: `Giacenza superata (disp. max: ${maxStock} pz)`
+          };
+        }
+      }
+    }
 
     await prisma.b2BOrderItem.update({
       where: { id: itemId },

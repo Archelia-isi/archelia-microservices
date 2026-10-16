@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useTransition, useCallback } from 'react';
+import { useState, useEffect, useRef, useTransition } from 'react';
 import { searchBySkuPrefixClient } from '@/lib/searchClient';
 import { addMultipleToCart } from '../actions/cart';
+import { getAvailableStock } from '@/lib/stock';
 
 type RowData = {
   id: string;
@@ -57,7 +58,9 @@ function QuickEntryRow({
   userDiscount,
   extraDiscount,
   elmarkDiscounts,
-  storeMode
+  storeMode,
+  isSkuOverStockExternal = false,
+  onStockWarning
 }: { 
   row: RowData, 
   index: number,
@@ -66,11 +69,30 @@ function QuickEntryRow({
   userDiscount: number,
   extraDiscount: number,
   elmarkDiscounts: Record<string, number>,
-  storeMode: 'ZUCCHETTI' | 'ELMARK'
+  storeMode: 'ZUCCHETTI' | 'ELMARK',
+  isSkuOverStockExternal?: boolean,
+  onStockWarning?: (msg: string) => void
 }) {
   const [results, setResults] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [rowWarning, setRowWarning] = useState<string | null>(null);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const triggerRowWarning = (msg: string) => {
+    setRowWarning(msg);
+    if (onStockWarning) onStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setRowWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -99,8 +121,14 @@ function QuickEntryRow({
   }, [row.query, row.selectedProduct, storeMode]);
 
   const handleSelect = (product: any) => {
-    onChange({ ...row, selectedProduct: product, query: product.sku });
+    onChange({ ...row, selectedProduct: product, query: product.sku, quantity: '' });
     setIsOpen(false);
+    const avail = getAvailableStock(product, storeMode);
+    if (avail <= 0) {
+      triggerRowWarning(`Giacenza superata per ${product.sku}! Prodotto esaurito (0 pz).`);
+    } else {
+      setRowWarning(null);
+    }
   };
 
   const getDiscountedPrice = (product: any) => {
@@ -129,156 +157,194 @@ function QuickEntryRow({
   let finalPrice = 0;
   let discountPct = 0;
   let rowTotal = 0;
+  const maxStock = row.selectedProduct ? getAvailableStock(row.selectedProduct, storeMode) : 0;
+  const rawQty = typeof row.quantity === 'string' ? row.quantity.trim() : row.quantity;
+  const parsedQty = parseInt(String(rawQty));
+  const effectiveQty = (rawQty === '' || isNaN(parsedQty) || parsedQty < 1) ? 1 : parsedQty;
+  const isOverStock = Boolean(row.selectedProduct && (effectiveQty > maxStock || isSkuOverStockExternal));
 
   if (row.selectedProduct) {
     const prices = getDiscountedPrice(row.selectedProduct);
     originalPrice = prices.original;
     finalPrice = prices.final;
     discountPct = prices.discountPct;
-    const rawQty = typeof row.quantity === 'string' ? row.quantity.trim() : row.quantity;
-    const parsed = parseInt(String(rawQty));
-    const qty = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
-    rowTotal = finalPrice * qty;
+    rowTotal = finalPrice * effectiveQty;
   }
 
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    onChange({ ...row, quantity: valStr });
+    if (row.selectedProduct) {
+      const p = parseInt(valStr, 10);
+      const eff = (valStr.trim() === '' || isNaN(p) || p < 1) ? 1 : p;
+      if (eff > maxStock) {
+        triggerRowWarning(
+          maxStock <= 0
+            ? `Giacenza superata! Prodotto esaurito (0 pz).`
+            : `Giacenza superata! Max ${maxStock} pz disponibili.`
+        );
+      } else {
+        setRowWarning(null);
+      }
+    }
+  };
+
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center gap-4 py-3 border-b border-gray-100 relative" ref={dropdownRef}>
-      <div className="w-full md:w-64 relative flex-shrink-0">
-        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-          Codice Prodotto (SKU)
-        </label>
-        <input 
-          type="text" 
-          autoComplete="off"
-          placeholder="Cerca SKU o Titolo..." 
-          value={row.query}
-          onFocus={onFocus}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-          onChange={(e) => onChange({ ...row, query: e.target.value, selectedProduct: null })}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-        />
-        
-        {isOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
-            {results.length > 0 ? (
-              results.map((product) => {
-                const prices = getDiscountedPrice(product);
-                return (
-                  <div 
-                    key={product.sku}
-                    onClick={() => handleSelect(product)}
-                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
-                  >
-                    <div className="w-8 h-8 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
-                      <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+    <div className="flex flex-col py-3 border-b border-gray-100 relative" ref={dropdownRef}>
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+        <div className="w-full md:w-64 relative flex-shrink-0">
+          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+            Codice Prodotto (SKU)
+          </label>
+          <input 
+            type="text" 
+            autoComplete="off"
+            placeholder="Cerca SKU o Titolo..." 
+            value={row.query}
+            onFocus={onFocus}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+            onChange={(e) => {
+              setRowWarning(null);
+              onChange({ ...row, query: e.target.value, selectedProduct: null });
+            }}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-black"
+          />
+          
+          {isOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
+              {results.length > 0 ? (
+                results.map((product) => {
+                  const prices = getDiscountedPrice(product);
+                  return (
+                    <div 
+                      key={product.sku}
+                      onClick={() => handleSelect(product)}
+                      className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center gap-3 border-b border-gray-100 last:border-0"
+                    >
+                      <div className="w-8 h-8 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
+                        <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                      </div>
+                      <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                        <span className="text-sm font-bold text-gray-900 font-mono">{product.sku}</span>
+                        <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                        {renderStockBadges(product, storeMode)}
+                      </div>
+                      <div className="flex flex-col items-end shrink-0">
+                        {prices.discountPct > 0 && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400 line-through">
+                              € {prices.original.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                              -{prices.discountPct}%
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs font-bold text-gray-900">
+                          € {prices.final.toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-                      <span className="text-sm font-bold text-gray-900 font-mono">{product.sku}</span>
-                      <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
-                      {renderStockBadges(product, storeMode)}
-                    </div>
-                    <div className="flex flex-col items-end shrink-0">
-                      {prices.discountPct > 0 && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-gray-400 line-through">
-                            € {prices.original.toFixed(2).replace('.', ',')}
-                          </span>
-                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                            -{prices.discountPct}%
-                          </span>
-                        </div>
-                      )}
-                      <span className="text-xs font-bold text-gray-900">
-                        € {prices.final.toFixed(2).replace('.', ',')}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="px-3 py-3 text-sm text-gray-500 text-center">
-                Nessun risultato
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      
-      <div className="flex-1 flex flex-col min-w-0 w-full">
-        <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-          Prodotto e Giacenza
-        </span>
-        <div className="flex items-center gap-3 min-w-0 min-h-[38px]">
-          {row.selectedProduct ? (
-            <>
-              <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-200 rounded p-1">
-                <img src={row.selectedProduct.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
-              </div>
-              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                <div className="text-sm font-medium text-gray-900 truncate" title={row.selectedProduct.original_name || row.selectedProduct.title}>
-                  {row.selectedProduct.original_name || row.selectedProduct.title}
-                </div>
-                {renderStockBadges(row.selectedProduct, storeMode)}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 text-sm text-gray-400 italic">Seleziona un prodotto...</div>
-          )}
-        </div>
-      </div>
-
-      <div className="w-full md:w-24 flex-shrink-0">
-        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 md:text-center">
-          Quantità
-        </label>
-        <input 
-          type="number" 
-          value={row.quantity}
-          onChange={(e) => onChange({ ...row, quantity: e.target.value })}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-          min="1"
-          disabled={!row.selectedProduct}
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black disabled:bg-gray-100"
-        />
-      </div>
-
-      <div className="w-full md:w-64 flex-shrink-0 flex items-center justify-between text-sm gap-4">
-        <div className="flex flex-col">
-          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-            Prezzo Scontato
-          </span>
-          {row.selectedProduct ? (
-            <div className="flex flex-col">
-              {discountPct > 0 && (
-                <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-gray-400 line-through">
-                    € {originalPrice.toFixed(2).replace('.', ',')}
-                  </span>
-                  <span className="text-[11px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
-                    -{discountPct}%
-                  </span>
+                  );
+                })
+              ) : (
+                <div className="px-3 py-3 text-sm text-gray-500 text-center">
+                  Nessun risultato
                 </div>
               )}
-              <span className="font-bold text-gray-900 text-sm">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
             </div>
-          ) : (
-            <div className="min-h-[38px] flex items-center text-gray-400">-</div>
           )}
+        </div>
+        
+        <div className="flex-1 flex flex-col min-w-0 w-full">
+          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+            Prodotto e Giacenza
+          </span>
+          <div className="flex items-center gap-3 min-w-0 min-h-[38px]">
+            {row.selectedProduct ? (
+              <>
+                <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-200 rounded p-1">
+                  <img src={row.selectedProduct.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <div className="text-sm font-medium text-gray-900 truncate" title={row.selectedProduct.original_name || row.selectedProduct.title}>
+                    {row.selectedProduct.original_name || row.selectedProduct.title}
+                  </div>
+                  {renderStockBadges(row.selectedProduct, storeMode)}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 text-sm text-gray-400 italic">Seleziona un prodotto...</div>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col items-end">
-          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 text-right">
-            Totale Riga
-          </span>
-          {row.selectedProduct ? (
-            <div className="font-bold text-gray-900 text-right text-base min-h-[38px] flex items-center">
-              € {rowTotal.toFixed(2).replace('.', ',')}
-            </div>
-          ) : (
-            <div className="min-h-[38px] flex items-center text-gray-400">-</div>
-          )}
+        <div className="w-full md:w-28 flex-shrink-0 relative">
+          <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1 md:text-center ${isOverStock ? 'text-red-600' : 'text-gray-500'}`}>
+            Quantità
+          </label>
+          <input 
+            type="number" 
+            value={row.quantity}
+            onChange={handleQtyChange}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+            min="1"
+            disabled={!row.selectedProduct}
+            className={`w-full border rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 disabled:bg-gray-100 transition-colors ${
+              isOverStock
+                ? 'border-red-500 bg-red-50 text-red-600 font-bold focus:ring-red-500'
+                : 'border-gray-300 text-gray-900 focus:ring-black'
+            }`}
+          />
+        </div>
+
+        <div className="w-full md:w-64 flex-shrink-0 flex items-center justify-between text-sm gap-4">
+          <div className="flex flex-col">
+            <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+              Prezzo Scontato
+            </span>
+            {row.selectedProduct ? (
+              <div className="flex flex-col">
+                {discountPct > 0 && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] text-gray-400 line-through">
+                      € {originalPrice.toFixed(2).replace('.', ',')}
+                    </span>
+                    <span className="text-[11px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                      -{discountPct}%
+                    </span>
+                  </div>
+                )}
+                <span className="font-bold text-gray-900 text-sm">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
+              </div>
+            ) : (
+              <div className="min-h-[38px] flex items-center text-gray-400">-</div>
+            )}
+          </div>
+
+          <div className="flex flex-col items-end">
+            <span className={`block text-[10px] font-bold uppercase tracking-wider mb-1 text-right ${isOverStock ? 'text-red-600' : 'text-gray-500'}`}>
+              Totale Riga
+            </span>
+            {row.selectedProduct ? (
+              <div className={`font-bold text-right text-base min-h-[38px] flex items-center ${isOverStock ? 'text-red-600' : 'text-gray-900'}`}>
+                € {rowTotal.toFixed(2).replace('.', ',')}
+              </div>
+            ) : (
+              <div className="min-h-[38px] flex items-center text-gray-400">-</div>
+            )}
+          </div>
         </div>
       </div>
+
+      {rowWarning && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded self-start md:self-end animate-pulse">
+          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{rowWarning}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -298,7 +364,24 @@ export default function QuickEntryModal({
 }) {
   const [rows, setRows] = useState<RowData[]>(Array.from({ length: 2 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: '' })));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const [overStockSkus, setOverStockSkus] = useState<Record<string, boolean>>({});
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const triggerStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setStockWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   const handleFocus = (index: number) => {
     if (index === rows.length - 1) {
@@ -311,6 +394,7 @@ export default function QuickEntryModal({
   };
 
   const handleChange = (index: number, updated: RowData) => {
+    setOverStockSkus({});
     setRows(prev => {
       const copy = [...prev];
       copy[index] = updated;
@@ -318,12 +402,44 @@ export default function QuickEntryModal({
     });
   };
 
+  // Compute aggregated SKU quantities to detect multi-row stock overflow
+  const skuTotals: Record<string, { qty: number; maxStock: number }> = {};
+  rows.forEach(r => {
+    if (r.selectedProduct) {
+      const sku = r.selectedProduct.sku;
+      const rawQty = typeof r.quantity === 'string' ? r.quantity.trim() : r.quantity;
+      const parsed = parseInt(String(rawQty));
+      const qty = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
+      const maxStock = getAvailableStock(r.selectedProduct, storeMode);
+      if (!skuTotals[sku]) {
+        skuTotals[sku] = { qty: 0, maxStock };
+      }
+      skuTotals[sku].qty += qty;
+    }
+  });
+
+  const hasAnyOverStock = Object.entries(skuTotals).some(
+    ([sku, data]) => data.qty > data.maxStock || overStockSkus[sku]
+  );
+
   const handleAddAll = () => {
     setErrorMsg(null);
     const validRows = rows.filter(r => r.selectedProduct);
     if (validRows.length === 0) {
       setErrorMsg('Nessun prodotto valido selezionato.');
       return;
+    }
+
+    for (const [sku, data] of Object.entries(skuTotals)) {
+      if (data.qty > data.maxStock) {
+        setOverStockSkus(prev => ({ ...prev, [sku]: true }));
+        triggerStockWarning(
+          data.maxStock <= 0
+            ? `Giacenza superata per ${sku}! Prodotto esaurito (0 pz disponibili).`
+            : `Giacenza superata per ${sku}! Disponibili max ${data.maxStock} pz.`
+        );
+        return;
+      }
     }
 
     const items = validRows.map(r => {
@@ -334,9 +450,14 @@ export default function QuickEntryModal({
     });
     
     startTransition(async () => {
-      const res = await addMultipleToCart(items);
+      const res: any = await addMultipleToCart(items);
       if (res.success) {
         onClose();
+      } else if (res.stockExceeded) {
+        if (res.sku) {
+          setOverStockSkus(prev => ({ ...prev, [res.sku]: true }));
+        }
+        triggerStockWarning(res.error || 'Giacenza superata!');
       } else {
         setErrorMsg(res.error || 'Errore durante l\'aggiunta al carrello');
       }
@@ -394,19 +515,27 @@ export default function QuickEntryModal({
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-6 py-2 bg-white">
-          {rows.map((row, idx) => (
-            <QuickEntryRow
-              key={row.id}
-              index={idx}
-              row={row}
-              onChange={(r) => handleChange(idx, r)}
-              onFocus={() => handleFocus(idx)}
-              userDiscount={userDiscount}
-              extraDiscount={extraDiscount}
-              elmarkDiscounts={elmarkDiscounts}
-              storeMode={storeMode}
-            />
-          ))}
+          {rows.map((row, idx) => {
+            const sku = row.selectedProduct?.sku;
+            const isSkuOver = Boolean(
+              sku && (overStockSkus[sku] || (skuTotals[sku] && skuTotals[sku].qty > skuTotals[sku].maxStock))
+            );
+            return (
+              <QuickEntryRow
+                key={row.id}
+                index={idx}
+                row={row}
+                onChange={(r) => handleChange(idx, r)}
+                onFocus={() => handleFocus(idx)}
+                userDiscount={userDiscount}
+                extraDiscount={extraDiscount}
+                elmarkDiscounts={elmarkDiscounts}
+                storeMode={storeMode}
+                isSkuOverStockExternal={isSkuOver}
+                onStockWarning={triggerStockWarning}
+              />
+            );
+          })}
         </div>
 
         {/* Footer */}
@@ -415,6 +544,14 @@ export default function QuickEntryModal({
             <div className="text-lg text-gray-700">
               Totale Preventivato: <span className="font-bold text-gray-900 text-xl">€ {grandTotal.toFixed(2).replace('.', ',')}</span>
             </div>
+            {stockWarning && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded animate-pulse">
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span>{stockWarning}</span>
+              </div>
+            )}
             {errorMsg && (
               <span className="text-xs text-red-600 font-medium">
                 {errorMsg}
@@ -434,7 +571,11 @@ export default function QuickEntryModal({
               type="button"
               onClick={handleAddAll}
               disabled={isPending}
-              className="flex-1 sm:flex-none px-8 py-2.5 bg-brand-main text-white font-bold rounded shadow-sm hover:bg-brand-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className={`flex-1 sm:flex-none px-8 py-2.5 font-bold rounded shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
+                hasAnyOverStock
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-brand-main text-white hover:bg-brand-hover'
+              }`}
             >
               {isPending ? (
                 <>

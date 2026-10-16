@@ -83,9 +83,37 @@ export default function OrderDetailsModal({ order }: { order: any }) {
     setMode('REORDER');
   };
 
-  const handleQtyChange = (itemId: string, newQty: number) => {
+  const [itemStockWarnings, setItemStockWarnings] = useState<Record<string, string>>({});
+  const warningTimersRef = useState<Record<string, ReturnType<typeof setTimeout>>>({})[0];
+
+  const triggerItemStockWarning = (itemId: string, msg: string) => {
+    setItemStockWarnings(prev => ({ ...prev, [itemId]: msg }));
+    if (warningTimersRef[itemId]) clearTimeout(warningTimersRef[itemId]);
+    warningTimersRef[itemId] = setTimeout(() => {
+      setItemStockWarnings(prev => {
+        const copy = { ...prev };
+        delete copy[itemId];
+        return copy;
+      });
+    }, 3000);
+  };
+
+  const handleQtyChange = (itemId: string, newQty: number, maxStock?: number) => {
     if (newQty < 0) return;
     setQuantities(prev => ({ ...prev, [itemId]: newQty }));
+    if (maxStock !== undefined && newQty > maxStock) {
+      triggerItemStockWarning(
+        itemId,
+        maxStock <= 0 ? 'Giacenza superata (0 pz)' : `Giacenza superata (max ${maxStock} pz)`
+      );
+    } else {
+      setItemStockWarnings(prev => {
+        if (!prev[itemId]) return prev;
+        const copy = { ...prev };
+        delete copy[itemId];
+        return copy;
+      });
+    }
   };
 
   const handleExtraDiscChange = (itemId: string, val: number) => {
@@ -93,7 +121,24 @@ export default function OrderDetailsModal({ order }: { order: any }) {
     setExtraDiscounts(prev => ({ ...prev, [itemId]: val }));
   };
 
+  const checkAnyOverStock = () => {
+    let over = false;
+    populatedItems.forEach((item: any) => {
+      const q = quantities[item.id] || 0;
+      const maxS = Math.max(0, Number(item.product?.stock ?? 0));
+      if (q > 0 && q > maxS) {
+        over = true;
+        triggerItemStockWarning(
+          item.id,
+          maxS <= 0 ? 'Giacenza superata (0 pz)' : `Giacenza superata (max ${maxS} pz)`
+        );
+      }
+    });
+    return over;
+  };
+
   const handleAddToCart = async () => {
+    if (checkAnyOverStock()) return;
     setIsSubmitting(true);
     const itemsToAdd = populatedItems
       .filter((item: any) => quantities[item.id] > 0)
@@ -112,6 +157,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
   };
 
   const handleDirectReorder = async (action: 'DRAFT' | 'APPROVED') => {
+    if (checkAnyOverStock()) return;
     setIsSubmitting(true);
     const itemsToAdd = populatedItems
       .filter((item: any) => quantities[item.id] > 0)
@@ -272,24 +318,35 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                           </div>
                           
                           {/* Col 2: Quantità */}
-                          <div className="col-span-4 sm:col-span-2 flex justify-center">
+                          <div className="col-span-4 sm:col-span-2 flex flex-col items-center justify-center gap-1">
                             {isReorder ? (
-                              <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-                                <button 
-                                  onClick={() => handleQtyChange(item.id, qty - 1)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
-                                >-</button>
-                                <input 
-                                  type="number" 
-                                  value={qty}
-                                  onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 0)}
-                                  className="w-10 h-8 text-center text-sm font-medium border-x border-gray-300 outline-none"
-                                />
-                                <button 
-                                  onClick={() => handleQtyChange(item.id, qty + 1)}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
-                                >+</button>
-                              </div>
+                              <>
+                                <div className={`flex items-center border rounded overflow-hidden transition-colors ${qty > 0 && qty > (p.stock || 0) ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
+                                  <button 
+                                    onClick={() => handleQtyChange(item.id, qty - 1, p.stock || 0)}
+                                    className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
+                                  >-</button>
+                                  <input 
+                                    type="number" 
+                                    value={qty}
+                                    onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 0, p.stock || 0)}
+                                    className={`w-10 h-8 text-center text-sm font-bold border-x outline-none transition-colors ${
+                                      qty > 0 && qty > (p.stock || 0)
+                                        ? 'text-red-600 border-red-300 bg-red-50'
+                                        : 'text-gray-900 border-gray-300 bg-white'
+                                    }`}
+                                  />
+                                  <button 
+                                    onClick={() => handleQtyChange(item.id, qty + 1, p.stock || 0)}
+                                    className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
+                                  >+</button>
+                                </div>
+                                {itemStockWarnings[item.id] && (
+                                  <span className="text-[10px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-center animate-pulse">
+                                    {itemStockWarnings[item.id]}
+                                  </span>
+                                )}
+                              </>
                             ) : (
                               <span className="font-bold text-gray-900">{qty}</span>
                             )}

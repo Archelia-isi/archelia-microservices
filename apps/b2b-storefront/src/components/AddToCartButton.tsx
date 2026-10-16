@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { getAvailableStock } from '@/lib/stock';
 
 export default function AddToCartButton({ 
   product, 
@@ -17,20 +18,85 @@ export default function AddToCartButton({
   disabled?: boolean
 }) {
   const [isPending, setIsPending] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const [serverOverStock, setServerOverStock] = useState(false);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const maxStock = getAvailableStock(product);
+  const numericQty = typeof quantity === 'number' ? quantity : parseInt(String(quantity), 10) || 0;
+  const isOverStock = numericQty > maxStock || serverOverStock;
+
+  const triggerStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setStockWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   const increment = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setQuantity(prev => prev + 1);
+    setServerOverStock(false);
+    const next = (numericQty || 0) + 1;
+    setQuantity(next);
+    if (next > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata (0 pz disp.)'
+          : `Giacenza superata (max ${maxStock} pz)`
+      );
+    }
   };
 
   const decrement = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+    setServerOverStock(false);
+    const next = numericQty > 1 ? numericQty - 1 : 1;
+    setQuantity(next);
+    if (next <= maxStock) {
+      setStockWarning(null);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    setServerOverStock(false);
+    const raw = e.target.value;
+    if (raw === '') {
+      setQuantity('');
+      setStockWarning(null);
+      return;
+    }
+    const val = parseInt(raw, 10);
+    if (!isNaN(val) && val > 0) {
+      setQuantity(val);
+      if (val > maxStock) {
+        triggerStockWarning(
+          maxStock <= 0
+            ? 'Giacenza superata (0 pz disp.)'
+            : `Giacenza superata (max ${maxStock} pz)`
+        );
+      } else {
+        setStockWarning(null);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (quantity === '' || isNaN(numericQty) || numericQty < 1) {
+      setQuantity(1);
+    }
   };
 
   const handleAddToCart = async (e?: React.MouseEvent) => {
@@ -44,19 +110,34 @@ export default function AddToCartButton({
       setShowErrorModal(true);
       return;
     }
+
+    const qtyToAdd = numericQty >= 1 ? numericQty : 1;
+    if (qtyToAdd > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata (0 pz disp.)'
+          : `Giacenza superata (max ${maxStock} pz)`
+      );
+      return;
+    }
     
     setIsPending(true);
     try {
       const response = await fetch('/api/cart/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sku: product.sku, quantity })
+        body: JSON.stringify({ sku: product.sku, quantity: qtyToAdd })
       });
       const res = await response.json();
       if (res.success) {
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: res.cartItemCount } }));
         setQuantity(1);
+        setStockWarning(null);
+        setServerOverStock(false);
         setShowErrorModal(false);
+      } else if (res.stockExceeded) {
+        setServerOverStock(true);
+        triggerStockWarning(res.error || `Giacenza superata (max ${maxStock} pz)`);
       } else {
         setErrorMessage(res.error || 'Errore sconosciuto');
         setShowErrorModal(true);
@@ -74,23 +155,46 @@ export default function AddToCartButton({
 
   return (
     <>
-      <div className="flex flex-col gap-2 w-full mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+      <div className="flex flex-col gap-1.5 w-full mt-2 relative" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
         <div className="flex gap-2 w-full h-10">
-          <div className="flex items-center justify-between border border-gray-300 rounded w-24 bg-white">
-            <button type="button" onClick={decrement} className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-l">-</button>
-            <span className="text-sm font-bold select-none">{quantity}</span>
-            <button type="button" onClick={increment} className="w-8 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-r">+</button>
+          <div className={`flex items-center justify-between border rounded w-24 bg-white transition-colors ${isOverStock ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
+            <button type="button" onClick={decrement} className="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-l">-</button>
+            <input
+              type="number"
+              value={quantity}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              min={1}
+              className={`w-10 h-full text-center text-sm font-bold outline-none bg-transparent appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${
+                isOverStock ? 'text-red-600' : 'text-gray-900'
+              }`}
+            />
+            <button type="button" onClick={increment} className="w-7 h-full flex items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-black transition-colors rounded-r">+</button>
           </div>
           <button 
             type="button"
             onClick={handleAddToCart}
             disabled={isPending || disabled}
-            className={`flex-1 bg-black text-white hover:bg-brand-main transition-colors font-bold text-xs rounded flex items-center justify-center gap-1 ${isPending || disabled ? 'bg-gray-400 cursor-not-allowed opacity-80' : ''} ${className || ''}`}
+            className={`flex-1 transition-colors font-bold text-xs rounded flex items-center justify-center gap-1 ${
+              isPending || disabled || isOverStock
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-black text-white hover:bg-brand-main'
+            } ${className || ''}`}
           >
             <svg className="w-4 h-4 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             {text}
           </button>
         </div>
+
+        {stockWarning && (
+          <div className="text-[11px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded flex items-center gap-1 animate-pulse">
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{stockWarning}</span>
+          </div>
+        )}
       </div>
 
       {showErrorModal && (

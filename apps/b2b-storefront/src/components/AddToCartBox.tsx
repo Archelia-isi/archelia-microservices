@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { getAvailableStock } from '@/lib/stock';
 
 interface AddToCartBoxProps {
   product: any;
@@ -9,33 +10,81 @@ interface AddToCartBoxProps {
 }
 
 export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHETTI' }: AddToCartBoxProps & { storeMode?: 'ZUCCHETTI' | 'ELMARK' }) {
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState<number | string>(1);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isPending, setIsPending] = useState(false);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+  const [serverOverStock, setServerOverStock] = useState(false);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const maxStock = getAvailableStock(product, storeMode);
+  const numericQty = typeof quantity === 'number' ? quantity : parseInt(String(quantity), 10) || 0;
+  const isOverStock = numericQty > maxStock || serverOverStock;
+
+  const triggerStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => {
+      setStockWarning(null);
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+    };
+  }, []);
 
   const decreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
+    setServerOverStock(false);
+    if (numericQty > 1) {
+      const next = numericQty - 1;
+      setQuantity(next);
+      if (next <= maxStock) {
+        setStockWarning(null);
+      }
     }
   };
 
   const increaseQuantity = () => {
-    setQuantity(quantity + 1);
+    setServerOverStock(false);
+    const next = (numericQty || 0) + 1;
+    setQuantity(next);
+    if (next > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata! Prodotto esaurito (0 pz disponibili).'
+          : `Giacenza superata! Disponibili max ${maxStock} pz.`
+      );
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value);
+    setServerOverStock(false);
+    const raw = e.target.value;
+    if (raw === '') {
+      setQuantity('');
+      setStockWarning(null);
+      return;
+    }
+    const val = parseInt(raw, 10);
     if (!isNaN(val) && val > 0) {
       setQuantity(val);
-    } else if (e.target.value === '') {
-      // allow clearing the input temporarily
-      setQuantity(e.target.value as unknown as number);
+      if (val > maxStock) {
+        triggerStockWarning(
+          maxStock <= 0
+            ? 'Giacenza superata! Prodotto esaurito (0 pz disponibili).'
+            : `Giacenza superata! Disponibili max ${maxStock} pz.`
+        );
+      } else {
+        setStockWarning(null);
+      }
     }
   };
 
   const handleBlur = () => {
-    if (typeof quantity !== 'number' || quantity < 1 || isNaN(quantity)) {
+    if (quantity === '' || isNaN(numericQty) || numericQty < 1) {
       setQuantity(1);
     }
   };
@@ -47,19 +96,34 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
       setShowErrorModal(true);
       return;
     }
+
+    const qtyToAdd = numericQty >= 1 ? numericQty : 1;
+    if (qtyToAdd > maxStock) {
+      triggerStockWarning(
+        maxStock <= 0
+          ? 'Giacenza superata! Prodotto esaurito (0 pz disponibili).'
+          : `Giacenza superata! Disponibili max ${maxStock} pz.`
+      );
+      return;
+    }
     
     setIsPending(true);
     try {
       const response = await fetch('/api/cart/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sku: product.sku, quantity })
+        body: JSON.stringify({ sku: product.sku, quantity: qtyToAdd })
       });
       const res = await response.json();
       if (res.success) {
         // Optimistic UI update
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { count: res.cartItemCount } }));
         setQuantity(1);
+        setStockWarning(null);
+        setServerOverStock(false);
+      } else if (res.stockExceeded) {
+        setServerOverStock(true);
+        triggerStockWarning(res.error || `Giacenza superata! Disponibili max ${maxStock} pz.`);
       } else {
         setErrorMessage(res.error || 'Errore sconosciuto');
         setShowErrorModal(true);
@@ -130,7 +194,7 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex items-center w-full sm:w-32 bg-white border border-gray-300 rounded">
+        <div className={`relative flex items-center w-full sm:w-32 bg-white border rounded transition-colors ${isOverStock ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
           <button 
             type="button"
             onClick={decreaseQuantity}
@@ -142,7 +206,11 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
             onChange={handleInputChange}
             onBlur={handleBlur}
             min={1} 
-            className="w-full h-12 text-center font-bold text-gray-900 border-x border-gray-300 focus:outline-none focus:border-brand-main focus:ring-1 focus:ring-[#00C800]"
+            className={`w-full h-12 text-center font-bold border-x focus:outline-none transition-colors ${
+              isOverStock
+                ? 'text-red-600 border-red-300 bg-red-50 focus:border-red-500 focus:ring-1 focus:ring-red-500'
+                : 'text-gray-900 border-gray-300 focus:border-brand-main focus:ring-1 focus:ring-[#00C800]'
+            }`}
           />
           <button 
             type="button"
@@ -152,8 +220,12 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
         </div>
           <button 
             onClick={handleAddToCart}
-            disabled={isPending || quantity < 1}
-            className="flex-1 h-12 rounded flex items-center justify-center font-bold text-lg transition-colors bg-black text-white hover:bg-gray-900 disabled:bg-gray-300"
+            disabled={isPending || numericQty < 1}
+            className={`flex-1 h-12 rounded flex items-center justify-center font-bold text-lg transition-colors ${
+              isOverStock
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-black text-white hover:bg-gray-900 disabled:bg-gray-300'
+            }`}
           >
             {isPending ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -170,6 +242,15 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
             )}
           </button>
       </div>
+
+      {stockWarning && (
+        <div className="mt-3 flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded animate-pulse">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{stockWarning}</span>
+        </div>
+      )}
     </div>
 
       {showErrorModal && (

@@ -61,6 +61,8 @@ export default async function CartPage() {
         imageUrl: p.image_url || '/placeholder.png',
         unit: p.unit || 'PZ',
         stock: p.stock || 0,
+        stock_main: p.stock_main,
+        stock_ek: p.stock_ek,
         discgroup: p.discgroup || ''
       } : null
     };
