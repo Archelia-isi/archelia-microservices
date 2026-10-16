@@ -338,7 +338,7 @@ function QuickEntryRow({
       </div>
 
       {rowWarning && (
-        <div className="mt-1.5 flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded self-start md:self-end animate-pulse">
+        <div className="absolute -top-2 right-0 z-30 pointer-events-none flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-2.5 py-1 rounded whitespace-nowrap">
           <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -539,19 +539,19 @@ export default function QuickEntryModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-4">
+        <div className="relative px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between shrink-0 gap-4">
+          {stockWarning && (
+            <div className="absolute bottom-full left-6 mb-2 z-30 pointer-events-none flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-3 py-1.5 rounded">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{stockWarning}</span>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <div className="text-lg text-gray-700">
               Totale Preventivato: <span className="font-bold text-gray-900 text-xl">€ {grandTotal.toFixed(2).replace('.', ',')}</span>
             </div>
-            {stockWarning && (
-              <div className="flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded animate-pulse">
-                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>{stockWarning}</span>
-              </div>
-            )}
             {errorMsg && (
               <span className="text-xs text-red-600 font-medium">
                 {errorMsg}

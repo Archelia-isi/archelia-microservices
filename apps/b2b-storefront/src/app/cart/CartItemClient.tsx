@@ -178,7 +178,12 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
         </div>
       </div>
       
-      <div className="col-span-4 sm:col-span-2 flex flex-col items-center justify-center gap-1">
+      <div className="col-span-4 sm:col-span-2 relative flex flex-col items-center justify-center">
+        {stockWarning && (
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none whitespace-nowrap text-[10px] leading-tight font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-2 py-1 rounded text-center">
+            {stockWarning}
+          </span>
+        )}
         <div className={`flex items-center border rounded overflow-hidden transition-colors ${isOverStock ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
           <button 
             onClick={handleDecrement}
@@ -201,11 +206,6 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
             className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-gray-600 transition-colors"
           >+</button>
         </div>
-        {stockWarning && (
-          <span className="text-[10px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-center animate-pulse">
-            {stockWarning}
-          </span>
-        )}
       </div>
       
       <div className="col-span-4 sm:col-span-2 text-right flex flex-col items-end">

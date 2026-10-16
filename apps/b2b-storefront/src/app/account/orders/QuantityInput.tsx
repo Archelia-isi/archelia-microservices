@@ -73,7 +73,12 @@ export default function QuantityInput({
   };
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="relative flex flex-col items-center">
+      {stockWarning && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none whitespace-nowrap text-[10px] leading-tight font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-2 py-1 rounded text-center">
+          {stockWarning}
+        </span>
+      )}
       <div className={`flex items-center border rounded overflow-hidden transition-colors ${isOverStock ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
         <button 
           type="button"
@@ -125,11 +130,6 @@ export default function QuantityInput({
           }
         `}</style>
       </div>
-      {stockWarning && (
-        <span className="text-[10px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-center animate-pulse">
-          {stockWarning}
-        </span>
-      )}
     </div>
   );
 }

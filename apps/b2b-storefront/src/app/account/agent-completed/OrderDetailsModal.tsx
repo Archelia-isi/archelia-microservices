@@ -318,9 +318,14 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                           </div>
                           
                           {/* Col 2: Quantità */}
-                          <div className="col-span-4 sm:col-span-2 flex flex-col items-center justify-center gap-1">
+                          <div className="col-span-4 sm:col-span-2 relative flex flex-col items-center justify-center">
                             {isReorder ? (
                               <>
+                                {itemStockWarnings[item.id] && (
+                                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-30 pointer-events-none whitespace-nowrap text-[10px] leading-tight font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-2 py-1 rounded text-center">
+                                    {itemStockWarnings[item.id]}
+                                  </span>
+                                )}
                                 <div className={`flex items-center border rounded overflow-hidden transition-colors ${qty > 0 && qty > (p.stock || 0) ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
                                   <button 
                                     onClick={() => handleQtyChange(item.id, qty - 1, p.stock || 0)}
@@ -341,11 +346,6 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                                     className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors"
                                   >+</button>
                                 </div>
-                                {itemStockWarnings[item.id] && (
-                                  <span className="text-[10px] leading-tight font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded text-center animate-pulse">
-                                    {itemStockWarnings[item.id]}
-                                  </span>
-                                )}
                               </>
                             ) : (
                               <span className="font-bold text-gray-900">{qty}</span>

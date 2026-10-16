@@ -313,16 +313,16 @@ export default function QuickAddCart({
         >
           {isPending ? 'Aggiunta...' : 'Aggiungi'}
         </button>
-      </div>
 
-      {stockWarning && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-1.5 rounded animate-pulse">
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span>{stockWarning}</span>
-        </div>
-      )}
+        {stockWarning && (
+          <div className="absolute bottom-full right-0 mb-1.5 z-30 pointer-events-none flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50/95 backdrop-blur-sm border border-red-300 shadow-md px-3 py-1.5 rounded whitespace-nowrap">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{stockWarning}</span>
+          </div>
+        )}
+      </div>
 
       {selectedProduct && selectedPrices && (
         <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
