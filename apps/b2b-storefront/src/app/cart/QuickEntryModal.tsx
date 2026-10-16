@@ -14,6 +14,41 @@ type RowData = {
 let rowCounter = 0;
 const generateId = () => `qe_row_${Date.now()}_${++rowCounter}`;
 
+function renderStockBadges(product: any, storeMode: 'ZUCCHETTI' | 'ELMARK') {
+  if (storeMode === 'ELMARK') {
+    return product.stock > 0 ? (
+      <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-main/10 text-brand-main border border-brand-main/20">
+        Giacenza 7GG: {product.stock}
+      </span>
+    ) : (
+      <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 border border-orange-200">
+        Esaurito (0)
+      </span>
+    );
+  }
+  const stockMain = product.stock_main ?? (!('stock_main' in product) ? product.stock : 0);
+  const stockEk = product.stock_ek || 0;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {stockMain > 0 && (
+        <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-main/10 text-brand-main border border-brand-main/20">
+          Giacenza 2GG: {stockMain}
+        </span>
+      )}
+      {stockEk > 0 && (
+        <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">
+          Giacenza 7GG: {stockEk}
+        </span>
+      )}
+      {!(stockMain > 0) && !(stockEk > 0) && (
+        <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 border border-orange-200">
+          Esaurito (0)
+        </span>
+      )}
+    </div>
+  );
+}
+
 function QuickEntryRow({ 
   row, 
   index,
@@ -69,12 +104,12 @@ function QuickEntryRow({
   };
 
   const getDiscountedPrice = (product: any) => {
-    let original = Number(storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
+    let original = Number(storeMode === 'ELMARK' ? (product.price || product.price_b2b || 0) : (product.price_b2b || product.price || 0));
     let final = original;
     
     if (storeMode === 'ELMARK') {
       const dGroup = product.discgroup || '';
-      const groupDisc = elmarkDiscounts[dGroup] || 0;
+      const groupDisc = Number(elmarkDiscounts[dGroup]) || 0;
       if (groupDisc > 0) {
         final = final * (1 - (groupDisc / 100));
       }
@@ -86,17 +121,20 @@ function QuickEntryRow({
         final = final * (1 - (extraDiscount / 100));
       }
     }
-    return { original, final };
+    const discountPct = original > 0 && original > final ? Math.round((1 - (final / original)) * 100) : 0;
+    return { original, final, discountPct };
   };
 
   let originalPrice = 0;
   let finalPrice = 0;
+  let discountPct = 0;
   let rowTotal = 0;
 
   if (row.selectedProduct) {
     const prices = getDiscountedPrice(row.selectedProduct);
     originalPrice = prices.original;
     finalPrice = prices.final;
+    discountPct = prices.discountPct;
     const rawQty = typeof row.quantity === 'string' ? row.quantity.trim() : row.quantity;
     const parsed = parseInt(String(rawQty));
     const qty = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
@@ -106,6 +144,9 @@ function QuickEntryRow({
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center gap-4 py-3 border-b border-gray-100 relative" ref={dropdownRef}>
       <div className="w-full md:w-64 relative flex-shrink-0">
+        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+          Codice Prodotto (SKU)
+        </label>
         <input 
           type="text" 
           autoComplete="off"
@@ -131,11 +172,22 @@ function QuickEntryRow({
                     <div className="w-8 h-8 flex-shrink-0 bg-white border border-gray-100 rounded p-1">
                       <img src={product.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
                     </div>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-sm font-bold text-gray-900">{product.sku}</span>
+                    <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                      <span className="text-sm font-bold text-gray-900 font-mono">{product.sku}</span>
                       <span className="text-xs text-gray-500 truncate">{product.original_name || product.title}</span>
+                      {renderStockBadges(product, storeMode)}
                     </div>
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end shrink-0">
+                      {prices.discountPct > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-gray-400 line-through">
+                            € {prices.original.toFixed(2).replace('.', ',')}
+                          </span>
+                          <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                            -{prices.discountPct}%
+                          </span>
+                        </div>
+                      )}
                       <span className="text-xs font-bold text-gray-900">
                         € {prices.final.toFixed(2).replace('.', ',')}
                       </span>
@@ -152,24 +204,33 @@ function QuickEntryRow({
         )}
       </div>
       
-      <div className="flex-1 flex items-center gap-4 min-w-0">
-        {row.selectedProduct ? (
-          <>
-            <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-200 rounded p-1">
-              <img src={row.selectedProduct.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-gray-900 truncate" title={row.selectedProduct.original_name || row.selectedProduct.title}>
-                {row.selectedProduct.original_name || row.selectedProduct.title}
+      <div className="flex-1 flex flex-col min-w-0 w-full">
+        <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+          Prodotto e Giacenza
+        </span>
+        <div className="flex items-center gap-3 min-w-0 min-h-[38px]">
+          {row.selectedProduct ? (
+            <>
+              <div className="w-10 h-10 flex-shrink-0 bg-white border border-gray-200 rounded p-1">
+                <img src={row.selectedProduct.image_url || '/placeholder.png'} alt="" className="w-full h-full object-contain" />
               </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 text-sm text-gray-400 italic">Seleziona un prodotto...</div>
-        )}
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <div className="text-sm font-medium text-gray-900 truncate" title={row.selectedProduct.original_name || row.selectedProduct.title}>
+                  {row.selectedProduct.original_name || row.selectedProduct.title}
+                </div>
+                {renderStockBadges(row.selectedProduct, storeMode)}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 text-sm text-gray-400 italic">Seleziona un prodotto...</div>
+          )}
+        </div>
       </div>
 
-      <div className="w-24 flex-shrink-0">
+      <div className="w-full md:w-24 flex-shrink-0">
+        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 md:text-center">
+          Quantità
+        </label>
         <input 
           type="number" 
           value={row.quantity}
@@ -181,32 +242,42 @@ function QuickEntryRow({
         />
       </div>
 
-      <div className="w-64 flex-shrink-0 flex items-center justify-between text-sm">
-        {row.selectedProduct ? (
-          <>
+      <div className="w-full md:w-64 flex-shrink-0 flex items-center justify-between text-sm gap-4">
+        <div className="flex flex-col">
+          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+            Prezzo Scontato
+          </span>
+          {row.selectedProduct ? (
             <div className="flex flex-col">
-              {originalPrice > finalPrice && (
+              {discountPct > 0 && (
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-400 line-through">
                     € {originalPrice.toFixed(2).replace('.', ',')}
                   </span>
-                  <span className="text-[10px] font-bold text-red-600">
-                    -{Math.round((1 - (finalPrice / originalPrice)) * 100)}%
+                  <span className="text-[11px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                    -{discountPct}%
                   </span>
                 </div>
               )}
-              <span className="font-medium text-gray-900">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
+              <span className="font-bold text-gray-900 text-sm">€ {finalPrice.toFixed(2).replace('.', ',')}</span>
             </div>
-            <div className="font-bold text-gray-900 text-right text-base">
+          ) : (
+            <div className="min-h-[38px] flex items-center text-gray-400">-</div>
+          )}
+        </div>
+
+        <div className="flex flex-col items-end">
+          <span className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 text-right">
+            Totale Riga
+          </span>
+          {row.selectedProduct ? (
+            <div className="font-bold text-gray-900 text-right text-base min-h-[38px] flex items-center">
               € {rowTotal.toFixed(2).replace('.', ',')}
             </div>
-          </>
-        ) : (
-          <>
-            <div>-</div>
-            <div>-</div>
-          </>
-        )}
+          ) : (
+            <div className="min-h-[38px] flex items-center text-gray-400">-</div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -283,11 +354,11 @@ export default function QuickEntryModal({
   let grandTotal = 0;
   rows.forEach(r => {
     if (r.selectedProduct) {
-      let original = Number(r.selectedProduct.price_b2b) > 0 ? Number(r.selectedProduct.price_b2b) : Number(r.selectedProduct.price || 0);
+      let original = Number(storeMode === 'ELMARK' ? (r.selectedProduct.price || r.selectedProduct.price_b2b || 0) : (r.selectedProduct.price_b2b || r.selectedProduct.price || 0));
       let final = original;
       if (storeMode === 'ELMARK') {
         const dGroup = r.selectedProduct.discgroup || '';
-        const groupDisc = elmarkDiscounts[dGroup] || 0;
+        const groupDisc = Number(elmarkDiscounts[dGroup]) || 0;
         if (groupDisc > 0) final = final * (1 - (groupDisc / 100));
       } else {
         if (userDiscount > 0) final = final * (1 - (userDiscount / 100));
@@ -319,17 +390,6 @@ export default function QuickEntryModal({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        </div>
-
-        {/* Table Header */}
-        <div className="px-6 py-3 border-b border-gray-200 bg-white flex text-xs font-bold text-gray-500 uppercase tracking-wider shrink-0 gap-4 hidden md:flex">
-          <div className="w-64">Ricerca / Codice</div>
-          <div className="flex-1">Prodotto</div>
-          <div className="w-24 text-center">Quantità</div>
-          <div className="w-64 flex justify-between">
-            <span>Prezzo U.</span>
-            <span>Totale Riga</span>
-          </div>
         </div>
 
         {/* Scrollable Body */}
