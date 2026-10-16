@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import CatalogClient from '../../components/CatalogClient';
+import PredictiveSearchBar from '@/components/PredictiveSearchBar';
 import { cookies } from 'next/headers';
 
 export default async function CatalogPage({ searchParams }: { searchParams: { q?: string; l1?: string; l2?: string; l3?: string } }) {
@@ -65,7 +66,9 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
     <div className="w-full">
       <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Catalogo Prodotti</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {storeMode === 'ELMARK' ? 'Catalogo Prodotti Elmark' : 'Catalogo Prodotti'}
+          </h1>
           {isAuthenticated ? (
             <p className="text-sm text-gray-500 mt-1">
               Ciao, <span className="font-semibold text-gray-700">{session.user.firstName || session.user.email}</span>. Usa i filtri per trovare ciò che cerchi.
@@ -77,21 +80,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
           )}
         </div>
         
-        <form className="flex w-full md:w-1/2 gap-2" action="/catalog" method="GET">
-          <input
-            type="text"
-            name="q"
-            defaultValue={query === '*' ? '' : query}
-            placeholder="Cerca prodotti o inserisci SKU..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-main focus:border-transparent transition-all shadow-sm font-medium"
-          />
-          <button 
-            type="submit" 
-            className="px-6 py-2 bg-brand-main text-white font-bold uppercase tracking-wider rounded-md hover:bg-green-600 transition-colors shadow-sm text-sm"
-          >
-            Cerca
-          </button>
-        </form>
+        <PredictiveSearchBar storeMode={storeMode} variant="catalog" initialQuery={query} />
       </div>
 
       <CatalogClient initialProducts={products} query={query} isAuthenticated={isAuthenticated} storeMode={storeMode} />

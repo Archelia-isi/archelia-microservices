@@ -9,6 +9,7 @@ import { prisma } from '@archelia/b2b-database';
 import { getCart } from '@/lib/cart';
 import CartBadge from '@/components/CartBadge';
 import StoreSwitcher from '@/components/StoreSwitcher';
+import PredictiveSearchBar from '@/components/PredictiveSearchBar';
 import { cookies } from 'next/headers';
 
 const assistant = Assistant({ subsets: ['latin'] });
@@ -91,19 +92,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <CategoryMenu />
             </div>
 
-            <form action="/catalog" method="GET" className="hidden md:flex flex-1 min-w-0 max-w-xl mx-3 md:mx-8 relative">
-              <input 
-                type="text" 
-                name="q"
-                placeholder="Cerca prodotti, marchi, categorie..." 
-                className="w-full h-11 pl-4 pr-12 rounded-sm text-gray-900 outline-none"
-              />
-              <button type="submit" className="absolute right-0 top-0 h-11 w-12 bg-brand-main rounded-r-sm flex items-center justify-center text-black hover:bg-brand-hover transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-            </form>
+            <PredictiveSearchBar storeMode={storeMode} variant="header" />
 
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0">
               {showElmark && <StoreSwitcher currentMode={storeMode} />}

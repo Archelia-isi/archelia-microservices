@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AddToCartButton from './AddToCartButton';
 
@@ -15,6 +15,10 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [openFilterGroup, setOpenFilterGroup] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActiveFilters({});
+  }, [query, storeMode]);
 
   // Extract all available filters dynamically
   const availableFilters = useMemo(() => {
