@@ -5,6 +5,7 @@ import { createSession, deleteSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import { syncSavedOrdersStockForUser } from './savedOrderStock';
 
 export async function login(formData: FormData) {
   const identifier = formData.get('identifier') as string;
@@ -44,6 +45,13 @@ export async function login(formData: FormData) {
 
   // Creazione sessione
   await createSession(user.id);
+
+  // Controllo automatico giacenze degli ordini salvati ad ogni login
+  try {
+    await syncSavedOrdersStockForUser(user.id);
+  } catch (e) {
+    console.error('Error syncing saved orders stock on login:', e);
+  }
   
   const cookieOpts: any = { path: '/', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' };
   if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
@@ -101,6 +109,10 @@ export async function setupPassword(formData: FormData) {
       mustChangePassword: false,
     }
   });
+
+  try {
+    await syncSavedOrdersStockForUser(session.userId);
+  } catch (e) {}
 
   redirect('https://www.izzodistribuzione.it');
 }

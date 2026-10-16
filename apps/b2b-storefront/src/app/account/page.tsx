@@ -3,6 +3,7 @@ import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { parseSavedOrderStockMeta } from '@/lib/savedOrdersStock';
 
 export default async function AccountDashboard() {
   const session = await verifySession();
@@ -21,16 +22,16 @@ export default async function AccountDashboard() {
 
   if (!user) redirect('/login');
 
+  if (session.user.role === 'AGENT') {
+    const AgentDashboard = (await import('./AgentDashboard')).default;
+    return <AgentDashboard user={user} />;
+  }
+
   const recentOrders = await prisma.b2BOrder.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: 'desc' },
     take: 3,
   });
-
-  if (session.user.role === 'AGENT') {
-    const AgentDashboard = (await import('./AgentDashboard')).default;
-    return <AgentDashboard user={user} />;
-  }
 
   return (
     <div>
@@ -81,6 +82,8 @@ export default async function AccountDashboard() {
               const date = new Date(order.createdAt).toLocaleDateString('it-IT');
               let statusText = 'Sconosciuto';
               let statusColor = 'text-gray-500';
+              const isSavedOrder = order.status === 'DRAFT' && order.createdById === session.userId;
+              const stockInfo = isSavedOrder ? parseSavedOrderStockMeta(order.notes) : null;
 
               if (order.status === 'DRAFT') {
                 if (order.createdById === session.userId) {
@@ -99,9 +102,21 @@ export default async function AccountDashboard() {
               }
 
               return (
-                <div key={order.id} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div
+                  key={order.id}
+                  className={`py-4 px-3 -mx-3 rounded flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                    stockInfo?.hasAdjustments ? 'bg-amber-50/70 border-l-4 border-l-amber-500' : ''
+                  }`}
+                >
                   <div>
-                    <div className="font-bold text-lg mb-1">#{order.id.slice(-6).toUpperCase()}</div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-bold text-lg">#{order.id.slice(-6).toUpperCase()}</span>
+                      {stockInfo?.hasAdjustments && (
+                        <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          ⚠️ Giacenza variata ({stockInfo.adjustedCount})
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-500">Effettuato il {date}</div>
                   </div>
                   <div>

@@ -2,6 +2,7 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await verifySession();
@@ -12,6 +13,14 @@ export default async function AccountLayout({ children }: { children: React.Reac
   const cookieStore = cookies();
   const storeMode = cookieStore.get('b2b_store_mode')?.value;
   const tabParam = storeMode === 'ELMARK' ? '?tab=elmark' : '';
+
+  let hasSavedOrderStockChanges = false;
+  let adjustedOrdersCount = 0;
+  if (session.user.role !== 'AGENT') {
+    const syncRes = await syncSavedOrdersStockForUser(session.userId);
+    hasSavedOrderStockChanges = syncRes.hasAnyAdjustments;
+    adjustedOrdersCount = syncRes.adjustedOrdersCount;
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-4">
@@ -51,8 +60,31 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={true} href={`/account/sent-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Inviati
                   </Link>
-                  <Link prefetch={true} href={`/account/saved-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
-                    Ordini Salvati
+                  <Link
+                    prefetch={true}
+                    href={`/account/saved-orders${tabParam}`}
+                    className={`px-4 py-3 font-medium transition-colors flex flex-col gap-1 rounded ${
+                      hasSavedOrderStockChanges
+                        ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border-l-4 border-amber-500 font-bold'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-brand-main'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Ordini Salvati</span>
+                      {hasSavedOrderStockChanges && (
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
+                          {adjustedOrdersCount}
+                        </span>
+                      )}
+                    </div>
+                    {hasSavedOrderStockChanges && (
+                      <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1 leading-tight">
+                        <svg className="w-3.5 h-3.5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Giacenza variata
+                      </span>
+                    )}
                   </Link>
                   <Link prefetch={true} href={`/account/quotes${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Preventivi

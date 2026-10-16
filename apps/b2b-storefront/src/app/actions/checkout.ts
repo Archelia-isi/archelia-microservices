@@ -8,6 +8,7 @@ import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
 import { redis } from '@/lib/redis';
+import { serializeSavedOrderNotes } from '@/lib/savedOrdersStock';
 
 export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 'SAVE_ORDER') {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
@@ -103,7 +104,12 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
     } else {
       if (action === 'SAVE_ORDER') {
         orderStatus = 'DRAFT'; // Ordine salvato dal cliente
-        orderNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Salvato dal cliente' : 'Ordine salvato dal cliente';
+        const baseNotes = cartType === 'ELMARK' ? 'ORDINE ELMARK - Salvato dal cliente' : 'Ordine salvato dal cliente';
+        const origQty: Record<string, number> = {};
+        for (const item of orderItemsData) {
+          origQty[item.sku.toUpperCase()] = item.quantity;
+        }
+        orderNotes = serializeSavedOrderNotes(baseNotes, { origQty, adjusted: {} });
       } else {
         // It's a normal user. Orders must be reviewed by the agent first.
         orderStatus = 'PENDING_AGENT_REVIEW';

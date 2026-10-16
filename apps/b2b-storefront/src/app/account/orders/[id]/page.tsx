@@ -8,6 +8,7 @@ import AcceptDraftButton from '../AcceptDraftButton';
 import DeleteSentOrderButton from '../DeleteSentOrderButton';
 import OrderEditModeClient from '../OrderEditModeClient';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
+import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     redirect('/login');
   }
 
-  const order = await prisma.b2BOrder.findUnique({
+  let order = await prisma.b2BOrder.findUnique({
     where: { id: params.id },
     include: { 
       items: {
@@ -33,6 +34,22 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   if (!order || (!isOrderOwner && !isAssignedAgent)) {
     redirect(isAgent ? '/account/agent-orders' : '/account/orders');
+  }
+
+  if (order.status === 'DRAFT' && order.createdById === order.userId) {
+    await syncSavedOrdersStockForUser(order.userId);
+    const refreshed = await prisma.b2BOrder.findUnique({
+      where: { id: params.id },
+      include: {
+        items: {
+          orderBy: { id: 'asc' }
+        },
+        user: true
+      }
+    });
+    if (refreshed) {
+      order = refreshed;
+    }
   }
 
   const isDraft = order.status === 'DRAFT';

@@ -10,6 +10,8 @@ import { cookies } from 'next/headers';
 import { isOrderLockedForUser } from './orderLock';
 import { redis } from '@/lib/redis';
 import { getAvailableStock } from '@/lib/stock';
+import { parseSavedOrderStockMeta, serializeSavedOrderNotes } from '@/lib/savedOrdersStock';
+import { syncSavedOrdersStockForUser } from './savedOrderStock';
 
 export async function deleteSentOrder(orderId: string) {
   const session = await verifySession();
@@ -39,6 +41,7 @@ export async function deleteSentOrder(orderId: string) {
     revalidatePath('/account/sent-orders');
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/quotes');
+    revalidatePath('/account');
     return { success: true };
   } catch (error: any) {
     console.error('Delete order error:', error);
@@ -118,11 +121,12 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
     let dStr = stdDisc > 0 ? `${stdDisc}%` : '';
     if (extDisc > 0) dStr += (dStr ? ` + ${extDisc}% Extra` : `${extDisc}% Extra`);
 
+    const finalItemQty = existingQty + quantity;
     if (existingItem) {
       await prisma.b2BOrderItem.update({
         where: { id: existingItem.id },
         data: { 
-          quantity: existingItem.quantity + quantity,
+          quantity: finalItemQty,
           originalPrice,
           finalPrice,
           discountString: dStr || null
@@ -133,7 +137,7 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
         data: {
           orderId,
           sku: product.sku,
-          quantity,
+          quantity: finalItemQty,
           originalPrice,
           finalPrice,
           discountString: dStr || null
@@ -148,16 +152,28 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
 
     if (updatedOrder) {
       const totalAmount = updatedOrder.items.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+      let updatedNotes = updatedOrder.notes;
+      if (updatedOrder.status === 'DRAFT' && updatedOrder.createdById === targetUserId) {
+        const { cleanNotes, meta } = parseSavedOrderStockMeta(updatedOrder.notes);
+        const skuKey = product.sku.toUpperCase();
+        meta.origQty[skuKey] = finalItemQty;
+        delete meta.adjusted[skuKey];
+        updatedNotes = serializeSavedOrderNotes(cleanNotes, meta);
+      }
+
       await prisma.b2BOrder.update({
         where: { id: orderId },
         data: {
           totalAmount,
-          totalIva: totalAmount * 0.22
+          totalIva: totalAmount * 0.22,
+          notes: updatedNotes
         }
       });
     }
 
     revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account');
     return { success: true };
   } catch (error: any) {
     console.error('Quick add to order error:', error);
@@ -176,23 +192,35 @@ export async function removeOrderItem(orderId: string, itemId: string) {
     }
 
     const targetUserId = await getTargetUserId(session);
-    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
 
+    const removedItem = order.items.find(i => i.id === itemId);
     await prisma.b2BOrderItem.delete({ where: { id: itemId } });
 
     // Recalculate totals
     const updatedOrder = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (updatedOrder) {
       const totalAmount = updatedOrder.items.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+      let updatedNotes = updatedOrder.notes;
+      if (updatedOrder.status === 'DRAFT' && updatedOrder.createdById === targetUserId && removedItem) {
+        const { cleanNotes, meta } = parseSavedOrderStockMeta(updatedOrder.notes);
+        const skuKey = removedItem.sku.toUpperCase();
+        delete meta.origQty[skuKey];
+        delete meta.adjusted[skuKey];
+        updatedNotes = serializeSavedOrderNotes(cleanNotes, meta);
+      }
+
       await prisma.b2BOrder.update({
         where: { id: orderId },
-        data: { totalAmount, totalIva: totalAmount * 0.22 }
+        data: { totalAmount, totalIva: totalAmount * 0.22, notes: updatedNotes }
       });
     }
 
     revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account');
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -239,13 +267,24 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
     const updatedOrder = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (updatedOrder) {
       const totalAmount = updatedOrder.items.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+      let updatedNotes = updatedOrder.notes;
+      if (updatedOrder.status === 'DRAFT' && updatedOrder.createdById === targetUserId && targetItem) {
+        const { cleanNotes, meta } = parseSavedOrderStockMeta(updatedOrder.notes);
+        const skuKey = targetItem.sku.toUpperCase();
+        meta.origQty[skuKey] = quantity;
+        delete meta.adjusted[skuKey];
+        updatedNotes = serializeSavedOrderNotes(cleanNotes, meta);
+      }
+
       await prisma.b2BOrder.update({
         where: { id: orderId },
-        data: { totalAmount, totalIva: totalAmount * 0.22 }
+        data: { totalAmount, totalIva: totalAmount * 0.22, notes: updatedNotes }
       });
     }
 
     revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath('/account/saved-orders');
+    revalidatePath('/account');
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -263,7 +302,10 @@ export async function sendSavedOrder(orderId: string) {
     }
 
     const targetUserId = await getTargetUserId(session);
-    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
+    // Sync stock before sending
+    await syncSavedOrdersStockForUser(targetUserId);
+
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order || order.userId !== targetUserId) {
       return { success: false, error: 'Ordine non trovato' };
     }
@@ -272,10 +314,25 @@ export async function sendSavedOrder(orderId: string) {
       return { success: false, error: 'Solo gli ordini salvati possono essere inviati' };
     }
 
+    const validItems = order.items.filter(i => i.quantity > 0);
+    if (validItems.length === 0) {
+      return { success: false, error: 'Impossibile inviare l\'ordine: tutti i prodotti nell\'ordine sono attualmente esauriti.' };
+    }
+
+    // Remove 0-qty items before converting to sent order
+    const zeroItems = order.items.filter(i => i.quantity <= 0);
+    for (const zi of zeroItems) {
+      await prisma.b2BOrderItem.delete({ where: { id: zi.id } });
+    }
+
+    const totalAmount = validItems.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0);
+
     await prisma.b2BOrder.update({
       where: { id: orderId },
       data: { 
         status: 'PENDING_AGENT_REVIEW',
+        totalAmount,
+        totalIva: totalAmount * 0.22,
         notes: order.storeMode === 'ELMARK' ? 'ORDINE ELMARK - Inviato da ordini salvati' : 'Inviato da ordini salvati'
       }
     });
@@ -283,6 +340,7 @@ export async function sendSavedOrder(orderId: string) {
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/sent-orders');
     revalidatePath(`/account/orders/${orderId}`);
+    revalidatePath('/account');
     return { success: true };
   } catch (error: any) {
     console.error('Send saved order error:', error);
