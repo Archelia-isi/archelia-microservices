@@ -16,7 +16,7 @@ export default function QuickAddReorder({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [quantity, setQuantity] = useState<number | string>(1);
+  const [quantity, setQuantity] = useState<number | string>('');
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -54,7 +54,7 @@ export default function QuickAddReorder({
     setSelectedProduct(product);
     setQuery(product.sku);
     setIsOpen(false);
-    setQuantity(1);
+    setQuantity('');
   };
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,7 +73,7 @@ export default function QuickAddReorder({
         // Reset form
         setSelectedProduct(null);
         setQuery('');
-        setQuantity(1);
+        setQuantity('');
       } else {
         setErrorMsg(res.error || 'Prodotto non trovato');
       }
@@ -174,7 +174,7 @@ export default function QuickAddReorder({
             onChange={(e) => setQuantity(e.target.value)}
             min="1"
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black"
-            placeholder="Q.tà"
+            placeholder="1"
           />
         </div>
         

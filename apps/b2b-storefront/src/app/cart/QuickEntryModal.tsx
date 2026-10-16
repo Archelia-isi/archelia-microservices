@@ -97,7 +97,9 @@ function QuickEntryRow({
     const prices = getDiscountedPrice(row.selectedProduct);
     originalPrice = prices.original;
     finalPrice = prices.final;
-    const qty = parseInt(String(row.quantity)) || 0;
+    const rawQty = typeof row.quantity === 'string' ? row.quantity.trim() : row.quantity;
+    const parsed = parseInt(String(rawQty));
+    const qty = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
     rowTotal = finalPrice * qty;
   }
 
@@ -170,7 +172,7 @@ function QuickEntryRow({
           min="1"
           disabled={!row.selectedProduct}
           className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-black disabled:bg-gray-100"
-          placeholder="Q.tà"
+          placeholder="1"
         />
       </div>
 
@@ -218,7 +220,7 @@ export default function QuickEntryModal({
   elmarkDiscounts?: Record<string, number>,
   storeMode?: 'ZUCCHETTI' | 'ELMARK'
 }) {
-  const [rows, setRows] = useState<RowData[]>(Array.from({ length: 2 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: 1 })));
+  const [rows, setRows] = useState<RowData[]>(Array.from({ length: 2 }, () => ({ id: generateId(), query: '', selectedProduct: null, quantity: '' })));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -226,8 +228,8 @@ export default function QuickEntryModal({
     if (index === rows.length - 1) {
       setRows(prev => [
         ...prev,
-        { id: generateId(), query: '', selectedProduct: null, quantity: 1 },
-        { id: generateId(), query: '', selectedProduct: null, quantity: 1 }
+        { id: generateId(), query: '', selectedProduct: null, quantity: '' },
+        { id: generateId(), query: '', selectedProduct: null, quantity: '' }
       ]);
     }
   };
@@ -242,13 +244,18 @@ export default function QuickEntryModal({
 
   const handleAddAll = () => {
     setErrorMsg(null);
-    const validRows = rows.filter(r => r.selectedProduct && parseInt(String(r.quantity)) > 0);
+    const validRows = rows.filter(r => r.selectedProduct);
     if (validRows.length === 0) {
       setErrorMsg('Nessun prodotto valido selezionato.');
       return;
     }
 
-    const items = validRows.map(r => ({ sku: r.selectedProduct.sku, quantity: parseInt(String(r.quantity)) }));
+    const items = validRows.map(r => {
+      const rawQty = typeof r.quantity === 'string' ? r.quantity.trim() : r.quantity;
+      const parsed = parseInt(String(rawQty));
+      const quantity = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
+      return { sku: r.selectedProduct.sku, quantity };
+    });
     
     startTransition(async () => {
       const res = await addMultipleToCart(items);
@@ -281,7 +288,10 @@ export default function QuickEntryModal({
         if (userDiscount > 0) final = final * (1 - (userDiscount / 100));
         if (extraDiscount > 0) final = final * (1 - (extraDiscount / 100));
       }
-      grandTotal += final * (parseInt(String(r.quantity)) || 0);
+      const rawQty = typeof r.quantity === 'string' ? r.quantity.trim() : r.quantity;
+      const parsed = parseInt(String(rawQty));
+      const qty = (rawQty === '' || isNaN(parsed) || parsed < 1) ? 1 : parsed;
+      grandTotal += final * qty;
     }
   });
 

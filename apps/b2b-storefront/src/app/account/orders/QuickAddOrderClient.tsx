@@ -18,7 +18,7 @@ export default function QuickAddOrderClient({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
-  const [quantity, setQuantity] = useState<number | string>(1);
+  const [quantity, setQuantity] = useState<number | string>('');
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export default function QuickAddOrderClient({
     setSelectedProduct(product);
     setQuery(product.sku);
     setIsOpen(false);
-    setQuantity(1);
+    setQuantity('');
   };
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,7 +73,7 @@ export default function QuickAddOrderClient({
       if (res.success) {
         setSelectedProduct(null);
         setQuery('');
-        setQuantity(1);
+        setQuantity('');
       } else {
         setErrorMsg(res.error || 'Errore durante l\'aggiunta del prodotto');
       }
@@ -171,7 +171,7 @@ export default function QuickAddOrderClient({
             onChange={(e) => setQuantity(e.target.value)}
             min="1"
             className="w-full border border-gray-300 rounded px-4 py-2 text-center focus:ring-2 focus:ring-brand-main focus:border-transparent outline-none"
-            placeholder="Q.tà"
+            placeholder="1"
             disabled={isPending}
           />
         </div>
