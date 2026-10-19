@@ -351,6 +351,12 @@ export default function NewClientWizard({
     router.refresh();
   };
 
+  const handleCancelInsertion = () => {
+    setFormError('');
+    setVatStatus({ type: 'idle', message: '' });
+    router.push('/account');
+  };
+
   const isPersonaOrDitta = form.formaGiuridica === 'IND' || form.formaGiuridica === 'PER';
 
   return (
@@ -854,14 +860,28 @@ export default function NewClientWizard({
 
             {/* PULSANTI FONDO STEP 1 */}
             <div className="pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <button
-                type="button"
-                onClick={handleGoToStep2}
-                className="px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <span>Vai allo Step 2 (Campi Facoltativi / Fido / Sede Diversa)</span>
-                <span>&rarr;</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelInsertion}
+                  disabled={submitting}
+                  className="px-4 py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Annulla Inserimento</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleGoToStep2}
+                  className="px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>Vai allo Step 2 (Campi Facoltativi / Fido / Sede Diversa)</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
 
               <button
                 type="submit"
@@ -1200,14 +1220,28 @@ export default function NewClientWizard({
 
             {/* PULSANTI FONDO STEP 2 */}
             <div className="pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <span>&larr;</span>
-                <span>Torna allo Step 1 (Dati Obbligatori)</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelInsertion}
+                  disabled={submitting}
+                  className="px-4 py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Annulla Inserimento</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>&larr;</span>
+                  <span>Torna allo Step 1 (Dati Obbligatori)</span>
+                </button>
+              </div>
 
               <button
                 type="submit"
