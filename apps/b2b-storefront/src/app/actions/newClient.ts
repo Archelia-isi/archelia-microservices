@@ -66,6 +66,7 @@ export interface NewClientFormInput {
   sitoWeb?: string;
   noteAnagrafica?: string;
   isElmarkCustomer?: boolean;
+  elmarkDiscounts?: Record<string, number>;
 
   // Sede diversa (Opzionale nello Step 2)
   hasSedeDiversa?: boolean;
@@ -810,6 +811,17 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   }
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+  const standardElmarkDiscounts: Record<string, number> = {
+    E1: 20,
+    L: 20,
+    C: 5,
+    E2: 5,
+    F: 5,
+  };
+  const finalElmarkDiscounts = input.isElmarkCustomer
+    ? { ...standardElmarkDiscounts, ...(input.elmarkDiscounts || {}) }
+    : {};
+
   const createdUser = await prisma.b2BUser.create({
     data: {
       username: finalUsername,
@@ -833,6 +845,7 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
       province: provincia,
       phone: input.cellulare?.trim() || input.telefono?.trim() || null,
       isElmarkCustomer: Boolean(input.isElmarkCustomer),
+      elmarkDiscounts: finalElmarkDiscounts,
       isActive: true,
     },
   });
@@ -860,7 +873,9 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
       codiceDestinatario,
       categoriaCommerciale: customerTypeLabel,
       scontoBase: baseDiscount,
-      agente: `${ initData.agentName } (${ agentZucchettiCode || 'N/A' })`,
+      isElmarkCustomer: Boolean(input.isElmarkCustomer),
+      elmarkDiscounts: finalElmarkDiscounts,
+      agente: `${initData.agentName} (${agentZucchettiCode || 'N/A'})`,
       username: finalUsername,
       tempPassword,
       zucchettiSyncStatus,

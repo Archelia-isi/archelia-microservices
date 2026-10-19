@@ -793,6 +793,65 @@ export default function NewClientWizard({
               </div>
             </div>
 
+            {/* CHECK ABILITA AL NEGOZIO ELMARK CON SCONTI STANDARD */}
+            <div
+              className={`p-4 rounded-xl border transition-colors ${
+                form.isElmarkCustomer
+                  ? 'bg-emerald-50/70 border-emerald-300'
+                  : 'bg-gray-50 border-gray-200'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <label className="flex items-start sm:items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.isElmarkCustomer)}
+                    onChange={e => {
+                      const checked = e.target.checked;
+                      setForm(prev => ({
+                        ...prev,
+                        isElmarkCustomer: checked,
+                        elmarkDiscounts: checked
+                          ? { E1: 20, L: 20, C: 5, E2: 5, F: 5 }
+                          : undefined,
+                      }));
+                    }}
+                    className="w-5 h-5 text-brand-main rounded border-gray-300 focus:ring-brand-main mt-0.5 sm:mt-0"
+                  />
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">
+                      Abilita al Negozio Elmark
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Abilita il cliente ad acquistare nel Negozio Elmark applicando in automatico gli sconti standard del negozio.
+                    </div>
+                  </div>
+                </label>
+
+                {form.isElmarkCustomer && (
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] font-bold uppercase text-emerald-800 mr-1">
+                      Sconti Standard Negozio Elmark:
+                    </span>
+                    {[
+                      { group: 'E1', pct: 20 },
+                      { group: 'L', pct: 20 },
+                      { group: 'E2', pct: 5 },
+                      { group: 'C', pct: 5 },
+                      { group: 'F', pct: 5 },
+                    ].map(item => (
+                      <span
+                        key={item.group}
+                        className="px-2 py-0.5 rounded-md bg-white border border-emerald-300 text-emerald-900 font-mono text-xs font-bold shadow-xs"
+                      >
+                        {item.group}: {item.pct}%
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* PULSANTI FONDO STEP 1 */}
             <div className="pt-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <button
@@ -865,7 +924,7 @@ export default function NewClientWizard({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-1">
                     Nazione (`ANNAZION`)
@@ -890,18 +949,6 @@ export default function NewClientWizard({
                     onChange={e => updateField('lingua', e.target.value.toUpperCase())}
                     className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm font-mono uppercase"
                   />
-                </div>
-
-                <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2.5 cursor-pointer text-sm font-semibold text-gray-800">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(form.isElmarkCustomer)}
-                      onChange={e => updateField('isElmarkCustomer', e.target.checked)}
-                      className="w-4 h-4 text-brand-main rounded border-gray-300"
-                    />
-                    <span>Abilita anche accesso catalogo Elmark</span>
-                  </label>
                 </div>
               </div>
             </div>
@@ -1242,6 +1289,16 @@ export default function NewClientWizard({
                 </div>
                 <div>
                   <span className="font-semibold text-gray-900">E-mail:</span> {createdClient.email}
+                </div>
+                <div>
+                  <span className="font-semibold text-gray-900">Negozio Elmark:</span>{' '}
+                  {createdClient.isElmarkCustomer ? (
+                    <span className="text-emerald-700 font-semibold">
+                      Abilitato (Sconti Standard: E1 20%, L 20%, E2 5%, C 5%, F 5%)
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Non abilitato</span>
+                  )}
                 </div>
               </div>
 

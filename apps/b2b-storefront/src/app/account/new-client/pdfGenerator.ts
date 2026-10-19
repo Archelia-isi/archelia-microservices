@@ -16,6 +16,8 @@ export interface CreatedClientPdfData {
   categoriaCommerciale: string;
   scontoBase: number;
   agente: string;
+  isElmarkCustomer?: boolean;
+  elmarkDiscounts?: Record<string, number>;
   username: string;
   tempPassword: string;
   createdAt: string;
@@ -75,6 +77,10 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   lines.push('0.80 0.80 0.80 RG 0.8 w');
   lines.push('40 645 m 555 645 l S');
 
+  const elmarkRowText = client.isElmarkCustomer
+    ? 'Abilitato (Sconti Standard: E1 20%, L 20%, E2 5%, C 5%, F 5%)'
+    : 'Non abilitato';
+
   const rows: Array<[string, string]> = [
     ['Ragione Sociale:', `${client.ragioneSociale} (${client.formaGiuridica})`],
     ['Partita IVA / Cod. Fiscale:', `P.IVA: ${client.partitaIva}   -   C.F.: ${client.codiceFiscale}`],
@@ -82,6 +88,7 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
     ['Telefono / Cellulare:', `Tel: ${client.telefono || '-'}   /   Cell: ${client.cellulare || '-'}`],
     ['E-mail Principale:', client.email],
     ['Fatturazione Elettronica:', `Cod. Destinatario SDI: ${client.codiceDestinatario || '0000000'}   -   PEC: ${client.pec || '-'}`],
+    ['Negozio Elmark:', elmarkRowText],
     ['Impostazioni Contabili ERP:', 'Mastro: 01030201 (CLIENTI)   -   Cat. Contabile: CLIG (CLIENTI GENERICI)   -   Partite: SI'],
   ];
 
