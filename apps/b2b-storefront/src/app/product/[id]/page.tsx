@@ -129,21 +129,42 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const searchQuery = product.category || product.brand || '*';
   let relatedProductsRes: any;
   try {
-    relatedProductsRes = await searchProducts(searchQuery, { b2bMode: true, catalogSource: storeMode === 'ELMARK' ? 'elmark' : 'zucchetti' });
+    relatedProductsRes = await searchProducts(searchQuery, {
+      b2bMode: true,
+      limit: 100,
+      catalogSource: storeMode === 'ELMARK' ? 'elmark' : 'zucchetti'
+    });
   } catch (e) {
     console.error('Failed to fetch related products:', e);
   }
   
-  // Filter out the current product from related
-  const relatedProducts = (relatedProductsRes?.hits || [])
-    .map((h: any) => h.document)
-    .filter((p: any) => p.id !== product.id && p.sku !== product.sku)
+  // Filter out the current product and keep only in-stock main warehouse items when in ZUCCHETTI mode
+  const rawRelated = (relatedProductsRes?.hits || [])
+    .map((h: any) => ({ ...h.document }))
+    .filter((p: any) => {
+      if (p.id === product.id || p.sku === product.sku) return false;
+      if (storeMode === 'ELMARK') {
+        return Number(p.stock ?? 0) > 0;
+      }
+      const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+      return p.catalog_source !== 'elmark' && String(p.brand || '').toUpperCase() !== 'ELMARK' && mainStock > 0;
+    });
+
+  for (let i = rawRelated.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [rawRelated[i], rawRelated[j]] = [rawRelated[j], rawRelated[i]];
+  }
+
+  const relatedProducts = rawRelated
+    .slice(0, 10)
     .map((p: any) => {
-      // Apply B2B pricing to related products
+      if (storeMode !== 'ELMARK') {
+        p.stock_ek = 0;
+        p.stock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+      }
       if (isAuthenticated) { applyPricing(p); }
       return p;
-    })
-    .slice(0, 10);
+    });
 
   // Parse technical description string into an array of key-value pairs
   // E.g. "Tipo: Strip LED; Potenza: 11 W/m;" -> [{key: "Tipo", value: "Strip LED"}, ...]
@@ -230,7 +251,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
 
       {/* RELATED PRODUCTS CAROUSEL */}
       <div className="mt-20 mb-12">
-        <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} />
+        <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
       </div>
     </div>
   );

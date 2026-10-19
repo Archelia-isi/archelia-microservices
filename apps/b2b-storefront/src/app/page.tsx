@@ -1,48 +1,118 @@
 import Link from 'next/link';
-import { searchProducts } from '@archelia/typesense/dist/search.js';
+import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import HeroCarousel from '../components/HeroCarousel';
 import ProductCarousel from '../components/ProductCarousel';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export default async function Home() {
   const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
-  const catalogSource = storeMode === 'ELMARK' ? 'elmark' : 'zucchetti';
   const session = await verifySession();
   if (session?.user?.mustChangePassword) {
     redirect('/setup-password');
   }
 
+  const randomSortOptions = storeMode === 'ELMARK'
+    ? [
+        'stock:desc,natural_sku:asc',
+        'stock:asc,natural_sku:desc',
+        'natural_sku:asc',
+        'natural_sku:desc',
+        'price:asc,stock:desc',
+        'price:desc,stock:desc',
+      ]
+    : [
+        'stock_main:desc,natural_sku:asc',
+        'stock_main:asc,natural_sku:desc',
+        'natural_sku:asc',
+        'natural_sku:desc',
+        'price:asc,stock_main:desc',
+        'price:desc,stock_main:desc',
+      ];
+
+  const pickRandomSort = () =>
+    randomSortOptions[Math.floor(Math.random() * randomSortOptions.length)];
+
+  const filterBy = storeMode === 'ELMARK'
+    ? 'brand:=ELMARK && stock:>0'
+    : 'brand:!=[ELMARK] && stock_main:>0';
+
+  const fetchPool = async (q: string, customSort?: string) => {
+    const sortBy = customSort || (q === '*' ? pickRandomSort() : `_text_match:desc,${pickRandomSort()}`);
+    return typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+      q,
+      query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+      query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
+      filter_by: filterBy,
+      sort_by: sortBy,
+      per_page: 250,
+    });
+  };
+
   let illumRes, battRes, eletRes, civileRes, novitaRes, promoRes;
-  
+
   try {
-    const illumReq = searchProducts('illuminazione', { b2bMode: true, catalogSource });
-    const battReq = searchProducts('batterie', { b2bMode: true, catalogSource });
-    const eletReq = searchProducts('elettrico', { b2bMode: true, catalogSource });
-    const civileReq = searchProducts('serie civile', { b2bMode: true, catalogSource });
-    const novitaReq = searchProducts('*', { b2bMode: true, catalogSource }); // Removed invalid sortBy
-    const promoReq = searchProducts('led', { b2bMode: true, catalogSource });
-    
-    [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([illumReq, battReq, eletReq, civileReq, novitaReq, promoReq]);
+    const novitaSort = pickRandomSort();
+    const otherSorts = randomSortOptions.filter((s) => s !== novitaSort);
+    const promoSort = otherSorts[Math.floor(Math.random() * otherSorts.length)] || pickRandomSort();
+
+    const illumReq = fetchPool('illuminazione');
+    const battReq = fetchPool('utensili');
+    const eletReq = fetchPool('elettrico');
+    const civileReq = fetchPool('serie civile');
+    const novitaReq = fetchPool('*', novitaSort);
+    const promoReq = fetchPool('*', promoSort);
+
+    [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([
+      illumReq,
+      battReq,
+      eletReq,
+      civileReq,
+      novitaReq,
+      promoReq,
+    ]);
   } catch (error) {
     console.error('Failed to fetch home page products:', error);
   }
-  
+
   const isAuthenticated = !!session;
-  
 
   const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
   const genericDiscount = await getEffectiveDiscount();
   const extraDiscount = await getExtraAgentDiscount();
   const elmarkDiscounts = await getEffectiveElmarkDiscounts();
 
+  const isValidStoreProduct = (p: any) => {
+    if (!p) return false;
+    if (storeMode === 'ELMARK') {
+      const isElmark = p.catalog_source === 'elmark' || String(p.brand || '').toUpperCase() === 'ELMARK';
+      return isElmark && Number(p.stock ?? 0) > 0;
+    }
+    const isMainCatalog = p.catalog_source !== 'elmark' && String(p.brand || '').toUpperCase() !== 'ELMARK';
+    const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+    return isMainCatalog && mainStock > 0;
+  };
+
   const mapPrices = (products: any[]) => {
-    return products.map(p => {
+    return products.map(cp => {
+      const p = { ...cp };
       p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
       let finalPrice = p.originalPriceB2b;
-      
+
       if (storeMode === 'ELMARK') {
         const dGroup = p.discgroup || '';
         const groupDisc = elmarkDiscounts[dGroup] || 0;
@@ -56,23 +126,53 @@ export default async function Home() {
         if (extraDiscount > 0) {
           finalPrice = finalPrice * (1 - (extraDiscount / 100));
         }
+        // In Izzo Distribuzione home page, highlight main warehouse stock
+        p.stock_ek = 0;
+        p.stock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
       }
-      
+
       p.price_b2b = finalPrice;
       return p;
     });
   };
 
-  const getTop4 = (res: any) => mapPrices(res?.hits?.slice(0, 4).map((h: any) => h.document) || []);
-  const getTop10 = (res: any) => mapPrices(res?.hits?.slice(0, 10).map((h: any) => h.document) || []);
-  
-  const illumProducts = getTop4(illumRes);
-  const battProducts = getTop4(battRes);
-  const eletProducts = getTop4(eletRes);
-  const civileProducts = getTop4(civileRes);
-  
-  const novitaProducts = getTop10(novitaRes);
-  const promoProducts = getTop10(promoRes);
+  const usedSkus = new Set<string>();
+
+  const pickRandomProducts = (res: any, count: number) => {
+    const allDocs: any[] = (res?.hits || [])
+      .map((h: any) => h.document)
+      .filter(isValidStoreProduct);
+
+    const shuffled = shuffleArray(allDocs);
+    const selected: any[] = [];
+
+    for (const doc of shuffled) {
+      const key = String(doc.sku || doc.id || '');
+      if (!key || usedSkus.has(key)) continue;
+      usedSkus.add(key);
+      selected.push(doc);
+      if (selected.length >= count) break;
+    }
+
+    // Fallback if pool had fewer unique items than requested
+    if (selected.length < count) {
+      for (const doc of shuffled) {
+        if (selected.includes(doc)) continue;
+        selected.push(doc);
+        if (selected.length >= count) break;
+      }
+    }
+
+    return mapPrices(selected);
+  };
+
+  const illumProducts = pickRandomProducts(illumRes, 4);
+  const battProducts = pickRandomProducts(battRes, 4);
+  const eletProducts = pickRandomProducts(eletRes, 4);
+  const civileProducts = pickRandomProducts(civileRes, 4);
+
+  const novitaProducts = pickRandomProducts(novitaRes, 12);
+  const promoProducts = pickRandomProducts(promoRes, 12);
 
   const renderCategoryCard = (title: string, products: any[], link: string) => (
     <div className="bg-white shadow-sm flex flex-col h-full hover:shadow-md transition-shadow rounded-sm relative">
