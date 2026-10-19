@@ -61,17 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden ${storeMode === 'ELMARK' ? 'theme-elmark' : ''}`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-brand-hover relative">
-          
-          {session?.user?.role === 'AGENT' && (
-            <ReviewSessionCleanup
-              hasActiveReview={hasActiveReview}
-              impersonatedClientCode={impersonatedClientCode}
-              impersonatedClientName={impersonatedClientName}
-            />
-          )}
-
-          <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-            <div className={`flex items-center gap-3 md:gap-6 shrink-0 ${session?.user?.role === 'AGENT' && impersonatedClientCode ? 'md:pl-[200px] 2xl:pl-0' : ''}`}>
+          <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between relative">
+            <div className="flex items-center gap-3 md:gap-6 shrink-0">
               <Link prefetch={true} href="/" className="flex items-center pr-4 md:pr-10">
                 {storeMode === 'ELMARK' ? (
                 <Image 
@@ -117,7 +108,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
           </div>
           {storeMode === 'ELMARK' && (
-            <div className="hidden md:flex items-center absolute right-4 md:right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="hidden md:flex items-center absolute right-4 md:right-8 top-10 -translate-y-1/2 pointer-events-none">
               <Image 
                 src="/logo-izzo.png" 
                 alt="Izzo Distribuzione" 
@@ -127,6 +118,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 priority
               />
             </div>
+          )}
+          {session?.user?.role === 'AGENT' && (
+            <ReviewSessionCleanup
+              hasActiveReview={hasActiveReview}
+              impersonatedClientCode={impersonatedClientCode}
+              impersonatedClientName={impersonatedClientName}
+            />
           )}
         </header>
         <main className="flex-grow max-w-7xl mx-auto w-full p-4">
