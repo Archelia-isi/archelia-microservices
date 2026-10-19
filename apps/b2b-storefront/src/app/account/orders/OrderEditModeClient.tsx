@@ -37,7 +37,7 @@ export default function OrderEditModeClient({
   const isElmark = order.storeMode === 'ELMARK';
   const tabParam = isElmark ? '?tab=elmark' : '';
   const redirectUrl = isAgent 
-    ? `/account/agent-orders${tabParam}` 
+    ? (order.status === 'DRAFT' ? `/account/quotes${tabParam}` : `/account/agent-orders${tabParam}`)
     : (isSavedOrder ? `/account/saved-orders${tabParam}` : `/account/sent-orders${tabParam}`);
 
   const handleStartEdit = async () => {

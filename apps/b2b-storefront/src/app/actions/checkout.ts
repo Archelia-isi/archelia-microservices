@@ -179,6 +179,9 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
     revalidatePath('/cart');
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/sent-orders');
+    revalidatePath('/account/quotes');
+    revalidatePath('/account/agent-orders');
+    revalidatePath('/account/agent-completed');
     revalidatePath('/account');
 
     return { success: true, orderId: order.id, status: orderStatus, storeMode: order.storeMode };

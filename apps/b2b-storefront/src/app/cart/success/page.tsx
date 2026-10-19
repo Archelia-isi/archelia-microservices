@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { verifySession } from '@/lib/session';
 
-export default function CartSuccessPage({
+export default async function CartSuccessPage({
   searchParams
 }: {
   searchParams: { type?: string; orderId?: string; tab?: string }
 }) {
+  const session = await verifySession();
+  const isAgent = session?.user?.role === 'AGENT';
   const isSaved = searchParams.type === 'saved';
   const isPaused = searchParams.type === 'paused';
   const isElmark = searchParams.tab === 'elmark';
@@ -42,7 +45,7 @@ export default function CartSuccessPage({
           {isSaved
             ? 'Ordine Salvato con Successo!'
             : isPaused
-            ? 'Preventivo Messo in Pausa!'
+            ? 'Preventivo Inviato!'
             : 'Ordine Inviato con Successo!'}
         </h1>
 
@@ -50,7 +53,9 @@ export default function CartSuccessPage({
           {isSaved
             ? 'Il tuo ordine è stato salvato tra le tue bozze. Potrai modificarlo, aggiungere altri prodotti o inviarlo all\'agente in qualsiasi momento.'
             : isPaused
-            ? 'Il preventivo è stato archiviato in pausa e sarà consultabile nella sezione Preventivi.'
+            ? 'Il preventivo è stato messo in pausa e inviato al cliente. Potrai consultarlo o modificarlo nella sezione Preventivi Inviati.'
+            : isAgent
+            ? 'L\'ordine del cliente è stato approvato e inviato a Zucchetti. Lo trovi nello storico degli Ordini Conclusi.'
             : 'Il tuo ordine è stato trasmesso all\'agente per la revisione. Riceverai un riscontro non appena sarà confermato.'}
         </p>
 
@@ -69,6 +74,8 @@ export default function CartSuccessPage({
                 ? `/account/saved-orders${tabParam}`
                 : isPaused
                 ? `/account/quotes${tabParam}`
+                : isAgent
+                ? `/account/agent-completed${tabParam}`
                 : `/account/sent-orders${tabParam}`
             }
             className="px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
@@ -76,7 +83,9 @@ export default function CartSuccessPage({
             {isSaved
               ? 'Vai a Ordini Salvati'
               : isPaused
-              ? 'Vai ai Preventivi'
+              ? 'Vai a Preventivi Inviati'
+              : isAgent
+              ? 'Vai a Ordini Conclusi'
               : 'Vai a Ordini Inviati'}
           </Link>
 

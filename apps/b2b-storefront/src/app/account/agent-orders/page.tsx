@@ -19,7 +19,7 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
   // Trova gli ordini PENDING_AGENT_REVIEW dei clienti assegnati all'agente
   const pendingOrders = await prisma.b2BOrder.findMany({
     where: {
-      status: { in: ['PENDING_AGENT_REVIEW', 'DRAFT'] },
+      status: 'PENDING_AGENT_REVIEW',
       storeMode: currentTab,
       user: {
         agentId: session.userId,

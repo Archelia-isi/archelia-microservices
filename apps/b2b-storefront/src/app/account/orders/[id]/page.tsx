@@ -82,6 +82,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     if (isApproved) {
       backLink = `/account/agent-completed${tabParam}`;
       backText = 'Torna a Ordini Conclusi';
+    } else if (isDraft) {
+      backLink = `/account/quotes${tabParam}`;
+      backText = 'Torna a Preventivi Inviati';
     } else {
       backLink = `/account/agent-orders${tabParam}`;
       backText = 'Torna a Vaglio Ordini';
