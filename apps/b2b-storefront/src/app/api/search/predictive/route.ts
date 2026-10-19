@@ -23,24 +23,76 @@ export async function GET(request: Request) {
       });
     }
 
-    const filterBy = storeMode === 'ELMARK'
-      ? 'brand:=ELMARK'
-      : 'brand:!=[ELMARK]';
+    const baseSearchParams = {
+      q,
+      query_by: 'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+      query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+      prefix: 'true,true,true,true,true,true,true,true,true,true,false,false',
+      facet_by: 'category,brand,family',
+      max_facet_values: 6,
+      per_page: 8
+    };
 
-    const [searchResults, session] = await Promise.all([
-      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-        q,
-        query_by: 'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-        query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
-        prefix: 'true,true,true,true,true,true,true,true,true,true,false,false',
-        filter_by: filterBy,
-        facet_by: 'category,brand,family',
-        max_facet_values: 4,
-        sort_by: '_text_match:desc,stock:desc,natural_sku:asc',
-        per_page: 8
-      }),
-      verifySession()
-    ]);
+    let rawHits: any[] = [];
+    let totalFound = 0;
+    let searchFacetSets: any[][] = [];
+    let session: any = null;
+
+    if (storeMode === 'ELMARK') {
+      const [inStockRes, outStockRes, sess] = await Promise.all([
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: 'catalog_source:=elmark && stock:>0',
+          sort_by: '_text_match:desc,stock:desc,natural_sku:asc'
+        }),
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: 'catalog_source:=elmark && stock:<=0',
+          sort_by: '_text_match:desc,natural_sku:asc'
+        }),
+        verifySession()
+      ]);
+
+      session = sess;
+      rawHits = [
+        ...(inStockRes?.hits || []),
+        ...(outStockRes?.hits || [])
+      ].slice(0, 8);
+      totalFound = (inStockRes?.found || 0) + (outStockRes?.found || 0);
+      searchFacetSets = [inStockRes?.facet_counts || [], outStockRes?.facet_counts || []];
+    } else {
+      const [tier1Res, tier2Res, tier3Res, sess] = await Promise.all([
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+          sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc'
+        }),
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0',
+          sort_by: '_text_match:desc,stock_ek:desc,natural_sku:asc'
+        }),
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0',
+          sort_by: '_text_match:desc,natural_sku:asc'
+        }),
+        verifySession()
+      ]);
+
+      session = sess;
+      rawHits = [
+        ...(tier1Res?.hits || []),
+        ...(tier2Res?.hits || []),
+        ...(tier3Res?.hits || [])
+      ].slice(0, 8);
+      totalFound = (tier1Res?.found || 0) + (tier2Res?.found || 0) + (tier3Res?.found || 0);
+      searchFacetSets = [
+        tier1Res?.facet_counts || [],
+        tier2Res?.facet_counts || [],
+        tier3Res?.facet_counts || []
+      ];
+    }
 
     const isAuthenticated = !!session;
     let genericDiscount = 0;
@@ -60,7 +112,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const hits = (searchResults?.hits || []).map((hit: any) => {
+    const hits = rawHits.map((hit: any) => {
       const doc = { ...hit.document };
       if (isAuthenticated) {
         const basePrice = storeMode === 'ELMARK'
@@ -94,28 +146,31 @@ export async function GET(request: Request) {
       return doc;
     });
 
-    const facetCounts = searchResults?.facet_counts || [];
-    const categoryFacet = facetCounts.find((f: any) => f.field_name === 'category');
-    const familyFacet = facetCounts.find((f: any) => f.field_name === 'family');
-    const brandFacet = facetCounts.find((f: any) => f.field_name === 'brand');
+    const mergeFacetField = (fieldName: string) => {
+      const countsMap = new Map<string, number>();
+      for (const facetSet of searchFacetSets) {
+        const facet = (facetSet || []).find((f: any) => f.field_name === fieldName);
+        for (const item of facet?.counts || []) {
+          if (item?.value && String(item.value).trim().length > 1) {
+            const val = String(item.value);
+            countsMap.set(val, (countsMap.get(val) || 0) + Number(item.count || 0));
+          }
+        }
+      }
+      return Array.from(countsMap.entries())
+        .map(([value, count]) => ({ value, count }))
+        .slice(0, 4);
+    };
 
-    const categories: { value: string; count: number }[] = (
-      categoryFacet?.counts?.length ? categoryFacet.counts : (familyFacet?.counts || [])
-    )
-      .filter((c: any) => c.value && c.value.trim().length > 1)
-      .slice(0, 4)
-      .map((c: any) => ({ value: c.value, count: c.count }));
-
-    const brands: { value: string; count: number }[] = (brandFacet?.counts || [])
-      .filter((b: any) => b.value && b.value.trim().length > 1)
-      .slice(0, 4)
-      .map((b: any) => ({ value: b.value, count: b.count }));
+    const categories = mergeFacetField('category');
+    const fallbackCategories = categories.length > 0 ? categories : mergeFacetField('family');
+    const brands = mergeFacetField('brand');
 
     return NextResponse.json({
       hits,
-      found: searchResults?.found || hits.length,
+      found: totalFound || hits.length,
       facets: {
-        categories: categories.length > 0 ? categories : [],
+        categories: fallbackCategories,
         brands: storeMode === 'ELMARK' ? [] : brands
       },
       isAuthenticated,

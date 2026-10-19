@@ -2,47 +2,94 @@ import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } fro
 
 export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string, limit?: number, l1?: string, l2?: string, l3?: string, catalogSource?: 'zucchetti' | 'elmark' }) {
   try {
-    const searchParams: any = {
-      q: q,
-      query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-      query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
-      sort_by: (!q || q === '*') 
-        ? 'stock:desc,natural_sku:asc' 
-        : '_text_match:desc,stock:desc',
-      per_page: options?.limit || 50
+    const limit = options?.limit || 50;
+    const isWildcard = !q || q === '*';
+    const baseSearchParams: any = {
+      q: q || '*',
+      query_by: 'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+      query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+      per_page: limit
     };
-    
-    if (options?.sortBy) {
-      searchParams.sort_by = options.sortBy;
-    }
-    
-    let filters = [];
+
+    const baseFilters: string[] = [];
     if (!options?.includeUnpublished) {
-      if (options?.b2bMode) {
-        // TEMP FIX: Do not filter by publishedOnWeb in B2B mode since all 11084 products in Typesense are B2B products,
-        // and publishedOnB2b is not yet populated.
-      } else {
-        filters.push('publishedOnWeb:true');
+      if (!options?.b2bMode) {
+        baseFilters.push('publishedOnWeb:true');
       }
     }
 
-    if (options?.l1) filters.push(`product_group:=${options.l1}`);
-    if (options?.l2) filters.push(`family:=${options.l2}`);
-    if (options?.l3) filters.push(`category:=${options.l3}`);
-    
-    // Default to hiding elmark from standard searches unless explicitly requested
+    if (options?.l1) baseFilters.push(`product_group:=${options.l1}`);
+    if (options?.l2) baseFilters.push(`family:=${options.l2}`);
+    if (options?.l3) baseFilters.push(`category:=${options.l3}`);
+
+    const buildFilter = (extra: string) => [...baseFilters, extra].join(' && ');
+
     if (options?.catalogSource === 'elmark') {
-      filters.push('brand:=ELMARK');
-    } else {
-      filters.push('brand:!=[ELMARK]'); // Hide elmark products
+      const sortInStock = options?.sortBy || (isWildcard ? 'stock:desc,natural_sku:asc' : '_text_match:desc,stock:desc,natural_sku:asc');
+      const sortOutStock = options?.sortBy || (isWildcard ? 'natural_sku:asc' : '_text_match:desc,natural_sku:asc');
+
+      const [inStockRes, outStockRes] = await Promise.all([
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: buildFilter('catalog_source:=elmark && stock:>0'),
+          sort_by: sortInStock
+        }),
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          ...baseSearchParams,
+          filter_by: buildFilter('catalog_source:=elmark && stock:<=0'),
+          sort_by: sortOutStock
+        })
+      ]);
+
+      const combinedHits = [
+        ...(inStockRes?.hits || []),
+        ...(outStockRes?.hits || [])
+      ].slice(0, limit);
+
+      return {
+        ...inStockRes,
+        found: (inStockRes?.found || 0) + (outStockRes?.found || 0),
+        hits: combinedHits
+      };
     }
 
-    if (filters.length > 0) {
-      searchParams.filter_by = filters.join(' && ');
-    }
+    // Default / Zucchetti mode:
+    // Priority 1: Main warehouse (catalog_source:=zucchetti && stock_main:>0)
+    // Priority 2: Other warehouses (catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0)
+    // Priority 3: Out of stock (catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0)
+    const sortTier1 = options?.sortBy || (isWildcard ? 'stock_main:desc,natural_sku:asc' : '_text_match:desc,stock_main:desc,natural_sku:asc');
+    const sortTier2 = options?.sortBy || (isWildcard ? 'stock_ek:desc,natural_sku:asc' : '_text_match:desc,stock_ek:desc,natural_sku:asc');
+    const sortTier3 = options?.sortBy || (isWildcard ? 'natural_sku:asc' : '_text_match:desc,natural_sku:asc');
 
-    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search(searchParams);
-    return searchResults;
+    const [tier1Res, tier2Res, tier3Res] = await Promise.all([
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseSearchParams,
+        filter_by: buildFilter('catalog_source:=zucchetti && stock_main:>0'),
+        sort_by: sortTier1
+      }),
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseSearchParams,
+        filter_by: buildFilter('catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0'),
+        sort_by: sortTier2
+      }),
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseSearchParams,
+        filter_by: buildFilter('catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0'),
+        sort_by: sortTier3
+      })
+    ]);
+
+    const combinedHits = [
+      ...(tier1Res?.hits || []),
+      ...(tier2Res?.hits || []),
+      ...(tier3Res?.hits || [])
+    ].slice(0, limit);
+
+    return {
+      ...(tier1Res || tier2Res || tier3Res),
+      found: (tier1Res?.found || 0) + (tier2Res?.found || 0) + (tier3Res?.found || 0),
+      hits: combinedHits
+    };
   } catch (error) {
     console.error('Typesense search error:', error);
     throw error;
