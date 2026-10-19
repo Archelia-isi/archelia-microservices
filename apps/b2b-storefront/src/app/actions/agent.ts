@@ -161,3 +161,43 @@ export async function startOrderReview(orderId: string) {
   }
 }
 
+export async function endOrderReviewSession() {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false };
+  }
+
+  const cookieStore = cookies();
+  const reviewingOrderId = cookieStore.get('reviewingOrderId')?.value;
+
+  if (reviewingOrderId) {
+    try {
+      const { redis } = await import('@/lib/redis');
+      await redis.del(`b2b_order_lock:${reviewingOrderId}`);
+      await prisma.b2BCart.deleteMany({
+        where: { linkedOrderId: reviewingOrderId, status: 'REVIEW' }
+      });
+    } catch (e) {}
+  }
+
+  const cookieNames = [
+    'reviewingOrderId',
+    'impersonatedClientCode',
+    'impersonatedClientName',
+    'impersonatedClientDiscount',
+    'agentExtraDiscount',
+  ];
+
+  for (const name of cookieNames) {
+    cookieStore.delete({ name, path: '/', maxAge: 0 });
+    if (process.env.NODE_ENV === 'production') {
+      cookieStore.delete({ name, path: '/', domain: '.izzodistribuzione.it', maxAge: 0 });
+    }
+  }
+
+  const { revalidatePath } = await import('next/cache');
+  revalidatePath('/', 'layout');
+  return { success: true };
+}
+
+

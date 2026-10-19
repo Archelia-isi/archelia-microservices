@@ -15,9 +15,11 @@ export async function duplicateOrderToCart(originalOrderUserId: string, items: {
   if (session.user.role === 'AGENT') {
     const targetUser = await prisma.b2BUser.findUnique({ where: { id: originalOrderUserId } });
     if (targetUser && targetUser.zucchettiCode) {
-      cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
-      cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
-      cookies().set('impersonatedClientName', targetUser.companyName || '');
+      const cookieOpts: any = { path: '/', maxAge: 86400 };
+      if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+      cookies().set('impersonatedClientCode', targetUser.zucchettiCode, cookieOpts);
+      cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString(), cookieOpts);
+      cookies().set('impersonatedClientName', targetUser.companyName || '', cookieOpts);
     }
   }
 
@@ -38,13 +40,6 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
 
   const targetUser = await prisma.b2BUser.findUnique({ where: { id: originalOrderUserId } });
   if (!targetUser) return { success: false, error: 'Utente non trovato' };
-  
-  // Auto-impersonate client in the session as well
-  if (targetUser.zucchettiCode) {
-    cookies().set('impersonatedClientCode', targetUser.zucchettiCode);
-    cookies().set('impersonatedClientDiscount', (targetUser.discount || 0).toString());
-      cookies().set('impersonatedClientName', targetUser.companyName || '');
-  }
 
   let elmarkDiscounts: Record<string, number> = (targetUser.elmarkDiscounts as Record<string, number>) || {};
   let genericDiscount = targetUser.discount || 0;

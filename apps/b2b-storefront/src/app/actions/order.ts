@@ -72,14 +72,26 @@ export async function deleteSentOrder(orderId: string) {
     } catch (e) {}
 
     if (isAgent) {
-      const reviewingOrderId = cookies().get('reviewingOrderId')?.value;
+      const cookieStore = cookies();
+      const reviewingOrderId = cookieStore.get('reviewingOrderId')?.value;
       if (reviewingOrderId === orderId) {
-        const cookieOpts: any = { path: '/', maxAge: 0 };
-        if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
-        cookies().delete({ name: 'reviewingOrderId', ...cookieOpts });
+        const cookieNames = [
+          'reviewingOrderId',
+          'impersonatedClientCode',
+          'impersonatedClientName',
+          'impersonatedClientDiscount',
+          'agentExtraDiscount',
+        ];
+        for (const name of cookieNames) {
+          cookieStore.delete({ name, path: '/', maxAge: 0 });
+          if (process.env.NODE_ENV === 'production') {
+            cookieStore.delete({ name, path: '/', domain: '.izzodistribuzione.it', maxAge: 0 });
+          }
+        }
       }
     }
 
+    revalidatePath('/', 'layout');
     revalidatePath('/account/agent-orders');
     revalidatePath('/account/sent-orders');
     revalidatePath('/account/saved-orders');

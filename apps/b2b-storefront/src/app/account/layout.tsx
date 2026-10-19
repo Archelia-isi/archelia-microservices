@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
+import ReviewSessionCleanup from './ReviewSessionCleanup';
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await verifySession();
@@ -13,6 +14,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
   const cookieStore = cookies();
   const storeMode = cookieStore.get('b2b_store_mode')?.value;
   const tabParam = storeMode === 'ELMARK' ? '?tab=elmark' : '';
+  const hasActiveReview = session.user.role === 'AGENT' && Boolean(cookieStore.get('reviewingOrderId')?.value);
 
   let hasSavedOrderStockChanges = false;
   let adjustedOrdersCount = 0;
@@ -24,6 +26,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
 
   return (
     <div className="max-w-7xl mx-auto py-4">
+      {session.user.role === 'AGENT' && <ReviewSessionCleanup hasActiveReview={hasActiveReview} />}
       <div className="flex flex-col md:flex-row gap-8">
         
         {/* Sidebar */}

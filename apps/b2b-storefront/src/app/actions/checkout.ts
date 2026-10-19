@@ -158,9 +158,6 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       try {
         await redis.del(`b2b_order_lock:${cart.linkedOrderId}`);
       } catch (e) {}
-      const deleteOpts: any = { path: '/', maxAge: 0 };
-      if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
-      cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });
     }
 
     // Clear Redis Cart
@@ -173,9 +170,28 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       console.error('Failed to clear redis cart', e);
     }
 
+    // Quando l'agente conclude il vaglio/ordine (Invia o Metti in Pausa), disattiviamo l'impersonificazione e il vaglio
+    if (session.user.role === 'AGENT') {
+      const cookieStore = cookies();
+      const cookieNames = [
+        'reviewingOrderId',
+        'impersonatedClientCode',
+        'impersonatedClientName',
+        'impersonatedClientDiscount',
+        'agentExtraDiscount',
+      ];
+      for (const name of cookieNames) {
+        cookieStore.delete({ name, path: '/', maxAge: 0 });
+        if (process.env.NODE_ENV === 'production') {
+          cookieStore.delete({ name, path: '/', domain: '.izzodistribuzione.it', maxAge: 0 });
+        }
+      }
+    }
+
     // If orderStatus === 'APPROVED', we should push to Redis/Worker to send to Zucchetti. 
     // This will be handled by a queue later.
 
+    revalidatePath('/', 'layout');
     revalidatePath('/cart');
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/sent-orders');
