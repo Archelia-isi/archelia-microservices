@@ -125,30 +125,57 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     images = [product.image_url];
   }
 
-  // Fetch related products (e.g. from the same category or brand, fallback to generic search if not available)
+  // Fetch related products directly with main warehouse stock filter
   const searchQuery = product.category || product.brand || '*';
-  let relatedProductsRes: any;
+  const relatedFilterBy = storeMode === 'ELMARK'
+    ? 'catalog_source:=elmark && stock:>0'
+    : 'catalog_source:=zucchetti && stock_main:>0';
+  const relatedSortOptions = storeMode === 'ELMARK'
+    ? ['stock:desc,natural_sku:asc', 'stock:asc,natural_sku:desc', 'natural_sku:asc', 'natural_sku:desc']
+    : ['stock_main:desc,natural_sku:asc', 'stock_main:asc,natural_sku:desc', 'natural_sku:asc', 'natural_sku:desc'];
+  const randomRelatedSort = relatedSortOptions[Math.floor(Math.random() * relatedSortOptions.length)];
+
+  let rawRelated: any[] = [];
   try {
-    relatedProductsRes = await searchProducts(searchQuery, {
-      b2bMode: true,
-      limit: 100,
-      catalogSource: storeMode === 'ELMARK' ? 'elmark' : 'zucchetti'
+    const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import('@archelia/typesense/dist/client.js');
+    const relatedProductsRes = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+      q: searchQuery,
+      query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+      filter_by: relatedFilterBy,
+      sort_by: searchQuery === '*' ? randomRelatedSort : `_text_match:desc,${randomRelatedSort}`,
+      per_page: 100,
     });
+
+    rawRelated = (relatedProductsRes?.hits || [])
+      .map((h: any) => ({ ...h.document }))
+      .filter((p: any) => {
+        if (p.id === product.id || p.sku === product.sku) return false;
+        if (storeMode === 'ELMARK') {
+          return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
+        }
+        const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+        return p.catalog_source !== 'elmark' && mainStock > 0;
+      });
+
+    if (rawRelated.length < 10 && searchQuery !== '*') {
+      const fallbackRes = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        q: '*',
+        query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+        filter_by: relatedFilterBy,
+        sort_by: randomRelatedSort,
+        per_page: 100,
+      });
+      const existingSkus = new Set(rawRelated.map((p: any) => p.sku));
+      for (const hit of fallbackRes?.hits || []) {
+        const doc: any = { ...hit.document };
+        if (doc.id === product.id || doc.sku === product.sku || existingSkus.has(doc.sku)) continue;
+        rawRelated.push(doc);
+        existingSkus.add(doc.sku);
+      }
+    }
   } catch (e) {
     console.error('Failed to fetch related products:', e);
   }
-  
-  // Filter out the current product and keep only in-stock main warehouse items when in ZUCCHETTI mode
-  const rawRelated = (relatedProductsRes?.hits || [])
-    .map((h: any) => ({ ...h.document }))
-    .filter((p: any) => {
-      if (p.id === product.id || p.sku === product.sku) return false;
-      if (storeMode === 'ELMARK') {
-        return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
-      }
-      const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-      return p.catalog_source !== 'elmark' && mainStock > 0;
-    });
 
   for (let i = rawRelated.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
