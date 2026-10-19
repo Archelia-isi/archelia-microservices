@@ -178,9 +178,9 @@ export default async function Home() {
             <div className="absolute top-0 right-0 w-5 h-5 bg-white shadow-sm border border-gray-100 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer">
               <svg className="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             </div>
-            <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-1">
+            <div className="w-full h-[110px] sm:h-[120px] shrink-0 flex items-center justify-center overflow-hidden mb-1">
               {prod.image_url ? (
-                <img src={prod.image_url} alt={prod.title} className="w-[85%] h-[85%] object-contain group-hover:scale-105 transition-transform duration-300" />
+                <img src={prod.image_url} alt={prod.title} className="max-w-[85%] max-h-[85%] w-auto h-auto object-contain group-hover:scale-105 transition-transform duration-300" />
               ) : (
                 <div className="w-full h-full bg-gray-50 rounded"></div>
               )}

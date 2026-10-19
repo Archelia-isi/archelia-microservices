@@ -284,9 +284,9 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
               )}
             </div>
             
-            <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="w-full aspect-square p-4 flex items-center justify-center bg-white relative">
+            <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="w-full h-[200px] sm:h-[220px] shrink-0 overflow-hidden p-4 flex items-center justify-center bg-white relative">
               {product.image_url ? (
-                <img src={product.image_url} alt={product.title} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" />
+                <img src={product.image_url} alt={product.title} className="max-w-full max-h-full w-auto h-auto object-contain group-hover:scale-105 transition-transform duration-500" />
               ) : (
                 <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-400">
                   <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -294,18 +294,18 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
               )}
             </Link>
             <div className="p-4 pt-2 flex flex-col flex-grow border-t border-gray-50">
-              <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate">{product.brand || product.vendor || 'IZZO'}</span>
-              <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 min-h-[40px]">
+              <span className="text-[10px] uppercase text-gray-500 tracking-wider font-semibold mb-1 truncate h-[14px] leading-[14px]">{product.brand || product.vendor || 'IZZO'}</span>
+              <h3 className="text-sm font-medium text-gray-900 leading-tight mb-2 line-clamp-2 h-[40px] overflow-hidden">
                 <Link prefetch={true} href={`/product/${product.id || product.sku}`} className="hover:text-brand-main transition-colors">
                   {product.original_name || product.title}
                 </Link>
               </h3>
-              <div className="text-sm font-bold text-gray-900 font-mono mb-3 truncate" title={product.sku || product.natural_sku}>
+              <div className="text-sm font-bold text-gray-900 font-mono mb-3 truncate h-[20px] leading-[20px]" title={product.sku || product.natural_sku}>
                 {product.sku || product.natural_sku || 'N/D'}
               </div>
               <div className="mt-auto flex flex-col gap-3">
                 {isAuthenticated && (
-                  <div className="flex flex-col">
+                  <div className="flex flex-col justify-end min-h-[34px]">
                     {product.originalPriceB2b && product.price_b2b < product.originalPriceB2b && (
                       <div className="flex items-center gap-1.5 mb-0.5">
                         <span className="text-[10px] text-gray-400 line-through">
