@@ -250,7 +250,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ProductCarousel title="In Promozione" products={promoProducts} viewAllLink="/catalog?q=promo" isLoggedIn={isAuthenticated} storeMode={storeMode} />
+      <ProductCarousel title="In Evidenza" products={promoProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
 
       {/* VANTAGGI B2B COMPATTI */}
       <section className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 px-4">
