@@ -96,6 +96,10 @@ export default function OrderEditModeClient({
               <span className="px-2 py-1 rounded text-xs font-semibold border bg-blue-100 text-blue-800 border-blue-200 text-base">
                 Ordine Salvato
               </span>
+            ) : order.status === 'DRAFT' ? (
+              <span className="px-2 py-1 rounded text-xs font-semibold border bg-purple-100 text-purple-800 border-purple-200 text-base">
+                Preventivo in Pausa
+              </span>
             ) : lockedByAgent && !isAgent ? (
               <span className="px-2.5 py-1 rounded text-xs font-bold border bg-orange-100 text-orange-800 border-orange-300 text-base">
                 In revisione dall&apos;agente
@@ -142,17 +146,15 @@ export default function OrderEditModeClient({
         <div className="flex-shrink-0 flex items-center gap-3">
           {!isEditing ? (
             <>
-              {!isAgent && (
-                <DeleteSentOrderButton 
-                  orderId={order.id} 
-                  redirectUrl={redirectUrl} 
-                  disabled={lockedByAgent}
-                  onError={(err) => {
-                    setLockedByAgent(true);
-                    setLockError(err);
-                  }}
-                />
-              )}
+              <DeleteSentOrderButton 
+                orderId={order.id} 
+                redirectUrl={redirectUrl} 
+                disabled={lockedByAgent && !isAgent}
+                onError={(err) => {
+                  if (!isAgent) setLockedByAgent(true);
+                  setLockError(err);
+                }}
+              />
               {!isAgent && (
                 <button 
                   onClick={handleStartEdit}

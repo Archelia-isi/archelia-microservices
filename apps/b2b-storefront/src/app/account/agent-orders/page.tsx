@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import DeleteSentOrderButton from '../orders/DeleteSentOrderButton';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AgentOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -93,7 +96,9 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                   </div>
                 </div>
                 
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                  <DeleteSentOrderButton orderId={order.id} redirectUrl={null} label="Elimina" />
+
                   <Link 
                     prefetch={true}
                     href={`/account/orders/${order.id}`}

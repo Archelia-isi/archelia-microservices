@@ -18,26 +18,69 @@ export async function deleteSentOrder(orderId: string) {
   if (!session) return { success: false, error: 'Non autorizzato' };
 
   try {
+    const isAgent = session.user.role === 'AGENT';
     const locked = await isOrderLockedForUser(orderId, session.userId, session.user.role);
     if (locked) {
-      return { success: false, error: 'Impossibile eliminare l\'ordine: l\'agente lo sta attualmente revisionando.' };
+      return {
+        success: false,
+        error: isAgent
+          ? 'Impossibile eliminare l\'ordine: il cliente lo sta attualmente modificando.'
+          : 'Impossibile eliminare l\'ordine: l\'agente lo sta attualmente revisionando.'
+      };
     }
 
-    const targetUserId = await getTargetUserId(session);
-    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId } });
-    if (!order || order.userId !== targetUserId) {
+    const order = await prisma.b2BOrder.findUnique({
+      where: { id: orderId },
+      include: { user: true }
+    });
+
+    if (!order) {
       return { success: false, error: 'Ordine non trovato' };
     }
-    
-    if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
-      return { success: false, error: 'Questo ordine non può essere eliminato' };
+
+    if (order.status === 'APPROVED') {
+      return { success: false, error: 'Gli ordini conclusi non possono essere eliminati' };
     }
 
+    if (isAgent) {
+      const isAssignedCustomer = order.user?.agentId === session.userId;
+      const isCreatedByAgent = order.createdById === session.userId;
+      if (!isAssignedCustomer && !isCreatedByAgent) {
+        return { success: false, error: 'Non autorizzato ad eliminare questo ordine' };
+      }
+    } else {
+      const targetUserId = await getTargetUserId(session);
+      if (order.userId !== targetUserId) {
+        return { success: false, error: 'Ordine non trovato' };
+      }
+      if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
+        return { success: false, error: 'Questo ordine non può essere eliminato' };
+      }
+    }
+
+    // Clean up any REVIEW cart linked to this order
+    await prisma.b2BCart.deleteMany({
+      where: { linkedOrderId: orderId, status: 'REVIEW' }
+    });
+
     await prisma.b2BOrder.delete({ where: { id: orderId } });
+
     try {
       await redis.del(`b2b_order_lock:${orderId}`);
+      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${orderId}:ELMARK`);
+      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${orderId}:ZUCCHETTI`);
     } catch (e) {}
 
+    if (isAgent) {
+      const reviewingOrderId = cookies().get('reviewingOrderId')?.value;
+      if (reviewingOrderId === orderId) {
+        const cookieOpts: any = { path: '/', maxAge: 0 };
+        if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
+        cookies().delete({ name: 'reviewingOrderId', ...cookieOpts });
+      }
+    }
+
+    revalidatePath('/account/agent-orders');
     revalidatePath('/account/sent-orders');
     revalidatePath('/account/saved-orders');
     revalidatePath('/account/quotes');

@@ -8,11 +8,15 @@ export default function DeleteSentOrderButton({
   orderId, 
   redirectUrl = '/account/sent-orders',
   disabled = false,
+  label = 'Elimina Ordine',
+  compact = false,
   onError
 }: { 
   orderId: string, 
-  redirectUrl?: string,
+  redirectUrl?: string | null,
   disabled?: boolean,
+  label?: string,
+  compact?: boolean,
   onError?: (error: string) => void
 }) {
   const [isPending, startTransition] = useTransition();
@@ -23,7 +27,10 @@ export default function DeleteSentOrderButton({
     startTransition(async () => {
       const res = await deleteSentOrder(orderId);
       if (res.success) {
-        router.push(redirectUrl);
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        }
+        router.refresh();
       } else {
         const msg = res.error || 'Impossibile eliminare l\'ordine.';
         if (onError) {
@@ -37,11 +44,14 @@ export default function DeleteSentOrderButton({
 
   return (
     <button 
+      type="button"
       onClick={handleDelete}
       disabled={isPending || disabled}
-      className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className={`${
+        compact ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm'
+      } bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
     >
-      {isPending ? 'Eliminazione...' : 'Elimina Ordine'}
+      {isPending ? 'Eliminazione...' : label}
     </button>
   );
 }

@@ -55,7 +55,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   const isDraft = order.status === 'DRAFT';
   const isPending = order.status === 'PENDING_AGENT_REVIEW';
   const isApproved = order.status === 'APPROVED';
-  const isSavedOrder = isDraft && order.createdById === session.userId;
+  const isSavedOrder = isDraft && order.createdById === order.userId;
   const isElmark = order.storeMode === 'ELMARK';
   const tabParam = isElmark ? '?tab=elmark' : '';
 
@@ -125,7 +125,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     };
   }));
 
-  if (isPending || isSavedOrder) {
+  if (isPending || isSavedOrder || (isAgent && isDraft)) {
     const isLockedByOther = await isOrderLockedForUser(order.id, session.userId, session.user.role);
     return (
       <div>
@@ -173,11 +173,14 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             )}
           </div>
 
-          {isDraft && (
-            <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center gap-3">
+            {isAgent && !isApproved && (
+              <DeleteSentOrderButton orderId={order.id} redirectUrl={backLink} />
+            )}
+            {isDraft && !isAgent && (
               <AcceptDraftButton orderId={order.id} />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="p-0">
