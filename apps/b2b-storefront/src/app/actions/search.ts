@@ -17,25 +17,11 @@ export async function searchBySkuPrefix(q: string, storeMode?: string) {
     };
 
     if (effectiveMode === 'ELMARK') {
-      const [inStockRes, outStockRes] = await Promise.all([
-        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-          ...baseParams,
-          filter_by: 'catalog_source:=elmark && stock:>0',
-          sort_by: '_text_match:desc,stock:desc,natural_sku:asc'
-        }),
-        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-          ...baseParams,
-          filter_by: 'catalog_source:=elmark && stock:<=0',
-          sort_by: '_text_match:desc,natural_sku:asc'
-        })
-      ]);
-
-      return [
-        ...(inStockRes?.hits || []),
-        ...(outStockRes?.hits || [])
-      ]
-        .slice(0, 8)
-        .map((hit: any) => hit.document);
+      const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseParams,
+        filter_by: 'brand:=ELMARK',
+      });
+      return (searchResults?.hits || []).map((hit: any) => hit.document);
     }
 
     const [tier1Res, tier2Res, tier3Res] = await Promise.all([

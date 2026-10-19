@@ -39,27 +39,19 @@ export async function GET(request: Request) {
     let session: any = null;
 
     if (storeMode === 'ELMARK') {
-      const [inStockRes, outStockRes, sess] = await Promise.all([
+      const [searchRes, sess] = await Promise.all([
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           ...baseSearchParams,
-          filter_by: 'catalog_source:=elmark && stock:>0',
-          sort_by: '_text_match:desc,stock:desc,natural_sku:asc'
-        }),
-        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-          ...baseSearchParams,
-          filter_by: 'catalog_source:=elmark && stock:<=0',
+          filter_by: 'brand:=ELMARK',
           sort_by: '_text_match:desc,natural_sku:asc'
         }),
         verifySession()
       ]);
 
       session = sess;
-      rawHits = [
-        ...(inStockRes?.hits || []),
-        ...(outStockRes?.hits || [])
-      ].slice(0, 8);
-      totalFound = (inStockRes?.found || 0) + (outStockRes?.found || 0);
-      searchFacetSets = [inStockRes?.facet_counts || [], outStockRes?.facet_counts || []];
+      rawHits = (searchRes?.hits || []).slice(0, 8);
+      totalFound = searchRes?.found || 0;
+      searchFacetSets = [searchRes?.facet_counts || []];
     } else {
       const [tier1Res, tier2Res, tier3Res, sess] = await Promise.all([
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({

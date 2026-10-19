@@ -25,32 +25,12 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     const buildFilter = (extra: string) => [...baseFilters, extra].join(' && ');
 
     if (options?.catalogSource === 'elmark') {
-      const sortInStock = options?.sortBy || (isWildcard ? 'stock:desc,natural_sku:asc' : '_text_match:desc,stock:desc,natural_sku:asc');
-      const sortOutStock = options?.sortBy || (isWildcard ? 'natural_sku:asc' : '_text_match:desc,natural_sku:asc');
-
-      const [inStockRes, outStockRes] = await Promise.all([
-        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-          ...baseSearchParams,
-          filter_by: buildFilter('catalog_source:=elmark && stock:>0'),
-          sort_by: sortInStock
-        }),
-        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-          ...baseSearchParams,
-          filter_by: buildFilter('catalog_source:=elmark && stock:<=0'),
-          sort_by: sortOutStock
-        })
-      ]);
-
-      const combinedHits = [
-        ...(inStockRes?.hits || []),
-        ...(outStockRes?.hits || [])
-      ].slice(0, limit);
-
-      return {
-        ...inStockRes,
-        found: (inStockRes?.found || 0) + (outStockRes?.found || 0),
-        hits: combinedHits
-      };
+      const sortElmark = options?.sortBy || (isWildcard ? 'natural_sku:asc' : '_text_match:desc,natural_sku:asc');
+      return await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseSearchParams,
+        filter_by: buildFilter('brand:=ELMARK'),
+        sort_by: sortElmark
+      });
     }
 
     // Default / Zucchetti mode:

@@ -125,101 +125,102 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     images = [product.image_url];
   }
 
-  // Fetch related products (similar to current product) and other catalog products with main warehouse stock filter
+  // Fetch related products and (for Izzo Distribuzione) other catalog products with main warehouse stock filter
   const searchQuery = product.category || product.family || product.brand || '*';
-  const relatedFilterBy = storeMode === 'ELMARK'
-    ? 'catalog_source:=elmark && stock:>0'
-    : 'catalog_source:=zucchetti && stock_main:>0';
-  const relatedSortOptions = storeMode === 'ELMARK'
-    ? [
-        'stock:desc,natural_sku:asc',
-        'stock:asc,natural_sku:desc',
-        'natural_sku:asc',
-        'natural_sku:desc',
-        'price:asc,stock:desc',
-        'price:desc,stock:desc',
-      ]
-    : [
-        'stock_main:desc,natural_sku:asc',
-        'stock_main:asc,natural_sku:desc',
-        'natural_sku:asc',
-        'natural_sku:desc',
-        'price:asc,stock_main:desc',
-        'price:desc,stock_main:desc',
-      ];
-  const randomRelatedSort = relatedSortOptions[Math.floor(Math.random() * relatedSortOptions.length)];
-  const otherSortChoices = relatedSortOptions.filter((s) => s !== randomRelatedSort);
-  const randomCatalogSort = otherSortChoices[Math.floor(Math.random() * otherSortChoices.length)] || randomRelatedSort;
+  let relatedProducts: any[] = [];
+  let otherCatalogProducts: any[] = [];
 
-  const isValidCarouselProduct = (p: any) => {
-    if (!p || p.id === product.id || p.sku === product.sku) return false;
-    if (storeMode === 'ELMARK') {
-      return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
+  if (storeMode === 'ELMARK') {
+    const relatedProductsRes = await searchProducts(searchQuery, { b2bMode: true, catalogSource: 'elmark' });
+    relatedProducts = (relatedProductsRes?.hits || [])
+      .map((h: any) => ({ ...h.document }))
+      .filter((p: any) => p.id !== product.id)
+      .slice(0, 8)
+      .map((p: any) => {
+        if (isAuthenticated) { applyPricing(p); }
+        return p;
+      });
+  } else {
+    const relatedFilterBy = 'catalog_source:=zucchetti && stock_main:>0';
+    const relatedSortOptions = [
+      'stock_main:desc,natural_sku:asc',
+      'stock_main:asc,natural_sku:desc',
+      'natural_sku:asc',
+      'natural_sku:desc',
+      'price:asc,stock_main:desc',
+      'price:desc,stock_main:desc',
+    ];
+    const randomRelatedSort = relatedSortOptions[Math.floor(Math.random() * relatedSortOptions.length)];
+    const otherSortChoices = relatedSortOptions.filter((s) => s !== randomRelatedSort);
+    const randomCatalogSort = otherSortChoices[Math.floor(Math.random() * otherSortChoices.length)] || randomRelatedSort;
+
+    const isValidCarouselProduct = (p: any) => {
+      if (!p || p.id === product.id || p.sku === product.sku) return false;
+      const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+      return p.catalog_source !== 'elmark' && mainStock > 0;
+    };
+
+    let rawRelated: any[] = [];
+    let rawCatalogOthers: any[] = [];
+    try {
+      const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import('@archelia/typesense/dist/client.js');
+      const [relatedProductsRes, catalogProductsRes] = await Promise.all([
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          q: searchQuery,
+          query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+          filter_by: relatedFilterBy,
+          sort_by: searchQuery === '*' ? randomRelatedSort : `_text_match:desc,${randomRelatedSort}`,
+          per_page: 100,
+        }),
+        typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+          q: '*',
+          query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+          filter_by: relatedFilterBy,
+          sort_by: randomCatalogSort,
+          per_page: 250,
+        }),
+      ]);
+
+      rawRelated = (relatedProductsRes?.hits || [])
+        .map((h: any) => ({ ...h.document }))
+        .filter(isValidCarouselProduct);
+
+      rawCatalogOthers = (catalogProductsRes?.hits || [])
+        .map((h: any) => ({ ...h.document }))
+        .filter(isValidCarouselProduct);
+    } catch (e) {
+      console.error('Failed to fetch related/catalog products:', e);
     }
-    const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-    return p.catalog_source !== 'elmark' && mainStock > 0;
-  };
 
-  let rawRelated: any[] = [];
-  let rawCatalogOthers: any[] = [];
-  try {
-    const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import('@archelia/typesense/dist/client.js');
-    const [relatedProductsRes, catalogProductsRes] = await Promise.all([
-      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-        q: searchQuery,
-        query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-        filter_by: relatedFilterBy,
-        sort_by: searchQuery === '*' ? randomRelatedSort : `_text_match:desc,${randomRelatedSort}`,
-        per_page: 100,
-      }),
-      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-        q: '*',
-        query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-        filter_by: relatedFilterBy,
-        sort_by: randomCatalogSort,
-        per_page: 250,
-      }),
-    ]);
+    for (let i = rawRelated.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rawRelated[i], rawRelated[j]] = [rawRelated[j], rawRelated[i]];
+    }
 
-    rawRelated = (relatedProductsRes?.hits || [])
-      .map((h: any) => ({ ...h.document }))
-      .filter(isValidCarouselProduct);
+    relatedProducts = rawRelated
+      .slice(0, 12)
+      .map((p: any) => {
+        if (isAuthenticated) { applyPricing(p); }
+        return p;
+      });
 
-    rawCatalogOthers = (catalogProductsRes?.hits || [])
-      .map((h: any) => ({ ...h.document }))
-      .filter(isValidCarouselProduct);
-  } catch (e) {
-    console.error('Failed to fetch related/catalog products:', e);
+    const usedRelatedSkus = new Set(relatedProducts.map((p: any) => p.sku || p.id));
+    const filteredCatalogOthers = rawCatalogOthers.filter(
+      (p: any) => !usedRelatedSkus.has(p.sku || p.id)
+    );
+
+    for (let i = filteredCatalogOthers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [filteredCatalogOthers[i], filteredCatalogOthers[j]] = [filteredCatalogOthers[j], filteredCatalogOthers[i]];
+    }
+
+    otherCatalogProducts = filteredCatalogOthers
+      .slice(0, 12)
+      .map((p: any) => {
+        if (isAuthenticated) { applyPricing(p); }
+        return p;
+      });
   }
-
-  for (let i = rawRelated.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [rawRelated[i], rawRelated[j]] = [rawRelated[j], rawRelated[i]];
-  }
-
-  const relatedProducts = rawRelated
-    .slice(0, 12)
-    .map((p: any) => {
-      if (isAuthenticated) { applyPricing(p); }
-      return p;
-    });
-
-  const usedRelatedSkus = new Set(relatedProducts.map((p: any) => p.sku || p.id));
-  const filteredCatalogOthers = rawCatalogOthers.filter(
-    (p: any) => !usedRelatedSkus.has(p.sku || p.id)
-  );
-
-  for (let i = filteredCatalogOthers.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [filteredCatalogOthers[i], filteredCatalogOthers[j]] = [filteredCatalogOthers[j], filteredCatalogOthers[i]];
-  }
-
-  const otherCatalogProducts = filteredCatalogOthers
-    .slice(0, 12)
-    .map((p: any) => {
-      if (isAuthenticated) { applyPricing(p); }
-      return p;
-    });
 
   // Parse technical description string into an array of key-value pairs
   // E.g. "Tipo: Strip LED; Potenza: 11 W/m;" -> [{key: "Tipo", value: "Strip LED"}, ...]
@@ -305,14 +306,16 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       </div>
 
       {/* RELATED PRODUCTS CAROUSEL */}
-      <div className="mt-20 mb-8">
+      <div className={storeMode !== 'ELMARK' ? 'mt-20 mb-8' : 'mt-20 mb-12'}>
         <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
       </div>
 
-      {/* OTHER CATALOG PRODUCTS CAROUSEL */}
-      <div className="mb-12">
-        <ProductCarousel title="Altri prodotti del catalogo" products={otherCatalogProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
-      </div>
+      {/* OTHER CATALOG PRODUCTS CAROUSEL (Izzo Distribuzione only) */}
+      {storeMode !== 'ELMARK' && otherCatalogProducts.length > 0 && (
+        <div className="mb-12">
+          <ProductCarousel title="Altri prodotti del catalogo" products={otherCatalogProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
+        </div>
+      )}
     </div>
   );
 }

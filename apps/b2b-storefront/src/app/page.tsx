@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { searchProducts } from '@archelia/typesense/dist/search.js';
 import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
@@ -26,38 +27,25 @@ export default async function Home() {
     redirect('/setup-password');
   }
 
-  const randomSortOptions = storeMode === 'ELMARK'
-    ? [
-        'stock:desc,natural_sku:asc',
-        'stock:asc,natural_sku:desc',
-        'natural_sku:asc',
-        'natural_sku:desc',
-        'price:asc,stock:desc',
-        'price:desc,stock:desc',
-      ]
-    : [
-        'stock_main:desc,natural_sku:asc',
-        'stock_main:asc,natural_sku:desc',
-        'natural_sku:asc',
-        'natural_sku:desc',
-        'price:asc,stock_main:desc',
-        'price:desc,stock_main:desc',
-      ];
+  const randomSortOptions = [
+    'stock_main:desc,natural_sku:asc',
+    'stock_main:asc,natural_sku:desc',
+    'natural_sku:asc',
+    'natural_sku:desc',
+    'price:asc,stock_main:desc',
+    'price:desc,stock_main:desc',
+  ];
 
   const pickRandomSort = () =>
     randomSortOptions[Math.floor(Math.random() * randomSortOptions.length)];
 
-  const filterBy = storeMode === 'ELMARK'
-    ? 'catalog_source:=elmark && stock:>0'
-    : 'catalog_source:=zucchetti && stock_main:>0';
-
-  const fetchPool = async (q: string, customSort?: string) => {
+  const fetchIzzoPool = async (q: string, customSort?: string) => {
     const sortBy = customSort || (q === '*' ? pickRandomSort() : `_text_match:desc,${pickRandomSort()}`);
     return typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
       q,
       query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
       query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
-      filter_by: filterBy,
+      filter_by: 'catalog_source:=zucchetti && stock_main:>0',
       sort_by: sortBy,
       per_page: 250,
     });
@@ -66,25 +54,43 @@ export default async function Home() {
   let illumRes, battRes, eletRes, civileRes, novitaRes, promoRes;
 
   try {
-    const novitaSort = pickRandomSort();
-    const otherSorts = randomSortOptions.filter((s) => s !== novitaSort);
-    const promoSort = otherSorts[Math.floor(Math.random() * otherSorts.length)] || pickRandomSort();
+    if (storeMode === 'ELMARK') {
+      const illumReq = searchProducts('illuminazione', { b2bMode: true, catalogSource: 'elmark' });
+      const battReq = searchProducts('batterie', { b2bMode: true, catalogSource: 'elmark' });
+      const eletReq = searchProducts('elettrico', { b2bMode: true, catalogSource: 'elmark' });
+      const civileReq = searchProducts('serie civile', { b2bMode: true, catalogSource: 'elmark' });
+      const novitaReq = searchProducts('*', { b2bMode: true, catalogSource: 'elmark' });
+      const promoReq = searchProducts('led', { b2bMode: true, catalogSource: 'elmark' });
 
-    const illumReq = fetchPool('illuminazione');
-    const battReq = fetchPool('utensili');
-    const eletReq = fetchPool('elettrico');
-    const civileReq = fetchPool('serie civile');
-    const novitaReq = fetchPool('*', novitaSort);
-    const promoReq = fetchPool('*', promoSort);
+      [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([
+        illumReq,
+        battReq,
+        eletReq,
+        civileReq,
+        novitaReq,
+        promoReq,
+      ]);
+    } else {
+      const novitaSort = pickRandomSort();
+      const otherSorts = randomSortOptions.filter((s) => s !== novitaSort);
+      const promoSort = otherSorts[Math.floor(Math.random() * otherSorts.length)] || pickRandomSort();
 
-    [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([
-      illumReq,
-      battReq,
-      eletReq,
-      civileReq,
-      novitaReq,
-      promoReq,
-    ]);
+      const illumReq = fetchIzzoPool('illuminazione');
+      const battReq = fetchIzzoPool('utensili');
+      const eletReq = fetchIzzoPool('elettrico');
+      const civileReq = fetchIzzoPool('serie civile');
+      const novitaReq = fetchIzzoPool('*', novitaSort);
+      const promoReq = fetchIzzoPool('*', promoSort);
+
+      [illumRes, battRes, eletRes, civileRes, novitaRes, promoRes] = await Promise.all([
+        illumReq,
+        battReq,
+        eletReq,
+        civileReq,
+        novitaReq,
+        promoReq,
+      ]);
+    }
   } catch (error) {
     console.error('Failed to fetch home page products:', error);
   }
@@ -96,11 +102,8 @@ export default async function Home() {
   const extraDiscount = await getExtraAgentDiscount();
   const elmarkDiscounts = await getEffectiveElmarkDiscounts();
 
-  const isValidStoreProduct = (p: any) => {
+  const isValidIzzoProduct = (p: any) => {
     if (!p) return false;
-    if (storeMode === 'ELMARK') {
-      return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
-    }
     const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
     return p.catalog_source !== 'elmark' && mainStock > 0;
   };
@@ -133,10 +136,14 @@ export default async function Home() {
 
   const usedSkus = new Set<string>();
 
-  const pickRandomProducts = (res: any, count: number) => {
+  const pickProducts = (res: any, count: number) => {
+    if (storeMode === 'ELMARK') {
+      return mapPrices(res?.hits?.slice(0, count).map((h: any) => h.document) || []);
+    }
+
     const allDocs: any[] = (res?.hits || [])
       .map((h: any) => h.document)
-      .filter(isValidStoreProduct);
+      .filter(isValidIzzoProduct);
 
     const shuffled = shuffleArray(allDocs);
     const selected: any[] = [];
@@ -149,7 +156,6 @@ export default async function Home() {
       if (selected.length >= count) break;
     }
 
-    // Fallback if pool had fewer unique items than requested
     if (selected.length < count) {
       for (const doc of shuffled) {
         if (selected.includes(doc)) continue;
@@ -161,13 +167,13 @@ export default async function Home() {
     return mapPrices(selected);
   };
 
-  const illumProducts = pickRandomProducts(illumRes, 4);
-  const battProducts = pickRandomProducts(battRes, 4);
-  const eletProducts = pickRandomProducts(eletRes, 4);
-  const civileProducts = pickRandomProducts(civileRes, 4);
+  const illumProducts = pickProducts(illumRes, 4);
+  const battProducts = pickProducts(battRes, 4);
+  const eletProducts = pickProducts(eletRes, 4);
+  const civileProducts = pickProducts(civileRes, 4);
 
-  const novitaProducts = pickRandomProducts(novitaRes, 12);
-  const promoProducts = pickRandomProducts(promoRes, 12);
+  const novitaProducts = pickProducts(novitaRes, storeMode === 'ELMARK' ? 10 : 12);
+  const promoProducts = pickProducts(promoRes, storeMode === 'ELMARK' ? 10 : 12);
 
   const renderCategoryCard = (title: string, products: any[], link: string) => (
     <div className="bg-white shadow-sm flex flex-col h-full hover:shadow-md transition-shadow rounded-sm relative">
