@@ -46,7 +46,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
                     Vaglio Ordini
                   </Link>
                   <Link prefetch={true} href={`/account/saved-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
-                    Ordini Salvati
+                    Ordini Salvati dai Clienti
                   </Link>
                   <Link prefetch={true} href={`/account/quotes${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Preventivi Inviati
