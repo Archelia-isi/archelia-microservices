@@ -31,13 +31,13 @@ export default function OrderEditModeClient({
   const [lockError, setLockError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const isSavedOrder = order.status === 'DRAFT' && order.createdById === order.userId;
+  const isSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === order.userId);
   const stockMetaInfo = isSavedOrder ? parseSavedOrderStockMeta(order.notes) : null;
   const hasStockAdjustments = Boolean(stockMetaInfo?.hasAdjustments);
   const isElmark = order.storeMode === 'ELMARK';
   const tabParam = isElmark ? '?tab=elmark' : '';
   const redirectUrl = isAgent 
-    ? (order.status === 'DRAFT' ? `/account/quotes${tabParam}` : `/account/agent-orders${tabParam}`)
+    ? (isSavedOrder ? `/account/saved-orders${tabParam}` : order.status === 'DRAFT' ? `/account/quotes${tabParam}` : `/account/agent-orders${tabParam}`)
     : (isSavedOrder ? `/account/saved-orders${tabParam}` : `/account/sent-orders${tabParam}`);
 
   const handleStartEdit = async () => {

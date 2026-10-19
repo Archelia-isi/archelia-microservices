@@ -138,8 +138,9 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
       }
     });
 
+    const isCustomerSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === order.userId);
     const defaultReturnUrl = order.status === 'DRAFT'
-      ? `/account/quotes${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`
+      ? `${isCustomerSavedOrder ? '/account/saved-orders' : '/account/quotes'}${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`
       : `/account/agent-orders${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`;
 
     // Set cookies to activate review mode and remember origin page
@@ -176,11 +177,14 @@ export async function endOrderReviewSession() {
       if (!returnUrl) {
         const ord = await prisma.b2BOrder.findUnique({
           where: { id: reviewingOrderId },
-          select: { status: true, storeMode: true }
+          select: { status: true, storeMode: true, createdById: true, userId: true }
         });
         if (ord) {
           const tab = ord.storeMode === 'ELMARK' ? '?tab=elmark' : '';
-          returnUrl = ord.status === 'DRAFT' ? `/account/quotes${tab}` : `/account/agent-orders${tab}`;
+          const isSaved = ord.status === 'DRAFT' && (!ord.createdById || ord.createdById === ord.userId);
+          returnUrl = ord.status === 'DRAFT'
+            ? `${isSaved ? '/account/saved-orders' : '/account/quotes'}${tab}`
+            : `/account/agent-orders${tab}`;
         }
       }
       const { redis } = await import('@/lib/redis');
