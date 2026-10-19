@@ -125,56 +125,71 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     images = [product.image_url];
   }
 
-  // Fetch related products directly with main warehouse stock filter
-  const searchQuery = product.category || product.brand || '*';
+  // Fetch related products (similar to current product) and other catalog products with main warehouse stock filter
+  const searchQuery = product.category || product.family || product.brand || '*';
   const relatedFilterBy = storeMode === 'ELMARK'
     ? 'catalog_source:=elmark && stock:>0'
     : 'catalog_source:=zucchetti && stock_main:>0';
   const relatedSortOptions = storeMode === 'ELMARK'
-    ? ['stock:desc,natural_sku:asc', 'stock:asc,natural_sku:desc', 'natural_sku:asc', 'natural_sku:desc']
-    : ['stock_main:desc,natural_sku:asc', 'stock_main:asc,natural_sku:desc', 'natural_sku:asc', 'natural_sku:desc'];
+    ? [
+        'stock:desc,natural_sku:asc',
+        'stock:asc,natural_sku:desc',
+        'natural_sku:asc',
+        'natural_sku:desc',
+        'price:asc,stock:desc',
+        'price:desc,stock:desc',
+      ]
+    : [
+        'stock_main:desc,natural_sku:asc',
+        'stock_main:asc,natural_sku:desc',
+        'natural_sku:asc',
+        'natural_sku:desc',
+        'price:asc,stock_main:desc',
+        'price:desc,stock_main:desc',
+      ];
   const randomRelatedSort = relatedSortOptions[Math.floor(Math.random() * relatedSortOptions.length)];
+  const otherSortChoices = relatedSortOptions.filter((s) => s !== randomRelatedSort);
+  const randomCatalogSort = otherSortChoices[Math.floor(Math.random() * otherSortChoices.length)] || randomRelatedSort;
+
+  const isValidCarouselProduct = (p: any) => {
+    if (!p || p.id === product.id || p.sku === product.sku) return false;
+    if (storeMode === 'ELMARK') {
+      return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
+    }
+    const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
+    return p.catalog_source !== 'elmark' && mainStock > 0;
+  };
 
   let rawRelated: any[] = [];
+  let rawCatalogOthers: any[] = [];
   try {
     const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import('@archelia/typesense/dist/client.js');
-    const relatedProductsRes = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-      q: searchQuery,
-      query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-      filter_by: relatedFilterBy,
-      sort_by: searchQuery === '*' ? randomRelatedSort : `_text_match:desc,${randomRelatedSort}`,
-      per_page: 100,
-    });
-
-    rawRelated = (relatedProductsRes?.hits || [])
-      .map((h: any) => ({ ...h.document }))
-      .filter((p: any) => {
-        if (p.id === product.id || p.sku === product.sku) return false;
-        if (storeMode === 'ELMARK') {
-          return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
-        }
-        const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-        return p.catalog_source !== 'elmark' && mainStock > 0;
-      });
-
-    if (rawRelated.length < 10 && searchQuery !== '*') {
-      const fallbackRes = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+    const [relatedProductsRes, catalogProductsRes] = await Promise.all([
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        q: searchQuery,
+        query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+        filter_by: relatedFilterBy,
+        sort_by: searchQuery === '*' ? randomRelatedSort : `_text_match:desc,${randomRelatedSort}`,
+        per_page: 100,
+      }),
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         q: '*',
         query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
         filter_by: relatedFilterBy,
-        sort_by: randomRelatedSort,
-        per_page: 100,
-      });
-      const existingSkus = new Set(rawRelated.map((p: any) => p.sku));
-      for (const hit of fallbackRes?.hits || []) {
-        const doc: any = { ...hit.document };
-        if (doc.id === product.id || doc.sku === product.sku || existingSkus.has(doc.sku)) continue;
-        rawRelated.push(doc);
-        existingSkus.add(doc.sku);
-      }
-    }
+        sort_by: randomCatalogSort,
+        per_page: 250,
+      }),
+    ]);
+
+    rawRelated = (relatedProductsRes?.hits || [])
+      .map((h: any) => ({ ...h.document }))
+      .filter(isValidCarouselProduct);
+
+    rawCatalogOthers = (catalogProductsRes?.hits || [])
+      .map((h: any) => ({ ...h.document }))
+      .filter(isValidCarouselProduct);
   } catch (e) {
-    console.error('Failed to fetch related products:', e);
+    console.error('Failed to fetch related/catalog products:', e);
   }
 
   for (let i = rawRelated.length - 1; i > 0; i--) {
@@ -183,7 +198,24 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   }
 
   const relatedProducts = rawRelated
-    .slice(0, 10)
+    .slice(0, 12)
+    .map((p: any) => {
+      if (isAuthenticated) { applyPricing(p); }
+      return p;
+    });
+
+  const usedRelatedSkus = new Set(relatedProducts.map((p: any) => p.sku || p.id));
+  const filteredCatalogOthers = rawCatalogOthers.filter(
+    (p: any) => !usedRelatedSkus.has(p.sku || p.id)
+  );
+
+  for (let i = filteredCatalogOthers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [filteredCatalogOthers[i], filteredCatalogOthers[j]] = [filteredCatalogOthers[j], filteredCatalogOthers[i]];
+  }
+
+  const otherCatalogProducts = filteredCatalogOthers
+    .slice(0, 12)
     .map((p: any) => {
       if (isAuthenticated) { applyPricing(p); }
       return p;
@@ -273,8 +305,13 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       </div>
 
       {/* RELATED PRODUCTS CAROUSEL */}
-      <div className="mt-20 mb-12">
+      <div className="mt-20 mb-8">
         <ProductCarousel title="Potrebbe interessarti anche" products={relatedProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
+      </div>
+
+      {/* OTHER CATALOG PRODUCTS CAROUSEL */}
+      <div className="mb-12">
+        <ProductCarousel title="Altri prodotti del catalogo" products={otherCatalogProducts} viewAllLink="/catalog" isLoggedIn={isAuthenticated} storeMode={storeMode} />
       </div>
     </div>
   );
