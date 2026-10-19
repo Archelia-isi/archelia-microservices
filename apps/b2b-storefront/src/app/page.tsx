@@ -48,8 +48,8 @@ export default async function Home() {
     randomSortOptions[Math.floor(Math.random() * randomSortOptions.length)];
 
   const filterBy = storeMode === 'ELMARK'
-    ? 'brand:=ELMARK && stock:>0'
-    : 'brand:!=[ELMARK] && stock_main:>0';
+    ? 'catalog_source:=elmark && stock:>0'
+    : 'catalog_source:=zucchetti && stock_main:>0';
 
   const fetchPool = async (q: string, customSort?: string) => {
     const sortBy = customSort || (q === '*' ? pickRandomSort() : `_text_match:desc,${pickRandomSort()}`);
@@ -99,12 +99,10 @@ export default async function Home() {
   const isValidStoreProduct = (p: any) => {
     if (!p) return false;
     if (storeMode === 'ELMARK') {
-      const isElmark = p.catalog_source === 'elmark' || String(p.brand || '').toUpperCase() === 'ELMARK';
-      return isElmark && Number(p.stock ?? 0) > 0;
+      return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
     }
-    const isMainCatalog = p.catalog_source !== 'elmark' && String(p.brand || '').toUpperCase() !== 'ELMARK';
     const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-    return isMainCatalog && mainStock > 0;
+    return p.catalog_source !== 'elmark' && mainStock > 0;
   };
 
   const mapPrices = (products: any[]) => {
@@ -126,9 +124,6 @@ export default async function Home() {
         if (extraDiscount > 0) {
           finalPrice = finalPrice * (1 - (extraDiscount / 100));
         }
-        // In Izzo Distribuzione home page, highlight main warehouse stock
-        p.stock_ek = 0;
-        p.stock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
       }
 
       p.price_b2b = finalPrice;

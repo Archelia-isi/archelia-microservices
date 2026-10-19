@@ -144,10 +144,10 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     .filter((p: any) => {
       if (p.id === product.id || p.sku === product.sku) return false;
       if (storeMode === 'ELMARK') {
-        return Number(p.stock ?? 0) > 0;
+        return p.catalog_source === 'elmark' && Number(p.stock ?? 0) > 0;
       }
       const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-      return p.catalog_source !== 'elmark' && String(p.brand || '').toUpperCase() !== 'ELMARK' && mainStock > 0;
+      return p.catalog_source !== 'elmark' && mainStock > 0;
     });
 
   for (let i = rawRelated.length - 1; i > 0; i--) {
@@ -158,10 +158,6 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const relatedProducts = rawRelated
     .slice(0, 10)
     .map((p: any) => {
-      if (storeMode !== 'ELMARK') {
-        p.stock_ek = 0;
-        p.stock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
-      }
       if (isAuthenticated) { applyPricing(p); }
       return p;
     });
