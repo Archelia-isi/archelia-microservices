@@ -65,7 +65,7 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
   return { success: true };
 }
 
-export async function startOrderReview(orderId: string) {
+export async function startOrderReview(orderId: string, returnUrl?: string) {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') {
     return { success: false };
@@ -121,7 +121,7 @@ export async function startOrderReview(orderId: string) {
     });
 
     // Create the REVIEW cart
-    const reviewCart = await prisma.b2BCart.create({
+    await prisma.b2BCart.create({
       data: {
         userId: order.userId,
         status: 'REVIEW',
@@ -131,10 +131,6 @@ export async function startOrderReview(orderId: string) {
           create: order.items.map(item => ({
             sku: item.sku,
             quantity: item.quantity,
-            // Originalmente lo sconto extra era applicato sul prezzo finale,
-            // ma se non abbiamo salvato l'extraDiscount sull'order item,
-            // non possiamo recuperarlo. In fase 2 dovremo salvare anche extraDiscount nell'order item.
-            // Per ora lo lasciamo a 0 o calcoliamo dal prezzo.
             extraDiscount: 0, 
             extraDiscountMinQty: null
           }))
@@ -142,12 +138,16 @@ export async function startOrderReview(orderId: string) {
       }
     });
 
-    // Set cookie to activate review mode
+    const defaultReturnUrl = order.status === 'DRAFT'
+      ? `/account/quotes${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`
+      : `/account/agent-orders${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`;
+
+    // Set cookies to activate review mode and remember origin page
     cookies().set('reviewingOrderId', order.id, cookieOpts);
+    cookies().set('reviewingReturnUrl', returnUrl || defaultReturnUrl, cookieOpts);
 
     // Clear stale Redis keys for review carts
     try {
-      const { redis } = await import('@/lib/redis');
       await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ELMARK`);
       await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ZUCCHETTI`);
     } catch (e) {
@@ -164,14 +164,25 @@ export async function startOrderReview(orderId: string) {
 export async function endOrderReviewSession() {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') {
-    return { success: false };
+    return { success: false, returnUrl: '/account/agent-orders' };
   }
 
   const cookieStore = cookies();
   const reviewingOrderId = cookieStore.get('reviewingOrderId')?.value;
+  let returnUrl = cookieStore.get('reviewingReturnUrl')?.value || '';
 
   if (reviewingOrderId) {
     try {
+      if (!returnUrl) {
+        const ord = await prisma.b2BOrder.findUnique({
+          where: { id: reviewingOrderId },
+          select: { status: true, storeMode: true }
+        });
+        if (ord) {
+          const tab = ord.storeMode === 'ELMARK' ? '?tab=elmark' : '';
+          returnUrl = ord.status === 'DRAFT' ? `/account/quotes${tab}` : `/account/agent-orders${tab}`;
+        }
+      }
       const { redis } = await import('@/lib/redis');
       await redis.del(`b2b_order_lock:${reviewingOrderId}`);
       await prisma.b2BCart.deleteMany({
@@ -180,8 +191,13 @@ export async function endOrderReviewSession() {
     } catch (e) {}
   }
 
+  if (!returnUrl) {
+    returnUrl = '/account/agent-orders';
+  }
+
   const cookieNames = [
     'reviewingOrderId',
+    'reviewingReturnUrl',
     'impersonatedClientCode',
     'impersonatedClientName',
     'impersonatedClientDiscount',
@@ -197,7 +213,8 @@ export async function endOrderReviewSession() {
 
   const { revalidatePath } = await import('next/cache');
   revalidatePath('/', 'layout');
-  return { success: true };
+  revalidatePath('/cart');
+  return { success: true, returnUrl };
 }
 
 

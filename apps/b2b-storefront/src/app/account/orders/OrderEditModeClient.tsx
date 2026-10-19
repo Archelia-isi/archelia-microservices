@@ -171,7 +171,7 @@ export default function OrderEditModeClient({
                 <button 
                   onClick={async () => {
                     const { startOrderReview } = await import('@/app/actions/agent');
-                    const res = await startOrderReview(order.id);
+                    const res = await startOrderReview(order.id, `/account/orders/${order.id}`);
                     if (res.success) {
                       window.location.href = '/cart';
                     } else {

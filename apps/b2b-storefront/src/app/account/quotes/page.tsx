@@ -133,7 +133,8 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
                       action={async () => {
                         'use server';
                         const { startOrderReview } = await import('@/app/actions/agent');
-                        const res = await startOrderReview(quote.id);
+                        const originUrl = `/account/quotes?tab=${currentTab === 'ELMARK' ? 'elmark' : 'zucchetti'}`;
+                        const res = await startOrderReview(quote.id, originUrl);
                         if (res.success) {
                           redirect('/cart');
                         }

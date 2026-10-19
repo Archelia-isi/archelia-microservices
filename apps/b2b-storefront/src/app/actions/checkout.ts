@@ -175,6 +175,7 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       const cookieStore = cookies();
       const cookieNames = [
         'reviewingOrderId',
+        'reviewingReturnUrl',
         'impersonatedClientCode',
         'impersonatedClientName',
         'impersonatedClientDiscount',

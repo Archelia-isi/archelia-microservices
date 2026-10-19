@@ -110,7 +110,8 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                   <form action={async () => {
                     'use server';
                     const { startOrderReview } = await import('@/app/actions/agent');
-                    const res = await startOrderReview(order.id);
+                    const originUrl = `/account/agent-orders?tab=${currentTab === 'ELMARK' ? 'elmark' : 'zucchetti'}`;
+                    const res = await startOrderReview(order.id, originUrl);
                     if (res.success) {
                       redirect('/cart');
                     }

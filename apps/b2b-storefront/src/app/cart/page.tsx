@@ -126,31 +126,14 @@ export default async function CartPage() {
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded shadow-sm flex justify-between items-center">
           <div>
             <h3 className="text-yellow-800 font-bold">Modalità Revisione Attiva</h3>
-            <p className="text-sm text-yellow-700">Stai revisionando l'ordine #{cartQuery.linkedOrderId?.slice(-6).toUpperCase()}. Le modifiche che farai al carrello e al catalogo si applicheranno a questo ordine.</p>
+            <p className="text-sm text-yellow-700">Stai revisionando l&apos;ordine #{cartQuery.linkedOrderId?.slice(-6).toUpperCase()}. Le modifiche che farai al carrello si applicheranno a questo ordine.</p>
           </div>
           <form action={async () => {
             'use server';
-            const { cookies } = await import('next/headers');
             const { redirect } = await import('next/navigation');
-            const { revalidatePath } = await import('next/cache');
-            const { prisma } = await import('@archelia/b2b-database');
-            const { redis } = await import('@/lib/redis');
-            const reviewingId = cookies().get('reviewingOrderId')?.value;
-            if (reviewingId) {
-              try {
-                await redis.del(`b2b_order_lock:${reviewingId}`);
-              } catch (e) {}
-              try {
-                await prisma.b2BCart.deleteMany({
-                  where: { linkedOrderId: reviewingId, status: 'REVIEW' }
-                });
-              } catch (e) {}
-            }
-            const deleteOpts: any = { path: '/', maxAge: 0 };
-            if (process.env.NODE_ENV === 'production') deleteOpts.domain = '.izzodistribuzione.it';
-            cookies().delete({ name: 'reviewingOrderId', ...deleteOpts });
-            revalidatePath('/cart');
-            redirect('/cart');
+            const { endOrderReviewSession } = await import('@/app/actions/agent');
+            const res = await endOrderReviewSession();
+            redirect(res.returnUrl || '/account/agent-orders');
           }}>
             <button type="submit" className="text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-4 py-2 rounded transition-colors">
               Annulla Revisione

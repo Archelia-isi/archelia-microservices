@@ -10,6 +10,7 @@ import { getCart } from '@/lib/cart';
 import CartBadge from '@/components/CartBadge';
 import StoreSwitcher from '@/components/StoreSwitcher';
 import PredictiveSearchBar from '@/components/PredictiveSearchBar';
+import ReviewSessionCleanup from './account/ReviewSessionCleanup';
 import { cookies } from 'next/headers';
 
 const assistant = Assistant({ subsets: ['latin'] });
@@ -54,16 +55,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
   const impersonatedClientName = cookieStore.get('impersonatedClientName')?.value;
+  const hasActiveReview = session?.user?.role === 'AGENT' && Boolean(cookieStore.get('reviewingOrderId')?.value);
 
   return (
     <html lang="it">
       <body className={`${assistant.className} bg-gray-50 text-gray-900 min-h-screen flex flex-col overflow-x-hidden ${storeMode === 'ELMARK' ? 'theme-elmark' : ''}`}>
         <header className="bg-black text-white shadow-md sticky top-0 z-50 border-b border-brand-hover relative">
           
-          {session?.user?.role === 'AGENT' && impersonatedClientCode && (
-             <div className="hidden md:flex items-center absolute left-4 top-1/2 -translate-y-1/2 gap-2 px-3 py-1.5 rounded-sm bg-brand-main text-black shadow-lg text-xs font-bold z-50">
-               <span className="truncate max-w-[200px]">{impersonatedClientName}</span>
-             </div>
+          {session?.user?.role === 'AGENT' && (
+            <ReviewSessionCleanup
+              hasActiveReview={hasActiveReview}
+              impersonatedClientCode={impersonatedClientCode}
+              impersonatedClientName={impersonatedClientName}
+            />
           )}
 
           <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
