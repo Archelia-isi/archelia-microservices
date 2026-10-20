@@ -686,19 +686,19 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   if (isPersonaOrDitta) baseAttrs.AN_SESSO = sesso;
   if (input.telefono?.trim()) baseAttrs.ANTELEFO = input.telefono.trim().substring(0, 18);
   if (pec) baseAttrs.AN_EMPEC = pec.substring(0, 254);
+  if (categoriaCommerciale) baseAttrs.ANCATSCM = categoriaCommerciale.substring(0, 5);
+  if (agentZucchettiCode) baseAttrs.ANCODAG1 = agentZucchettiCode.substring(0, 5);
 
-  // Attributi estesi del cliente (Agente, Categoria Commerciale, SDI, Fido, Nazione, Lingua)
+  // Attributi estesi opzionali del cliente (SDI, Fido, Nazione, Lingua)
   const extendedAttrs: Record<string, string> = {
     ...baseAttrs,
     ANNAZION: nazione,
     ANCODLIN: lingua,
-    ANCATSCM: categoriaCommerciale,
     CCCODEST: codiceDestinatario,
     ANFLFIDO: gestioneFido,
     ANFLBLVE: bloccoSuperamentoFido,
     ANFLGCON: bloccoContenzioso,
   };
-  if (agentZucchettiCode) extendedAttrs.ANCODAG1 = agentZucchettiCode;
   if (fidoNum > 0) extendedAttrs.ANVALFID = fidoNum.toFixed(4);
   if (maxOrdNum > 0) extendedAttrs.ANMAXORD = maxOrdNum.toFixed(4);
 
@@ -718,8 +718,8 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
       const resZ = await sendZucchettiBoImport('ADHOC_CONTI', xmlContiExtended);
       zucchettiSyncStatus = resZ.dryRun ? 'DRY_RUN' : 'SYNCED';
     } catch (extErr: any) {
-      // Fallback a schema XSD strict per ADHOC_CONTI
-      console.warn('Fallback a schema XSD strict per ADHOC_CONTI:', extErr.message);
+      // Fallback a schema XSD base (con ANCATSCM e ANCODAG1 attivi) per ADHOC_CONTI
+      console.warn('Fallback a schema XSD base per ADHOC_CONTI:', extErr.message);
       const resZStrict = await sendZucchettiBoImport('ADHOC_CONTI', xmlContiStrict);
       zucchettiSyncStatus = resZStrict.dryRun ? 'DRY_RUN' : 'SYNCED';
     }
