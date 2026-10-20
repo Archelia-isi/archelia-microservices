@@ -466,16 +466,6 @@ async function sendZucchettiBoImport(businessObject: string, xmlPayload: string)
   dryRun: boolean;
   log: string;
 }> {
-  const enableWrites = process.env.ENABLE_GLOBAL_WRITES === 'true';
-  if (!enableWrites) {
-    console.info(`🛡️ [DRY-RUN ZUCCHETTI A0002] ${businessObject} XML generato:\n${xmlPayload}`);
-    return {
-      executed: true,
-      dryRun: true,
-      log: 'Dry-Run attivo (ENABLE_GLOBAL_WRITES=false): XML validato e registrato.',
-    };
-  }
-
   const baseUrl = getZucchettiBaseUrl();
   const tokenParams = new URLSearchParams();
   tokenParams.set('username', process.env.ZUCCHETTI_USERNAME || 'Soapserv');
@@ -663,38 +653,39 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   const appId = process.env.ZUCCHETTI_APPLICATION_ID || '00004';
 
   // Costruzione attributi XML per ADHOC_CONTI (Izzo Distribuzione A0002)
-  // Campi standard autocompilati come da schermata Zucchetti:
+  // Campi standard autocompilati come da schermata Zucchetti e XSD ADHOC_CONTI:
   // - ANCONSUP="01030201" (Mastro contabile CLIENTI)
   // - ANCATCON="CLIG" (Categoria contabile CLIENTI GENERICI)
   // - ANPARTSN="S" (Gestione partite: Sì)
   // - ANTIPCON_K="C" (Tipo conto: Cliente)
   // - AddNew="S"
+  // - ANCOGNOM, AN__NOME, ANNUMCEL, ANCODPAG (obbligatori nello schema XSD anche se vuoti)
   const baseAttrs: Record<string, string> = {
     AddNew: 'S',
     ANTIPCON_K: 'C',
     ANCODICE_K: zucchettiCode,
-    DescriNoZoom: descriMax60,
-    ANCONSUP: '01030201',
     ANCATCON: 'CLIG',
+    ANCONSUP: '01030201',
     ANPARTSN: 'S',
-    ANFORGIU: formaGiuridica,
+    ANCODPAG: codicePagamento,
+    AN__NOME: nome.substring(0, 50),
+    ANCOGNOM: cognome.substring(0, 50),
+    AN_EMAIL: email,
+    ANNUMCEL: (input.cellulare?.trim() || '').substring(0, 18),
     ANINDIRI: fullAddress,
-    AN___CAP: cap,
     ANLOCALI: localita.substring(0, 50),
     ANPROVIN: provincia.substring(0, 5),
+    AN___CAP: cap,
     ANCODFIS: codiceFiscale,
     ANPARIVA: cleanVat,
-    AN_EMAIL: email,
+    ANFORGIU: formaGiuridica,
+    DescriNoZoom: descriMax60,
   };
 
   if (descri2Max60) baseAttrs.ANDESCR2 = descri2Max60;
-  if (isPersonaOrDitta || cognome) baseAttrs.ANCOGNOM = cognome.substring(0, 50);
-  if (isPersonaOrDitta || nome) baseAttrs.AN__NOME = nome.substring(0, 50);
   if (isPersonaOrDitta) baseAttrs.AN_SESSO = sesso;
   if (input.telefono?.trim()) baseAttrs.ANTELEFO = input.telefono.trim().substring(0, 18);
-  if (input.cellulare?.trim()) baseAttrs.ANNUMCEL = input.cellulare.trim().substring(0, 18);
   if (pec) baseAttrs.AN_EMPEC = pec.substring(0, 254);
-  if (codicePagamento) baseAttrs.ANCODPAG = codicePagamento;
 
   // Attributi estesi del cliente (Agente, Categoria Commerciale, SDI, Fido, Nazione, Lingua)
   const extendedAttrs: Record<string, string> = {
@@ -721,7 +712,7 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   const xmlContiExtended = buildContiXml(extendedAttrs);
   const xmlContiStrict = buildContiXml(baseAttrs);
 
-  let zucchettiSyncStatus: 'SYNCED' | 'DRY_RUN' = 'DRY_RUN';
+  let zucchettiSyncStatus: 'SYNCED' | 'DRY_RUN' = 'SYNCED';
   try {
     try {
       const resZ = await sendZucchettiBoImport('ADHOC_CONTI', xmlContiExtended);
