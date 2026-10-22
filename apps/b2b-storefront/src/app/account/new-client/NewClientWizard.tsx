@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CommercialCategoryOption,
   NewClientFormInput,
@@ -10,6 +11,8 @@ import {
 import { setImpersonatedClient } from '@/app/actions/agent';
 import { downloadClientCredentialsPdf, CreatedClientPdfData } from './pdfGenerator';
 import { useRouter } from 'next/navigation';
+
+const CREATED_CLIENT_STORAGE_KEY = 'b2b_new_client_created_modal';
 
 interface Props {
   agentCode: string;
@@ -110,6 +113,21 @@ export default function NewClientWizard({
   const [formError, setFormError] = useState('');
   const [createdClient, setCreatedClient] = useState<CreatedClientPdfData | null>(null);
   const [copiedCredentials, setCopiedCredentials] = useState(false);
+  const [currentNextCode, setCurrentNextCode] = useState(nextCodePreview);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const saved = sessionStorage.getItem(CREATED_CLIENT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as CreatedClientPdfData;
+        if (parsed && parsed.username && parsed.ragioneSociale) {
+          setCreatedClient(parsed);
+        }
+      }
+    } catch {}
+  }, []);
 
   const updateField = <K extends keyof NewClientFormInput>(key: K, value: NewClientFormInput[K]) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -267,8 +285,18 @@ export default function NewClientWizard({
         return;
       }
 
-      // Mostra il pop-up a video e avvia il download automatico del PDF sul PC dell'agente
+      // Salva in sessionStorage per resistere a eventuali re-render/Suspense e mostra subito il pop-up
+      try {
+        sessionStorage.setItem(CREATED_CLIENT_STORAGE_KEY, JSON.stringify(res.client));
+      } catch {}
       setCreatedClient(res.client);
+
+      const codeMatch = res.client.zucchettiCode.match(/^C(\d+)$/i);
+      if (codeMatch) {
+        const nextN = parseInt(codeMatch[1], 10) + 1;
+        setCurrentNextCode(`C${String(nextN).padStart(6, '0')}`);
+      }
+
       setTimeout(() => {
         try {
           downloadClientCredentialsPdf(res.client!);
@@ -285,7 +313,7 @@ export default function NewClientWizard({
 
   const handleCopyCredentials = () => {
     if (!createdClient) return;
-    const text = `Credenziali Portale B2B Izzo Distribuzione\nCliente: ${createdClient.ragioneSociale} (Cod. ${createdClient.zucchettiCode})\nUsername: ${createdClient.username}\nPassword Temporanea: ${createdClient.tempPassword}`;
+    const text = `Benvenuto nel Portale B2B Izzo Distribuzione (www.izzodistribuzione.it)\nRagione Sociale: ${createdClient.ragioneSociale}\nUsername: ${createdClient.username}\nPassword Temporanea: ${createdClient.tempPassword}\nNota: Al primo accesso il sistema ti chiederà automaticamente di impostare una password personale.`;
     navigator.clipboard.writeText(text);
     setCopiedCredentials(true);
     setTimeout(() => setCopiedCredentials(false), 2500);
@@ -293,6 +321,9 @@ export default function NewClientWizard({
 
   const handleImpersonateNewClient = async () => {
     if (!createdClient) return;
+    try {
+      sessionStorage.removeItem(CREATED_CLIENT_STORAGE_KEY);
+    } catch {}
     await setImpersonatedClient(
       createdClient.zucchettiCode,
       createdClient.ragioneSociale,
@@ -303,6 +334,9 @@ export default function NewClientWizard({
   };
 
   const handleResetForAnotherClient = () => {
+    try {
+      sessionStorage.removeItem(CREATED_CLIENT_STORAGE_KEY);
+    } catch {}
     setCreatedClient(null);
     setStep(1);
     setVatStatus({ type: 'idle', message: '' });
@@ -352,6 +386,9 @@ export default function NewClientWizard({
   };
 
   const handleCancelInsertion = () => {
+    try {
+      sessionStorage.removeItem(CREATED_CLIENT_STORAGE_KEY);
+    } catch {}
     setFormError('');
     setVatStatus({ type: 'idle', message: '' });
     router.push('/account');
@@ -373,7 +410,7 @@ export default function NewClientWizard({
           <div className="text-xs text-gray-500">
             Prossimo Cod. Zucchetti:{' '}
             <span className="font-mono font-bold text-sm text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
-              {nextCodePreview}
+              {currentNextCode}
             </span>
           </div>
         </div>
@@ -1267,139 +1304,147 @@ export default function NewClientWizard({
         )}
       </form>
 
-      {/* POP-UP MODAL CON RIEPILOGO CREDENZIALI E DOWNLOAD PDF */}
-      {createdClient && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="bg-black text-white p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">Cliente Creato con Successo!</h2>
-                  <p className="text-xs text-gray-300">
-                    Il PDF con le credenziali è stato scaricato automaticamente sul tuo PC.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Riepilogo Codice Zucchetti e Anagrafica */}
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold uppercase text-emerald-800">
-                    Codice Cliente Zucchetti
-                  </div>
-                  <div className="text-2xl font-mono font-extrabold text-emerald-950 mt-0.5">
-                    {createdClient.zucchettiCode}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-emerald-800 font-semibold">
-                    {createdClient.categoriaCommerciale}
-                  </div>
-                  <div className="text-sm font-bold text-emerald-950">
-                    Sconto Base: {createdClient.scontoBase}%
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-sm space-y-1.5 text-gray-700 border-b border-gray-100 pb-4">
-                <div>
-                  <span className="font-semibold text-gray-900">Ragione Sociale:</span>{' '}
-                  {createdClient.ragioneSociale} ({createdClient.formaGiuridica})
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-900">Partita IVA:</span>{' '}
-                  <span className="font-mono">{createdClient.partitaIva}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-900">Sede:</span>{' '}
-                  {createdClient.indirizzo} — {createdClient.cap} {createdClient.localita} ({createdClient.provincia})
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-900">E-mail:</span> {createdClient.email}
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-900">Negozio Elmark:</span>{' '}
-                  {createdClient.isElmarkCustomer ? (
-                    <span className="text-emerald-700 font-semibold">
-                      Abilitato (Sconti Standard: E1 20%, L 20%, E2 5%, C 5%, F 5%)
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">Non abilitato</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Box Credenziali Portale B2B */}
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                    Credenziali Accesso Portale B2B
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyCredentials}
-                    className="text-xs font-bold text-amber-900 hover:text-black underline"
-                  >
-                    {copiedCredentials ? 'Copiate negli appunti!' : 'Copia Credenziali'}
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-amber-200">
-                  <div>
-                    <div className="text-[11px] text-gray-500">Username</div>
-                    <div className="font-mono font-bold text-sm text-gray-900 break-all">
-                      {createdClient.username}
-                    </div>
+      {/* POP-UP MODAL CON RIEPILOGO DATI CLIENTE E CREDENZIALI B2B */}
+      {createdClient &&
+        mounted &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-lg w-full overflow-hidden my-auto">
+              <div className="bg-black text-white p-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
                   <div>
-                    <div className="text-[11px] text-gray-500">Password Temporanea</div>
-                    <div className="font-mono font-bold text-sm text-brand-main">
-                      {createdClient.tempPassword}
-                    </div>
+                    <h2 className="text-lg font-bold">Cliente Creato con Successo!</h2>
+                    <p className="text-xs text-gray-300">
+                      Il PDF da inviare al cliente è stato scaricato sul tuo PC.
+                    </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Azioni Modal */}
-              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => downloadClientCredentialsPdf(createdClient)}
-                  className="flex-1 px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Scarica PDF Credenziali
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleImpersonateNewClient}
-                  className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
-                >
-                  Impersonifica Subito
-                </button>
-
                 <button
                   type="button"
                   onClick={handleResetForAnotherClient}
-                  className="px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                  className="text-gray-400 hover:text-white transition-colors p-1"
+                  aria-label="Chiudi"
                 >
-                  Chiudi
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
+
+              <div className="p-6 space-y-5">
+                {/* Riepilogo Dati del Cliente */}
+                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-sm text-gray-700">
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Dati Anagrafici e Fiscali Cliente
+                    </span>
+                    <span className="text-xs font-mono font-bold bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded">
+                      Cod. {createdClient.zucchettiCode}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Ragione Sociale:</span>{' '}
+                    {createdClient.ragioneSociale}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">P.IVA / Cod. Fiscale:</span>{' '}
+                    <span className="font-mono">
+                      {createdClient.partitaIva}
+                      {createdClient.codiceFiscale && createdClient.codiceFiscale !== createdClient.partitaIva
+                        ? ` / ${createdClient.codiceFiscale}`
+                        : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">Indirizzo Sede:</span>{' '}
+                    {createdClient.indirizzo} — {createdClient.cap} {createdClient.localita} ({createdClient.provincia})
+                  </div>
+                  {(createdClient.telefono || createdClient.cellulare) && (
+                    <div>
+                      <span className="font-semibold text-gray-900">Recapiti:</span>{' '}
+                      {[createdClient.telefono, createdClient.cellulare].filter(Boolean).join(' / ')}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-semibold text-gray-900">E-mail:</span> {createdClient.email}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900">SDI / PEC:</span>{' '}
+                    <span className="font-mono">{createdClient.codiceDestinatario || '0000000'}</span>
+                    {createdClient.pec ? ` — ${createdClient.pec}` : ''}
+                  </div>
+                </div>
+
+                {/* Box Credenziali Portale B2B per il Cliente */}
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                      Credenziali Accesso Portale B2B Cliente
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyCredentials}
+                      className="text-xs font-bold text-amber-900 hover:text-black underline"
+                    >
+                      {copiedCredentials ? 'Copiate negli appunti!' : 'Copia per il Cliente'}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 bg-white p-3 rounded-lg border border-amber-200">
+                    <div>
+                      <div className="text-[11px] text-gray-500">Username</div>
+                      <div className="font-mono font-bold text-sm text-gray-900 break-all">
+                        {createdClient.username}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-gray-500">Password Temporanea</div>
+                      <div className="font-mono font-bold text-sm text-brand-main">
+                        {createdClient.tempPassword}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Azioni Modal */}
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadClientCredentialsPdf(createdClient)}
+                    className="flex-1 px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Scarica PDF per il Cliente
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleImpersonateNewClient}
+                    className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Impersonifica Subito
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetForAnotherClient}
+                    className="px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Chiudi
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

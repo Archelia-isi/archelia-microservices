@@ -33,8 +33,9 @@ function escapePdfText(str: string): string {
 }
 
 /**
- * Genera un file PDF A4 valido (standard PDF 1.4) con il riepilogo anagrafica Zucchetti
- * e le credenziali di accesso al Portale B2B Izzo Distribuzione, e ne avvia il download automatico.
+ * Genera un file PDF A4 valido (standard PDF 1.4) destinato al cliente finale,
+ * contenente esclusivamente i dati anagrafici/fiscali del cliente e le credenziali
+ * personali per accedere al Portale B2B Izzo Distribuzione (senza dati amministrativi interni).
  */
 export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   const lines: string[] = [];
@@ -48,51 +49,48 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   lines.push('BT /F2 18 Tf 58 782 Td (IZZO DISTRIBUZIONE B2B) Tj ET');
   lines.push('0.85 0.85 0.85 rg');
   lines.push(
-    `BT /F1 10 Tf 58 762 Td (SCHEDA ANAGRAFICA CLIENTE ZUCCHETTI & CREDENZIALI PORTALE - ${escapePdfText(
+    `BT /F1 10 Tf 58 762 Td (RIEPILOGO DATI CLIENTE E CREDENZIALI DI ACCESSO PORTALE B2B - ${escapePdfText(
       client.createdAt
     )}) Tj ET`
   );
 
-  // Box Codice Cliente Zucchetti in alto
+  // Box di Benvenuto per il Cliente in alto
   lines.push('0.96 0.98 0.96 rg');
   lines.push('0.13 0.55 0.25 RG 1.2 w');
-  lines.push('40 680 515 50 re B');
+  lines.push('40 676 515 54 re B');
 
   lines.push('0.10 0.45 0.20 rg');
-  lines.push('BT /F2 10 Tf 58 710 Td (CODICE CLIENTE ZUCCHETTI ASSEGNATO \\(IZZO DISTRIBUZIONE\\)) Tj ET');
-  lines.push('0.05 0.05 0.05 rg');
-  lines.push(`BT /F2 18 Tf 58 690 Td (${escapePdfText(client.zucchettiCode)}) Tj ET`);
-
-  lines.push('0.25 0.25 0.25 rg');
+  lines.push('BT /F2 11 Tf 58 708 Td (BENVENUTO NEL PORTALE B2B IZZO DISTRIBUZIONE) Tj ET');
+  lines.push('0.20 0.20 0.20 rg');
   lines.push(
-    `BT /F2 11 Tf 230 708 Td (Categoria: ${escapePdfText(client.categoriaCommerciale)} \\(Sconto base ${
-      client.scontoBase
-    }%\\)) Tj ET`
+    'BT /F1 9.5 Tf 58 690 Td (Di seguito trovi il riepilogo dei tuoi dati aziendali registrati e le credenziali personali di accesso.) Tj ET'
   );
-  lines.push(`BT /F1 10 Tf 230 692 Td (Agente Associato: ${escapePdfText(client.agente)}) Tj ET`);
 
-  // Sezione 1: Dati Anagrafici e Fiscali
+  // Sezione 1: Dati Anagrafici e di Fatturazione del Cliente
   lines.push('0.08 0.08 0.08 rg');
-  lines.push('BT /F2 13 Tf 40 652 Td (1. DATI ANAGRAFICI E FISCALI CLIENTE) Tj ET');
+  lines.push('BT /F2 13 Tf 40 648 Td (1. I TUOI DATI ANAGRAFICI E DI FATTURAZIONE) Tj ET');
   lines.push('0.80 0.80 0.80 RG 0.8 w');
-  lines.push('40 645 m 555 645 l S');
+  lines.push('40 640 m 555 640 l S');
 
-  const elmarkRowText = client.isElmarkCustomer
-    ? 'Abilitato (Sconti Standard: E1 20%, L 20%, E2 5%, C 5%, F 5%)'
-    : 'Non abilitato';
+  const contacts = [
+    client.telefono ? `Tel: ${client.telefono}` : '',
+    client.cellulare ? `Cell: ${client.cellulare}` : '',
+  ]
+    .filter(Boolean)
+    .join('   -   ');
 
   const rows: Array<[string, string]> = [
-    ['Ragione Sociale:', `${client.ragioneSociale} (${client.formaGiuridica})`],
-    ['Partita IVA / Cod. Fiscale:', `P.IVA: ${client.partitaIva}   -   C.F.: ${client.codiceFiscale}`],
+    ['Ragione Sociale:', client.ragioneSociale],
+    ['Partita IVA:', client.partitaIva],
+    ['Codice Fiscale:', client.codiceFiscale || client.partitaIva],
     ['Indirizzo Sede Legale:', `${client.indirizzo} - ${client.cap} ${client.localita} (${client.provincia})`],
-    ['Telefono / Cellulare:', `Tel: ${client.telefono || '-'}   /   Cell: ${client.cellulare || '-'}`],
-    ['E-mail Principale:', client.email],
-    ['Fatturazione Elettronica:', `Cod. Destinatario SDI: ${client.codiceDestinatario || '0000000'}   -   PEC: ${client.pec || '-'}`],
-    ['Negozio Elmark:', elmarkRowText],
-    ['Impostazioni Contabili ERP:', 'Mastro: 01030201 (CLIENTI)   -   Cat. Contabile: CLIG (CLIENTI GENERICI)   -   Partite: SI'],
+    ['Recapiti Telefonici:', contacts || '-'],
+    ['E-mail di Riferimento:', client.email],
+    ['Codice Destinatario SDI:', client.codiceDestinatario || '0000000'],
+    ['Indirizzo PEC:', client.pec || '-'],
   ];
 
-  let y = 622;
+  let y = 616;
   for (const [label, value] of rows) {
     lines.push('0.35 0.35 0.35 rg');
     lines.push(`BT /F2 10 Tf 48 ${y} Td (${escapePdfText(label)}) Tj ET`);
@@ -103,9 +101,9 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
     y -= 26;
   }
 
-  // Sezione 2: Box Credenziali Portale B2B
-  const boxTop = y - 15;
-  const boxHeight = 145;
+  // Sezione 2: Box Credenziali Portale B2B per il Cliente
+  const boxTop = y - 14;
+  const boxHeight = 165;
   const boxBottom = boxTop - boxHeight;
 
   lines.push('0.99 0.97 0.92 rg');
@@ -113,28 +111,33 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   lines.push(`40 ${boxBottom} 515 ${boxHeight} re B`);
 
   lines.push('0.65 0.35 0.02 rg');
-  lines.push(`BT /F2 13 Tf 58 ${boxTop - 26} Td (2. CREDENZIALI DI ACCESSO AL PORTALE B2B) Tj ET`);
+  lines.push(`BT /F2 13 Tf 58 ${boxTop - 26} Td (2. LE TUE CREDENZIALI DI ACCESSO AL PORTALE B2B) Tj ET`);
 
   lines.push('0.20 0.20 0.20 rg');
   lines.push(
-    `BT /F1 10 Tf 58 ${boxTop - 46} Td (Consegna queste credenziali al cliente per effettuare il primo accesso all'area riservata B2B:) Tj ET`
+    `BT /F1 10 Tf 58 ${boxTop - 46} Td (Utilizza queste credenziali per effettuare il primo accesso alla tua area riservata B2B:) Tj ET`
   );
 
   lines.push('0.05 0.05 0.05 rg');
-  lines.push(`BT /F2 11 Tf 58 ${boxTop - 74} Td (Username:) Tj ET`);
-  lines.push(`BT /F2 14 Tf 200 ${boxTop - 74} Td (${escapePdfText(client.username)}) Tj ET`);
+  lines.push(`BT /F2 11 Tf 58 ${boxTop - 72} Td (Portale Web B2B:) Tj ET`);
+  lines.push(`BT /F2 11 Tf 200 ${boxTop - 72} Td (www.izzodistribuzione.it) Tj ET`);
 
-  lines.push(`BT /F2 11 Tf 58 ${boxTop - 102} Td (Password Temporanea:) Tj ET`);
-  lines.push(`BT /F2 14 Tf 200 ${boxTop - 102} Td (${escapePdfText(client.tempPassword)}) Tj ET`);
+  lines.push(`BT /F2 11 Tf 58 ${boxTop - 98} Td (Username:) Tj ET`);
+  lines.push(`BT /F2 14 Tf 200 ${boxTop - 98} Td (${escapePdfText(client.username)}) Tj ET`);
+
+  lines.push(`BT /F2 11 Tf 58 ${boxTop - 124} Td (Password Temporanea:) Tj ET`);
+  lines.push(`BT /F2 14 Tf 200 ${boxTop - 124} Td (${escapePdfText(client.tempPassword)}) Tj ET`);
 
   lines.push('0.40 0.40 0.40 rg');
   lines.push(
-    `BT /F1 9 Tf 58 ${boxTop - 128} Td (Nota: Al primo login il sistema chiedera' automaticamente al cliente di impostare una password personale.) Tj ET`
+    `BT /F1 9 Tf 58 ${boxTop - 148} Td (Nota: Al primo accesso il sistema ti chiedera' automaticamente di impostare una password personale.) Tj ET`
   );
 
   // Footer
   lines.push('0.55 0.55 0.55 rg');
-  lines.push('BT /F1 8 Tf 40 45 Td (Documento generato automaticamente dal Portale Agenti B2B Izzo Distribuzione.) Tj ET');
+  lines.push(
+    'BT /F1 8 Tf 40 45 Td (Izzo Distribuzione S.r.l. - Portale B2B \\(www.izzodistribuzione.it\\) - Documento riservato al cliente.) Tj ET'
+  );
 
   const contentStream = lines.join('\n');
 
@@ -173,7 +176,7 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   const link = document.createElement('a');
   const safeName = client.ragioneSociale.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
   link.href = url;
-  link.download = `Scheda_Cliente_${client.zucchettiCode}_${safeName}.pdf`;
+  link.download = `Credenziali_B2B_${safeName}.pdf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

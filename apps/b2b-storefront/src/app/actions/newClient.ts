@@ -841,8 +841,8 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
     },
   });
 
-  revalidatePath('/account');
-  revalidatePath('/account/impersonate');
+  // Non eseguiamo revalidatePath('/account') qui per non attivare la Suspense boundary (loading.tsx)
+  // che smonterebbe il componente client NewClientWizard prima della visualizzazione del pop-up.
 
   return {
     success: true,
