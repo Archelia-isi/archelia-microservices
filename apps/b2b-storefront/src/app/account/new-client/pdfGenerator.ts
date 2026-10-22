@@ -21,6 +21,8 @@ export interface CreatedClientPdfData {
   username: string;
   tempPassword: string;
   createdAt: string;
+  pdfBase64?: string;
+  pdfFileName?: string;
 }
 
 function escapePdfText(str: string): string {
@@ -33,11 +35,29 @@ function escapePdfText(str: string): string {
 }
 
 /**
- * Genera un file PDF A4 valido (standard PDF 1.4) destinato al cliente finale,
- * contenente esclusivamente i dati anagrafici/fiscali del cliente e le credenziali
- * personali per accedere al Portale B2B Izzo Distribuzione (senza dati amministrativi interni).
+ * Avvia il download del PDF generato lato server (client.pdfBase64).
+ * Mantiene un fallback locale identico solo qualora pdfBase64 non fosse presente.
  */
 export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
+  if (client.pdfBase64) {
+    const binaryStr = window.atob(client.pdfBase64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i) & 0xff;
+    }
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = client.ragioneSociale.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+    link.href = url;
+    link.download = client.pdfFileName || `Credenziali_B2B_${safeName}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return;
+  }
+
   const lines: string[] = [];
 
   // Sfondo Header Nero
