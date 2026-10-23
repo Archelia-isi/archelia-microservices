@@ -471,7 +471,7 @@ export default function NewClientWizard({
     } catch {}
     setFormError('');
     setVatStatus({ type: 'idle', message: '' });
-    router.push('/account');
+    router.push('/account/clients');
   };
 
   const isPersonaOrDitta = form.formaGiuridica === 'IND' || form.formaGiuridica === 'PER';
@@ -481,6 +481,13 @@ export default function NewClientWizard({
       {/* Intestazione Pagina */}
       <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gray-50">
         <div>
+          <button
+            type="button"
+            onClick={() => router.push('/account/clients')}
+            className="text-xs font-bold text-gray-600 hover:text-black mb-1.5 inline-flex items-center gap-1 transition-colors"
+          >
+            ← Torna all&apos;elenco Clienti
+          </button>
           <h1 className="text-2xl font-bold text-gray-900">Nuovo Cliente Zucchetti (Izzo Distribuzione)</h1>
           <p className="text-sm text-gray-600 mt-1">
             Inserisci l&apos;anagrafica cliente in Zucchetti e genera in automatico le credenziali di accesso B2B.

@@ -1137,3 +1137,427 @@ function generateCustomerPdfOnServer(client: {
 
   return { pdfBase64, pdfFileName };
 }
+
+export interface AgentManagedClient {
+  id: string;
+  zucchettiCode: string;
+  companyName: string;
+  vatNumber: string;
+  codiceFiscale: string;
+  formaGiuridica: string;
+  firstName: string;
+  lastName: string;
+  address: string;
+  zip: string;
+  city: string;
+  province: string;
+  phone: string;
+  telefonoFisso: string;
+  email: string;
+  pec: string;
+  codiceDestinatario: string;
+  username: string;
+  tempPassword: string;
+  mustChangePassword: boolean;
+  customerType: string;
+  categoriaCode: string;
+  discount: number;
+  fido: number;
+  codicePagamento: string;
+  isElmarkCustomer: boolean;
+  elmarkDiscounts: Record<string, number>;
+  isActive: boolean;
+  ordersCount: number;
+  createdAt: string;
+}
+
+export interface UpdateAgentClientInput {
+  id: string;
+  companyName: string;
+  vatNumber: string;
+  codiceFiscale?: string;
+  formaGiuridica?: string;
+  firstName?: string;
+  lastName?: string;
+  address: string;
+  zip: string;
+  city: string;
+  province: string;
+  phone?: string;
+  telefonoFisso?: string;
+  email: string;
+  pec?: string;
+  codiceDestinatario?: string;
+  username: string;
+  categoriaCommerciale: string;
+  discount: number;
+  fido?: number;
+  codicePagamento?: string;
+  isElmarkCustomer: boolean;
+  elmarkDiscounts?: Record<string, number>;
+  isActive: boolean;
+}
+
+export async function getAgentClientsList(): Promise<{
+  success: boolean;
+  error?: string;
+  agentName?: string;
+  agentCode?: string;
+  categories?: CommercialCategoryOption[];
+  clients?: AgentManagedClient[];
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, error: 'Non autorizzato' };
+  }
+
+  const initData = await getAgentNewClientInitData();
+  const categories = initData.categories || [
+    { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
+    { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
+    { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
+  ];
+
+  // Carica anagrafica live Zucchetti (A0002) per arricchire PEC, SDI, Forma Giuridica, Cod. Fiscale
+  const zucchettiMap = new Map<string, any>();
+  try {
+    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
+    const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
+    if (res.ok) {
+      const json: any = await res.json();
+      const rows: any[] = json.data || json.dataset || json.zzna_clienti || [];
+      for (const r of rows) {
+        const code = String(r.ancodice || r.Ancodice || '').trim().toUpperCase();
+        if (code) zucchettiMap.set(code, r);
+      }
+    }
+  } catch (e) {
+    console.warn('Avviso lettura zzna_clienti in getAgentClientsList:', e);
+  }
+
+  const dbClients = await prisma.b2BUser.findMany({
+    where: {
+      agentId: session.userId,
+      role: 'USER',
+    },
+    include: {
+      _count: {
+        select: { orders: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const standardElmarkDiscounts: Record<string, number> = {
+    E1: 20,
+    L: 20,
+    C: 5,
+    E2: 5,
+    F: 5,
+  };
+
+  const mapped: AgentManagedClient[] = dbClients.map(u => {
+    const zCode = (u.zucchettiCode || '').trim().toUpperCase();
+    const zRow = zCode ? zucchettiMap.get(zCode) : null;
+
+    const rawCatFromType = (u.customerType || '').split('-')[0]?.trim().toLowerCase();
+    const zCat = String(zRow?.ancatscm || zRow?.Ancatscm || '').trim().toLowerCase();
+    const matchedCat =
+      categories.find(c => c.code.toLowerCase() === rawCatFromType) ||
+      categories.find(c => c.code.toLowerCase() === zCat) ||
+      categories.find(c => c.discount === u.discount) ||
+      categories[0];
+
+    const rawElmark =
+      u.elmarkDiscounts && typeof u.elmarkDiscounts === 'object'
+        ? (u.elmarkDiscounts as Record<string, number>)
+        : {};
+
+    return {
+      id: u.id,
+      zucchettiCode: u.zucchettiCode || '',
+      companyName: u.companyName || `${u.lastName || ''} ${u.firstName || ''}`.trim() || u.username,
+      vatNumber: u.vatNumber || String(zRow?.anpariva || zRow?.Anpariva || '').trim(),
+      codiceFiscale: String(zRow?.ancodfis || zRow?.Ancodfis || u.vatNumber || '').trim(),
+      formaGiuridica:
+        String(zRow?.anforgiu || zRow?.Anforgiu || '').trim().toUpperCase() ||
+        inferFormaGiuridica(u.companyName || ''),
+      firstName: u.firstName || String(zRow?.an__nome || zRow?.An__nome || '').trim(),
+      lastName: u.lastName || String(zRow?.ancognom || zRow?.Ancognom || '').trim(),
+      address: u.address || String(zRow?.anindiri || zRow?.Anindiri || '').trim(),
+      zip: u.zip || String(zRow?.an___cap || zRow?.An___cap || '').trim(),
+      city: u.city || String(zRow?.anlocali || zRow?.Anlocali || '').trim(),
+      province: u.province || String(zRow?.anprovin || zRow?.Anprovin || '').trim(),
+      phone: u.phone || String(zRow?.annumcel || zRow?.Annumcel || '').trim(),
+      telefonoFisso: String(zRow?.antelefo || zRow?.Antelefo || '').trim(),
+      email: u.email || String(zRow?.an_email || zRow?.An_email || '').trim(),
+      pec: String(zRow?.an_empec || zRow?.An_empec || '').trim(),
+      codiceDestinatario: String(zRow?.cccodest || zRow?.Cccodest || '0000000').trim() || '0000000',
+      username: u.username,
+      tempPassword: u.tempPassword || '',
+      mustChangePassword: u.mustChangePassword,
+      customerType: u.customerType || matchedCat?.label || 'RIV - Rivenditore',
+      categoriaCode: matchedCat?.code || 'riv',
+      discount: u.discount ?? 0,
+      fido: u.fido ?? 0,
+      codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
+      isElmarkCustomer: Boolean(u.isElmarkCustomer),
+      elmarkDiscounts: u.isElmarkCustomer
+        ? { ...standardElmarkDiscounts, ...rawElmark }
+        : rawElmark,
+      isActive: u.isActive,
+      ordersCount: u._count.orders,
+      createdAt: u.createdAt.toISOString(),
+    };
+  });
+
+  return {
+    success: true,
+    agentName: initData.agentName || session.user.username,
+    agentCode: initData.agentCode || '',
+    categories,
+    clients: mapped,
+  };
+}
+
+export async function updateAgentClient(input: UpdateAgentClientInput): Promise<{
+  success: boolean;
+  error?: string;
+  zucchettiUpdated?: boolean;
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, error: 'Operazione consentita solo agli agenti.' };
+  }
+
+  const existing = await prisma.b2BUser.findUnique({
+    where: { id: input.id },
+  });
+
+  if (!existing || existing.agentId !== session.userId) {
+    return { success: false, error: 'Cliente non trovato o non associato al tuo profilo agente.' };
+  }
+
+  const companyName = (input.companyName || '').trim();
+  const cleanVat = (input.vatNumber || '').toUpperCase().replace(/^IT/, '').replace(/\s+/g, '').trim();
+  const address = (input.address || '').trim();
+  const zip = (input.zip || '').trim();
+  const city = (input.city || '').trim();
+  const province = (input.province || '').trim().toUpperCase();
+  const email = (input.email || '').trim().toLowerCase();
+  const cleanUsername = (input.username || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/^\.|\.$/g, '')
+    .slice(0, 30);
+
+  if (!companyName) {
+    return { success: false, error: 'La Ragione Sociale è obbligatoria.' };
+  }
+  if (!cleanVat || !/^\d{11}$/.test(cleanVat)) {
+    return { success: false, error: 'La Partita IVA deve essere di 11 cifre valide.' };
+  }
+  if (!address || !city || province.length !== 2 || !/^\d{5}$/.test(zip)) {
+    return { success: false, error: 'Verifica Indirizzo, CAP (5 cifre), Località e Provincia (2 lettere).' };
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: 'Inserisci un indirizzo E-mail valido.' };
+  }
+  if (!cleanUsername || cleanUsername.length < 3) {
+    return { success: false, error: 'Lo Username B2B deve avere almeno 3 caratteri.' };
+  }
+
+  // Verifica unicità username ed email se modificati
+  if (cleanUsername !== existing.username) {
+    const dupUser = await prisma.b2BUser.findUnique({ where: { username: cleanUsername } });
+    if (dupUser && dupUser.id !== existing.id) {
+      return { success: false, error: `Lo username "${cleanUsername}" è già in uso da un altro cliente.` };
+    }
+  }
+  if (email !== existing.email) {
+    const dupEmail = await prisma.b2BUser.findUnique({ where: { email } });
+    if (dupEmail && dupEmail.id !== existing.id) {
+      return { success: false, error: `L'indirizzo email "${email}" è già registrato su un altro cliente.` };
+    }
+  }
+
+  const initData = await getAgentNewClientInitData();
+  const selectedCat = initData.categories?.find(
+    c => c.code.toLowerCase() === (input.categoriaCommerciale || '').toLowerCase()
+  );
+  const customerTypeLabel = selectedCat
+    ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
+    : (input.categoriaCommerciale || 'RIV').toUpperCase();
+  const discountVal =
+    typeof input.discount === 'number' && !isNaN(input.discount)
+      ? input.discount
+      : selectedCat?.discount ?? existing.discount;
+
+  const standardElmarkDiscounts: Record<string, number> = {
+    E1: 20,
+    L: 20,
+    C: 5,
+    E2: 5,
+    F: 5,
+  };
+  const finalElmarkDiscounts = input.isElmarkCustomer
+    ? { ...standardElmarkDiscounts, ...(input.elmarkDiscounts || {}) }
+    : {};
+
+  await prisma.b2BUser.update({
+    where: { id: existing.id },
+    data: {
+      companyName,
+      vatNumber: cleanVat,
+      firstName: input.firstName?.trim() || null,
+      lastName: input.lastName?.trim() || null,
+      address,
+      zip,
+      city,
+      province,
+      phone: input.phone?.trim() || input.telefonoFisso?.trim() || null,
+      email,
+      username: cleanUsername,
+      customerType: customerTypeLabel,
+      discount: discountVal,
+      fido: typeof input.fido === 'number' && !isNaN(input.fido) ? input.fido : existing.fido,
+      isElmarkCustomer: Boolean(input.isElmarkCustomer),
+      elmarkDiscounts: finalElmarkDiscounts,
+      isActive: Boolean(input.isActive),
+    },
+  });
+
+  // Sincronizza l'aggiornamento anche su Zucchetti (ADHOC_CONTI) se il cliente ha un codice Zucchetti
+  let zucchettiUpdated = false;
+  if (existing.zucchettiCode) {
+    try {
+      const appId = process.env.ZUCCHETTI_APPLICATION_ID || '00004';
+      const formaGiuridica = (input.formaGiuridica || inferFormaGiuridica(companyName)).toUpperCase();
+      const isPersonaOrDitta = formaGiuridica === 'IND' || formaGiuridica === 'PER';
+      const codiceFiscale = (input.codiceFiscale || cleanVat).toUpperCase().trim().substring(0, 16);
+      const pec = (input.pec || '').trim().toLowerCase();
+      const codiceDestinatario = (input.codiceDestinatario || '0000000').trim().toUpperCase();
+
+      const attrs: Record<string, string> = {
+        ANTIPCON_K: 'C',
+        ANCODICE_K: existing.zucchettiCode,
+        ANTIPCON: 'C',
+        ANCODICE: existing.zucchettiCode,
+        ANDESCRI: companyName.substring(0, 60),
+        ANPERSON: isPersonaOrDitta ? 'F' : 'G',
+        ANCODMAS: '01.03',
+        ANTIPCLF: 'CLIG',
+        ANPARTSN: 'S',
+        ANCODPAG: (input.codicePagamento || '').trim().substring(0, 5),
+        AN__NOME: (input.firstName || '').trim().substring(0, 50),
+        ANCOGNOM: (input.lastName || '').trim().substring(0, 50),
+        AN_EMAIL: email,
+        ANNUMCEL: (input.phone || '').trim().substring(0, 18),
+        ANINDIRI: address.substring(0, 32),
+        ANLOCALI: city.substring(0, 50),
+        ANPROVIN: province.substring(0, 5),
+        AN___CAP: zip,
+        ANCODFIS: codiceFiscale,
+        ANPARIVA: cleanVat,
+        ANFORGIU: formaGiuridica,
+        DescriNoZoom: companyName.substring(0, 60),
+      };
+      if (input.telefonoFisso?.trim()) attrs.ANTELEFO = input.telefonoFisso.trim().substring(0, 18);
+      if (pec) attrs.AN_EMPEC = pec.substring(0, 254);
+      if (input.categoriaCommerciale) attrs.ANCATSCM = input.categoriaCommerciale.trim().substring(0, 5);
+      if (initData.agentCode) attrs.ANCODAG1 = initData.agentCode.substring(0, 5);
+      if (codiceDestinatario) attrs.CCCODEST = codiceDestinatario;
+
+      const attrString = Object.entries(attrs)
+        .map(([k, v]) => `${k}="${escapeXmlAttr(v)}"`)
+        .join(' ');
+
+      try {
+        const xmlUpd = `<ADHOC_CONTI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ConsolidationDate="01-01-1900" applicationId="${appId}"><Update_ADHOC_CONTI ${attrString}/></ADHOC_CONTI>`;
+        await sendZucchettiBoImport('ADHOC_CONTI', xmlUpd);
+        zucchettiUpdated = true;
+      } catch {
+        const xmlAdd = `<ADHOC_CONTI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ConsolidationDate="01-01-1900" applicationId="${appId}"><Add_ADHOC_CONTI ${attrString}/></ADHOC_CONTI>`;
+        await sendZucchettiBoImport('ADHOC_CONTI', xmlAdd);
+        zucchettiUpdated = true;
+      }
+    } catch (zErr: any) {
+      console.warn('Avviso aggiornamento ADHOC_CONTI Zucchetti (DB B2B già aggiornato):', zErr.message);
+    }
+  }
+
+  return { success: true, zucchettiUpdated };
+}
+
+export async function generateClientCredentialsPdfAction(
+  clientId: string,
+  regeneratePassword: boolean = false
+): Promise<{
+  success: boolean;
+  error?: string;
+  tempPassword?: string;
+  pdfBase64?: string;
+  pdfFileName?: string;
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, error: 'Non autorizzato' };
+  }
+
+  const user = await prisma.b2BUser.findUnique({ where: { id: clientId } });
+  if (!user || user.agentId !== session.userId) {
+    return { success: false, error: 'Cliente non trovato.' };
+  }
+
+  let tempPassword = user.tempPassword || '';
+  if (regeneratePassword || !tempPassword) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+    tempPassword = '';
+    for (let i = 0; i < 8; i++) {
+      tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    await prisma.b2BUser.update({
+      where: { id: user.id },
+      data: {
+        tempPassword,
+        passwordHash,
+        mustChangePassword: true,
+      },
+    });
+  }
+
+  const createdAt = new Date().toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const { pdfBase64, pdfFileName } = generateCustomerPdfOnServer({
+    ragioneSociale: user.companyName || user.username,
+    partitaIva: user.vatNumber || '',
+    codiceFiscale: user.vatNumber || '',
+    indirizzo: user.address || '',
+    cap: user.zip || '',
+    localita: user.city || '',
+    provincia: user.province || '',
+    telefono: '',
+    cellulare: user.phone || '',
+    email: user.email || '',
+    pec: '',
+    codiceDestinatario: '0000000',
+    username: user.username,
+    tempPassword,
+    createdAt,
+  });
+
+  return {
+    success: true,
+    tempPassword,
+    pdfBase64,
+    pdfFileName,
+  };
+}
