@@ -1070,15 +1070,17 @@ export default function ClientsManager({
 
                     <div>
                       <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Password Temporanea Attuale
+                        {selectedClient.mustChangePassword && selectedClient.tempPassword
+                          ? 'Password Temporanea Attuale'
+                          : 'Password'}
                       </label>
                       <input
                         type="text"
                         disabled
                         value={
-                          selectedClient.tempPassword
+                          selectedClient.mustChangePassword && selectedClient.tempPassword
                             ? selectedClient.tempPassword
-                            : 'Impostata dal cliente'
+                            : 'Password impostata dal cliente'
                         }
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-gray-100 text-gray-700"
                       />

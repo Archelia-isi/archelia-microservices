@@ -133,9 +133,15 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   lines.push('0.65 0.35 0.02 rg');
   lines.push(`BT /F2 13 Tf 58 ${boxTop - 26} Td (2. LE TUE CREDENZIALI DI ACCESSO AL PORTALE B2B) Tj ET`);
 
+  const hasTempPassword = Boolean(client.tempPassword && client.tempPassword.trim());
+
   lines.push('0.20 0.20 0.20 rg');
   lines.push(
-    `BT /F1 10 Tf 58 ${boxTop - 46} Td (Utilizza queste credenziali per effettuare il primo accesso alla tua area riservata B2B:) Tj ET`
+    `BT /F1 10 Tf 58 ${boxTop - 46} Td (${
+      hasTempPassword
+        ? 'Utilizza queste credenziali per effettuare il primo accesso alla tua area riservata B2B:'
+        : 'Riepilogo delle tue credenziali di accesso alla tua area riservata B2B:'
+    }) Tj ET`
   );
 
   lines.push('0.05 0.05 0.05 rg');
@@ -145,13 +151,24 @@ export function downloadClientCredentialsPdf(client: CreatedClientPdfData) {
   lines.push(`BT /F2 11 Tf 58 ${boxTop - 98} Td (Username:) Tj ET`);
   lines.push(`BT /F2 14 Tf 200 ${boxTop - 98} Td (${escapePdfText(client.username)}) Tj ET`);
 
-  lines.push(`BT /F2 11 Tf 58 ${boxTop - 124} Td (Password Temporanea:) Tj ET`);
-  lines.push(`BT /F2 14 Tf 200 ${boxTop - 124} Td (${escapePdfText(client.tempPassword)}) Tj ET`);
+  if (hasTempPassword) {
+    lines.push(`BT /F2 11 Tf 58 ${boxTop - 124} Td (Password Temporanea:) Tj ET`);
+    lines.push(`BT /F2 14 Tf 200 ${boxTop - 124} Td (${escapePdfText(client.tempPassword)}) Tj ET`);
 
-  lines.push('0.40 0.40 0.40 rg');
-  lines.push(
-    `BT /F1 9 Tf 58 ${boxTop - 148} Td (Nota: Al primo accesso il sistema ti chiedera' automaticamente di impostare una password personale.) Tj ET`
-  );
+    lines.push('0.40 0.40 0.40 rg');
+    lines.push(
+      `BT /F1 9 Tf 58 ${boxTop - 148} Td (Nota: Al primo accesso il sistema ti chiedera' automaticamente di impostare una password personale.) Tj ET`
+    );
+  } else {
+    lines.push(`BT /F2 11 Tf 58 ${boxTop - 124} Td (Password:) Tj ET`);
+    lines.push('0.10 0.45 0.20 rg');
+    lines.push(`BT /F2 12 Tf 200 ${boxTop - 124} Td (Password impostata dal cliente) Tj ET`);
+
+    lines.push('0.40 0.40 0.40 rg');
+    lines.push(
+      `BT /F1 9 Tf 58 ${boxTop - 148} Td (Nota: Accedi con la password personale che hai scelto al primo accesso.) Tj ET`
+    );
+  }
 
   // Footer
   lines.push('0.55 0.55 0.55 rg');
