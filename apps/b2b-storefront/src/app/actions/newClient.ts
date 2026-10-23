@@ -1347,7 +1347,20 @@ export async function getAgentClientsList(): Promise<{
     F: 5,
   };
 
-  const mappedB2B: AgentManagedClient[] = dbClients.map(u => {
+  const normAgentCode = normalizeAgentCode(initData.agentCode);
+
+  // Filtra anche i clienti B2B verificando che, se presenti in Zucchetti (es. serie C000xxx),
+  // siano effettivamente assegnati al codice agente corrente su Zucchetti (ancodag1)
+  const filteredDbClients = dbClients.filter(u => {
+    const zCode = (u.zucchettiCode || '').trim().toUpperCase();
+    if (!zCode || zCode.startsWith('CLIPR')) return true;
+    const zRow = zucchettiMap.get(zCode);
+    if (!zRow) return true;
+    const rowAgent = normalizeAgentCode(zRow?.ancodag1 || zRow?.Ancodag1);
+    return Boolean(normAgentCode) && Boolean(rowAgent) && rowAgent === normAgentCode;
+  });
+
+  const mappedB2B: AgentManagedClient[] = filteredDbClients.map(u => {
     const zCode = (u.zucchettiCode || '').trim().toUpperCase();
     const zRow = zCode ? zucchettiMap.get(zCode) : null;
 
@@ -1414,7 +1427,6 @@ export async function getAgentClientsList(): Promise<{
 
   // Aggiunge SOLO i clienti già presenti in Zucchetti (A0002) che sono esplicitamente assegnati
   // al codice agente dell'agente loggato (ancodag1) e che non hanno ancora credenziali B2B
-  const normAgentCode = normalizeAgentCode(initData.agentCode);
   const zucchettiOnlyClients: AgentManagedClient[] = [];
 
   for (const [zCode, zRow] of Array.from(zucchettiMap.entries())) {
