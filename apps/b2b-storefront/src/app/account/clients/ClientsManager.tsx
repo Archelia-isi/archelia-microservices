@@ -56,7 +56,7 @@ function buildEditFormFromClient(
     pec: c.pec || '',
     codiceDestinatario: c.codiceDestinatario || '0000000',
     username: c.username,
-    categoriaCommerciale: c.categoriaCode || categories[0]?.code || 'riv',
+    categoriaCommerciale: c.categoriaCode ?? '',
     discount: c.discount,
     fido: c.fido || 0,
     codicePagamento: c.codicePagamento || '',
@@ -91,7 +91,7 @@ function buildActivateFormFromClient(
     pec: c.pec || '',
     codiceDestinatario: c.codiceDestinatario || '0000000',
     username: c.username || '',
-    categoriaCommerciale: c.categoriaCode || categories[0]?.code || 'riv',
+    categoriaCommerciale: c.categoriaCode ?? '',
     discount: c.discount,
     isElmarkCustomer: false,
     elmarkDiscounts: { E1: 20, L: 20, C: 5, E2: 5, F: 5 },
@@ -377,11 +377,13 @@ export default function ClientsManager({
       }
 
       const selectedCat = categories.find(
-        cat => cat.code.toLowerCase() === editForm.categoriaCommerciale.toLowerCase()
+        cat => cat.code.toLowerCase() === (editForm.categoriaCommerciale || '').toLowerCase()
       );
-      const updatedCustomerType = selectedCat
-        ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
-        : editForm.categoriaCommerciale.toUpperCase();
+      const updatedCustomerType = !editForm.categoriaCommerciale
+        ? 'Nessuna Categoria'
+        : selectedCat
+          ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
+          : editForm.categoriaCommerciale.toUpperCase();
 
       const updatedClient: AgentManagedClient = {
         ...selectedClient,
@@ -1012,7 +1014,7 @@ export default function ClientsManager({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Categoria Commerciale Zucchetti
+                        Categoria Commerciale Zucchetti <span className="font-normal text-gray-400">(Opzionale)</span>
                       </label>
                       <select
                         value={activateForm.categoriaCommerciale}
@@ -1022,13 +1024,16 @@ export default function ClientsManager({
                           setActivateForm({
                             ...activateForm,
                             categoriaCommerciale: code,
-                            discount: found ? found.discount : activateForm.discount,
+                            discount: code === '' ? 0 : found ? found.discount : activateForm.discount,
                           });
                         }}
                         className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white font-medium"
                       >
+                        {!categories.some(cat => cat.code === '') && (
+                          <option value="">Nessuna Categoria (Sconto base 0%)</option>
+                        )}
                         {categories.map(cat => (
-                          <option key={cat.code} value={cat.code}>
+                          <option key={cat.code || '__none__'} value={cat.code}>
                             {cat.label}
                           </option>
                         ))}
@@ -1397,7 +1402,7 @@ export default function ClientsManager({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Categoria Commerciale Zucchetti
+                        Categoria Commerciale Zucchetti <span className="font-normal text-gray-400">(Opzionale)</span>
                       </label>
                       <select
                         disabled={!isEditing}
@@ -1408,13 +1413,16 @@ export default function ClientsManager({
                           setEditForm({
                             ...editForm,
                             categoriaCommerciale: code,
-                            discount: found ? found.discount : editForm.discount,
+                            discount: code === '' ? 0 : found ? found.discount : editForm.discount,
                           });
                         }}
                         className={`w-full px-3 py-2 border rounded-lg text-sm font-medium ${inputReadOnlyClass}`}
                       >
+                        {!categories.some(cat => cat.code === '') && (
+                          <option value="">Nessuna Categoria (Sconto base 0%)</option>
+                        )}
                         {categories.map(cat => (
-                          <option key={cat.code} value={cat.code}>
+                          <option key={cat.code || '__none__'} value={cat.code}>
                             {cat.label}
                           </option>
                         ))}

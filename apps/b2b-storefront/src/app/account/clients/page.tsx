@@ -21,6 +21,7 @@ export default async function AgentClientsPage() {
       initialClients={data.clients || []}
       categories={
         data.categories || [
+          { code: '', label: 'Nessuna Categoria (Sconto base 0%)', discount: 0 },
           { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
           { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
           { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },

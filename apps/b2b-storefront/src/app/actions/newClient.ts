@@ -357,10 +357,17 @@ export async function getAgentNewClientInitData() {
     return { success: false, error: 'Non autorizzato' };
   }
 
+  const noneCategoryOption: CommercialCategoryOption = {
+    code: '',
+    label: 'Nessuna Categoria (Sconto base 0%)',
+    discount: 0,
+  };
+
   const defaultCategories: CommercialCategoryOption[] = [
-    { code: 'riv', label: 'RIV - Rivenditore', discount: 50 },
-    { code: 'ist', label: 'IST - Installatore', discount: 40 },
-    { code: 'gen', label: 'GEN - Generale', discount: 25 },
+    noneCategoryOption,
+    { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
+    { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
+    { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
   ];
 
   let categories: CommercialCategoryOption[] = [...defaultCategories];
@@ -385,7 +392,7 @@ export async function getAgentNewClientInitData() {
           map.set(code, { code, label: `${name} (Sconto base ${discount}%)`, discount });
         }
         if (map.size > 0) {
-          categories = Array.from(map.values());
+          categories = [noneCategoryOption, ...Array.from(map.values())];
         }
       }
     }
@@ -647,9 +654,6 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { success: false, error: 'Inserisci un indirizzo E-mail valido.' };
   }
-  if (!categoriaCommerciale) {
-    return { success: false, error: 'Seleziona una Categoria Commerciale.' };
-  }
 
   // Regola Punto 3: Almeno uno tra Codice Destinatario SDI e PEC
   if (!codiceDestinatario && !pec) {
@@ -697,18 +701,29 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
     };
   }
 
-  // Recupero sconto associato alla categoria commerciale scelta
+  // Recupero sconto associato alla categoria commerciale scelta (opzionale: può essere "Nessuna Categoria")
   const initData = await getAgentNewClientInitData();
-  const selectedCat = (initData.categories || []).find(c => c.code === categoriaCommerciale);
-  const baseDiscount = selectedCat ? selectedCat.discount : categoriaCommerciale === 'riv' ? 50 : categoriaCommerciale === 'ist' ? 40 : 25;
-  const customerTypeLabel =
-    categoriaCommerciale === 'riv'
-      ? 'Rivenditore'
-      : categoriaCommerciale === 'ist'
-      ? 'Installatore'
-      : categoriaCommerciale === 'gen'
-      ? 'Generale'
-      : categoriaCommerciale.toUpperCase();
+  const selectedCat = categoriaCommerciale
+    ? (initData.categories || []).find(c => c.code === categoriaCommerciale)
+    : undefined;
+  const baseDiscount = !categoriaCommerciale
+    ? 0
+    : selectedCat
+    ? selectedCat.discount
+    : categoriaCommerciale === 'riv'
+    ? 50
+    : categoriaCommerciale === 'ist'
+    ? 40
+    : 25;
+  const customerTypeLabel = !categoriaCommerciale
+    ? 'Nessuna Categoria'
+    : categoriaCommerciale === 'riv'
+    ? 'Rivenditore'
+    : categoriaCommerciale === 'ist'
+    ? 'Installatore'
+    : categoriaCommerciale === 'gen'
+    ? 'Generale'
+    : categoriaCommerciale.toUpperCase();
 
   // Prenotazione automatica del Codice Cliente Zucchetti (serie C000xxx)
   const zucchettiCode = await computeNextZucchettiCustomerCode(true);
@@ -1316,11 +1331,16 @@ export async function getAgentClientsList(): Promise<{
 
     const rawCatFromType = (u.customerType || '').split('-')[0]?.trim().toLowerCase();
     const zCat = String(zRow?.ancatscm || zRow?.Ancatscm || '').trim().toLowerCase();
-    const matchedCat =
-      categories.find(c => c.code.toLowerCase() === rawCatFromType) ||
-      categories.find(c => c.code.toLowerCase() === zCat) ||
-      categories.find(c => c.discount === u.discount) ||
-      categories[0];
+    const isNoneType =
+      !u.customerType ||
+      u.customerType.toLowerCase().includes('nessuna') ||
+      (!zCat && u.discount === 0);
+
+    const matchedCat = isNoneType
+      ? categories.find(c => c.code === '')
+      : categories.find(c => c.code && c.code.toLowerCase() === rawCatFromType) ||
+        categories.find(c => c.code && c.code.toLowerCase() === zCat) ||
+        categories.find(c => c.code && c.discount === u.discount);
 
     const rawElmark =
       u.elmarkDiscounts && typeof u.elmarkDiscounts === 'object'
@@ -1351,8 +1371,12 @@ export async function getAgentClientsList(): Promise<{
       username: u.username,
       tempPassword: u.tempPassword || '',
       mustChangePassword: u.mustChangePassword,
-      customerType: u.customerType || matchedCat?.label || 'RIV - Rivenditore',
-      categoriaCode: matchedCat?.code || 'riv',
+      customerType:
+        u.customerType ||
+        (matchedCat && matchedCat.code
+          ? matchedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
+          : 'Nessuna Categoria'),
+      categoriaCode: matchedCat?.code ?? '',
       discount: u.discount ?? 0,
       fido: u.fido ?? 0,
       codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
@@ -1387,8 +1411,9 @@ export async function getAgentClientsList(): Promise<{
     const firstName = String(zRow?.an__nome || zRow?.An__nome || '').trim();
     const lastName = String(zRow?.ancognom || zRow?.Ancognom || '').trim();
     const zCat = String(zRow?.ancatscm || zRow?.Ancatscm || '').trim().toLowerCase();
-    const matchedCat =
-      categories.find(c => c.code.toLowerCase() === zCat) || categories[0];
+    const matchedCat = zCat
+      ? categories.find(c => c.code && c.code.toLowerCase() === zCat)
+      : undefined;
 
     const suggestedUsername =
       buildSmartBaseUsername(companyName, lastName, firstName) || zCode.toLowerCase();
@@ -1417,9 +1442,11 @@ export async function getAgentClientsList(): Promise<{
       username: suggestedUsername,
       tempPassword: '',
       mustChangePassword: true,
-      customerType: matchedCat ? matchedCat.label.replace(/\s*\(Sconto.*\)$/i, '') : 'RIV - Rivenditore',
-      categoriaCode: matchedCat?.code || 'riv',
-      discount: matchedCat?.discount ?? 50,
+      customerType: matchedCat
+        ? matchedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
+        : 'Nessuna Categoria',
+      categoriaCode: matchedCat?.code || '',
+      discount: matchedCat?.discount ?? 0,
       fido: parseFloat(String(zRow?.anvalfid || zRow?.Anvalfid || '0')) || 0,
       codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
       isElmarkCustomer: false,
@@ -1505,15 +1532,20 @@ export async function updateAgentClient(input: UpdateAgentClientInput): Promise<
   }
 
   const initData = await getAgentNewClientInitData();
-  const selectedCat = initData.categories?.find(
-    c => c.code.toLowerCase() === (input.categoriaCommerciale || '').toLowerCase()
-  );
-  const customerTypeLabel = selectedCat
+  const cleanCat = (input.categoriaCommerciale || '').trim().toLowerCase();
+  const selectedCat = cleanCat
+    ? initData.categories?.find(c => c.code.toLowerCase() === cleanCat)
+    : undefined;
+  const customerTypeLabel = !cleanCat
+    ? 'Nessuna Categoria'
+    : selectedCat
     ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
-    : (input.categoriaCommerciale || 'RIV').toUpperCase();
+    : cleanCat.toUpperCase();
   const discountVal =
     typeof input.discount === 'number' && !isNaN(input.discount)
       ? input.discount
+      : !cleanCat
+      ? 0
       : selectedCat?.discount ?? existing.discount;
 
   const standardElmarkDiscounts: Record<string, number> = {
@@ -1771,16 +1803,20 @@ export async function createB2BUserFromZucchettiClient(
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
   const initData = await getAgentNewClientInitData();
-  const selectedCat = initData.categories?.find(
-    c => c.code.toLowerCase() === (input.categoriaCommerciale || '').toLowerCase()
-  );
-  const customerTypeLabel = selectedCat
+  const cleanCat = (input.categoriaCommerciale || '').trim().toLowerCase();
+  const selectedCat = cleanCat
+    ? initData.categories?.find(c => c.code.toLowerCase() === cleanCat)
+    : undefined;
+  const customerTypeLabel = !cleanCat
+    ? 'Nessuna Categoria'
+    : selectedCat
     ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
-    : (input.categoriaCommerciale || 'RIV').toUpperCase();
-  const discountVal =
-    typeof input.discount === 'number' && !isNaN(input.discount)
-      ? input.discount
-      : selectedCat?.discount ?? 50;
+    : cleanCat.toUpperCase();
+  const discountVal = !cleanCat
+    ? 0
+    : typeof input.discount === 'number' && !isNaN(input.discount)
+    ? input.discount
+    : selectedCat?.discount ?? 0;
 
   const standardElmarkDiscounts: Record<string, number> = {
     E1: 20,

@@ -133,7 +133,7 @@ export default function NewClientWizard({
     customUsername: '',
     codiceDestinatario: '',
     pec: '',
-    categoriaCommerciale: categories[0]?.code || 'riv',
+    categoriaCommerciale: '',
     descrizioneAggiuntiva: '',
     codiceFiscale: '',
     nazione: 'ITA',
@@ -313,9 +313,6 @@ export default function NewClientWizard({
     ) {
       return 'Il Codice Destinatario (SDI) deve avere esattamente 7 caratteri (es. 0000000).';
     }
-    if (!form.categoriaCommerciale) {
-      return 'Seleziona una Categoria Commerciale.';
-    }
     return null;
   };
 
@@ -437,7 +434,7 @@ export default function NewClientWizard({
       customUsername: '',
       codiceDestinatario: '',
       pec: '',
-      categoriaCommerciale: categories[0]?.code || 'riv',
+      categoriaCommerciale: '',
       descrizioneAggiuntiva: '',
       codiceFiscale: '',
       nazione: 'ITA',
@@ -934,17 +931,20 @@ export default function NewClientWizard({
                 />
               </div>
 
-              <div>
+      <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-1">
-                  Categoria Commerciale Zucchetti <span className="text-red-600">*</span>
+                  Categoria Commerciale Zucchetti <span className="text-xs font-normal text-gray-400">(Opzionale)</span>
                 </label>
                 <select
                   value={form.categoriaCommerciale}
                   onChange={e => updateField('categoriaCommerciale', e.target.value)}
                   className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brand-main focus:border-brand-main"
                 >
+                  {!categories.some(c => c.code === '') && (
+                    <option value="">Nessuna Categoria (Sconto base 0%)</option>
+                  )}
                   {categories.map(cat => (
-                    <option key={cat.code} value={cat.code}>
+                    <option key={cat.code || 'none'} value={cat.code}>
                       {cat.label}
                     </option>
                   ))}
