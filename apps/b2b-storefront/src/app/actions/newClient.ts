@@ -271,12 +271,14 @@ function escapeXmlAttr(val: string): string {
 }
 
 /**
- * Calcola il prossimo codice cliente Zucchetti nella numerazione standard C + 6 cifre (es. C000165)
+ * Calcola il prossimo codice cliente Zucchetti nella numerazione standard C + 6 cifre (es. C000167)
+ * leggendo esclusivamente i codici realmente occupati su Zucchetti (A0002) e sul DB B2B (b2b_users).
  */
 async function computeNextZucchettiCustomerCode(reserveInRedis: boolean = false): Promise<string> {
-  let maxNum = 164; // Baseline nota su A0002
+  const MIN_CODE_NUM = 165; // Prima numerazione portale B2B su A0002
+  const occupied = new Set<number>();
 
-  // 1. Controlla su Zucchetti (zzna_clienti A0002)
+  // 1. Controlla tutti i codici realmente presenti su Zucchetti (zzna_clienti A0002)
   try {
     const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
     const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
@@ -288,55 +290,65 @@ async function computeNextZucchettiCustomerCode(reserveInRedis: boolean = false)
         const m = code.match(/^C(\d+)$/i);
         if (m) {
           const n = parseInt(m[1], 10);
-          if (!isNaN(n) && n > maxNum) maxNum = n;
+          if (!isNaN(n)) occupied.add(n);
         }
       }
     }
   } catch (e) {
-    console.warn('Impossibile interrogare zzna_clienti per max code, uso fallback DB/Redis:', e);
+    console.warn('Impossibile interrogare zzna_clienti per codici occupati, uso fallback DB:', e);
   }
 
-  // 2. Controlla anche sul DB B2B locale (b2b_users)
+  // 2. Controlla anche i codici realmente presenti sul DB B2B locale (b2b_users)
   try {
     const dbUsers = await prisma.b2BUser.findMany({
       where: { zucchettiCode: { startsWith: 'C' } },
-      select: { zucchettiCode: true }
+      select: { zucchettiCode: true },
     });
     for (const u of dbUsers) {
       const m = (u.zucchettiCode || '').trim().match(/^C(\d+)$/i);
       if (m) {
         const n = parseInt(m[1], 10);
-        if (!isNaN(n) && n > maxNum) maxNum = n;
+        if (!isNaN(n)) occupied.add(n);
       }
     }
   } catch (e) {}
 
-  // 3. Controlla e opzionalmente prenota su Redis per evitare collisioni concorrenti
+  // Trova il primo codice libero a partire da C000165
+  let firstFreeNum = MIN_CODE_NUM;
+  while (occupied.has(firstFreeNum)) {
+    firstFreeNum++;
+  }
+
+  // 3. Usa Redis solo come lock istantaneo (15s) durante il salvataggio concorrente,
+  // rimuovendo eventuale vecchia chiave permanente b2b_zucchetti_last_c_code
   try {
     const { redis } = await import('@/lib/redis');
-    const redisVal = await redis.get('b2b_zucchetti_last_c_code');
-    if (redisVal) {
-      const rNum = parseInt(redisVal, 10);
-      if (!isNaN(rNum) && rNum > maxNum) maxNum = rNum;
-    }
+    await redis.del('b2b_zucchetti_last_c_code');
 
     if (reserveInRedis) {
-      let candidateNum = maxNum + 1;
+      let candidateNum = firstFreeNum;
       for (let attempt = 0; attempt < 20; attempt++) {
+        while (occupied.has(candidateNum)) {
+          candidateNum++;
+        }
         const candidateCode = `C${String(candidateNum).padStart(6, '0')}`;
-        const locked = await redis.set(`b2b_zucchetti_code_lock:${candidateCode}`, '1', 'EX', 3600, 'NX');
+        const locked = await redis.set(
+          `b2b_zucchetti_creating_lock:${candidateCode}`,
+          '1',
+          'EX',
+          15,
+          'NX'
+        );
         if (locked === 'OK') {
-          await redis.set('b2b_zucchetti_last_c_code', String(candidateNum));
           return candidateCode;
         }
         candidateNum++;
       }
-      await redis.set('b2b_zucchetti_last_c_code', String(candidateNum));
       return `C${String(candidateNum).padStart(6, '0')}`;
     }
   } catch (e) {}
 
-  return `C${String(maxNum + 1).padStart(6, '0')}`;
+  return `C${String(firstFreeNum).padStart(6, '0')}`;
 }
 
 export async function getAgentNewClientInitData() {
