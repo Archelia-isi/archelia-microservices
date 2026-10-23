@@ -78,7 +78,25 @@ export default async function AgentDashboard({ user }: { user: any }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Dashboard Agente</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <h1 className="text-3xl font-bold">Dashboard Agente</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            prefetch={true}
+            href="/account/clients"
+            className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 transition-colors"
+          >
+            Gestione Clienti
+          </Link>
+          <Link
+            prefetch={true}
+            href="/account/catalog-builder"
+            className="px-4 py-2 text-sm font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-colors flex items-center gap-2"
+          >
+            <span>📖 Sviluppa Catalogo PDF</span>
+          </Link>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
         
