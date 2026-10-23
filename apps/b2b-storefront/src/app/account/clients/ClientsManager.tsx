@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AgentManagedClient,
+  ActivateZucchettiClientB2BInput,
   CommercialCategoryOption,
   UpdateAgentClientInput,
   updateAgentClient,
   generateClientCredentialsPdfAction,
+  createB2BUserFromZucchettiClient,
 } from '@/app/actions/newClient';
 import { setImpersonatedClient } from '@/app/actions/agent';
 
@@ -67,6 +69,35 @@ function buildEditFormFromClient(
   };
 }
 
+function buildActivateFormFromClient(
+  c: AgentManagedClient,
+  categories: CommercialCategoryOption[]
+): ActivateZucchettiClientB2BInput {
+  return {
+    zucchettiCode: c.zucchettiCode,
+    companyName: c.companyName,
+    vatNumber: c.vatNumber || '',
+    codiceFiscale: c.codiceFiscale || c.vatNumber || '',
+    formaGiuridica: c.formaGiuridica || 'SRL',
+    firstName: c.firstName || '',
+    lastName: c.lastName || '',
+    address: c.address || '',
+    zip: c.zip || '',
+    city: c.city || '',
+    province: c.province || '',
+    phone: c.phone || '',
+    telefonoFisso: c.telefonoFisso || '',
+    email: c.email || '',
+    pec: c.pec || '',
+    codiceDestinatario: c.codiceDestinatario || '0000000',
+    username: c.username || '',
+    categoriaCommerciale: c.categoriaCode || categories[0]?.code || 'riv',
+    discount: c.discount,
+    isElmarkCustomer: false,
+    elmarkDiscounts: { E1: 20, L: 20, C: 5, E2: 5, F: 5 },
+  };
+}
+
 function scoreClientMatch(c: AgentManagedClient, rawQuery: string): number {
   const q = rawQuery.toLowerCase().trim();
   if (!q) return 1;
@@ -80,7 +111,6 @@ function scoreClientMatch(c: AgentManagedClient, rawQuery: string): number {
   const username = (c.username || '').toLowerCase();
   const searchable = `${company} ${code} ${vat} ${email} ${city} ${username}`;
 
-  // Tutti i token devono matchare almeno parzialmente
   for (const t of tokens) {
     if (!searchable.includes(t)) return 0;
   }
@@ -109,12 +139,21 @@ export default function ClientsManager({
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  const [filterMode, setFilterMode] = useState<'ALL' | 'ELMARK' | 'IZZO_ONLY'>('ALL');
+  const [filterMode, setFilterMode] = useState<'ALL' | 'B2B_ACTIVE' | 'NO_B2B' | 'ELMARK'>('ALL');
   const [selectedClient, setSelectedClient] = useState<AgentManagedClient | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateAgentClientInput | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Stato per attivazione credenziali B2B di un cliente già presente in Zucchetti
+  const [activatingClient, setActivatingClient] = useState<AgentManagedClient | null>(null);
+  const [activateForm, setActivateForm] = useState<ActivateZucchettiClientB2BInput | null>(null);
+  const [activatingLoading, setActivatingLoading] = useState(false);
+  const [activateError, setActivateError] = useState('');
+  const [activatedSuccessClient, setActivatedSuccessClient] = useState<AgentManagedClient | null>(null);
+  const [copiedActivated, setCopiedActivated] = useState(false);
+
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -141,8 +180,9 @@ export default function ClientsManager({
   // Lista filtrata e ordinata in modo predittivo
   const filteredClients = useMemo(() => {
     const base = clients.filter(c => {
+      if (filterMode === 'B2B_ACTIVE' && !c.hasB2BAccount) return false;
+      if (filterMode === 'NO_B2B' && c.hasB2BAccount) return false;
       if (filterMode === 'ELMARK' && !c.isElmarkCustomer) return false;
-      if (filterMode === 'IZZO_ONLY' && c.isElmarkCustomer) return false;
       return true;
     });
 
@@ -167,6 +207,22 @@ export default function ClientsManager({
     setSaveMessage(null);
     setEditForm(buildEditFormFromClient(c, categories));
     setShowSuggestions(false);
+  };
+
+  const openActivateB2BModal = (c: AgentManagedClient) => {
+    setSelectedClient(null);
+    setActivatingClient(c);
+    setActivateForm(buildActivateFormFromClient(c, categories));
+    setActivateError('');
+    setActivatedSuccessClient(null);
+    setShowSuggestions(false);
+  };
+
+  const closeActivateB2BModal = () => {
+    setActivatingClient(null);
+    setActivateForm(null);
+    setActivateError('');
+    setActivatedSuccessClient(null);
   };
 
   const handleStartEditing = () => {
@@ -209,6 +265,10 @@ export default function ClientsManager({
   };
 
   const handleDownloadPdf = async (c: AgentManagedClient, regeneratePassword: boolean = false) => {
+    if (!c.hasB2BAccount) {
+      openActivateB2BModal(c);
+      return;
+    }
     setPdfLoadingId(c.id);
     try {
       const res = await generateClientCredentialsPdfAction(c.id, regeneratePassword);
@@ -216,7 +276,7 @@ export default function ClientsManager({
         alert(res.error || 'Impossibile generare il PDF delle credenziali.');
         return;
       }
-      if (res.tempPassword) {
+      if (regeneratePassword && res.tempPassword) {
         setClients(prev =>
           prev.map(item =>
             item.id === c.id
@@ -242,6 +302,53 @@ export default function ClientsManager({
     } finally {
       setPdfLoadingId(null);
     }
+  };
+
+  const handleActivateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activateForm || !activatingClient) return;
+
+    setActivatingLoading(true);
+    setActivateError('');
+
+    try {
+      const res = await createB2BUserFromZucchettiClient(activateForm);
+      if (!res.success || !res.managedClient) {
+        setActivateError(res.error || 'Errore durante la creazione delle credenziali B2B.');
+        return;
+      }
+
+      const newClient = res.managedClient;
+      setClients(prev => [
+        newClient,
+        ...prev.filter(
+          item => item.id !== activatingClient.id && item.zucchettiCode !== newClient.zucchettiCode
+        ),
+      ]);
+      setActivatedSuccessClient(newClient);
+
+      if (res.pdfBase64) {
+        setTimeout(() => {
+          triggerBase64PdfDownload(
+            res.pdfBase64!,
+            res.pdfFileName || `Credenziali_B2B_${newClient.zucchettiCode}.pdf`
+          );
+        }, 200);
+      }
+      router.refresh();
+    } catch (err: any) {
+      setActivateError('Errore imprevisto: ' + (err.message || ''));
+    } finally {
+      setActivatingLoading(false);
+    }
+  };
+
+  const handleCopyActivatedCredentials = () => {
+    if (!activatedSuccessClient) return;
+    const text = `Benvenuto nel Portale B2B Izzo Distribuzione (www.izzodistribuzione.it)\nRagione Sociale: ${activatedSuccessClient.companyName}\nUsername: ${activatedSuccessClient.username}\nPassword Temporanea: ${activatedSuccessClient.tempPassword}\nNota: Al primo accesso il sistema ti chiederà automaticamente di impostare una password personale.`;
+    navigator.clipboard.writeText(text);
+    setCopiedActivated(true);
+    setTimeout(() => setCopiedActivated(false), 2500);
   };
 
   const handleImpersonate = async (c: AgentManagedClient) => {
@@ -326,7 +433,10 @@ export default function ClientsManager({
     }
   };
 
+  const totalB2BActive = clients.filter(c => c.hasB2BAccount).length;
+  const totalZucchettiWithoutB2B = clients.filter(c => !c.hasB2BAccount).length;
   const totalElmark = clients.filter(c => c.isElmarkCustomer).length;
+
   const inputReadOnlyClass = !isEditing
     ? 'bg-gray-100 text-gray-700 border-gray-200 cursor-default'
     : 'bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-brand-main';
@@ -336,17 +446,26 @@ export default function ClientsManager({
       {/* Header Gestione Clienti con pulsante "+ Nuovo Cliente" */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">Clienti</h1>
-            <span className="px-2.5 py-0.5 text-xs font-bold bg-gray-100 text-gray-700 rounded-full border border-gray-200">
-              {clients.length} Totali
+            <span className="px-2.5 py-0.5 text-xs font-bold bg-gray-900 text-white rounded-full">
+              {totalB2BActive} con Credenziali B2B
             </span>
+            {totalZucchettiWithoutB2B > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterMode('NO_B2B')}
+                className="px-2.5 py-0.5 text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-full border border-amber-300 transition-colors"
+              >
+                {totalZucchettiWithoutB2B} in Zucchetti senza Credenziali B2B
+              </button>
+            )}
             <span className="px-2.5 py-0.5 text-xs font-bold bg-emerald-50 text-emerald-800 rounded-full border border-emerald-200">
               {totalElmark} Abilitati Elmark
             </span>
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            Consulta la scheda dei tuoi clienti, impersonificali o gestisci le loro anagrafiche ({agentName}
+            Consulta la scheda dei tuoi clienti, genera le credenziali B2B per quelli già presenti in Zucchetti o inserisci un nuovo cliente ({agentName}
             {agentCode ? ` - Cod. Agente ${agentCode}` : ''}).
           </p>
         </div>
@@ -363,7 +482,7 @@ export default function ClientsManager({
       </div>
 
       {/* Barra di Ricerca Predittiva e Filtri */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
         <div ref={searchContainerRef} className="relative flex-1">
           <svg
             className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -454,13 +573,18 @@ export default function ClientsManager({
                         }}
                         className="flex-1 min-w-0 text-left"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-1.5 py-0.5 rounded bg-gray-900 text-white font-mono text-[10px] font-bold shrink-0">
                             {s.zucchettiCode || 'N/D'}
                           </span>
                           <span className="text-sm font-bold text-gray-900 truncate">
                             {s.companyName}
                           </span>
+                          {!s.hasB2BAccount && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-bold shrink-0">
+                              Senza Credenziali B2B
+                            </span>
+                          )}
                           {s.isElmarkCustomer && (
                             <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
                               Elmark
@@ -468,8 +592,14 @@ export default function ClientsManager({
                           )}
                         </div>
                         <div className="text-[11px] text-gray-500 mt-0.5 truncate">
-                          P.IVA: {s.vatNumber || '-'} • {s.city || '-'} ({s.province || '-'}) • User:{' '}
-                          <span className="font-mono font-semibold text-gray-700">{s.username}</span>
+                          P.IVA: {s.vatNumber || '-'} • {s.city || '-'} ({s.province || '-'})
+                          {s.hasB2BAccount && (
+                            <>
+                              {' '}
+                              • User:{' '}
+                              <span className="font-mono font-semibold text-gray-700">{s.username}</span>
+                            </>
+                          )}
                         </div>
                       </button>
 
@@ -481,13 +611,23 @@ export default function ClientsManager({
                         >
                           Visualizza
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleImpersonate(s)}
-                          className="px-2.5 py-1 bg-black hover:bg-brand-main hover:text-black text-white text-xs font-bold rounded-md transition-colors"
-                        >
-                          Impersonifica
-                        </button>
+                        {s.hasB2BAccount ? (
+                          <button
+                            type="button"
+                            onClick={() => handleImpersonate(s)}
+                            className="px-2.5 py-1 bg-black hover:bg-brand-main hover:text-black text-white text-xs font-bold rounded-md transition-colors"
+                          >
+                            Impersonifica
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openActivateB2BModal(s)}
+                            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-black text-xs font-extrabold rounded-md transition-colors"
+                          >
+                            + Attiva B2B
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -497,7 +637,7 @@ export default function ClientsManager({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 bg-gray-100 p-1 rounded-lg shrink-0">
           <button
             type="button"
             onClick={() => setFilterMode('ALL')}
@@ -509,6 +649,28 @@ export default function ClientsManager({
           </button>
           <button
             type="button"
+            onClick={() => setFilterMode('B2B_ACTIVE')}
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+              filterMode === 'B2B_ACTIVE'
+                ? 'bg-gray-900 text-white shadow-xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Attivi B2B ({totalB2BActive})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode('NO_B2B')}
+            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+              filterMode === 'NO_B2B'
+                ? 'bg-amber-500 text-black shadow-xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Senza Credenziali B2B ({totalZucchettiWithoutB2B})
+          </button>
+          <button
+            type="button"
             onClick={() => setFilterMode('ELMARK')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
               filterMode === 'ELMARK'
@@ -517,17 +679,6 @@ export default function ClientsManager({
             }`}
           >
             Abilitati Elmark ({totalElmark})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterMode('IZZO_ONLY')}
-            className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
-              filterMode === 'IZZO_ONLY'
-                ? 'bg-white text-gray-900 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Solo Izzo ({clients.length - totalElmark})
           </button>
         </div>
       </div>
@@ -550,7 +701,11 @@ export default function ClientsManager({
           filteredClients.map(c => (
             <div
               key={c.id}
-              className="bg-white rounded-xl shadow-xs border border-gray-200 p-5 hover:border-gray-300 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+              className={`rounded-xl shadow-xs border p-5 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
+                c.hasB2BAccount
+                  ? 'bg-white border-gray-200 hover:border-gray-300'
+                  : 'bg-amber-50/30 border-amber-200 hover:border-amber-300'
+              }`}
             >
               {/* Colonna Info Principali */}
               <div className="space-y-2 flex-1 min-w-0">
@@ -559,12 +714,21 @@ export default function ClientsManager({
                     {c.zucchettiCode || 'N/D'}
                   </span>
                   <h3 className="text-base font-bold text-gray-900 truncate">{c.companyName}</h3>
+                  {!c.hasB2BAccount ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-bold">
+                      Presente in Zucchetti • Senza Credenziali B2B
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-bold">
+                      Account B2B Attivo
+                    </span>
+                  )}
                   {c.isElmarkCustomer && (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-900 text-[11px] font-bold">
                       Negozio Elmark Attivo
                     </span>
                   )}
-                  {!c.isActive && (
+                  {c.hasB2BAccount && !c.isActive && (
                     <span className="px-2 py-0.5 rounded-full bg-red-100 border border-red-300 text-red-800 text-[11px] font-bold">
                       Sospeso
                     </span>
@@ -584,10 +748,12 @@ export default function ClientsManager({
                   </div>
                   <div>
                     <span className="text-gray-400 font-medium">Email:</span>{' '}
-                    <span className="text-gray-800 font-medium">{c.email || '-'}</span>
+                    <span className="text-gray-800 font-medium">{c.email || 'Da inserire'}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400 font-medium">Username B2B:</span>{' '}
+                    <span className="text-gray-400 font-medium">
+                      {c.hasB2BAccount ? 'Username B2B:' : 'Username Proposto:'}
+                    </span>{' '}
                     <span className="font-mono font-bold text-gray-900">{c.username}</span>
                   </div>
                 </div>
@@ -601,9 +767,11 @@ export default function ClientsManager({
                       Tel: {c.phone}
                     </span>
                   )}
-                  <span className="px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs">
-                    Ordini: {c.ordersCount}
-                  </span>
+                  {c.hasB2BAccount && (
+                    <span className="px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs">
+                      Ordini: {c.ordersCount}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -621,35 +789,325 @@ export default function ClientsManager({
                   Visualizza
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDownloadPdf(c, false)}
-                  disabled={pdfLoadingId === c.id}
-                  className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                  title="Scarica PDF Riepilogo e Credenziali per il cliente"
-                >
-                  <svg className="w-4 h-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  {pdfLoadingId === c.id ? 'PDF...' : 'PDF Credenziali'}
-                </button>
+                {c.hasB2BAccount ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(c, false)}
+                      disabled={pdfLoadingId === c.id}
+                      className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      title="Scarica PDF Riepilogo e Credenziali per il cliente"
+                    >
+                      <svg className="w-4 h-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {pdfLoadingId === c.id ? 'PDF...' : 'PDF Credenziali'}
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleImpersonate(c)}
-                  disabled={impersonatingId === c.id}
-                  className="px-3.5 py-2 bg-black hover:bg-brand-main hover:text-black text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {impersonatingId === c.id ? 'Accesso...' : 'Impersonifica'}
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => handleImpersonate(c)}
+                      disabled={impersonatingId === c.id}
+                      className="px-3.5 py-2 bg-black hover:bg-brand-main hover:text-black text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {impersonatingId === c.id ? 'Accesso...' : 'Impersonifica'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openActivateB2BModal(c)}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    + Genera Credenziali B2B
+                  </button>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* MODALE ATTIVAZIONE CREDENZIALI B2B PER CLIENTE GIÀ PRESENTE IN ZUCCHETTI */}
+      {mounted &&
+        activatingClient &&
+        activateForm &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full overflow-hidden my-8">
+              <div className="p-5 bg-gray-900 text-white flex items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-amber-400 text-black font-mono text-xs font-extrabold">
+                      {activatingClient.zucchettiCode}
+                    </span>
+                    <h2 className="text-lg font-extrabold truncate">
+                      {activatedSuccessClient
+                        ? 'Credenziali B2B Attivate con Successo!'
+                        : 'Genera Credenziali B2B per Cliente Zucchetti'}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-gray-300 mt-0.5">
+                    {activatingClient.companyName}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeActivateB2BModal}
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {activatedSuccessClient ? (
+                <div className="p-6 space-y-5">
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-medium">
+                    L&apos;account B2B per <strong>{activatedSuccessClient.companyName}</strong> è stato creato ed è subito operativo. Il PDF con le credenziali è stato scaricato automaticamente.
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-amber-900">
+                        Credenziali di Primo Accesso B2B
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyActivatedCredentials}
+                        className="text-xs font-bold text-amber-900 hover:text-black underline"
+                      >
+                        {copiedActivated ? 'Copiate negli appunti!' : 'Copia Credenziali'}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3.5 rounded-lg border border-amber-200">
+                      <div>
+                        <div className="text-[11px] text-gray-500">Username</div>
+                        <div className="font-mono font-bold text-sm text-gray-900">
+                          {activatedSuccessClient.username}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-gray-500">Password Temporanea</div>
+                        <div className="font-mono font-bold text-sm text-brand-main">
+                          {activatedSuccessClient.tempPassword}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(activatedSuccessClient, false)}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Riscarica PDF Credenziali
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleImpersonate(activatedSuccessClient)}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Impersonifica Subito
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeActivateB2BModal}
+                      className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Chiudi
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleActivateSubmit} className="p-6 space-y-5">
+                  {activateError && (
+                    <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs font-bold">
+                      {activateError}
+                    </div>
+                  )}
+
+                  {/* Riepilogo Dati già presenti in Zucchetti */}
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-xs">
+                    <div className="font-bold text-gray-800 uppercase tracking-wider">
+                      Dati Anagrafici rilevati da Zucchetti ({activateForm.zucchettiCode})
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600">
+                      <div>
+                        <span className="text-gray-400">Ragione Sociale:</span>{' '}
+                        <span className="font-semibold text-gray-900">{activateForm.companyName}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Partita IVA:</span>{' '}
+                        <span className="font-mono font-semibold text-gray-900">
+                          {activateForm.vatNumber || '-'}
+                        </span>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <span className="text-gray-400">Sede:</span>{' '}
+                        <span className="text-gray-900">
+                          {[
+                            activateForm.address,
+                            activateForm.zip,
+                            activateForm.city,
+                            activateForm.province ? `(${activateForm.province})` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ') || '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email, Username B2B e Telefono */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-1">
+                        E-mail Cliente <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={activateForm.email}
+                        onChange={e =>
+                          setActivateForm({ ...activateForm, email: e.target.value })
+                        }
+                        placeholder="cliente@azienda.it"
+                        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-main"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-1">
+                        Username Portale B2B <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={24}
+                        value={activateForm.username}
+                        onChange={e =>
+                          setActivateForm({
+                            ...activateForm,
+                            username: e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9._-]/g, '')
+                              .slice(0, 24),
+                          })
+                        }
+                        placeholder="es. ferramenta.milano"
+                        className="w-full px-3.5 py-2.5 border border-amber-300 bg-amber-50/40 rounded-lg text-sm font-mono font-bold text-gray-900 focus:ring-2 focus:ring-brand-main"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-800 mb-1">
+                        Categoria Commerciale Zucchetti
+                      </label>
+                      <select
+                        value={activateForm.categoriaCommerciale}
+                        onChange={e => {
+                          const code = e.target.value;
+                          const found = categories.find(c => c.code === code);
+                          setActivateForm({
+                            ...activateForm,
+                            categoriaCommerciale: code,
+                            discount: found ? found.discount : activateForm.discount,
+                          });
+                        }}
+                        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white font-medium"
+                      >
+                        {categories.map(cat => (
+                          <option key={cat.code} value={cat.code}>
+                            {cat.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-1">
+                        Cellulare / Telefono
+                      </label>
+                      <input
+                        type="text"
+                        value={activateForm.phone || ''}
+                        onChange={e =>
+                          setActivateForm({ ...activateForm, phone: e.target.value })
+                        }
+                        placeholder="Opzionale"
+                        className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Abilitazione Negozio Elmark */}
+                  <div
+                    className={`p-3.5 rounded-xl border ${
+                      activateForm.isElmarkCustomer
+                        ? 'bg-emerald-50/70 border-emerald-300'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={activateForm.isElmarkCustomer}
+                          onChange={e =>
+                            setActivateForm({
+                              ...activateForm,
+                              isElmarkCustomer: e.target.checked,
+                            })
+                          }
+                          className="w-4 h-4 text-brand-main rounded border-gray-300"
+                        />
+                        <span className="text-sm font-bold text-gray-900">
+                          Abilita anche al Negozio Elmark
+                        </span>
+                      </div>
+                      {activateForm.isElmarkCustomer && (
+                        <span className="text-xs font-mono font-bold text-emerald-900">
+                          E1: 20% | L: 20% | E2: 5% | C: 5% | F: 5%
+                        </span>
+                      )}
+                    </label>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-200 flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={closeActivateB2BModal}
+                      className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-lg transition-colors"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={activatingLoading}
+                      className="px-6 py-2.5 bg-black hover:bg-brand-main hover:text-black text-white text-xs font-extrabold rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {activatingLoading
+                        ? 'Generazione in corso...'
+                        : 'Genera Credenziali B2B e Scarica PDF'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* MODALE SCHEDA CLIENTE (SOLA LETTURA DI DEFAULT, MODIFICABILE SOLO SU RICHIESTA) */}
       {mounted &&
@@ -677,24 +1135,36 @@ export default function ClientsManager({
                     </span>
                   </div>
                   <p className="text-xs text-gray-300 mt-0.5">
-                    {isEditing
+                    {!selectedClient.hasB2BAccount
+                      ? 'Cliente presente in Zucchetti ma ancora senza credenziali B2B.'
+                      : isEditing
                       ? 'Modifica i campi desiderati e clicca su "Salva Modifiche".'
                       : 'Scheda cliente protetta da modifiche accidentali. Clicca su "Abilita Modifica" per variare i dati.'}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {!isEditing && (
+                  {!selectedClient.hasB2BAccount ? (
                     <button
                       type="button"
-                      onClick={handleStartEditing}
-                      className="px-3.5 py-2 bg-brand-main hover:bg-amber-400 text-black text-xs font-extrabold rounded-lg transition-colors flex items-center gap-1.5"
+                      onClick={() => openActivateB2BModal(selectedClient)}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold rounded-lg transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Abilita Modifica
+                      + Genera Credenziali B2B
                     </button>
+                  ) : (
+                    !isEditing && (
+                      <button
+                        type="button"
+                        onClick={handleStartEditing}
+                        className="px-3.5 py-2 bg-brand-main hover:bg-amber-400 text-black text-xs font-extrabold rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Abilita Modifica
+                      </button>
+                    )
                   )}
                   <button
                     type="button"
@@ -1014,96 +1484,98 @@ export default function ClientsManager({
                 </div>
 
                 {/* Sezione 4: Credenziali Portale B2B */}
-                <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-amber-900">
-                      4. Credenziali Accesso Portale B2B
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPdf(selectedClient, false)}
-                        disabled={pdfLoadingId === selectedClient.id}
-                        className="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-lg transition-colors"
-                      >
-                        Scarica PDF Credenziali
-                      </button>
-                      {isEditing && (
+                {selectedClient.hasB2BAccount && (
+                  <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-amber-900">
+                        4. Credenziali Accesso Portale B2B
+                      </h3>
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => handleDownloadPdf(selectedClient, true)}
+                          onClick={() => handleDownloadPdf(selectedClient, false)}
                           disabled={pdfLoadingId === selectedClient.id}
-                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors"
+                          className="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-lg transition-colors"
                         >
-                          Rigenera Password e Scarica PDF
+                          Scarica PDF Credenziali
                         </button>
-                      )}
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadPdf(selectedClient, true)}
+                            disabled={pdfLoadingId === selectedClient.id}
+                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Rigenera Password e Scarica PDF
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-800 mb-1">
+                          Username B2B
+                        </label>
+                        <input
+                          type="text"
+                          disabled={!isEditing}
+                          maxLength={30}
+                          value={editForm.username}
+                          onChange={e =>
+                            setEditForm({
+                              ...editForm,
+                              username: e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9._-]/g, '')
+                                .slice(0, 30),
+                            })
+                          }
+                          className={`w-full px-3 py-2 border rounded-lg text-sm font-mono font-bold ${
+                            isEditing
+                              ? 'border-amber-300 bg-white text-gray-900'
+                              : 'border-gray-200 bg-gray-100 text-gray-700 cursor-default'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-800 mb-1">
+                          {selectedClient.mustChangePassword && selectedClient.tempPassword
+                            ? 'Password Temporanea Attuale'
+                            : 'Password'}
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={
+                            selectedClient.mustChangePassword && selectedClient.tempPassword
+                              ? selectedClient.tempPassword
+                              : 'Password impostata dal cliente'
+                          }
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-gray-100 text-gray-700"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-800 mb-1">
+                          Stato Account B2B
+                        </label>
+                        <select
+                          disabled={!isEditing}
+                          value={editForm.isActive ? 'ACTIVE' : 'SUSPENDED'}
+                          onChange={e =>
+                            setEditForm({ ...editForm, isActive: e.target.value === 'ACTIVE' })
+                          }
+                          className={`w-full px-3 py-2 border rounded-lg text-sm font-semibold ${inputReadOnlyClass}`}
+                        >
+                          <option value="ACTIVE">Attivo (Accesso Consentito)</option>
+                          <option value="SUSPENDED">Sospeso (Accesso Bloccato)</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Username B2B
-                      </label>
-                      <input
-                        type="text"
-                        disabled={!isEditing}
-                        maxLength={30}
-                        value={editForm.username}
-                        onChange={e =>
-                          setEditForm({
-                            ...editForm,
-                            username: e.target.value
-                              .toLowerCase()
-                              .replace(/[^a-z0-9._-]/g, '')
-                              .slice(0, 30),
-                          })
-                        }
-                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono font-bold ${
-                          isEditing
-                            ? 'border-amber-300 bg-white text-gray-900'
-                            : 'border-gray-200 bg-gray-100 text-gray-700 cursor-default'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-800 mb-1">
-                        {selectedClient.mustChangePassword && selectedClient.tempPassword
-                          ? 'Password Temporanea Attuale'
-                          : 'Password'}
-                      </label>
-                      <input
-                        type="text"
-                        disabled
-                        value={
-                          selectedClient.mustChangePassword && selectedClient.tempPassword
-                            ? selectedClient.tempPassword
-                            : 'Password impostata dal cliente'
-                        }
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-gray-100 text-gray-700"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Stato Account B2B
-                      </label>
-                      <select
-                        disabled={!isEditing}
-                        value={editForm.isActive ? 'ACTIVE' : 'SUSPENDED'}
-                        onChange={e =>
-                          setEditForm({ ...editForm, isActive: e.target.value === 'ACTIVE' })
-                        }
-                        className={`w-full px-3 py-2 border rounded-lg text-sm font-semibold ${inputReadOnlyClass}`}
-                      >
-                        <option value="ACTIVE">Attivo (Accesso Consentito)</option>
-                        <option value="SUSPENDED">Sospeso (Accesso Bloccato)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Footer Modale */}
                 <div className="pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
@@ -1115,7 +1587,15 @@ export default function ClientsManager({
                     Chiudi Scheda
                   </button>
 
-                  {!isEditing ? (
+                  {!selectedClient.hasB2BAccount ? (
+                    <button
+                      type="button"
+                      onClick={() => openActivateB2BModal(selectedClient)}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-extrabold rounded-lg transition-colors"
+                    >
+                      + Genera Credenziali B2B
+                    </button>
+                  ) : !isEditing ? (
                     <div className="flex items-center gap-2.5">
                       <button
                         type="button"

@@ -1157,6 +1157,7 @@ function generateCustomerPdfOnServer(client: {
 
 export interface AgentManagedClient {
   id: string;
+  hasB2BAccount: boolean;
   zucchettiCode: string;
   companyName: string;
   vatNumber: string;
@@ -1186,6 +1187,30 @@ export interface AgentManagedClient {
   isActive: boolean;
   ordersCount: number;
   createdAt: string;
+}
+
+export interface ActivateZucchettiClientB2BInput {
+  zucchettiCode: string;
+  companyName: string;
+  vatNumber?: string;
+  codiceFiscale?: string;
+  formaGiuridica?: string;
+  firstName?: string;
+  lastName?: string;
+  address?: string;
+  zip?: string;
+  city?: string;
+  province?: string;
+  phone?: string;
+  telefonoFisso?: string;
+  email: string;
+  pec?: string;
+  codiceDestinatario?: string;
+  username: string;
+  categoriaCommerciale: string;
+  discount: number;
+  isElmarkCustomer: boolean;
+  elmarkDiscounts?: Record<string, number>;
 }
 
 export interface UpdateAgentClientInput {
@@ -1252,6 +1277,18 @@ export async function getAgentClientsList(): Promise<{
     console.warn('Avviso lettura zzna_clienti in getAgentClientsList:', e);
   }
 
+  // Tutti i codici Zucchetti e P.IVA già registrati sul DB B2B (anche di altri agenti)
+  const allExistingB2B = await prisma.b2BUser.findMany({
+    where: { role: 'USER' },
+    select: { zucchettiCode: true, vatNumber: true },
+  });
+  const existingB2BCodes = new Set<string>();
+  const existingB2BVats = new Set<string>();
+  for (const row of allExistingB2B) {
+    if (row.zucchettiCode) existingB2BCodes.add(row.zucchettiCode.trim().toUpperCase());
+    if (row.vatNumber) existingB2BVats.add(row.vatNumber.trim().toUpperCase());
+  }
+
   const dbClients = await prisma.b2BUser.findMany({
     where: {
       agentId: session.userId,
@@ -1273,7 +1310,7 @@ export async function getAgentClientsList(): Promise<{
     F: 5,
   };
 
-  const mapped: AgentManagedClient[] = dbClients.map(u => {
+  const mappedB2B: AgentManagedClient[] = dbClients.map(u => {
     const zCode = (u.zucchettiCode || '').trim().toUpperCase();
     const zRow = zCode ? zucchettiMap.get(zCode) : null;
 
@@ -1292,6 +1329,7 @@ export async function getAgentClientsList(): Promise<{
 
     return {
       id: u.id,
+      hasB2BAccount: true,
       zucchettiCode: u.zucchettiCode || '',
       companyName: u.companyName || `${u.lastName || ''} ${u.firstName || ''}`.trim() || u.username,
       vatNumber: u.vatNumber || String(zRow?.anpariva || zRow?.Anpariva || '').trim(),
@@ -1328,12 +1366,79 @@ export async function getAgentClientsList(): Promise<{
     };
   });
 
+  // Aggiunge i clienti già presenti in Zucchetti (A0002) che non hanno ancora credenziali B2B
+  const normAgentCode = (initData.agentCode || '').replace(/^0+/, '').toUpperCase();
+  const zucchettiOnlyClients: AgentManagedClient[] = [];
+
+  for (const [zCode, zRow] of Array.from(zucchettiMap.entries())) {
+    if (existingB2BCodes.has(zCode)) continue;
+    const zVat = String(zRow?.anpariva || zRow?.Anpariva || '').trim().toUpperCase();
+    if (zVat && existingB2BVats.has(zVat)) continue;
+
+    // Se su Zucchetti il cliente è assegnato a un altro agente specifico, mostra solo quelli dell'agente corrente o senza agente
+    const rowAgent = String(zRow?.ancodag1 || zRow?.Ancodag1 || '').trim().replace(/^0+/, '').toUpperCase();
+    if (normAgentCode && rowAgent && rowAgent !== normAgentCode) {
+      continue;
+    }
+
+    const companyName = String(zRow?.andescri || zRow?.Andescri || '').trim();
+    if (!companyName) continue;
+
+    const firstName = String(zRow?.an__nome || zRow?.An__nome || '').trim();
+    const lastName = String(zRow?.ancognom || zRow?.Ancognom || '').trim();
+    const zCat = String(zRow?.ancatscm || zRow?.Ancatscm || '').trim().toLowerCase();
+    const matchedCat =
+      categories.find(c => c.code.toLowerCase() === zCat) || categories[0];
+
+    const suggestedUsername =
+      buildSmartBaseUsername(companyName, lastName, firstName) || zCode.toLowerCase();
+
+    zucchettiOnlyClients.push({
+      id: `zucchetti:${zCode}`,
+      hasB2BAccount: false,
+      zucchettiCode: zCode,
+      companyName,
+      vatNumber: zVat,
+      codiceFiscale: String(zRow?.ancodfis || zRow?.Ancodfis || zVat || '').trim(),
+      formaGiuridica:
+        String(zRow?.anforgiu || zRow?.Anforgiu || '').trim().toUpperCase() ||
+        inferFormaGiuridica(companyName),
+      firstName,
+      lastName,
+      address: String(zRow?.anindiri || zRow?.Anindiri || '').trim(),
+      zip: String(zRow?.an___cap || zRow?.An___cap || '').trim(),
+      city: String(zRow?.anlocali || zRow?.Anlocali || '').trim(),
+      province: String(zRow?.anprovin || zRow?.Anprovin || '').trim(),
+      phone: String(zRow?.annumcel || zRow?.Annumcel || zRow?.antelefo || zRow?.Antelefo || '').trim(),
+      telefonoFisso: String(zRow?.antelefo || zRow?.Antelefo || '').trim(),
+      email: String(zRow?.an_email || zRow?.An_email || '').trim().toLowerCase(),
+      pec: String(zRow?.an_empec || zRow?.An_empec || '').trim().toLowerCase(),
+      codiceDestinatario: String(zRow?.cccodest || zRow?.Cccodest || '0000000').trim() || '0000000',
+      username: suggestedUsername,
+      tempPassword: '',
+      mustChangePassword: true,
+      customerType: matchedCat ? matchedCat.label.replace(/\s*\(Sconto.*\)$/i, '') : 'RIV - Rivenditore',
+      categoriaCode: matchedCat?.code || 'riv',
+      discount: matchedCat?.discount ?? 50,
+      fido: parseFloat(String(zRow?.anvalfid || zRow?.Anvalfid || '0')) || 0,
+      codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
+      isElmarkCustomer: false,
+      elmarkDiscounts: {},
+      isActive: false,
+      ordersCount: 0,
+      createdAt: new Date(0).toISOString(),
+    });
+  }
+
+  // Ordina i clienti solo-Zucchetti per codice decrescente (i più recenti in alto)
+  zucchettiOnlyClients.sort((a, b) => b.zucchettiCode.localeCompare(a.zucchettiCode));
+
   return {
     success: true,
     agentName: initData.agentName || session.user.username,
     agentCode: initData.agentCode || '',
     categories,
-    clients: mapped,
+    clients: [...mappedB2B, ...zucchettiOnlyClients],
   };
 }
 
@@ -1574,6 +1679,246 @@ export async function generateClientCredentialsPdfAction(
   return {
     success: true,
     tempPassword,
+    pdfBase64,
+    pdfFileName,
+  };
+}
+
+/**
+ * Crea un utente B2B (con username breve, password temporanea e PDF credenziali)
+ * per un cliente già esistente su Zucchetti (A0002) ma ancora sprovvisto di credenziali B2B.
+ */
+export async function createB2BUserFromZucchettiClient(
+  input: ActivateZucchettiClientB2BInput
+): Promise<{
+  success: boolean;
+  error?: string;
+  managedClient?: AgentManagedClient;
+  pdfBase64?: string;
+  pdfFileName?: string;
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, error: 'Operazione consentita solo agli agenti.' };
+  }
+
+  const zucchettiCode = (input.zucchettiCode || '').trim().toUpperCase();
+  const companyName = (input.companyName || '').trim();
+  const cleanVat = (input.vatNumber || '').toUpperCase().replace(/^IT/, '').replace(/\s+/g, '').trim();
+  const email = (input.email || '').trim().toLowerCase();
+
+  if (!zucchettiCode) {
+    return { success: false, error: 'Codice cliente Zucchetti mancante.' };
+  }
+  if (!companyName) {
+    return { success: false, error: 'Ragione Sociale mancante.' };
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return {
+      success: false,
+      error: 'Inserisci un indirizzo E-mail valido per attivare le credenziali B2B.',
+    };
+  }
+
+  // Verifica che questo codice Zucchetti non abbia già un account B2B
+  const existingCode = await prisma.b2BUser.findUnique({ where: { zucchettiCode } });
+  if (existingCode) {
+    return {
+      success: false,
+      error: `Il cliente ${zucchettiCode} possiede già un account B2B attivo (${existingCode.username}).`,
+    };
+  }
+
+  const existingEmail = await prisma.b2BUser.findUnique({ where: { email } });
+  if (existingEmail) {
+    return {
+      success: false,
+      error: `L'indirizzo email "${email}" è già utilizzato da un altro utente B2B (${existingEmail.companyName || existingEmail.username}).`,
+    };
+  }
+
+  const rawCustomUsername = (input.username || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/^\.|\.$/g, '')
+    .slice(0, 24);
+
+  let baseUsername =
+    rawCustomUsername.length >= 3
+      ? rawCustomUsername
+      : buildSmartBaseUsername(companyName, input.lastName, input.firstName);
+
+  if (!baseUsername || baseUsername.length < 3) {
+    baseUsername = zucchettiCode.toLowerCase();
+  }
+
+  let finalUsername = baseUsername;
+  let uCounter = 0;
+  while (uCounter < 50) {
+    const dupU = await prisma.b2BUser.findUnique({ where: { username: finalUsername } });
+    if (!dupU) break;
+    uCounter++;
+    finalUsername = `${baseUsername}${uCounter}`;
+  }
+
+  // Genera password temporanea da 8 caratteri
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let tempPassword = '';
+  for (let i = 0; i < 8; i++) {
+    tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+  const initData = await getAgentNewClientInitData();
+  const selectedCat = initData.categories?.find(
+    c => c.code.toLowerCase() === (input.categoriaCommerciale || '').toLowerCase()
+  );
+  const customerTypeLabel = selectedCat
+    ? selectedCat.label.replace(/\s*\(Sconto.*\)$/i, '')
+    : (input.categoriaCommerciale || 'RIV').toUpperCase();
+  const discountVal =
+    typeof input.discount === 'number' && !isNaN(input.discount)
+      ? input.discount
+      : selectedCat?.discount ?? 50;
+
+  const standardElmarkDiscounts: Record<string, number> = {
+    E1: 20,
+    L: 20,
+    C: 5,
+    E2: 5,
+    F: 5,
+  };
+  const finalElmarkDiscounts = input.isElmarkCustomer
+    ? { ...standardElmarkDiscounts, ...(input.elmarkDiscounts || {}) }
+    : {};
+
+  const createdUser = await prisma.b2BUser.create({
+    data: {
+      username: finalUsername,
+      email,
+      passwordHash,
+      tempPassword,
+      mustChangePassword: true,
+      firstName: input.firstName?.trim() || null,
+      lastName: input.lastName?.trim() || null,
+      companyName,
+      vatNumber: cleanVat || null,
+      zucchettiCode,
+      role: 'USER',
+      agentId: session.userId,
+      customerType: customerTypeLabel,
+      discount: discountVal,
+      address: input.address?.trim() || null,
+      zip: input.zip?.trim() || null,
+      city: input.city?.trim() || null,
+      province: input.province?.trim().toUpperCase() || null,
+      phone: input.phone?.trim() || input.telefonoFisso?.trim() || null,
+      isElmarkCustomer: Boolean(input.isElmarkCustomer),
+      elmarkDiscounts: finalElmarkDiscounts,
+      isActive: true,
+    },
+  });
+
+  // Aggiorna in background anche Zucchetti (es. se l'agente ha aggiunto l'email mancante)
+  try {
+    const appId = process.env.ZUCCHETTI_APPLICATION_ID || '00004';
+    const formaGiuridica = (input.formaGiuridica || inferFormaGiuridica(companyName)).toUpperCase();
+    const isPersonaOrDitta = formaGiuridica === 'IND' || formaGiuridica === 'PER';
+    const attrs: Record<string, string> = {
+      ANTIPCON_K: 'C',
+      ANCODICE_K: zucchettiCode,
+      ANTIPCON: 'C',
+      ANCODICE: zucchettiCode,
+      ANDESCRI: companyName.substring(0, 60),
+      ANPERSON: isPersonaOrDitta ? 'F' : 'G',
+      ANCODMAS: '01.03',
+      ANTIPCLF: 'CLIG',
+      ANPARTSN: 'S',
+      AN_EMAIL: email,
+      ANFORGIU: formaGiuridica,
+      DescriNoZoom: companyName.substring(0, 60),
+    };
+    if (cleanVat) attrs.ANPARIVA = cleanVat;
+    if (input.codiceFiscale || cleanVat) attrs.ANCODFIS = (input.codiceFiscale || cleanVat).substring(0, 16);
+    if (input.address?.trim()) attrs.ANINDIRI = input.address.trim().substring(0, 32);
+    if (input.city?.trim()) attrs.ANLOCALI = input.city.trim().substring(0, 50);
+    if (input.province?.trim()) attrs.ANPROVIN = input.province.trim().toUpperCase().substring(0, 5);
+    if (input.zip?.trim()) attrs.AN___CAP = input.zip.trim().substring(0, 10);
+    if (input.phone?.trim()) attrs.ANNUMCEL = input.phone.trim().substring(0, 18);
+    if (input.categoriaCommerciale) attrs.ANCATSCM = input.categoriaCommerciale.trim().substring(0, 5);
+    if (initData.agentCode) attrs.ANCODAG1 = initData.agentCode.substring(0, 5);
+
+    const attrString = Object.entries(attrs)
+      .map(([k, v]) => `${k}="${escapeXmlAttr(v)}"`)
+      .join(' ');
+    const xmlUpd = `<ADHOC_CONTI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ConsolidationDate="01-01-1900" applicationId="${appId}"><Update_ADHOC_CONTI ${attrString}/></ADHOC_CONTI>`;
+    await sendZucchettiBoImport('ADHOC_CONTI', xmlUpd);
+  } catch (e) {}
+
+  const createdAt = new Date().toLocaleDateString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const { pdfBase64, pdfFileName } = generateCustomerPdfOnServer({
+    ragioneSociale: companyName,
+    partitaIva: cleanVat,
+    codiceFiscale: input.codiceFiscale || cleanVat,
+    indirizzo: input.address || '',
+    cap: input.zip || '',
+    localita: input.city || '',
+    provincia: input.province || '',
+    telefono: input.telefonoFisso || '',
+    cellulare: input.phone || '',
+    email,
+    pec: input.pec || '',
+    codiceDestinatario: input.codiceDestinatario || '0000000',
+    username: finalUsername,
+    tempPassword,
+    createdAt,
+  });
+
+  const managedClient: AgentManagedClient = {
+    id: createdUser.id,
+    hasB2BAccount: true,
+    zucchettiCode,
+    companyName,
+    vatNumber: cleanVat,
+    codiceFiscale: input.codiceFiscale || cleanVat,
+    formaGiuridica: (input.formaGiuridica || inferFormaGiuridica(companyName)).toUpperCase(),
+    firstName: input.firstName || '',
+    lastName: input.lastName || '',
+    address: input.address || '',
+    zip: input.zip || '',
+    city: input.city || '',
+    province: input.province || '',
+    phone: input.phone || '',
+    telefonoFisso: input.telefonoFisso || '',
+    email,
+    pec: input.pec || '',
+    codiceDestinatario: input.codiceDestinatario || '0000000',
+    username: finalUsername,
+    tempPassword,
+    mustChangePassword: true,
+    customerType: customerTypeLabel,
+    categoriaCode: input.categoriaCommerciale || 'riv',
+    discount: discountVal,
+    fido: 0,
+    codicePagamento: '',
+    isElmarkCustomer: Boolean(input.isElmarkCustomer),
+    elmarkDiscounts: finalElmarkDiscounts,
+    isActive: true,
+    ordersCount: 0,
+    createdAt: createdUser.createdAt.toISOString(),
+  };
+
+  return {
+    success: true,
+    managedClient,
     pdfBase64,
     pdfFileName,
   };
