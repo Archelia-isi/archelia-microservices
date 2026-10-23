@@ -53,9 +53,19 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
   }
 
   if (zucchettiCode) {
+    const assignedClient = await prisma.b2BUser.findFirst({
+      where: {
+        zucchettiCode,
+        agentId: session.userId,
+        role: 'USER',
+      },
+    });
+    if (!assignedClient) {
+      return { success: false, error: 'Cliente non assegnato al tuo profilo agente.' };
+    }
     cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
-    cookies().set('impersonatedClientName', companyName || '', cookieOpts);
-    cookies().set('impersonatedClientDiscount', String(discount || 0), cookieOpts);
+    cookies().set('impersonatedClientName', assignedClient.companyName || companyName || '', cookieOpts);
+    cookies().set('impersonatedClientDiscount', String(assignedClient.discount ?? discount ?? 0), cookieOpts);
   } else {
     cookies().delete({ name: 'impersonatedClientCode', ...cookieOpts, maxAge: 0 });
     cookies().delete({ name: 'impersonatedClientName', ...cookieOpts, maxAge: 0 });

@@ -1255,6 +1255,15 @@ export interface UpdateAgentClientInput {
   isActive: boolean;
 }
 
+function normalizeAgentCode(raw?: string | null): string {
+  const trimmed = String(raw || '').trim().toUpperCase();
+  if (!trimmed) return '';
+  if (/^\d+$/.test(trimmed)) {
+    return trimmed.replace(/^0+(?=\d)/, '');
+  }
+  return trimmed;
+}
+
 export async function getAgentClientsList(): Promise<{
   success: boolean;
   error?: string;
@@ -1264,12 +1273,13 @@ export async function getAgentClientsList(): Promise<{
   clients?: AgentManagedClient[];
 }> {
   const session = await verifySession();
-  if (!session || session.user.role !== 'AGENT') {
+  if (!session || !session.userId || session.user.role !== 'AGENT') {
     return { success: false, error: 'Non autorizzato' };
   }
 
   const initData = await getAgentNewClientInitData();
   const categories = initData.categories || [
+    { code: '', label: 'Nessuna Categoria (Sconto base 0%)', discount: 0 },
     { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
     { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
     { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
@@ -1285,7 +1295,19 @@ export async function getAgentClientsList(): Promise<{
       const rows: any[] = json.data || json.dataset || json.zzna_clienti || [];
       for (const r of rows) {
         const code = String(r.ancodice || r.Ancodice || '').trim().toUpperCase();
-        if (code) zucchettiMap.set(code, r);
+        if (!code) continue;
+        const prev = zucchettiMap.get(code);
+        if (!prev) {
+          zucchettiMap.set(code, r);
+        } else {
+          const prevAg = String(prev.ancodag1 || prev.Ancodag1 || '').trim();
+          const currAg = String(r.ancodag1 || r.Ancodag1 || '').trim();
+          zucchettiMap.set(code, {
+            ...prev,
+            ...r,
+            ancodag1: currAg || prevAg,
+          });
+        }
       }
     }
   } catch (e) {
@@ -1390,8 +1412,9 @@ export async function getAgentClientsList(): Promise<{
     };
   });
 
-  // Aggiunge i clienti già presenti in Zucchetti (A0002) che non hanno ancora credenziali B2B
-  const normAgentCode = (initData.agentCode || '').replace(/^0+/, '').toUpperCase();
+  // Aggiunge SOLO i clienti già presenti in Zucchetti (A0002) che sono esplicitamente assegnati
+  // al codice agente dell'agente loggato (ancodag1) e che non hanno ancora credenziali B2B
+  const normAgentCode = normalizeAgentCode(initData.agentCode);
   const zucchettiOnlyClients: AgentManagedClient[] = [];
 
   for (const [zCode, zRow] of Array.from(zucchettiMap.entries())) {
@@ -1399,9 +1422,9 @@ export async function getAgentClientsList(): Promise<{
     const zVat = String(zRow?.anpariva || zRow?.Anpariva || '').trim().toUpperCase();
     if (zVat && existingB2BVats.has(zVat)) continue;
 
-    // Se su Zucchetti il cliente è assegnato a un altro agente specifico, mostra solo quelli dell'agente corrente o senza agente
-    const rowAgent = String(zRow?.ancodag1 || zRow?.Ancodag1 || '').trim().replace(/^0+/, '').toUpperCase();
-    if (normAgentCode && rowAgent && rowAgent !== normAgentCode) {
+    // Mostra esclusivamente i clienti assegnati all'agente corrente (esclude quelli di altri agenti e quelli senza agente)
+    const rowAgent = normalizeAgentCode(zRow?.ancodag1 || zRow?.Ancodag1);
+    if (!normAgentCode || !rowAgent || rowAgent !== normAgentCode) {
       continue;
     }
 
@@ -1803,6 +1826,32 @@ export async function createB2BUserFromZucchettiClient(
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
   const initData = await getAgentNewClientInitData();
+  const normAgentCode = normalizeAgentCode(initData.agentCode);
+
+  // Verifica lato server che il cliente su Zucchetti sia effettivamente assegnato a questo agente
+  try {
+    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
+    const zRes = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
+    if (zRes.ok) {
+      const zJson: any = await zRes.json();
+      const rows: any[] = zJson.data || zJson.dataset || zJson.zzna_clienti || [];
+      const matchingRows = rows.filter(
+        r => String(r.ancodice || r.Ancodice || '').trim().toUpperCase() === zucchettiCode
+      );
+      if (matchingRows.length > 0) {
+        const assignedToCurrentAgent = matchingRows.some(
+          r => normalizeAgentCode(r.ancodag1 || r.Ancodag1) === normAgentCode && Boolean(normAgentCode)
+        );
+        if (!assignedToCurrentAgent) {
+          return {
+            success: false,
+            error: 'Operazione negata: questo cliente Zucchetti non risulta assegnato al tuo profilo agente.',
+          };
+        }
+      }
+    }
+  } catch (e) {}
+
   const cleanCat = (input.categoriaCommerciale || '').trim().toLowerCase();
   const selectedCat = cleanCat
     ? initData.categories?.find(c => c.code.toLowerCase() === cleanCat)
@@ -1941,7 +1990,7 @@ export async function createB2BUserFromZucchettiClient(
     tempPassword,
     mustChangePassword: true,
     customerType: customerTypeLabel,
-    categoriaCode: input.categoriaCommerciale || 'riv',
+    categoriaCode: input.categoriaCommerciale || '',
     discount: discountVal,
     fido: 0,
     codicePagamento: '',
