@@ -51,6 +51,7 @@ export interface NewClientFormInput {
   codiceDestinatario?: string;
   pec?: string;
   categoriaCommerciale: string;
+  customUsername?: string;
 
   // Step 2 (Campi aggiuntivi non obbligatori)
   descrizioneAggiuntiva?: string;
@@ -121,6 +122,71 @@ function checkItalianVatLuhn(vat: string): boolean {
   const total = sumOdd + sumEven;
   const checkDigit = (10 - (total % 10)) % 10;
   return checkDigit === parseInt(vat.charAt(10), 10);
+}
+
+/**
+ * Genera uno username breve, pulito e leggibile a partire dalla Ragione Sociale:
+ * - rimuove forme giuridiche (SRL, SNC, SPA, SAS, ecc.)
+ * - rimuove le lunghe diciture dei titolari dopo "DI ..." (es. "FERRAMENTA MILANO DI ANGELA..." -> "ferramenta.milano")
+ * - mantiene al massimo le prime 2 parole significative (max 22 caratteri)
+ */
+function buildSmartBaseUsername(ragioneSociale: string, cognome?: string, nome?: string): string {
+  let cleaned = (ragioneSociale || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/F\.?\s*LLI\b/g, 'FRATELLI')
+    .replace(/\./g, ' ')
+    .replace(/&/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Rimuove suffissi societari e forme giuridiche prima del controllo "DI ..."
+  cleaned = cleaned
+    .replace(
+      /\b(SRLS|SRL|SPA|SNC|SAS|SAPA|SCARL|SS|SOC|COOP|COOPERATIVA|SOCIETA|RESPONSABILITA|LIMITATA|UNIPERSONALE|LIQUIDAZIONE|DITTA|INDIVIDUALE|IMPRESA)\b/g,
+      ' '
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Rimuove la coda " DI <titolari...>" se prima c'è già il nome dell'insegna/azienda (non un prefisso generico)
+  const genericPrefixes = new Set(['FRATELLI', 'EREDI', 'STUDIO']);
+  const diSplit = cleaned.split(/\s+DI\s+/);
+  if (
+    diSplit.length > 1 &&
+    diSplit[0] &&
+    diSplit[0].trim().length >= 3 &&
+    !genericPrefixes.has(diSplit[0].trim())
+  ) {
+    cleaned = diSplit[0].trim();
+  }
+
+  const stopWords = new Set([
+    'del', 'della', 'dei', 'degli', 'delle', 'dal', 'dalla',
+    'nel', 'nella', 'con', 'per', 'tra', 'fra', 'ed', 'da', 'in', 'su',
+  ]);
+  const words = cleaned
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 2 && !stopWords.has(w));
+
+  let result = '';
+  if (words.length >= 2) {
+    const twoWords = `${words[0]}.${words[1]}`;
+    result = twoWords.length <= 22 ? twoWords : words[0].slice(0, 18);
+  } else if (words.length === 1) {
+    result = words[0].slice(0, 20);
+  }
+
+  if (!result || result.length < 3) {
+    const fallback = [cognome, nome]
+      .map(s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(Boolean);
+    result = fallback.join('.').slice(0, 20);
+  }
+
+  return result;
 }
 
 /**
@@ -775,14 +841,21 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
     };
   }
 
-  // Generazione Username univoco e Password temporanea per l'account B2B
-  let baseUsername = ragioneSociale
+  // Generazione Username breve e pulito (es. "ferramenta.milano" o "tecnolight") e Password temporanea
+  const rawCustomUsername = (input.customUsername || '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '.')
+    .replace(/[^a-z0-9._-]/g, '')
     .replace(/\.+/g, '.')
-    .replace(/^\.|\.$/g, '');
+    .replace(/^\.|\.$/g, '')
+    .slice(0, 24);
+
+  let baseUsername =
+    rawCustomUsername.length >= 3
+      ? rawCustomUsername
+      : buildSmartBaseUsername(ragioneSociale, cognome, nome);
+
   if (!baseUsername || baseUsername.length < 3) {
-    baseUsername = `cliente.${zucchettiCode.toLowerCase()}`;
+    baseUsername = zucchettiCode.toLowerCase();
   }
 
   let finalUsername = baseUsername;
@@ -791,7 +864,7 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
     const existingU = await prisma.b2BUser.findUnique({ where: { username: finalUsername } });
     if (!existingU) break;
     uCounter++;
-    finalUsername = `${baseUsername}.${uCounter}`;
+    finalUsername = `${baseUsername}${uCounter}`;
   }
 
   // Genera password temporanea leggibile da 8 caratteri

@@ -48,6 +48,63 @@ const CODICI_PAGAMENTO = [
   { code: '00022', label: '00022 - Pagamento Cod. 00022' },
 ];
 
+function computeSmartUsernameClient(ragioneSociale: string, cognome?: string, nome?: string): string {
+  let cleaned = (ragioneSociale || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/F\.?\s*LLI\b/g, 'FRATELLI')
+    .replace(/\./g, ' ')
+    .replace(/&/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  cleaned = cleaned
+    .replace(
+      /\b(SRLS|SRL|SPA|SNC|SAS|SAPA|SCARL|SS|SOC|COOP|COOPERATIVA|SOCIETA|RESPONSABILITA|LIMITATA|UNIPERSONALE|LIQUIDAZIONE|DITTA|INDIVIDUALE|IMPRESA)\b/g,
+      ' '
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const genericPrefixes = new Set(['FRATELLI', 'EREDI', 'STUDIO']);
+  const diSplit = cleaned.split(/\s+DI\s+/);
+  if (
+    diSplit.length > 1 &&
+    diSplit[0] &&
+    diSplit[0].trim().length >= 3 &&
+    !genericPrefixes.has(diSplit[0].trim())
+  ) {
+    cleaned = diSplit[0].trim();
+  }
+
+  const stopWords = new Set([
+    'del', 'della', 'dei', 'degli', 'delle', 'dal', 'dalla',
+    'nel', 'nella', 'con', 'per', 'tra', 'fra', 'ed', 'da', 'in', 'su',
+  ]);
+  const words = cleaned
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(w => w.length >= 2 && !stopWords.has(w));
+
+  let result = '';
+  if (words.length >= 2) {
+    const twoWords = `${words[0]}.${words[1]}`;
+    result = twoWords.length <= 22 ? twoWords : words[0].slice(0, 18);
+  } else if (words.length === 1) {
+    result = words[0].slice(0, 20);
+  }
+
+  if (!result || result.length < 3) {
+    const fallback = [cognome, nome]
+      .map(s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(Boolean);
+    result = fallback.join('.').slice(0, 20);
+  }
+
+  return result;
+}
+
 export default function NewClientWizard({
   agentCode,
   agentName,
@@ -56,6 +113,7 @@ export default function NewClientWizard({
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
+  const [usernameManuallyEdited, setUsernameManuallyEdited] = useState(false);
 
   const [form, setForm] = useState<NewClientFormInput>({
     partitaIva: '',
@@ -72,6 +130,7 @@ export default function NewClientWizard({
     telefono: '',
     cellulare: '',
     email: '',
+    customUsername: '',
     codiceDestinatario: '',
     pec: '',
     categoriaCommerciale: categories[0]?.code || 'riv',
@@ -130,7 +189,20 @@ export default function NewClientWizard({
   }, []);
 
   const updateField = <K extends keyof NewClientFormInput>(key: K, value: NewClientFormInput[K]) => {
-    setForm(prev => ({ ...prev, [key]: value }));
+    setForm(prev => {
+      const next = { ...prev, [key]: value };
+      if (
+        !usernameManuallyEdited &&
+        (key === 'ragioneSociale' || key === 'cognome' || key === 'nome')
+      ) {
+        next.customUsername = computeSmartUsernameClient(
+          next.ragioneSociale,
+          next.cognome,
+          next.nome
+        );
+      }
+      return next;
+    });
     setFormError('');
   };
 
@@ -158,18 +230,24 @@ export default function NewClientWizard({
           warning: res.existingWarning,
         });
       } else if (res.isViesValid && res.parsed) {
-        setForm(prev => ({
-          ...prev,
-          partitaIva: targetVat,
-          ragioneSociale: res.parsed?.ragioneSociale || prev.ragioneSociale,
-          formaGiuridica: res.parsed?.formaGiuridica || prev.formaGiuridica,
-          indirizzo: res.parsed?.indirizzo || prev.indirizzo,
-          numeroCivico: res.parsed?.numeroCivico || prev.numeroCivico,
-          cap: res.parsed?.cap || prev.cap,
-          localita: res.parsed?.localita || prev.localita,
-          provincia: res.parsed?.provincia || prev.provincia,
-          codiceFiscale: prev.codiceFiscale || targetVat,
-        }));
+        setForm(prev => {
+          const nextRagione = res.parsed?.ragioneSociale || prev.ragioneSociale;
+          return {
+            ...prev,
+            partitaIva: targetVat,
+            ragioneSociale: nextRagione,
+            formaGiuridica: res.parsed?.formaGiuridica || prev.formaGiuridica,
+            indirizzo: res.parsed?.indirizzo || prev.indirizzo,
+            numeroCivico: res.parsed?.numeroCivico || prev.numeroCivico,
+            cap: res.parsed?.cap || prev.cap,
+            localita: res.parsed?.localita || prev.localita,
+            provincia: res.parsed?.provincia || prev.provincia,
+            codiceFiscale: prev.codiceFiscale || targetVat,
+            customUsername: usernameManuallyEdited
+              ? prev.customUsername
+              : computeSmartUsernameClient(nextRagione, prev.cognome, prev.nome),
+          };
+        });
         setVatStatus({
           type: 'success',
           message: `Partita IVA verificata su archivio europeo VIES: dati societari di "${res.parsed.ragioneSociale}" compilati automaticamente.`,
@@ -339,6 +417,7 @@ export default function NewClientWizard({
     } catch {}
     setCreatedClient(null);
     setStep(1);
+    setUsernameManuallyEdited(false);
     setVatStatus({ type: 'idle', message: '' });
     setForm({
       partitaIva: '',
@@ -355,6 +434,7 @@ export default function NewClientWizard({
       telefono: '',
       cellulare: '',
       email: '',
+      customUsername: '',
       codiceDestinatario: '',
       pec: '',
       categoriaCommerciale: categories[0]?.code || 'riv',
@@ -755,6 +835,35 @@ export default function NewClientWizard({
                   onChange={e => updateField('email', e.target.value)}
                   placeholder="cliente@azienda.it"
                   className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-main focus:border-brand-main"
+                />
+              </div>
+            </div>
+
+            {/* USERNAME PORTALE B2B (BREVE E PERSONALIZZABILE) */}
+            <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-bold text-gray-900">
+                  Username Accesso Portale B2B
+                </label>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Generato in automatico in formato breve (senza diciture legali o nomi titolari lunghi). Puoi modificarlo prima di salvare.
+                </p>
+              </div>
+              <div className="sm:w-72 shrink-0">
+                <input
+                  type="text"
+                  maxLength={24}
+                  value={form.customUsername || ''}
+                  onChange={e => {
+                    const clean = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9._-]/g, '')
+                      .slice(0, 24);
+                    setUsernameManuallyEdited(clean.length > 0);
+                    setForm(prev => ({ ...prev, customUsername: clean }));
+                  }}
+                  placeholder="es. ferramenta.milano"
+                  className="w-full px-3.5 py-2.5 border border-amber-300 rounded-lg text-sm font-mono font-bold text-gray-900 bg-white focus:ring-2 focus:ring-brand-main focus:border-brand-main"
                 />
               </div>
             </div>
