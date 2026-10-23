@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -32,6 +32,70 @@ const FORME_GIURIDICHE = [
   { code: 'ALT', label: 'ALT - Altro Ente / Associazione' },
 ];
 
+function buildEditFormFromClient(
+  c: AgentManagedClient,
+  categories: CommercialCategoryOption[]
+): UpdateAgentClientInput {
+  return {
+    id: c.id,
+    companyName: c.companyName,
+    vatNumber: c.vatNumber,
+    codiceFiscale: c.codiceFiscale || c.vatNumber,
+    formaGiuridica: c.formaGiuridica || 'SRL',
+    firstName: c.firstName || '',
+    lastName: c.lastName || '',
+    address: c.address || '',
+    zip: c.zip || '',
+    city: c.city || '',
+    province: c.province || '',
+    phone: c.phone || '',
+    telefonoFisso: c.telefonoFisso || '',
+    email: c.email || '',
+    pec: c.pec || '',
+    codiceDestinatario: c.codiceDestinatario || '0000000',
+    username: c.username,
+    categoriaCommerciale: c.categoriaCode || categories[0]?.code || 'riv',
+    discount: c.discount,
+    fido: c.fido || 0,
+    codicePagamento: c.codicePagamento || '',
+    isElmarkCustomer: c.isElmarkCustomer,
+    elmarkDiscounts:
+      c.isElmarkCustomer && Object.keys(c.elmarkDiscounts || {}).length > 0
+        ? { ...c.elmarkDiscounts }
+        : { E1: 20, L: 20, C: 5, E2: 5, F: 5 },
+    isActive: c.isActive,
+  };
+}
+
+function scoreClientMatch(c: AgentManagedClient, rawQuery: string): number {
+  const q = rawQuery.toLowerCase().trim();
+  if (!q) return 1;
+
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const company = (c.companyName || '').toLowerCase();
+  const code = (c.zucchettiCode || '').toLowerCase();
+  const vat = (c.vatNumber || '').toLowerCase();
+  const email = (c.email || '').toLowerCase();
+  const city = (c.city || '').toLowerCase();
+  const username = (c.username || '').toLowerCase();
+  const searchable = `${company} ${code} ${vat} ${email} ${city} ${username}`;
+
+  // Tutti i token devono matchare almeno parzialmente
+  for (const t of tokens) {
+    if (!searchable.includes(t)) return 0;
+  }
+
+  let score = 10;
+  if (company.startsWith(q)) score += 100;
+  else if (company.includes(q)) score += 60;
+  if (code.startsWith(q) || code.replace(/^c0*/, '') === q.replace(/^c0*/, '')) score += 95;
+  if (vat.startsWith(q)) score += 90;
+  if (username.startsWith(q)) score += 75;
+  if (city.startsWith(q)) score += 50;
+
+  return score;
+}
+
 export default function ClientsManager({
   initialClients,
   categories,
@@ -41,8 +105,13 @@ export default function ClientsManager({
   const router = useRouter();
   const [clients, setClients] = useState<AgentManagedClient[]>(initialClients);
   const [search, setSearch] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const [filterMode, setFilterMode] = useState<'ALL' | 'ELMARK' | 'IZZO_ONLY'>('ALL');
   const [selectedClient, setSelectedClient] = useState<AgentManagedClient | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<UpdateAgentClientInput | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -58,59 +127,66 @@ export default function ClientsManager({
     setClients(initialClients);
   }, [initialClients]);
 
-  const filteredClients = clients.filter(c => {
-    if (filterMode === 'ELMARK' && !c.isElmarkCustomer) return false;
-    if (filterMode === 'IZZO_ONLY' && c.isElmarkCustomer) return false;
+  // Chiude il menu predittivo cliccando fuori
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    if (!search.trim()) return true;
-    const q = search.toLowerCase().trim();
-    return (
-      c.companyName.toLowerCase().includes(q) ||
-      c.zucchettiCode.toLowerCase().includes(q) ||
-      c.vatNumber.toLowerCase().includes(q) ||
-      c.email.toLowerCase().includes(q) ||
-      c.city.toLowerCase().includes(q) ||
-      c.username.toLowerCase().includes(q)
-    );
-  });
-
-  const openEditModal = (c: AgentManagedClient) => {
-    setSelectedClient(c);
-    setSaveMessage(null);
-    setEditForm({
-      id: c.id,
-      companyName: c.companyName,
-      vatNumber: c.vatNumber,
-      codiceFiscale: c.codiceFiscale || c.vatNumber,
-      formaGiuridica: c.formaGiuridica || 'SRL',
-      firstName: c.firstName || '',
-      lastName: c.lastName || '',
-      address: c.address || '',
-      zip: c.zip || '',
-      city: c.city || '',
-      province: c.province || '',
-      phone: c.phone || '',
-      telefonoFisso: c.telefonoFisso || '',
-      email: c.email || '',
-      pec: c.pec || '',
-      codiceDestinatario: c.codiceDestinatario || '0000000',
-      username: c.username,
-      categoriaCommerciale: c.categoriaCode || categories[0]?.code || 'riv',
-      discount: c.discount,
-      fido: c.fido || 0,
-      codicePagamento: c.codicePagamento || '',
-      isElmarkCustomer: c.isElmarkCustomer,
-      elmarkDiscounts:
-        c.isElmarkCustomer && Object.keys(c.elmarkDiscounts || {}).length > 0
-          ? { ...c.elmarkDiscounts }
-          : { E1: 20, L: 20, C: 5, E2: 5, F: 5 },
-      isActive: c.isActive,
+  // Lista filtrata e ordinata in modo predittivo
+  const filteredClients = useMemo(() => {
+    const base = clients.filter(c => {
+      if (filterMode === 'ELMARK' && !c.isElmarkCustomer) return false;
+      if (filterMode === 'IZZO_ONLY' && c.isElmarkCustomer) return false;
+      return true;
     });
+
+    if (!search.trim()) return base;
+
+    return base
+      .map(c => ({ client: c, score: scoreClientMatch(c, search) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.client);
+  }, [clients, filterMode, search]);
+
+  // Suggerimenti predittivi (top 6) mentre l'agente digita
+  const predictiveSuggestions = useMemo(() => {
+    if (!search.trim()) return [];
+    return filteredClients.slice(0, 6);
+  }, [filteredClients, search]);
+
+  const openViewModal = (c: AgentManagedClient) => {
+    setSelectedClient(c);
+    setIsEditing(false); // Sempre in sola lettura all'apertura
+    setSaveMessage(null);
+    setEditForm(buildEditFormFromClient(c, categories));
+    setShowSuggestions(false);
   };
 
-  const closeEditModal = () => {
+  const handleStartEditing = () => {
+    if (!selectedClient) return;
+    setEditForm(buildEditFormFromClient(selectedClient, categories));
+    setSaveMessage(null);
+    setIsEditing(true);
+  };
+
+  const handleCancelEditing = () => {
+    if (!selectedClient) return;
+    setEditForm(buildEditFormFromClient(selectedClient, categories));
+    setSaveMessage(null);
+    setIsEditing(false);
+  };
+
+  const closeModal = () => {
     setSelectedClient(null);
     setEditForm(null);
+    setIsEditing(false);
     setSaveMessage(null);
   };
 
@@ -170,6 +246,7 @@ export default function ClientsManager({
 
   const handleImpersonate = async (c: AgentManagedClient) => {
     setImpersonatingId(c.id);
+    setShowSuggestions(false);
     await setImpersonatedClient(c.zucchettiCode, c.companyName, c.discount);
     router.push('/');
     router.refresh();
@@ -177,7 +254,7 @@ export default function ClientsManager({
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editForm || !selectedClient) return;
+    if (!editForm || !selectedClient || !isEditing) return;
 
     setSaving(true);
     setSaveMessage(null);
@@ -231,6 +308,7 @@ export default function ClientsManager({
 
       setClients(prev => prev.map(item => (item.id === updatedClient.id ? updatedClient : item)));
       setSelectedClient(updatedClient);
+      setIsEditing(false); // Torna in modalità sola lettura dopo il salvataggio
       setSaveMessage({
         type: 'success',
         text: res.zucchettiUpdated
@@ -249,6 +327,9 @@ export default function ClientsManager({
   };
 
   const totalElmark = clients.filter(c => c.isElmarkCustomer).length;
+  const inputReadOnlyClass = !isEditing
+    ? 'bg-gray-100 text-gray-700 border-gray-200 cursor-default'
+    : 'bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-brand-main';
 
   return (
     <div className="space-y-6">
@@ -265,7 +346,7 @@ export default function ClientsManager({
             </span>
           </div>
           <p className="text-sm text-gray-600 mt-1">
-            Visualizza, cerca e modifica i dati anagrafici, commerciali e di accesso dei tuoi clienti ({agentName}
+            Consulta la scheda dei tuoi clienti, impersonificali o gestisci le loro anagrafiche ({agentName}
             {agentCode ? ` - Cod. Agente ${agentCode}` : ''}).
           </p>
         </div>
@@ -281,9 +362,9 @@ export default function ClientsManager({
         </Link>
       </div>
 
-      {/* Barra di Ricerca e Filtri */}
+      {/* Barra di Ricerca Predittiva e Filtri */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="relative flex-1">
+        <div ref={searchContainerRef} className="relative flex-1">
           <svg
             className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
             fill="none"
@@ -295,10 +376,125 @@ export default function ClientsManager({
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Cerca per Ragione Sociale, Codice Zucchetti (es. C000165), P.IVA, Email, Città o Username..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-main focus:border-brand-main"
+            onFocus={() => setShowSuggestions(true)}
+            onChange={e => {
+              setSearch(e.target.value);
+              setShowSuggestions(true);
+              setHighlightedIndex(-1);
+            }}
+            onKeyDown={e => {
+              if (!showSuggestions || predictiveSuggestions.length === 0) return;
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setHighlightedIndex(prev =>
+                  prev < predictiveSuggestions.length - 1 ? prev + 1 : 0
+                );
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setHighlightedIndex(prev =>
+                  prev > 0 ? prev - 1 : predictiveSuggestions.length - 1
+                );
+              } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                e.preventDefault();
+                const chosen = predictiveSuggestions[highlightedIndex];
+                if (chosen) {
+                  setSearch(chosen.companyName);
+                  setShowSuggestions(false);
+                }
+              } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
+              }
+            }}
+            placeholder="Ricerca predittiva: digita nome azienda, codice C000..., P.IVA, città o username..."
+            className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-main focus:border-brand-main"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setShowSuggestions(false);
+                setHighlightedIndex(-1);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+              title="Pulisci ricerca"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+
+          {/* Dropdown Suggerimenti Predittivi */}
+          {showSuggestions && search.trim().length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+              <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <span>Suggerimenti Predittivi ({filteredClients.length} trovati)</span>
+                <span>Usa ↑↓ o clicca</span>
+              </div>
+              {predictiveSuggestions.length === 0 ? (
+                <div className="p-4 text-xs text-gray-500 text-center">
+                  Nessun cliente corrispondente a &ldquo;{search}&rdquo;
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                  {predictiveSuggestions.map((s, idx) => (
+                    <div
+                      key={s.id}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                      className={`px-3.5 py-2.5 flex items-center justify-between gap-3 transition-colors ${
+                        highlightedIndex === idx ? 'bg-amber-50/80' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch(s.companyName);
+                          setShowSuggestions(false);
+                        }}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded bg-gray-900 text-white font-mono text-[10px] font-bold shrink-0">
+                            {s.zucchettiCode || 'N/D'}
+                          </span>
+                          <span className="text-sm font-bold text-gray-900 truncate">
+                            {s.companyName}
+                          </span>
+                          {s.isElmarkCustomer && (
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                              Elmark
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-500 mt-0.5 truncate">
+                          P.IVA: {s.vatNumber || '-'} • {s.city || '-'} ({s.province || '-'}) • User:{' '}
+                          <span className="font-mono font-semibold text-gray-700">{s.username}</span>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openViewModal(s)}
+                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-md transition-colors"
+                        >
+                          Visualizza
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleImpersonate(s)}
+                          className="px-2.5 py-1 bg-black hover:bg-brand-main hover:text-black text-white text-xs font-bold rounded-md transition-colors"
+                        >
+                          Impersonifica
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-lg shrink-0">
@@ -415,13 +611,14 @@ export default function ClientsManager({
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100">
                 <button
                   type="button"
-                  onClick={() => openEditModal(c)}
+                  onClick={() => openViewModal(c)}
                   className="px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold text-xs rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   <svg className="w-4 h-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  Visualizza / Modifica
+                  Visualizza
                 </button>
 
                 <button
@@ -454,7 +651,7 @@ export default function ClientsManager({
         )}
       </div>
 
-      {/* MODALE VISUALIZZA / MODIFICA CLIENTE */}
+      {/* MODALE SCHEDA CLIENTE (SOLA LETTURA DI DEFAULT, MODIFICABILE SOLO SU RICHIESTA) */}
       {mounted &&
         selectedClient &&
         editForm &&
@@ -463,26 +660,52 @@ export default function ClientsManager({
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-3xl w-full overflow-hidden my-8 max-h-[92vh] flex flex-col">
               {/* Header Modale */}
               <div className="p-5 bg-gray-900 text-white flex items-center justify-between gap-4 shrink-0">
-                <div>
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded bg-brand-main text-black font-mono text-xs font-extrabold">
                       {selectedClient.zucchettiCode || 'CLIENTE B2B'}
                     </span>
                     <h2 className="text-lg font-extrabold truncate">{selectedClient.companyName}</h2>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                        isEditing
+                          ? 'bg-amber-400 text-black'
+                          : 'bg-gray-700 text-gray-200'
+                      }`}
+                    >
+                      {isEditing ? 'Modalità Modifica Attiva' : 'Sola Lettura'}
+                    </span>
                   </div>
                   <p className="text-xs text-gray-300 mt-0.5">
-                    Visualizza e modifica l&apos;anagrafica cliente, le condizioni commerciali e le credenziali B2B.
+                    {isEditing
+                      ? 'Modifica i campi desiderati e clicca su "Salva Modifiche".'
+                      : 'Scheda cliente protetta da modifiche accidentali. Clicca su "Abilita Modifica" per variare i dati.'}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeEditModal}
-                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleStartEditing}
+                      className="px-3.5 py-2 bg-brand-main hover:bg-amber-400 text-black text-xs font-extrabold rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Abilita Modifica
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Corpo Form Modale */}
@@ -506,21 +729,23 @@ export default function ClientsManager({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Ragione Sociale *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Ragione Sociale</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={60}
                         value={editForm.companyName}
                         onChange={e => setEditForm({ ...editForm, companyName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Forma Giuridica</label>
                       <select
+                        disabled={!isEditing}
                         value={editForm.formaGiuridica || 'SRL'}
                         onChange={e => setEditForm({ ...editForm, formaGiuridica: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       >
                         {FORME_GIURIDICHE.map(fg => (
                           <option key={fg.code} value={fg.code}>
@@ -533,9 +758,10 @@ export default function ClientsManager({
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Partita IVA *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Partita IVA</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={11}
                         value={editForm.vatNumber}
                         onChange={e =>
@@ -544,37 +770,40 @@ export default function ClientsManager({
                             vatNumber: e.target.value.replace(/[^0-9]/g, '').slice(0, 11),
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Codice Fiscale</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={16}
                         value={editForm.codiceFiscale || ''}
                         onChange={e =>
                           setEditForm({ ...editForm, codiceFiscale: e.target.value.toUpperCase() })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono uppercase ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Cognome Referente</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         value={editForm.lastName || ''}
                         onChange={e => setEditForm({ ...editForm, lastName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Nome Referente</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         value={editForm.firstName || ''}
                         onChange={e => setEditForm({ ...editForm, firstName: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                   </div>
@@ -587,40 +816,44 @@ export default function ClientsManager({
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                     <div className="md:col-span-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Indirizzo Completo *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Indirizzo Completo</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={32}
                         value={editForm.address}
                         onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">CAP *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">CAP</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={5}
                         value={editForm.zip}
                         onChange={e =>
                           setEditForm({ ...editForm, zip: e.target.value.replace(/[^0-9]/g, '').slice(0, 5) })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Località *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Località</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         value={editForm.city}
                         onChange={e => setEditForm({ ...editForm, city: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Prov. *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Prov.</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={2}
                         value={editForm.province}
                         onChange={e =>
@@ -629,34 +862,37 @@ export default function ClientsManager({
                             province: e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2),
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono uppercase ${inputReadOnlyClass}`}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">E-mail *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">E-mail</label>
                       <input
                         type="email"
+                        disabled={!isEditing}
                         value={editForm.email}
                         onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Cellulare / Tel.</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         value={editForm.phone || ''}
                         onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Codice SDI</label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={7}
                         value={editForm.codiceDestinatario || ''}
                         onChange={e =>
@@ -665,7 +901,7 @@ export default function ClientsManager({
                             codiceDestinatario: e.target.value.toUpperCase().slice(0, 7),
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono uppercase ${inputReadOnlyClass}`}
                       />
                     </div>
                   </div>
@@ -674,10 +910,11 @@ export default function ClientsManager({
                     <label className="block text-xs font-bold text-gray-700 mb-1">Indirizzo PEC</label>
                     <input
                       type="email"
+                      disabled={!isEditing}
                       value={editForm.pec || ''}
                       onChange={e => setEditForm({ ...editForm, pec: e.target.value })}
-                      placeholder="azienda@pec.it"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      placeholder="-"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${inputReadOnlyClass}`}
                     />
                   </div>
                 </div>
@@ -693,6 +930,7 @@ export default function ClientsManager({
                         Categoria Commerciale Zucchetti
                       </label>
                       <select
+                        disabled={!isEditing}
                         value={editForm.categoriaCommerciale}
                         onChange={e => {
                           const code = e.target.value;
@@ -703,7 +941,7 @@ export default function ClientsManager({
                             discount: found ? found.discount : editForm.discount,
                           });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-medium ${inputReadOnlyClass}`}
                       >
                         {categories.map(cat => (
                           <option key={cat.code} value={cat.code}>
@@ -719,6 +957,7 @@ export default function ClientsManager({
                       </label>
                       <input
                         type="number"
+                        disabled={!isEditing}
                         step="0.5"
                         min={0}
                         max={90}
@@ -726,7 +965,7 @@ export default function ClientsManager({
                         onChange={e =>
                           setEditForm({ ...editForm, discount: parseFloat(e.target.value) || 0 })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono font-bold"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono font-bold ${inputReadOnlyClass}`}
                       />
                     </div>
                   </div>
@@ -739,10 +978,15 @@ export default function ClientsManager({
                         : 'bg-gray-50 border-gray-200'
                     }`}
                   >
-                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <label
+                      className={`flex items-center justify-between gap-3 ${
+                        isEditing ? 'cursor-pointer' : 'cursor-default'
+                      }`}
+                    >
                       <div className="flex items-center gap-2.5">
                         <input
                           type="checkbox"
+                          disabled={!isEditing}
                           checked={editForm.isElmarkCustomer}
                           onChange={e => {
                             const checked = e.target.checked;
@@ -754,7 +998,7 @@ export default function ClientsManager({
                                 : {},
                             });
                           }}
-                          className="w-4 h-4 text-brand-main rounded border-gray-300"
+                          className="w-4 h-4 text-brand-main rounded border-gray-300 disabled:opacity-60"
                         />
                         <span className="text-sm font-bold text-gray-900">
                           Abilita al Negozio Elmark
@@ -784,24 +1028,27 @@ export default function ClientsManager({
                       >
                         Scarica PDF Credenziali
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPdf(selectedClient, true)}
-                        disabled={pdfLoadingId === selectedClient.id}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors"
-                      >
-                        Rigenera Password e Scarica PDF
-                      </button>
+                      {isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPdf(selectedClient, true)}
+                          disabled={pdfLoadingId === selectedClient.id}
+                          className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors"
+                        >
+                          Rigenera Password e Scarica PDF
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-gray-800 mb-1">
-                        Username B2B *
+                        Username B2B
                       </label>
                       <input
                         type="text"
+                        disabled={!isEditing}
                         maxLength={30}
                         value={editForm.username}
                         onChange={e =>
@@ -813,7 +1060,11 @@ export default function ClientsManager({
                               .slice(0, 30),
                           })
                         }
-                        className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm font-mono font-bold bg-white"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-mono font-bold ${
+                          isEditing
+                            ? 'border-amber-300 bg-white text-gray-900'
+                            : 'border-gray-200 bg-gray-100 text-gray-700 cursor-default'
+                        }`}
                       />
                     </div>
 
@@ -827,7 +1078,7 @@ export default function ClientsManager({
                         value={
                           selectedClient.tempPassword
                             ? selectedClient.tempPassword
-                            : 'Impostata dal cliente (usa Rigenera per resettarla)'
+                            : 'Impostata dal cliente'
                         }
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono bg-gray-100 text-gray-700"
                       />
@@ -838,11 +1089,12 @@ export default function ClientsManager({
                         Stato Account B2B
                       </label>
                       <select
+                        disabled={!isEditing}
                         value={editForm.isActive ? 'ACTIVE' : 'SUSPENDED'}
                         onChange={e =>
                           setEditForm({ ...editForm, isActive: e.target.value === 'ACTIVE' })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-semibold"
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-semibold ${inputReadOnlyClass}`}
                       >
                         <option value="ACTIVE">Attivo (Accesso Consentito)</option>
                         <option value="SUSPENDED">Sospeso (Accesso Bloccato)</option>
@@ -852,21 +1104,54 @@ export default function ClientsManager({
                 </div>
 
                 {/* Footer Modale */}
-                <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={closeEditModal}
+                    onClick={closeModal}
                     className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-bold rounded-lg transition-colors"
                   >
-                    Chiudi
+                    Chiudi Scheda
                   </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-black hover:bg-brand-main hover:text-black text-white text-sm font-extrabold rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {saving ? 'Salvataggio in corso...' : 'Salva Modifiche'}
-                  </button>
+
+                  {!isEditing ? (
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleImpersonate(selectedClient)}
+                        className="px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-lg transition-colors"
+                      >
+                        Impersonifica Cliente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartEditing}
+                        className="px-5 py-2.5 bg-brand-main hover:bg-amber-400 text-black text-sm font-extrabold rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Modifica Cliente
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={handleCancelEditing}
+                        disabled={saving}
+                        className="px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-bold rounded-lg transition-colors"
+                      >
+                        Annulla Modifica
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="px-6 py-2.5 bg-black hover:bg-brand-main hover:text-black text-white text-sm font-extrabold rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {saving ? 'Salvataggio in corso...' : 'Salva Modifiche'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </form>
             </div>
