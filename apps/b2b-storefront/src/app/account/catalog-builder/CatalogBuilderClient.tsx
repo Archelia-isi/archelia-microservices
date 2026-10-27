@@ -25,29 +25,19 @@ interface Props {
 
 const WAREHOUSE_OPTIONS: { value: WarehouseFilterMode; label: string; desc: string }[] = [
   {
-    value: 'ALL_AVAILABLE',
-    label: 'Tutti i Disponibili (2GG + 7GG)',
-    desc: 'Prodotti con giacenza > 0 in almeno un deposito',
+    value: 'ALL_WAREHOUSES',
+    label: 'Tutti i depositi',
+    desc: 'Deposito Principale 2GG + Deposito Esterno 7GG',
   },
   {
     value: 'MAIN_2GG',
-    label: 'Deposito Principale (Pronta Consegna 2GG)',
-    desc: 'Solo articoli fisicamente pronti nel magazzino principale (stock_main > 0)',
+    label: 'Solo 2GG',
+    desc: 'Solo Deposito Principale (Pronta Consegna 2GG)',
   },
   {
     value: 'EXTERNAL_7GG',
-    label: 'Deposito Esterno (Consegna 7GG)',
-    desc: 'Articoli disponibili nel deposito logistico esterno (stock_ek > 0)',
-  },
-  {
-    value: 'BOTH_WAREHOUSES',
-    label: 'Presenti in Entrambi i Depositi',
-    desc: 'Giacenza attiva sia nel deposito 2GG che nel deposito 7GG',
-  },
-  {
-    value: 'ALL_INCLUDING_OOS',
-    label: 'Tutti i Prodotti (Inclusi Esauriti)',
-    desc: 'Intero catalogo anche con giacenza temporaneamente a zero',
+    label: 'Solo 7GG',
+    desc: 'Solo Deposito Esterno (Consegna 7GG)',
   },
 ];
 
@@ -256,7 +246,8 @@ export default function CatalogBuilderClient({
   const [catalogSource, setCatalogSource] = useState<CatalogSourceMode>('ZUCCHETTI');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [warehouse, setWarehouse] = useState<WarehouseFilterMode>('ALL_AVAILABLE');
+  const [warehouse, setWarehouse] = useState<WarehouseFilterMode>('ALL_WAREHOUSES');
+  const [includeZeroStock, setIncludeZeroStock] = useState<boolean>(false);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedProductGroups, setSelectedProductGroups] = useState<string[]>([]);
   const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
@@ -332,6 +323,7 @@ export default function CatalogBuilderClient({
         catalogSource,
         query: debouncedQuery,
         warehouse,
+        includeZeroStock,
         brands: selectedBrands,
         productGroups: selectedProductGroups,
         families: selectedFamilies,
@@ -361,6 +353,7 @@ export default function CatalogBuilderClient({
     catalogSource,
     debouncedQuery,
     warehouse,
+    includeZeroStock,
     selectedBrands,
     selectedProductGroups,
     selectedFamilies,
@@ -464,7 +457,8 @@ export default function CatalogBuilderClient({
     setCatalogSource('ZUCCHETTI');
     setQuery('');
     setDebouncedQuery('');
-    setWarehouse('ALL_AVAILABLE');
+    setWarehouse('ALL_WAREHOUSES');
+    setIncludeZeroStock(false);
     setSelectedBrands([]);
     setSelectedProductGroups([]);
     setSelectedFamilies([]);
@@ -481,7 +475,11 @@ export default function CatalogBuilderClient({
     else parts.push('Tutti i Cataloghi');
 
     const whLabel = WAREHOUSE_OPTIONS.find(w => w.value === warehouse)?.label;
-    if (whLabel) parts.push(`Deposito: ${whLabel}`);
+    if (whLabel) {
+      parts.push(
+        `Deposito: ${whLabel}${includeZeroStock ? ' (inclusi giacenza 0)' : ''}`
+      );
+    }
 
     if (selectedBrands.length > 0) {
       const labels = selectedBrands.map(
@@ -514,6 +512,7 @@ export default function CatalogBuilderClient({
   }, [
     catalogSource,
     warehouse,
+    includeZeroStock,
     selectedBrands,
     selectedProductGroups,
     selectedFamilies,
@@ -598,7 +597,8 @@ export default function CatalogBuilderClient({
 
   const hasActiveFilters =
     query.trim() !== '' ||
-    warehouse !== 'ALL_AVAILABLE' ||
+    warehouse !== 'ALL_WAREHOUSES' ||
+    includeZeroStock ||
     selectedBrands.length > 0 ||
     selectedProductGroups.length > 0 ||
     selectedFamilies.length > 0 ||
@@ -764,19 +764,36 @@ export default function CatalogBuilderClient({
 
           <div className="lg:col-span-5">
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Deposito / Disponibilità Magazzino
+              Disponibilità / Deposito
             </label>
-            <select
-              value={warehouse}
-              onChange={e => setWarehouse(e.target.value as WarehouseFilterMode)}
-              className="w-full px-3 py-2.5 text-sm font-medium border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-main"
-            >
-              {WAREHOUSE_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-3 gap-2">
+              {WAREHOUSE_OPTIONS.map(opt => {
+                const active = warehouse === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setWarehouse(opt.value)}
+                    className={`px-3 py-2.5 text-xs font-bold rounded-lg border transition-all text-center ${
+                      active
+                        ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <label className="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeZeroStock}
+                onChange={e => setIncludeZeroStock(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-brand-main focus:ring-brand-main cursor-pointer"
+              />
+              <span>Includi prodotti a giacenza 0</span>
+            </label>
           </div>
         </div>
 

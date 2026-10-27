@@ -12,12 +12,7 @@ export interface CatalogFacetOption {
   count: number;
 }
 
-export type WarehouseFilterMode =
-  | 'ALL_AVAILABLE'
-  | 'MAIN_2GG'
-  | 'EXTERNAL_7GG'
-  | 'BOTH_WAREHOUSES'
-  | 'ALL_INCLUDING_OOS';
+export type WarehouseFilterMode = 'ALL_WAREHOUSES' | 'MAIN_2GG' | 'EXTERNAL_7GG';
 
 export type CatalogSourceMode = 'ZUCCHETTI' | 'ELMARK' | 'ALL';
 
@@ -36,6 +31,7 @@ export interface CatalogSearchFilters {
   catalogSource: CatalogSourceMode;
   query: string;
   warehouse: WarehouseFilterMode;
+  includeZeroStock?: boolean;
   brands: string[];
   productGroups: string[];
   families: string[];
@@ -198,15 +194,15 @@ function buildTypesenseFilterString(filters: CatalogSearchFilters): string {
     clauses.push('brand:=ELMARK');
   }
 
-  // 2. Filtro Deposito / Giacenza
-  if (filters.warehouse === 'MAIN_2GG') {
-    clauses.push('stock_main:>0');
-  } else if (filters.warehouse === 'EXTERNAL_7GG') {
-    clauses.push('stock_ek:>0');
-  } else if (filters.warehouse === 'BOTH_WAREHOUSES') {
-    clauses.push('stock_main:>0 && stock_ek:>0');
-  } else if (filters.warehouse === 'ALL_AVAILABLE') {
-    clauses.push('stock:>0');
+  // 2. Filtro Deposito / Giacenza (3 modalità + opzione includi giacenza 0)
+  if (!filters.includeZeroStock) {
+    if (filters.warehouse === 'MAIN_2GG') {
+      clauses.push('stock_main:>0');
+    } else if (filters.warehouse === 'EXTERNAL_7GG') {
+      clauses.push('stock_ek:>0');
+    } else {
+      clauses.push('stock:>0');
+    }
   }
 
   // 3. Filtro Marchi
@@ -254,7 +250,8 @@ export async function getAgentCatalogInitData(): Promise<{
     searchAgentCatalogProducts({
       catalogSource: 'ZUCCHETTI',
       query: '',
-      warehouse: 'ALL_AVAILABLE',
+      warehouse: 'ALL_WAREHOUSES',
+      includeZeroStock: false,
       brands: [],
       productGroups: [],
       families: [],
@@ -313,9 +310,13 @@ export async function searchAgentCatalogProducts(
     } else if (filters.sortBy === 'TITLE_ASC') {
       sortByStr = '_text_match:desc,natural_sku:asc';
     } else {
+      const primaryStockSort =
+        filters.warehouse === 'EXTERNAL_7GG'
+          ? 'stock_ek:desc,stock_main:desc'
+          : 'stock_main:desc,stock_ek:desc';
       sortByStr = isWildcard
-        ? 'stock_main:desc,stock_ek:desc,natural_sku:asc'
-        : '_text_match:desc,stock_main:desc,natural_sku:asc';
+        ? `${primaryStockSort},natural_sku:asc`
+        : `_text_match:desc,${primaryStockSort},natural_sku:asc`;
     }
 
     const filterBy = buildTypesenseFilterString(filters);
@@ -327,14 +328,14 @@ export async function searchAgentCatalogProducts(
     } else if (filters.catalogSource === 'ELMARK') {
       baseFacetClauses.push('brand:=ELMARK');
     }
-    if (filters.warehouse === 'MAIN_2GG') {
-      baseFacetClauses.push('stock_main:>0');
-    } else if (filters.warehouse === 'EXTERNAL_7GG') {
-      baseFacetClauses.push('stock_ek:>0');
-    } else if (filters.warehouse === 'BOTH_WAREHOUSES') {
-      baseFacetClauses.push('stock_main:>0 && stock_ek:>0');
-    } else if (filters.warehouse === 'ALL_AVAILABLE') {
-      baseFacetClauses.push('stock:>0');
+    if (!filters.includeZeroStock) {
+      if (filters.warehouse === 'MAIN_2GG') {
+        baseFacetClauses.push('stock_main:>0');
+      } else if (filters.warehouse === 'EXTERNAL_7GG') {
+        baseFacetClauses.push('stock_ek:>0');
+      } else {
+        baseFacetClauses.push('stock:>0');
+      }
     }
 
     const pagePromises = [];
