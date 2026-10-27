@@ -22,6 +22,7 @@ export type CatalogStockMode = 'BADGE_ONLY' | 'HIDE_STOCK' | 'EXACT_QTY';
 
 export type CatalogSortMode =
   | 'TAXONOMY_ASC'
+  | 'INSERTION_ORDER'
   | 'STOCK_DESC'
   | 'SKU_ASC'
   | 'PRICE_ASC'
@@ -254,6 +255,7 @@ export async function getAgentCatalogInitData(): Promise<{
       families: [],
       categories: [],
       sortBy: 'TAXONOMY_ASC',
+      limit: 1,
     }),
   ]);
 
@@ -561,35 +563,51 @@ export async function searchCatalogPredictiveAction(
 
   try {
     const maps = await getTaxonomyLookupMaps();
-    const clauses: string[] = ['catalog_source:=zucchetti'];
-    if (!includeZeroStock) {
-      if (warehouse === 'MAIN_2GG') {
-        clauses.push('stock_main:>0');
-      } else if (warehouse === 'EXTERNAL_7GG') {
-        clauses.push('stock_ek:>0');
-      } else {
-        clauses.push('stock:>0');
-      }
-    }
 
-    const res = await typesenseClient
-      .collections(PRODUCTS_COLLECTION_NAME)
-      .documents()
-      .search({
-        q,
-        query_by:
-          'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-        query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
-        prefix: 'true,true,true,true,true,true,true,true,true,true,false,false',
-        filter_by: clauses.join(' && '),
-        sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc',
-        include_fields:
-          'id,sku,natural_sku,title,original_name,brand,product_group,family,category,technical_desc,description,unit,price,price_b2b,discgroup,stock,stock_main,stock_ek,image_url,catalog_source',
-        per_page: 16,
-        page: 1,
-      });
+    // Stessi identici parametri e ordinamento a 3 livelli delle barre di ricerca già esistenti nel sito (/api/search/predictive)
+    const baseSearchParams = {
+      q,
+      query_by:
+        'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+      query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+      prefix: 'true,true,true,true,true,true,true,true,true,true,false,false',
+      include_fields:
+        'id,sku,natural_sku,title,original_name,brand,product_group,family,category,technical_desc,description,unit,price,price_b2b,discgroup,stock,stock_main,stock_ek,image_url,catalog_source',
+      per_page: 10,
+    };
 
-    const products: CatalogProductItem[] = (res?.hits || []).map((hit: any) => {
+    const [tier1Res, tier2Res, tier3Res] = await Promise.all([
+      warehouse === 'EXTERNAL_7GG' && !includeZeroStock
+        ? Promise.resolve({ hits: [], found: 0 })
+        : typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+            ...baseSearchParams,
+            filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+            sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc',
+          }),
+      warehouse === 'MAIN_2GG' && !includeZeroStock
+        ? Promise.resolve({ hits: [], found: 0 })
+        : typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+            ...baseSearchParams,
+            filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0',
+            sort_by: '_text_match:desc,stock_ek:desc,natural_sku:asc',
+          }),
+      typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
+        ...baseSearchParams,
+        filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0',
+        sort_by: '_text_match:desc,natural_sku:asc',
+      }),
+    ]);
+
+    const rawHits = [
+      ...(tier1Res?.hits || []),
+      ...(tier2Res?.hits || []),
+      ...(tier3Res?.hits || []),
+    ].slice(0, 10);
+
+    const totalFound =
+      (tier1Res?.found || 0) + (tier2Res?.found || 0) + (tier3Res?.found || 0);
+
+    const products: CatalogProductItem[] = rawHits.map((hit: any) => {
       const doc = hit.document || {};
       const brandCode = String(doc.brand || '').trim().toUpperCase();
       const pgCode = String(doc.product_group || '').trim().toUpperCase();
@@ -629,7 +647,7 @@ export async function searchCatalogPredictiveAction(
 
     return {
       success: true,
-      totalFound: res?.found || 0,
+      totalFound,
       products,
     };
   } catch (e) {

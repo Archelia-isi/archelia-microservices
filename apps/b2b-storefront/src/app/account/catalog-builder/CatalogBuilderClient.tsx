@@ -243,10 +243,8 @@ export default function CatalogBuilderClient({
   clients,
   initialSearch,
 }: Props) {
-  // --- STATO FILTRI RICERCA ---
-  const [catalogSource, setCatalogSource] = useState<CatalogSourceMode>('ZUCCHETTI');
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  // --- STATO FILTRI ---
+  const [catalogSource] = useState<CatalogSourceMode>('ZUCCHETTI');
   const [warehouse, setWarehouse] = useState<WarehouseFilterMode>('ALL_WAREHOUSES');
   const [includeZeroStock, setIncludeZeroStock] = useState<boolean>(false);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -255,33 +253,26 @@ export default function CatalogBuilderClient({
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<CatalogSortMode>('TAXONOMY_ASC');
 
-  // --- STATO RISULTATI & SELEZIONE ---
-  const [products, setProducts] = useState<CatalogProductItem[]>(initialSearch.products || []);
-  const [totalFound, setTotalFound] = useState<number>(initialSearch.totalFound || 0);
-  const [facets, setFacets] = useState(
-    initialSearch.facets || { brands: [], productGroups: [], families: [], categories: [] }
-  );
-  // Selezione massiva dai filtri (quando non si è in modalità selezione singola)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set((initialSearch.products || []).map(p => p.id))
-  );
-  // Mappa persistente dei prodotti selezionati uno alla volta (anche attraverso più ricerche: es. e45 -> il34 -> ...)
-  const [manualSelectedMap, setManualSelectedMap] = useState<Map<string, CatalogProductItem>>(
-    () => new Map()
-  );
-  const [isManualSelectionMode, setIsManualSelectionMode] = useState<boolean>(false);
-  const [previewTab, setPreviewTab] = useState<'FILTER_RESULTS' | 'SELECTED_ONLY'>('FILTER_RESULTS');
-
-  // --- STATO BARRA DI RICERCA PREDITTIVA ---
-  const [predictiveItems, setPredictiveItems] = useState<CatalogProductItem[]>([]);
-  const [predictiveTotal, setPredictiveTotal] = useState<number>(0);
-  const [isPredictiveLoading, setIsPredictiveLoading] = useState<boolean>(false);
+  // --- STATO BARRA PREDITTIVA (COME NELLE BARRE ESISTENTI DEL SITO) ---
+  const [query, setQuery] = useState('');
+  const [predictiveResults, setPredictiveResults] = useState<CatalogProductItem[]>([]);
+  const [predictiveFound, setPredictiveFound] = useState<number>(0);
   const [isPredictiveOpen, setIsPredictiveOpen] = useState<boolean>(false);
+  const [isPredictiveLoading, setIsPredictiveLoading] = useState<boolean>(false);
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
   const predictiveContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // --- LISTA UNICA E DIRETTA DELLE SCHEDE NEL CATALOGO ---
+  // Parte vuota: si popola cliccando i prodotti dalla barra predittiva (es. e45 -> il34 -> ...)
+  // oppure selezionando un filtro (Marchio, Gruppo, Famiglia, Categoria).
+  const [catalogItems, setCatalogItems] = useState<CatalogProductItem[]>([]);
+  const [facets, setFacets] = useState(
+    initialSearch.facets || { brands: [], productGroups: [], families: [], categories: [] }
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [lastAddedSku, setLastAddedSku] = useState<string | null>(null);
 
   // --- STATO CONFIGURAZIONE CATALOGO / CLIENTE / PREZZI / GIACENZE ---
   const [catalogTitle, setCatalogTitle] = useState('Catalogo Prodotti Selezionati');
@@ -304,7 +295,7 @@ export default function CatalogBuilderClient({
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState('');
 
-  // Chiudi dropdown predittivi (cliente e ricerca prodotti) cliccando fuori
+  // Chiudi dropdown predittivi cliccando fuori
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (clientDropdownRef.current && !clientDropdownRef.current.contains(e.target as Node)) {
@@ -315,33 +306,43 @@ export default function CatalogBuilderClient({
         !predictiveContainerRef.current.contains(e.target as Node)
       ) {
         setIsPredictiveOpen(false);
+        setActiveIndex(-1);
       }
     };
     document.addEventListener('mousedown', handleOutside);
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
-  // Ricerca predittiva live mentre l'agente digita nella barra di ricerca (es. e45, il34)
+  // Ricerca predittiva live (160ms debounce, identica a PredictiveSearchBar.tsx del sito)
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
-      setPredictiveItems([]);
-      setPredictiveTotal(0);
+    if (trimmed.length < 1) {
+      setPredictiveResults([]);
+      setPredictiveFound(0);
+      setIsPredictiveOpen(false);
       setIsPredictiveLoading(false);
+      setActiveIndex(-1);
       return;
     }
 
     let cancelled = false;
-    setIsPredictiveLoading(true);
     const timer = setTimeout(async () => {
-      const res = await searchCatalogPredictiveAction(trimmed, warehouse, includeZeroStock);
-      if (cancelled) return;
-      setIsPredictiveLoading(false);
-      if (res.success) {
-        setPredictiveItems(res.products);
-        setPredictiveTotal(res.totalFound);
+      setIsPredictiveLoading(true);
+      try {
+        const res = await searchCatalogPredictiveAction(trimmed, warehouse, includeZeroStock);
+        if (cancelled) return;
+        if (res.success) {
+          setPredictiveResults(res.products || []);
+          setPredictiveFound(res.totalFound || 0);
+          setIsPredictiveOpen(true);
+          setActiveIndex(-1);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPredictiveLoading(false);
+        }
       }
-    }, 140);
+    }, 160);
 
     return () => {
       cancelled = true;
@@ -349,15 +350,15 @@ export default function CatalogBuilderClient({
     };
   }, [query, warehouse, includeZeroStock]);
 
-  // Debounce della ricerca testuale scritta dall'agente per la griglia sottostante
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 220);
-    return () => clearTimeout(timer);
-  }, [query]);
+  // Verifica se c'è almeno un filtro di reparto/marchio attivo
+  const hasCategoryOrBrandFilter =
+    selectedBrands.length > 0 ||
+    selectedProductGroups.length > 0 ||
+    selectedFamilies.length > 0 ||
+    selectedCategories.length > 0;
 
-  // Esegui ricerca su Typesense al variare dei filtri
+  // Quando l'agente seleziona o modifica i filtri (Marchio, Gruppo, Famiglia, Categoria, Deposito),
+  // aggiorna le faccette; se ha selezionato un Marchio/Gruppo/Famiglia/Categoria, carica quei prodotti nel catalogo.
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -366,12 +367,33 @@ export default function CatalogBuilderClient({
     }
 
     let cancelled = false;
-    async function runSearch() {
+    async function syncFilters() {
+      // Se non c'è alcun filtro Marchio/Gruppo/Famiglia/Categoria selezionato, aggiorniamo solo le faccette
+      // senza sovrascrivere i prodotti che l'agente ha aggiunto a mano uno per uno!
+      if (!hasCategoryOrBrandFilter) {
+        const res = await searchAgentCatalogProducts({
+          catalogSource,
+          query: '',
+          warehouse,
+          includeZeroStock,
+          brands: [],
+          productGroups: [],
+          families: [],
+          categories: [],
+          sortBy,
+          limit: 1,
+        });
+        if (!cancelled && res.success) {
+          setFacets(res.facets);
+        }
+        return;
+      }
+
       setIsSearching(true);
       setSearchError('');
       const filters: CatalogSearchFilters = {
         catalogSource,
-        query: debouncedQuery,
+        query: '',
         warehouse,
         includeZeroStock,
         brands: selectedBrands,
@@ -387,31 +409,116 @@ export default function CatalogBuilderClient({
         setSearchError(res.error || 'Errore durante il caricamento dei prodotti.');
         return;
       }
-      setProducts(res.products);
-      setTotalFound(res.totalFound);
       setFacets(res.facets);
-      // Se l'agente NON sta usando la selezione manuale singola e NON sta cercando un codice specifico nella barra,
-      // seleziona automaticamente i risultati del filtro (es. quando filtra per Marchio o Famiglia)
-      if (!debouncedQuery.trim()) {
-        setSelectedIds(new Set(res.products.map(p => p.id)));
-      }
+      setCatalogItems(res.products);
     }
 
-    runSearch();
+    syncFilters();
     return () => {
       cancelled = true;
     };
   }, [
     catalogSource,
-    debouncedQuery,
     warehouse,
     includeZeroStock,
     selectedBrands,
     selectedProductGroups,
     selectedFamilies,
     selectedCategories,
-    sortBy,
+    hasCategoryOrBrandFilter,
   ]);
+
+  // Aggiunge un singolo prodotto al catalogo dalla tendina predittiva e svuota subito la barra
+  // così l'agente può digitare immediatamente il codice successivo (es. e45 -> clic -> il34 -> clic)
+  const handleAddSingleProductFromPredictive = (product: CatalogProductItem) => {
+    setCatalogItems(prev => {
+      // Se è già presente, non duplicarlo
+      if (prev.some(p => p.id === product.id || p.sku === product.sku)) {
+        return prev;
+      }
+      return [...prev, product];
+    });
+    setLastAddedSku(product.sku);
+    setQuery('');
+    setPredictiveResults([]);
+    setIsPredictiveOpen(false);
+    setActiveIndex(-1);
+    searchInputRef.current?.focus();
+  };
+
+  // Aggiunge TUTTI i risultati corrispondenti alla parola cercata nella barra predittiva
+  const handleAddAllFromSearchQuery = async () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setIsPredictiveOpen(false);
+    setIsSearching(true);
+    setSearchError('');
+    const res = await searchAgentCatalogProducts({
+      catalogSource,
+      query: trimmed,
+      warehouse,
+      includeZeroStock,
+      brands: selectedBrands,
+      productGroups: selectedProductGroups,
+      families: selectedFamilies,
+      categories: selectedCategories,
+      sortBy,
+    });
+    setIsSearching(false);
+    if (!res.success) {
+      setSearchError(res.error || 'Errore durante il caricamento dei prodotti.');
+      return;
+    }
+    setCatalogItems(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const toAdd = res.products.filter(p => !existingIds.has(p.id));
+      return [...prev, ...toAdd];
+    });
+    setQuery('');
+  };
+
+  // Gestione tasti frecce / Invio / Escape nella barra predittiva (come in PredictiveSearchBar.tsx)
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isPredictiveOpen) {
+      if (e.key === 'ArrowDown' && query.trim().length > 0 && predictiveResults.length > 0) {
+        setIsPredictiveOpen(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < predictiveResults.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < predictiveResults.length) {
+        handleAddSingleProductFromPredictive(predictiveResults[activeIndex]);
+      } else if (predictiveResults.length > 0) {
+        handleAddSingleProductFromPredictive(predictiveResults[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsPredictiveOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  // Rimuove una scheda dal catalogo con 1 clic
+  const handleRemoveProductFromCatalog = (productId: string) => {
+    setCatalogItems(prev => prev.filter(p => p.id !== productId));
+  };
+
+  // Svuota tutto il catalogo
+  const handleClearCatalog = () => {
+    setCatalogItems([]);
+    setSelectedBrands([]);
+    setSelectedProductGroups([]);
+    setSelectedFamilies([]);
+    setSelectedCategories([]);
+    setLastAddedSku(null);
+  };
 
   // Clienti filtrati in modo predittivo
   const filteredClients = useMemo(() => {
@@ -454,35 +561,22 @@ export default function CatalogBuilderClient({
   // Calcolo prezzo netto e sconto per singolo prodotto
   const calculateProductPricing = (product: CatalogProductItem) => {
     const listPrice = Number(product.listPrice || 0);
-    if (product.catalogSource === 'elmark') {
-      const dgKey = (product.discgroup || '').trim();
-      const hasCustomDg =
-        dgKey &&
-        elmarkDiscounts &&
-        typeof elmarkDiscounts[dgKey] === 'number' &&
-        elmarkDiscounts[dgKey] > 0;
-      const bDisc = hasCustomDg ? Number(elmarkDiscounts[dgKey]) : Number(baseDiscount || 0);
-      const eDisc = Number(extraDiscount || 0);
-      const afterBase = listPrice * (1 - bDisc / 100);
-      const netPrice = Number((afterBase * (1 - eDisc / 100)).toFixed(4));
-      const effectivePct =
-        listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
-      return { listPrice, netPrice, discountPct: Math.max(0, effectivePct) };
-    } else {
-      const bDisc = Number(baseDiscount || 0);
-      const eDisc = Number(extraDiscount || 0);
-      const afterBase = listPrice * (1 - bDisc / 100);
-      const netPrice = Number((afterBase * (1 - eDisc / 100)).toFixed(4));
-      const effectivePct =
-        listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
-      return { listPrice, netPrice, discountPct: Math.max(0, effectivePct) };
-    }
+    const bDisc = Number(baseDiscount || 0);
+    const eDisc = Number(extraDiscount || 0);
+    const afterBase = listPrice * (1 - bDisc / 100);
+    const netPrice = Number((afterBase * (1 - eDisc / 100)).toFixed(4));
+    const effectivePct =
+      listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
+    return { listPrice, netPrice, discountPct: Math.max(0, effectivePct) };
   };
 
-  // Funzione di ordinamento applicata anche ai prodotti selezionati manualmente
-  const sortProductList = (list: CatalogProductItem[], mode: CatalogSortMode): CatalogProductItem[] => {
-    const copy = [...list];
-    if (mode === 'TAXONOMY_ASC') {
+  // Prodotti del catalogo ordinati secondo la scelta "Ordina per"
+  const sortedCatalogProducts = useMemo(() => {
+    const copy = [...catalogItems];
+    if (sortBy === 'INSERTION_ORDER') {
+      return copy;
+    }
+    if (sortBy === 'TAXONOMY_ASC') {
       copy.sort((a, b) => {
         const gA = (a.productGroupLabel || a.productGroup || 'ZZZ').trim();
         const gB = (b.productGroupLabel || b.productGroup || 'ZZZ').trim();
@@ -501,15 +595,15 @@ export default function CatalogBuilderClient({
 
         return (a.sku || '').localeCompare(b.sku || '', 'it', { numeric: true });
       });
-    } else if (mode === 'STOCK_DESC') {
+    } else if (sortBy === 'STOCK_DESC') {
       copy.sort((a, b) => b.stockMain - a.stockMain || b.stockEk - a.stockEk);
-    } else if (mode === 'SKU_ASC') {
+    } else if (sortBy === 'SKU_ASC') {
       copy.sort((a, b) => (a.sku || '').localeCompare(b.sku || '', 'it', { numeric: true }));
-    } else if (mode === 'PRICE_ASC') {
+    } else if (sortBy === 'PRICE_ASC') {
       copy.sort((a, b) => a.listPrice - b.listPrice);
-    } else if (mode === 'PRICE_DESC') {
+    } else if (sortBy === 'PRICE_DESC') {
       copy.sort((a, b) => b.listPrice - a.listPrice);
-    } else if (mode === 'TITLE_ASC') {
+    } else if (sortBy === 'TITLE_ASC') {
       copy.sort((a, b) =>
         (a.originalName || a.title || '').localeCompare(b.originalName || b.title || '', 'it', {
           sensitivity: 'base',
@@ -517,98 +611,7 @@ export default function CatalogBuilderClient({
       );
     }
     return copy;
-  };
-
-  // Verifica se un singolo prodotto è attualmente selezionato
-  const isProductSelected = (productId: string): boolean => {
-    if (isManualSelectionMode) {
-      return manualSelectedMap.has(productId);
-    }
-    return selectedIds.has(productId);
-  };
-
-  // Lista finale dei prodotti che andranno nel PDF
-  const selectedProducts = useMemo(() => {
-    if (isManualSelectionMode) {
-      return sortProductList(Array.from(manualSelectedMap.values()), sortBy);
-    }
-    return products.filter(p => selectedIds.has(p.id));
-  }, [isManualSelectionMode, manualSelectedMap, products, selectedIds, sortBy]);
-
-  // Prodotti da mostrare nelle schede in anteprima sotto
-  const displayedProducts = useMemo(() => {
-    if (isManualSelectionMode && previewTab === 'SELECTED_ONLY') {
-      return selectedProducts;
-    }
-    return products;
-  }, [isManualSelectionMode, previewTab, selectedProducts, products]);
-
-  // Seleziona / deseleziona un singolo prodotto (dalla barra predittiva o cliccando una scheda)
-  const toggleSingleProduct = (product: CatalogProductItem) => {
-    setIsManualSelectionMode(true);
-    setManualSelectedMap(prev => {
-      const next = new Map(prev);
-      if (next.has(product.id)) {
-        next.delete(product.id);
-      } else {
-        next.set(product.id, product);
-      }
-      return next;
-    });
-  };
-
-  // Rimuovi un singolo prodotto dalla selezione manuale (es. dai chip)
-  const removeManualProduct = (productId: string) => {
-    setManualSelectedMap(prev => {
-      const next = new Map(prev);
-      next.delete(productId);
-      return next;
-    });
-  };
-
-  // Svuota completamente la selezione manuale
-  const clearManualSelection = () => {
-    setManualSelectedMap(new Map());
-    setIsManualSelectionMode(true);
-    setPreviewTab('FILTER_RESULTS');
-  };
-
-  const toggleAllVisible = () => {
-    if (isManualSelectionMode) {
-      const allVisibleAreSelected =
-        products.length > 0 && products.every(p => manualSelectedMap.has(p.id));
-      setManualSelectedMap(prev => {
-        const next = new Map(prev);
-        if (allVisibleAreSelected) {
-          products.forEach(p => next.delete(p.id));
-        } else {
-          products.forEach(p => next.set(p.id, p));
-        }
-        return next;
-      });
-      return;
-    }
-
-    if (selectedIds.size === products.length && products.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(products.map(p => p.id)));
-    }
-  };
-
-  const resetAllFilters = () => {
-    setCatalogSource('ZUCCHETTI');
-    setQuery('');
-    setDebouncedQuery('');
-    setWarehouse('ALL_WAREHOUSES');
-    setIncludeZeroStock(false);
-    setSelectedBrands([]);
-    setSelectedProductGroups([]);
-    setSelectedFamilies([]);
-    setSelectedCategories([]);
-    setSortBy('TAXONOMY_ASC');
-    setIsPredictiveOpen(false);
-  };
+  }, [catalogItems, sortBy]);
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
   const filterSummaryText = useMemo(() => {
@@ -645,32 +648,27 @@ export default function CatalogBuilderClient({
       );
       parts.push(`Categorie: ${labels.join(', ')}`);
     }
-    if (debouncedQuery.trim()) {
-      parts.push(`Ricerca: "${debouncedQuery.trim()}"`);
-    }
     return parts.join(' • ');
   }, [
-    catalogSource,
     warehouse,
     includeZeroStock,
     selectedBrands,
     selectedProductGroups,
     selectedFamilies,
     selectedCategories,
-    debouncedQuery,
     facets,
   ]);
 
   const handleDownloadPdf = async () => {
-    if (selectedProducts.length === 0) {
-      setPdfError('Seleziona almeno un prodotto per generare il catalogo PDF.');
+    if (sortedCatalogProducts.length === 0) {
+      setPdfError('Aggiungi almeno un prodotto al catalogo per generare il PDF.');
       return;
     }
     setIsGeneratingPdf(true);
     setPdfError('');
 
     try {
-      const itemsPayload = selectedProducts.map(p => {
+      const itemsPayload = sortedCatalogProducts.map(p => {
         const pricing = calculateProductPricing(p);
         const catParts = [p.productGroupLabel, p.familyLabel, p.categoryLabel].filter(Boolean);
         return {
@@ -735,14 +733,33 @@ export default function CatalogBuilderClient({
     }
   };
 
-  const hasActiveFilters =
-    query.trim() !== '' ||
-    warehouse !== 'ALL_WAREHOUSES' ||
-    includeZeroStock ||
-    selectedBrands.length > 0 ||
-    selectedProductGroups.length > 0 ||
-    selectedFamilies.length > 0 ||
-    selectedCategories.length > 0;
+  // Bollini giacenza identici a PredictiveSearchBar.tsx del sito
+  const renderPredictiveStockBadges = (product: CatalogProductItem) => {
+    return (
+      <div className="flex items-center gap-1 flex-wrap">
+        {product.stockMain > 0 && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-main/10 text-brand-main border border-brand-main/20">
+            2GG: {product.stockMain} {product.unit || 'PZ'}
+          </span>
+        )}
+        {product.stockEk > 0 && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">
+            7GG: {product.stockEk} {product.unit || 'PZ'}
+          </span>
+        )}
+        {product.stockMain <= 0 && product.stockEk <= 0 && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 border border-orange-200">
+            Esaurito
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const catalogIdsSet = useMemo(
+    () => new Set(catalogItems.map(p => p.id)),
+    [catalogItems]
+  );
 
   return (
     <div className="space-y-6">
@@ -759,9 +776,8 @@ export default function CatalogBuilderClient({
               </h1>
             </div>
             <p className="text-sm text-gray-600 mt-1">
-              Filtra il catalogo per <strong>Marchio</strong>, <strong>Deposito</strong>,{' '}
-              <strong>Tipo di Prodotto</strong> o con una <strong>Ricerca scritta da te</strong>,
-              personalizza prezzi e disponibilità e scarica il PDF pronto per il cliente.
+              Aggiungi prodotti <strong>uno alla volta per codice SKU</strong> con la barra predittiva
+              oppure carica un intero reparto usando i <strong>filtri per Marchio / Categoria</strong>.
             </p>
           </div>
 
@@ -785,13 +801,13 @@ export default function CatalogBuilderClient({
             <button
               type="button"
               onClick={handleDownloadPdf}
-              disabled={isGeneratingPdf || selectedProducts.length === 0}
+              disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
               className="px-5 py-2.5 text-sm font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isGeneratingPdf ? (
                 <>
                   <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  Generazione PDF ({selectedProducts.length} schede • {Math.ceil(selectedProducts.length / 6)} fogli)...
+                  Generazione PDF ({sortedCatalogProducts.length} schede • {Math.ceil(sortedCatalogProducts.length / 6)} fogli)...
                 </>
               ) : (
                 <>
@@ -803,7 +819,7 @@ export default function CatalogBuilderClient({
                       d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  Scarica Catalogo PDF ({selectedProducts.length} schede • {Math.ceil(selectedProducts.length / 6)} {Math.ceil(selectedProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
+                  Scarica Catalogo PDF ({sortedCatalogProducts.length} schede • {Math.ceil(sortedCatalogProducts.length / 6)} {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
                 </>
               )}
             </button>
@@ -820,7 +836,7 @@ export default function CatalogBuilderClient({
         )}
       </div>
 
-      {/* PANNELLO 1: FILTRI CATALOGO (MARCHIO, DEPOSITO, TIPO DI PRODOTTO, RICERCA LIBERA) */}
+      {/* PANNELLO 1: AGGIUNTA RAPIDA SINGOLO PRODOTTO (PREDITTIVA) + FILTRI REPARTO */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 pb-4">
           <div className="flex items-center gap-2">
@@ -828,305 +844,197 @@ export default function CatalogBuilderClient({
               1
             </span>
             <h2 className="text-base font-bold text-gray-900">
-              Filtra Prodotti del Catalogo
+              Aggiungi Prodotti al Catalogo
             </h2>
           </div>
+          {lastAddedSku && (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+              ✓ Aggiunto al catalogo: {lastAddedSku} — scrivi pure il prossimo codice!
+            </span>
+          )}
         </div>
 
-        {/* RIGA 1: Ricerca Predittiva (anche un prodotto alla volta: es. e45 -> il34) + Filtro Deposito */}
+        {/* RIGA 1: Barra Predittiva (identica a PredictiveSearchBar del sito) + Filtro Deposito */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div ref={predictiveContainerRef} className="lg:col-span-7 relative">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Ricerca Predittiva per Codice SKU o Descrizione
-              </label>
-              <span className="text-[11px] font-semibold text-emerald-700">
-                Scrivi un codice (es. E45), selezionalo, poi cerca il successivo (es. IL34)
-              </span>
-            </div>
-            <div className="relative">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+              Inserimento Rapido per Codice o Nome (Clicca sul prodotto per aggiungerlo)
+            </label>
+
+            <div className="relative flex w-full">
               <input
                 ref={searchInputRef}
                 type="text"
+                autoComplete="off"
                 value={query}
+                onChange={e => {
+                  setQuery(e.target.value);
+                  if (!isPredictiveOpen && e.target.value.trim().length > 0) {
+                    setIsPredictiveOpen(true);
+                  }
+                }}
                 onFocus={() => {
                   if (query.trim().length > 0) {
                     setIsPredictiveOpen(true);
                   }
                 }}
-                onChange={e => {
-                  const val = e.target.value;
-                  setQuery(val);
-                  if (val.trim().length > 0) {
-                    setIsPredictiveOpen(true);
-                    setIsManualSelectionMode(true);
-                  } else {
-                    setIsPredictiveOpen(false);
-                  }
-                }}
-                placeholder="Digita codice SKU o nome (es. 'E45', 'IL34', 'faretto 3000K') per selezionare i prodotti..."
-                className="w-full pl-10 pr-24 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-main focus:border-brand-main"
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Scrivi codice SKU o prodotto (es. E45, IL34, faretto)... clicca e passa al successivo"
+                className="w-full px-4 py-2.5 pr-20 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-main focus:border-transparent transition-all shadow-sm font-medium text-sm"
               />
-              <svg
-                className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                {isPredictiveLoading && (
-                  <span className="w-3.5 h-3.5 border-2 border-brand-main border-t-transparent rounded-full animate-spin" />
-                )}
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuery('');
-                      setIsPredictiveOpen(false);
-                      searchInputRef.current?.focus();
-                    }}
-                    className="px-2 py-0.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded"
-                  >
-                    Pulisci
-                  </button>
+
+              {query.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery('');
+                    setPredictiveResults([]);
+                    setIsPredictiveOpen(false);
+                    searchInputRef.current?.focus();
+                  }}
+                  aria-label="Cancella ricerca"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors p-1"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+
+              <div className="absolute right-0 top-0 bottom-0 w-11 bg-brand-main rounded-r-md flex items-center justify-center text-black pointer-events-none">
+                {isPredictiveLoading ? (
+                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
                 )}
               </div>
             </div>
 
-            {/* MENU A TENDINA PREDITTIVO */}
+            {/* TENDINA PREDITTIVA (Stile e Ordinamento identici a PredictiveSearchBar.tsx del sito) */}
             {isPredictiveOpen && query.trim().length > 0 && (
-              <div className="absolute z-50 mt-1.5 w-full bg-white border-2 border-gray-900 rounded-xl shadow-2xl overflow-hidden">
-                <div className="px-3.5 py-2 bg-gray-900 text-white flex items-center justify-between text-xs">
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-lg shadow-2xl z-[80] overflow-hidden text-gray-900">
+                {/* Context Header */}
+                <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-brand-main">
-                      Suggerimenti predittivi per &ldquo;{query.trim()}&rdquo;
+                    <span className="font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded bg-brand-main/15 text-brand-main border border-brand-main/30">
+                      Izzo Distribuzione
                     </span>
-                    <span className="text-gray-300">
-                      ({predictiveTotal} {predictiveTotal === 1 ? 'articolo trovato' : 'articoli trovati'})
+                    <span className="text-gray-500 font-medium">
+                      {isPredictiveLoading
+                        ? 'Ricerca in corso...'
+                        : `${predictiveFound} prodott${predictiveFound === 1 ? 'o' : 'i'} trovat${predictiveFound === 1 ? 'o' : 'i'} — clicca per aggiungere al catalogo`}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPredictiveOpen(false)}
-                    className="text-gray-300 hover:text-white font-bold px-1.5 py-0.5 rounded hover:bg-gray-800"
-                  >
-                    Chiudi ✕
-                  </button>
+                  {isPredictiveLoading && (
+                    <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-brand-main rounded-full animate-spin" />
+                  )}
                 </div>
 
-                <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                  {isPredictiveLoading && predictiveItems.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-brand-main border-t-transparent rounded-full animate-spin" />
-                      Ricerca predittiva in corso...
-                    </div>
-                  ) : predictiveItems.length === 0 ? (
-                    <div className="p-5 text-center text-xs text-gray-500">
-                      Nessun articolo trovato per <strong>&ldquo;{query.trim()}&rdquo;</strong> con i filtri di deposito attuali.
-                    </div>
-                  ) : (
-                    predictiveItems.map(item => {
-                      const selected = isProductSelected(item.id);
-                      const pricing = calculateProductPricing(item);
+                {/* Lista Prodotti Predittiva */}
+                <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-100">
+                  {predictiveResults.length > 0 ? (
+                    predictiveResults.map((product, index) => {
+                      const isHighlighted = index === activeIndex;
+                      const alreadyInCatalog = catalogIdsSet.has(product.id);
+                      const pricing = calculateProductPricing(product);
+
                       return (
                         <div
-                          key={item.id}
-                          onClick={() => toggleSingleProduct(item)}
-                          className={`px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                            selected
-                              ? 'bg-emerald-50/90 hover:bg-emerald-100/80'
-                              : 'hover:bg-amber-50/60'
+                          key={product.id || product.sku}
+                          onClick={() => handleAddSingleProductFromPredictive(product)}
+                          onMouseEnter={() => setActiveIndex(index)}
+                          className={`px-3.5 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${
+                            alreadyInCatalog
+                              ? 'bg-emerald-50/70 hover:bg-emerald-100/70'
+                              : isHighlighted
+                              ? 'bg-gray-100'
+                              : 'hover:bg-gray-50'
                           }`}
                         >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <button
-                              type="button"
-                              onClick={e => {
-                                e.stopPropagation();
-                                toggleSingleProduct(item);
-                              }}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-black shrink-0 transition-all ${
-                                selected
-                                  ? 'bg-emerald-600 text-white shadow-sm'
-                                  : 'bg-gray-900 text-brand-main hover:bg-black'
-                              }`}
-                            >
-                              {selected ? '✓ Selezionato' : '+ Seleziona'}
-                            </button>
-
-                            <div className="w-10 h-10 rounded border border-gray-200 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.sku}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <span className="text-[8px] font-bold text-gray-300">NO FOTO</span>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-mono text-xs font-black text-gray-900 bg-amber-100/80 px-1.5 py-0.5 rounded">
-                                  COD. {item.sku}
-                                </span>
-                                <span className="text-[10px] font-bold text-emerald-700 uppercase">
-                                  {item.brandLabel || item.brand}
-                                </span>
-                                {(item.productGroupLabel || item.familyLabel || item.categoryLabel) && (
-                                  <span className="text-[10px] text-gray-400 truncate">
-                                    {[item.productGroupLabel, item.familyLabel, item.categoryLabel]
-                                      .filter(Boolean)
-                                      .join(' › ')}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-xs font-bold text-gray-800 truncate mt-0.5">
-                                {item.originalName || item.title}
-                              </div>
-                            </div>
+                          <div className="w-12 h-12 flex-shrink-0 bg-white border border-gray-200 rounded p-1 flex items-center justify-center">
+                            {product.imageUrl ? (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.originalName || product.title}
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-2.5 shrink-0 text-right">
-                            <div className="flex flex-col items-end">
-                              {item.stockMain > 0 ? (
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded">
-                                  2GG: {item.stockMain}
-                                </span>
-                              ) : item.stockEk > 0 ? (
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-800 rounded">
-                                  7GG: {item.stockEk}
-                                </span>
-                              ) : (
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 rounded">
-                                  Giac. 0
+                          <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-gray-900 font-mono bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                {product.sku}
+                              </span>
+                              {product.brand && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                  {product.brand}
                                 </span>
                               )}
-                              <span className="text-xs font-black text-gray-900 mt-0.5">
-                                € {pricing.netPrice.toFixed(2).replace('.', ',')}
-                              </span>
+                              {renderPredictiveStockBadges(product)}
+                              {alreadyInCatalog && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white">
+                                  ✓ Già nel catalogo
+                                </span>
+                              )}
                             </div>
+                            <span className="text-sm font-medium text-gray-800 truncate">
+                              {product.originalName || product.title}
+                            </span>
+                            {(product.categoryLabel || product.familyLabel || product.productGroupLabel) && (
+                              <span className="text-[11px] text-gray-400 truncate">
+                                {[product.productGroupLabel, product.familyLabel, product.categoryLabel]
+                                  .filter(Boolean)
+                                  .join(' › ')}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end shrink-0 pl-2">
+                            {pricing.discountPct > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] text-gray-400 line-through">
+                                  € {pricing.listPrice.toFixed(2).replace('.', ',')}
+                                </span>
+                                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                                  -{pricing.discountPct}%
+                                </span>
+                              </div>
+                            )}
+                            <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
+                              € {pricing.netPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-[10px] font-bold text-brand-main">
+                              {alreadyInCatalog ? 'Aggiunto' : '+ Clicca per aggiungere'}
+                            </span>
                           </div>
                         </div>
                       );
                     })
-                  )}
+                  ) : !isPredictiveLoading ? (
+                    <div className="px-4 py-6 text-center text-sm text-gray-500">
+                      Nessun risultato trovato in <span className="font-bold text-gray-700">Izzo Distribuzione</span> per &ldquo;{query.trim()}&rdquo;
+                    </div>
+                  ) : null}
                 </div>
 
-                <div className="px-3.5 py-2 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <span className="text-gray-600 font-medium">
-                    Totale nel tuo catalogo:{' '}
-                    <strong className="text-emerald-700">
-                      {selectedProducts.length} {selectedProducts.length === 1 ? 'scheda selezionata' : 'schede selezionate'}
-                    </strong>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuery('');
-                        setIsPredictiveOpen(false);
-                        searchInputRef.current?.focus();
-                      }}
-                      className="px-2.5 py-1 text-xs font-bold bg-amber-100 hover:bg-amber-200 text-gray-900 rounded-md transition-colors"
-                    >
-                      🔍 Cerca prossimo codice SKU
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsPredictiveOpen(false)}
-                      className="px-2.5 py-1 text-xs font-bold bg-gray-900 text-white rounded-md hover:bg-gray-800"
-                    >
-                      Vedi schede sotto
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* BARRA CHIP DEI PRODOTTI SELEZIONATI UNO ALLA VOLTA */}
-            {isManualSelectionMode && (
-              <div className="mt-2.5 p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 flex flex-col gap-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 text-[11px] font-black bg-emerald-700 text-white rounded">
-                      {manualSelectedMap.size} {manualSelectedMap.size === 1 ? 'PRODOTTO SELEZIONATO' : 'PRODOTTI SELEZIONATI'}
+                {/* Footer CTA per aggiungere tutti i risultati della ricerca */}
+                {predictiveResults.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddAllFromSearchQuery}
+                    className="w-full px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-t border-gray-200 text-xs font-bold text-brand-main uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>
+                      + Aggiungi tutti i {predictiveFound} risultati per &ldquo;{query.trim()}&rdquo; al catalogo
                     </span>
-                    <span className="text-xs text-emerald-900 font-semibold">
-                      La tua selezione resta salvata mentre cerchi altri codici (es. E45, IL34...)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {manualSelectedMap.size > 0 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPreviewTab(prev =>
-                              prev === 'SELECTED_ONLY' ? 'FILTER_RESULTS' : 'SELECTED_ONLY'
-                            )
-                          }
-                          className="px-2.5 py-1 text-[11px] font-bold rounded bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 transition-colors"
-                        >
-                          {previewTab === 'SELECTED_ONLY'
-                            ? `Mostra risultati ricerca (${products.length})`
-                            : `Vedi solo schede selezionate (${manualSelectedMap.size})`}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={clearManualSelection}
-                          className="px-2 py-1 text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-                        >
-                          Svuota selezione
-                        </button>
-                      </>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsManualSelectionMode(false);
-                        setManualSelectedMap(new Map());
-                        setPreviewTab('FILTER_RESULTS');
-                        setSelectedIds(new Set(products.map(p => p.id)));
-                      }}
-                      className="px-2 py-1 text-[11px] font-semibold text-gray-600 hover:text-gray-900 underline"
-                    >
-                      Torna a selezione automatica filtri
-                    </button>
-                  </div>
-                </div>
-
-                {manualSelectedMap.size > 0 && (
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1">
-                    {Array.from(manualSelectedMap.values()).map(item => (
-                      <span
-                        key={item.id}
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-white border border-emerald-300 text-gray-900 shadow-2xs"
-                        title={item.originalName || item.title}
-                      >
-                        <span className="font-mono font-black text-emerald-800">{item.sku}</span>
-                        <span className="text-gray-600 truncate max-w-[140px]">
-                          {item.originalName || item.title}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeManualProduct(item.id)}
-                          className="text-gray-400 hover:text-red-600 font-black ml-0.5"
-                          title="Rimuovi dal catalogo"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
-                  </div>
+                  </button>
                 )}
               </div>
             )}
@@ -1167,42 +1075,47 @@ export default function CatalogBuilderClient({
           </div>
         </div>
 
-        {/* RIGA 2: Marchio + Tipo di Prodotto (Gruppo Merceologico, Famiglia, Categoria) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MultiSelectFacetDropdown
-            label="Marchio (Brand)"
-            placeholder="Tutti i Marchi"
-            options={facets.brands}
-            selectedValues={selectedBrands}
-            onChange={setSelectedBrands}
-          />
+        {/* RIGA 2: Oppure carica intere linee per Marchio / Gruppo / Famiglia / Categoria */}
+        <div className="pt-2 border-t border-gray-100">
+          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">
+            Oppure carica intere linee filtrando per Marchio o Tipo di Prodotto:
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MultiSelectFacetDropdown
+              label="Marchio (Brand)"
+              placeholder="Tutti i Marchi"
+              options={facets.brands}
+              selectedValues={selectedBrands}
+              onChange={setSelectedBrands}
+            />
 
-          <MultiSelectFacetDropdown
-            label="Tipo Prodotto — Gruppo (L1)"
-            placeholder="Tutti i Gruppi Merceologici"
-            options={facets.productGroups}
-            selectedValues={selectedProductGroups}
-            onChange={setSelectedProductGroups}
-          />
+            <MultiSelectFacetDropdown
+              label="Tipo Prodotto — Gruppo (L1)"
+              placeholder="Tutti i Gruppi Merceologici"
+              options={facets.productGroups}
+              selectedValues={selectedProductGroups}
+              onChange={setSelectedProductGroups}
+            />
 
-          <MultiSelectFacetDropdown
-            label="Tipo Prodotto — Famiglia (L2)"
-            placeholder="Tutte le Famiglie"
-            options={facets.families}
-            selectedValues={selectedFamilies}
-            onChange={setSelectedFamilies}
-          />
+            <MultiSelectFacetDropdown
+              label="Tipo Prodotto — Famiglia (L2)"
+              placeholder="Tutte le Famiglie"
+              options={facets.families}
+              selectedValues={selectedFamilies}
+              onChange={setSelectedFamilies}
+            />
 
-          <MultiSelectFacetDropdown
-            label="Tipo Prodotto — Categoria (L3)"
-            placeholder="Tutte le Categorie"
-            options={facets.categories}
-            selectedValues={selectedCategories}
-            onChange={setSelectedCategories}
-          />
+            <MultiSelectFacetDropdown
+              label="Tipo Prodotto — Categoria (L3)"
+              placeholder="Tutte le Categorie"
+              options={facets.categories}
+              selectedValues={selectedCategories}
+              onChange={setSelectedCategories}
+            />
+          </div>
         </div>
 
-        {/* RIGA 3: Ordinamento e Reset Filtri */}
+        {/* RIGA 3: Ordinamento e Svuota Catalogo */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-gray-100">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -1213,6 +1126,7 @@ export default function CatalogBuilderClient({
                 className="px-2.5 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white"
               >
                 <option value="TAXONOMY_ASC">Gruppo Merceologico / Famiglia / Categoria</option>
+                <option value="INSERTION_ORDER">Ordine di inserimento (Come scelti)</option>
                 <option value="STOCK_DESC">Giacenza Maggiore (Prima 2GG)</option>
                 <option value="SKU_ASC">Codice Articolo (A-Z)</option>
                 <option value="PRICE_ASC">Prezzo Crescente</option>
@@ -1222,13 +1136,13 @@ export default function CatalogBuilderClient({
             </div>
           </div>
 
-          {hasActiveFilters && (
+          {catalogItems.length > 0 && (
             <button
               type="button"
-              onClick={resetAllFilters}
+              onClick={handleClearCatalog}
               className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
             >
-              ✕ Azzera tutti i filtri
+              ✕ Svuota catalogo ({catalogItems.length} schede)
             </button>
           )}
         </div>
@@ -1478,84 +1392,37 @@ export default function CatalogBuilderClient({
         </div>
       )}
 
-      {/* PANNELLO 3: ANTEPRIMA INTERATTIVA DEL CATALOGO E SELEZIONE ARTICOLI */}
+      {/* PANNELLO 3: ANTEPRIMA DIRETTA DEI FOGLI A4 DEL CATALOGO (6 SCHEDE PER FOGLIO) */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Toolbar Risultati */}
-        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        {/* Toolbar Catalogo */}
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={
-                  products.length > 0 &&
-                  (isManualSelectionMode
-                    ? products.every(p => manualSelectedMap.has(p.id))
-                    : selectedIds.size === products.length)
-                }
-                onChange={toggleAllVisible}
-                className="w-4 h-4 rounded border-gray-300 text-brand-main focus:ring-brand-main"
-              />
-              <span>
-                {isManualSelectionMode
-                  ? `Seleziona tutti i risultati visibili (${products.length})`
-                  : `Seleziona tutti (${selectedIds.size} di ${products.length} caricati)`}
-              </span>
-            </label>
-
-            <span className="text-xs text-gray-400">|</span>
-
-            {!isManualSelectionMode ? (
-              <button
-                type="button"
-                onClick={clearManualSelection}
-                className="px-2.5 py-1 text-xs font-bold rounded-md bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition-colors"
-              >
-                + Seleziona un prodotto alla volta (Azzera e scegli tu)
-              </button>
-            ) : (
-              <div className="inline-flex rounded-lg border border-gray-300 bg-white p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab('FILTER_RESULTS')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
-                    previewTab === 'FILTER_RESULTS'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Risultati Ricerca ({products.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab('SELECTED_ONLY')}
-                  className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
-                    previewTab === 'SELECTED_ONLY'
-                      ? 'bg-emerald-700 text-white'
-                      : 'text-emerald-800 hover:bg-emerald-50'
-                  }`}
-                >
-                  Schede Selezionate ({selectedProducts.length})
-                </button>
-              </div>
-            )}
-
-            <span className="text-xs text-gray-400">|</span>
-
-            <span className="text-xs text-gray-600">
-              Corrispondenti ai filtri:{' '}
-              <strong className="text-gray-900">{totalFound.toLocaleString('it-IT')}</strong> articoli
+            <span className="text-sm font-black text-gray-900">
+              Schede nel tuo catalogo: {sortedCatalogProducts.length}
             </span>
+            {sortedCatalogProducts.length > 0 && (
+              <>
+                <span className="text-xs text-gray-400">|</span>
+                <button
+                  type="button"
+                  onClick={handleClearCatalog}
+                  className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline"
+                >
+                  Svuota tutto
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-900 text-white">
-              Nel PDF: {selectedProducts.length} schede • {Math.ceil(selectedProducts.length / 6)}{' '}
-              {Math.ceil(selectedProducts.length / 6) === 1 ? 'foglio A4 (2×3)' : 'fogli A4 (2×3)'}
+              Formato Stampa: 6 Schede per Foglio A4 (2×3) • {Math.ceil(sortedCatalogProducts.length / 6)}{' '}
+              {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'}
             </span>
           </div>
         </div>
 
-        {/* Barra riepilogo filtri attivi */}
+        {/* Barra riepilogo */}
         <div className="px-4 py-2.5 bg-amber-50/50 border-b border-gray-100 text-xs text-gray-700 flex flex-wrap items-center justify-between gap-2">
           <div className="truncate">
             <span className="font-bold text-gray-900"> Sintesi Catalogo: </span>
@@ -1568,47 +1435,37 @@ export default function CatalogBuilderClient({
           )}
         </div>
 
-        {/* Stato di caricamento / errore / lista prodotti a schede (6 per foglio) */}
+        {/* Stato di caricamento / vuoto / Fogli A4 (6 per foglio) */}
         {isSearching ? (
           <div className="p-16 text-center space-y-3">
             <div className="w-10 h-10 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-sm font-semibold text-gray-600">
-              Ricerca prodotti nel catalogo in corso...
+              Caricamento schede prodotto nel catalogo...
             </p>
           </div>
         ) : searchError ? (
           <div className="p-12 text-center text-red-600 font-semibold text-sm">{searchError}</div>
-        ) : displayedProducts.length === 0 ? (
+        ) : sortedCatalogProducts.length === 0 ? (
           <div className="p-16 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl font-black">
+              +
+            </div>
             <p className="text-base font-bold text-gray-800">
-              {isManualSelectionMode && previewTab === 'SELECTED_ONLY'
-                ? 'Nessun prodotto ancora selezionato manualmente'
-                : 'Nessun prodotto trovato con i filtri selezionati'}
+              Il tuo catalogo è vuoto — inizia ad aggiungere i prodotti
             </p>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              {isManualSelectionMode && previewTab === 'SELECTED_ONLY'
-                ? 'Usa la barra di ricerca predittiva sopra (es. scrivi E45, poi IL34) oppure passa a "Risultati Ricerca" per cliccare sui prodotti da aggiungere.'
-                : 'Prova ad allargare la ricerca scritta, cambiare il deposito oppure deselezionare uno dei filtri di marchio o categoria.'}
+            <p className="text-xs text-gray-500 max-w-lg mx-auto leading-relaxed">
+              Scrivi un codice nella <strong>barra predittiva qui sopra</strong> (es.{' '}
+              <code className="px-1.5 py-0.5 bg-gray-100 rounded font-bold text-gray-800">E45</code>
+              , clicca sul prodotto, poi scrivi{' '}
+              <code className="px-1.5 py-0.5 bg-gray-100 rounded font-bold text-gray-800">IL34</code>{' '}
+              e clicca sul successivo), oppure seleziona un <strong>Marchio / Gruppo / Famiglia / Categoria</strong> per caricare un intero reparto.
             </p>
-            <button
-              type="button"
-              onClick={
-                isManualSelectionMode && previewTab === 'SELECTED_ONLY'
-                  ? () => setPreviewTab('FILTER_RESULTS')
-                  : resetAllFilters
-              }
-              className="mt-2 px-4 py-2 text-xs font-bold bg-gray-900 text-white rounded-lg hover:bg-gray-800"
-            >
-              {isManualSelectionMode && previewTab === 'SELECTED_ONLY'
-                ? 'Mostra Risultati Ricerca'
-                : 'Ripristina Filtri Predefiniti'}
-            </button>
           </div>
         ) : (
           <div className="p-5 space-y-8 bg-gray-100/70">
-            {Array.from({ length: Math.ceil(displayedProducts.length / 6) }).map((_, sheetIdx) => {
-              const sheetProducts = displayedProducts.slice(sheetIdx * 6, (sheetIdx + 1) * 6);
-              const totalSheets = Math.ceil(displayedProducts.length / 6);
+            {Array.from({ length: Math.ceil(sortedCatalogProducts.length / 6) }).map((_, sheetIdx) => {
+              const sheetProducts = sortedCatalogProducts.slice(sheetIdx * 6, (sheetIdx + 1) * 6);
+              const totalSheets = Math.ceil(sortedCatalogProducts.length / 6);
 
               return (
                 <div
@@ -1633,52 +1490,31 @@ export default function CatalogBuilderClient({
                   {/* Griglia 2 colonne x 3 righe = 6 Schede Prodotto */}
                   <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
                     {sheetProducts.map(product => {
-                      const isSelected = isProductSelected(product.id);
                       const pricing = calculateProductPricing(product);
-
-                      const handleCardToggle = () => {
-                        if (isManualSelectionMode) {
-                          toggleSingleProduct(product);
-                        } else {
-                          setSelectedIds(prev => {
-                            const next = new Set(prev);
-                            if (next.has(product.id)) {
-                              next.delete(product.id);
-                            } else {
-                              next.add(product.id);
-                            }
-                            return next;
-                          });
-                        }
-                      };
 
                       return (
                         <div
                           key={product.id}
-                          onClick={handleCardToggle}
-                          className={`rounded-xl border-2 overflow-hidden transition-all cursor-pointer flex flex-col justify-between ${
-                            isSelected
-                              ? 'border-gray-900 bg-white shadow-sm'
-                              : 'border-gray-200 bg-gray-50/60 opacity-60 hover:opacity-95'
-                          }`}
+                          className="rounded-xl border-2 border-gray-900 bg-white shadow-sm overflow-hidden flex flex-col justify-between"
                         >
-                          {/* 1. Fascia Superiore Scheda: Checkbox + SKU + Marchio */}
+                          {/* 1. Fascia Superiore Scheda: SKU + Marchio + Tasto Rimuovi */}
                           <div className="px-3.5 py-2 bg-gray-900 text-white border-b-2 border-emerald-500 flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onClick={e => e.stopPropagation()}
-                                onChange={handleCardToggle}
-                                className="w-4 h-4 rounded border-gray-400 text-brand-main focus:ring-brand-main cursor-pointer"
-                              />
-                              <span className="font-mono text-xs font-black tracking-wide text-white truncate">
-                                COD. {product.sku}
-                              </span>
-                            </div>
-                            <span className="px-2 py-0.5 text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase shrink-0">
-                              {product.brandLabel || product.brand || 'IZZO'}
+                            <span className="font-mono text-xs font-black tracking-wide text-white truncate">
+                              COD. {product.sku}
                             </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="px-2 py-0.5 text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase">
+                                {product.brandLabel || product.brand || 'IZZO'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProductFromCatalog(product.id)}
+                                className="px-2 py-0.5 text-[10px] font-bold bg-red-600/90 hover:bg-red-500 text-white rounded transition-colors"
+                                title="Rimuovi scheda dal catalogo"
+                              >
+                                ✕ Rimuovi
+                              </button>
+                            </div>
                           </div>
 
                           {/* 2. Corpo Superiore: Foto Grande (96x96) + Categoria, Titolo e Bollino Giacenza */}
@@ -1729,24 +1565,21 @@ export default function CatalogBuilderClient({
                                     >
                                       2GG: {product.stockMain} {product.unit}
                                     </span>
-                                    {product.catalogSource !== 'elmark' && (
-                                      <span
-                                        className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
-                                          product.stockEk > 0
-                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                            : 'bg-gray-100 text-gray-500 border-gray-200'
-                                        }`}
-                                      >
-                                        7GG: {product.stockEk} {product.unit}
-                                      </span>
-                                    )}
+                                    <span
+                                      className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
+                                        product.stockEk > 0
+                                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                          : 'bg-gray-100 text-gray-500 border-gray-200'
+                                      }`}
+                                    >
+                                      7GG: {product.stockEk} {product.unit}
+                                    </span>
                                   </div>
-                                ) : product.stockMain > 0 && product.catalogSource !== 'elmark' ? (
+                                ) : product.stockMain > 0 ? (
                                   <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
                                     ● Pronta Consegna (Dep. 2GG)
                                   </span>
-                                ) : product.stockEk > 0 ||
-                                  (product.catalogSource === 'elmark' && product.stockTotal > 0) ? (
+                                ) : product.stockEk > 0 ? (
                                   <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded">
                                     ● Disponibile (Dep. 7GG)
                                   </span>
