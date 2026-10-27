@@ -187,12 +187,8 @@ function escapeTypesenseFilterValue(val: string): string {
 function buildTypesenseFilterString(filters: CatalogSearchFilters): string {
   const clauses: string[] = [];
 
-  // 1. Sorgente catalogo
-  if (filters.catalogSource === 'ZUCCHETTI') {
-    clauses.push('catalog_source:=zucchetti');
-  } else if (filters.catalogSource === 'ELMARK') {
-    clauses.push('brand:=ELMARK');
-  }
+  // 1. Sorgente catalogo: esclusivamente negozio Izzo Distribuzione (catalog_source:=zucchetti)
+  clauses.push('catalog_source:=zucchetti');
 
   // 2. Filtro Deposito / Giacenza (3 modalità + opzione includi giacenza 0)
   if (!filters.includeZeroStock) {
@@ -321,13 +317,8 @@ export async function searchAgentCatalogProducts(
 
     const filterBy = buildTypesenseFilterString(filters);
 
-    // Costruisce anche una query facet di contesto (filtrata per sorgente e deposito) così le tendine mostrano tutte le opzioni disponibili
-    const baseFacetClauses: string[] = [];
-    if (filters.catalogSource === 'ZUCCHETTI') {
-      baseFacetClauses.push('catalog_source:=zucchetti');
-    } else if (filters.catalogSource === 'ELMARK') {
-      baseFacetClauses.push('brand:=ELMARK');
-    }
+    // Costruisce anche una query facet di contesto (filtrata per negozio Izzo e deposito) così le tendine mostrano tutte le opzioni disponibili
+    const baseFacetClauses: string[] = ['catalog_source:=zucchetti'];
     if (!filters.includeZeroStock) {
       if (filters.warehouse === 'MAIN_2GG') {
         baseFacetClauses.push('stock_main:>0');

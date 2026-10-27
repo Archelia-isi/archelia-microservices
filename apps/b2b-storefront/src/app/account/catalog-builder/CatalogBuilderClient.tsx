@@ -469,10 +469,7 @@ export default function CatalogBuilderClient({
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
   const filterSummaryText = useMemo(() => {
-    const parts: string[] = [];
-    if (catalogSource === 'ZUCCHETTI') parts.push('Listino Principale Izzo');
-    else if (catalogSource === 'ELMARK') parts.push('Catalogo Elmark');
-    else parts.push('Tutti i Cataloghi');
+    const parts: string[] = ['Izzo Distribuzione'];
 
     const whLabel = WAREHOUSE_OPTIONS.find(w => w.value === warehouse)?.label;
     if (whLabel) {
@@ -690,36 +687,6 @@ export default function CatalogBuilderClient({
             <h2 className="text-base font-bold text-gray-900">
               Filtra Prodotti del Catalogo
             </h2>
-          </div>
-
-          {/* Switch Sorgente Catalogo */}
-          <div className="inline-flex rounded-lg bg-gray-100 p-1">
-            {(
-              [
-                { id: 'ZUCCHETTI', label: 'Catalogo Izzo (Multi-brand)' },
-                { id: 'ELMARK', label: 'Catalogo Elmark' },
-                { id: 'ALL', label: 'Tutti i Cataloghi' },
-              ] as { id: CatalogSourceMode; label: string }[]
-            ).map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setCatalogSource(tab.id);
-                  setSelectedBrands([]);
-                  setSelectedProductGroups([]);
-                  setSelectedFamilies([]);
-                  setSelectedCategories([]);
-                }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                  catalogSource === tab.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
           </div>
         </div>
 
