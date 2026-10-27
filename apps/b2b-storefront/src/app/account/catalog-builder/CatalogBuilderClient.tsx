@@ -262,7 +262,7 @@ export default function CatalogBuilderClient({
   const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<CatalogSortMode>('STOCK_DESC');
-  const [limit, setLimit] = useState<number>(100);
+  const [limit, setLimit] = useState<number>(60);
 
   // --- STATO RISULTATI & SELEZIONE ---
   const [products, setProducts] = useState<CatalogProductItem[]>(initialSearch.products || []);
@@ -293,7 +293,6 @@ export default function CatalogBuilderClient({
   const [elmarkDiscounts, setElmarkDiscounts] = useState<Record<string, number>>({});
 
   // Vista UI e generazione PDF
-  const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
   const [showConfigPanel, setShowConfigPanel] = useState<boolean>(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState('');
@@ -471,7 +470,7 @@ export default function CatalogBuilderClient({
     setSelectedFamilies([]);
     setSelectedCategories([]);
     setSortBy('STOCK_DESC');
-    setLimit(100);
+    setLimit(60);
   };
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
@@ -652,7 +651,7 @@ export default function CatalogBuilderClient({
               {isGeneratingPdf ? (
                 <>
                   <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  Generazione PDF ({selectedProducts.length} art.)...
+                  Generazione PDF ({selectedProducts.length} schede • {Math.ceil(selectedProducts.length / 6)} fogli)...
                 </>
               ) : (
                 <>
@@ -664,7 +663,7 @@ export default function CatalogBuilderClient({
                       d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  Scarica Catalogo PDF ({selectedProducts.length})
+                  Scarica Catalogo PDF ({selectedProducts.length} schede • {Math.ceil(selectedProducts.length / 6)} {Math.ceil(selectedProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
                 </>
               )}
             </button>
@@ -835,17 +834,18 @@ export default function CatalogBuilderClient({
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-600">Max articoli in catalogo:</label>
+              <label className="text-xs font-bold text-gray-600">Max schede in catalogo (6 per foglio):</label>
               <select
                 value={limit}
                 onChange={e => setLimit(Number(e.target.value))}
                 className="px-2.5 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white"
               >
-                <option value={50}>50 articoli</option>
-                <option value={100}>100 articoli</option>
-                <option value={200}>200 articoli</option>
-                <option value={300}>300 articoli</option>
-                <option value={500}>500 articoli</option>
+                <option value={18}>18 schede (3 fogli)</option>
+                <option value={30}>30 schede (5 fogli)</option>
+                <option value={60}>60 schede (10 fogli)</option>
+                <option value={120}>120 schede (20 fogli)</option>
+                <option value={180}>180 schede (30 fogli)</option>
+                <option value={300}>300 schede (50 fogli)</option>
               </select>
             </div>
           </div>
@@ -1132,30 +1132,10 @@ export default function CatalogBuilderClient({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode('GRID')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
-                  viewMode === 'GRID'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Vista Schede
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('TABLE')}
-                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors ${
-                  viewMode === 'TABLE'
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Vista Tabella
-              </button>
-            </div>
+            <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gray-900 text-white">
+              Formato Stampa: 6 Schede per Foglio A4 (2×3) • {Math.ceil(selectedProducts.length / 6)}{' '}
+              {Math.ceil(selectedProducts.length / 6) === 1 ? 'foglio' : 'fogli'}
+            </span>
           </div>
         </div>
 
@@ -1172,7 +1152,7 @@ export default function CatalogBuilderClient({
           )}
         </div>
 
-        {/* Stato di caricamento / errore / lista prodotti */}
+        {/* Stato di caricamento / errore / lista prodotti a schede (6 per foglio) */}
         {isSearching ? (
           <div className="p-16 text-center space-y-3">
             <div className="w-10 h-10 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
@@ -1199,262 +1179,228 @@ export default function CatalogBuilderClient({
               Ripristina Filtri Predefiniti
             </button>
           </div>
-        ) : viewMode === 'GRID' ? (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {products.map(product => {
-              const isSelected = selectedIds.has(product.id);
-              const pricing = calculateProductPricing(product);
+        ) : (
+          <div className="p-5 space-y-8 bg-gray-100/70">
+            {Array.from({ length: Math.ceil(products.length / 6) }).map((_, sheetIdx) => {
+              const sheetProducts = products.slice(sheetIdx * 6, (sheetIdx + 1) * 6);
+              const totalSheets = Math.ceil(products.length / 6);
 
               return (
                 <div
-                  key={product.id}
-                  onClick={() => toggleProductSelection(product.id)}
-                  className={`group relative rounded-xl border p-4 transition-all cursor-pointer flex gap-4 ${
-                    isSelected
-                      ? 'border-gray-900 bg-white shadow-sm ring-1 ring-gray-900/10'
-                      : 'border-gray-200 bg-gray-50/50 opacity-65 hover:opacity-100'
-                  }`}
+                  key={sheetIdx}
+                  className="bg-white rounded-2xl border border-gray-300 shadow-sm overflow-hidden"
                 >
-                  {/* Checkbox selezione */}
-                  <div className="pt-1" onClick={e => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleProductSelection(product.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-brand-main focus:ring-brand-main cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Immagine Prodotto */}
-                  <div className="w-20 h-20 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden shrink-0">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="w-full h-full object-contain p-1"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="text-[10px] font-bold text-gray-300 text-center px-1">
-                        NO FOTO
+                  {/* Intestazione Foglio A4 (6 Schede per foglio) */}
+                  <div className="px-5 py-3 bg-gray-900 text-white border-b-2 border-brand-main flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-0.5 text-xs font-black bg-brand-main text-black rounded">
+                        FOGLIO {sheetIdx + 1} / {totalSheets}
                       </span>
-                    )}
-                  </div>
-
-                  {/* Dettagli Prodotto */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                      <span className="px-2 py-0.5 text-[11px] font-black bg-gray-900 text-white rounded font-mono">
-                        {product.sku}
+                      <span className="text-xs font-bold text-gray-300">
+                        Schede {sheetIdx * 6 + 1}–{sheetIdx * 6 + sheetProducts.length} (Griglia 2×3 — 6 schede per foglio)
                       </span>
-                      {product.brandLabel && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 rounded">
-                          {product.brandLabel}
-                        </span>
-                      )}
-                      {product.categoryLabel && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 rounded truncate max-w-[180px]">
-                          {product.categoryLabel}
-                        </span>
-                      )}
                     </div>
+                    <span className="text-[11px] text-gray-400 hidden sm:inline">
+                      {catalogTitle || 'Catalogo Prodotti B2B'}
+                    </span>
+                  </div>
 
-                    <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug">
-                      {product.title || product.originalName}
-                    </h3>
+                  {/* Griglia 2 colonne x 3 righe = 6 Schede Prodotto */}
+                  <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {sheetProducts.map(product => {
+                      const isSelected = selectedIds.has(product.id);
+                      const pricing = calculateProductPricing(product);
 
-                    {(product.technicalDesc || product.description) && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mt-1">
-                        {product.technicalDesc || product.description}
-                      </p>
-                    )}
-
-                    {/* Riga Giacenze + Prezzo */}
-                    <div className="mt-3 pt-2.5 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
-                      {/* Info Deposito */}
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {stockMode === 'HIDE_STOCK' ? (
-                          <span className="text-[10px] text-gray-400 italic">
-                            Giacenza nascosta nel PDF (2GG: {product.stockMain} / 7GG:{' '}
-                            {product.stockEk})
-                          </span>
-                        ) : stockMode === 'EXACT_QTY' ? (
-                          <>
-                            <span
-                              className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                                product.stockMain > 0
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                  : 'bg-gray-100 text-gray-500'
-                              }`}
-                            >
-                              Dep. 2GG: {product.stockMain} {product.unit}
-                            </span>
-                            {product.catalogSource !== 'elmark' && (
-                              <span
-                                className={`px-2 py-0.5 text-[10px] font-bold rounded ${
-                                  product.stockEk > 0
-                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                    : 'bg-gray-100 text-gray-500'
-                                }`}
-                              >
-                                Dep. 7GG: {product.stockEk} {product.unit}
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => toggleProductSelection(product.id)}
+                          className={`rounded-xl border-2 overflow-hidden transition-all cursor-pointer flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-gray-900 bg-white shadow-sm'
+                              : 'border-gray-200 bg-gray-50/60 opacity-60 hover:opacity-95'
+                          }`}
+                        >
+                          {/* 1. Fascia Superiore Scheda: Checkbox + SKU + Marchio */}
+                          <div className="px-3.5 py-2 bg-gray-900 text-white border-b-2 border-emerald-500 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onClick={e => e.stopPropagation()}
+                                onChange={() => toggleProductSelection(product.id)}
+                                className="w-4 h-4 rounded border-gray-400 text-brand-main focus:ring-brand-main cursor-pointer"
+                              />
+                              <span className="font-mono text-xs font-black tracking-wide text-white truncate">
+                                COD. {product.sku}
                               </span>
-                            )}
-                          </>
-                        ) : product.stockMain > 0 && product.catalogSource !== 'elmark' ? (
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
-                            ● Pronta Consegna 2GG ({product.stockMain})
-                          </span>
-                        ) : product.stockEk > 0 ||
-                          (product.catalogSource === 'elmark' && product.stockTotal > 0) ? (
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                            ● Disponibile 7GG ({product.stockEk || product.stockTotal})
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 rounded">
-                            Su Ordinazione
-                          </span>
-                        )}
-                      </div>
+                            </div>
+                            <span className="px-2 py-0.5 text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase shrink-0">
+                              {product.brandLabel || product.brand || 'IZZO'}
+                            </span>
+                          </div>
 
-                      {/* Info Prezzo secondo PriceMode */}
-                      <div className="text-right">
-                        {priceMode === 'NO_PRICE' ? (
-                          <span className="text-[11px] font-semibold text-gray-400 italic">
-                            Senza Prezzo
-                          </span>
-                        ) : priceMode === 'LIST_ONLY' ? (
-                          <div>
-                            <span className="text-[10px] text-gray-400 mr-1">Listino:</span>
-                            <span className="text-sm font-black text-gray-900">
-                              € {pricing.listPrice.toFixed(2)}
-                            </span>
+                          {/* 2. Corpo Superiore: Foto Grande (96x96) + Categoria, Titolo e Bollino Giacenza */}
+                          <div className="p-3.5 flex gap-3.5 items-start">
+                            <div className="w-24 h-24 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden shrink-0 p-1.5">
+                              {product.imageUrl ? (
+                                <img
+                                  src={product.imageUrl}
+                                  alt={product.title}
+                                  className="w-full h-full object-contain"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <span className="text-[10px] font-bold text-gray-300 text-center">
+                                  IMMAGINE NON DISP.
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[96px]">
+                              <div>
+                                <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider truncate">
+                                  {product.categoryLabel ||
+                                    product.familyLabel ||
+                                    product.productGroupLabel ||
+                                    'Articolo a Catalogo'}
+                                </div>
+                                <h3 className="text-sm font-extrabold text-gray-900 line-clamp-3 leading-snug mt-0.5">
+                                  {product.title || product.originalName}
+                                </h3>
+                              </div>
+
+                              {/* Bollino Disponibilità */}
+                              <div className="mt-2">
+                                {stockMode === 'HIDE_STOCK' ? (
+                                  <span className="inline-block px-2 py-0.5 text-[10px] text-gray-400 bg-gray-100 rounded italic">
+                                    Giacenza nascosta nel PDF (2GG: {product.stockMain} | 7GG:{' '}
+                                    {product.stockEk})
+                                  </span>
+                                ) : stockMode === 'EXACT_QTY' ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span
+                                      className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
+                                        product.stockMain > 0
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          : 'bg-gray-100 text-gray-500 border-gray-200'
+                                      }`}
+                                    >
+                                      2GG: {product.stockMain} {product.unit}
+                                    </span>
+                                    {product.catalogSource !== 'elmark' && (
+                                      <span
+                                        className={`px-2 py-0.5 text-[10px] font-bold rounded border ${
+                                          product.stockEk > 0
+                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                            : 'bg-gray-100 text-gray-500 border-gray-200'
+                                        }`}
+                                      >
+                                        7GG: {product.stockEk} {product.unit}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : product.stockMain > 0 && product.catalogSource !== 'elmark' ? (
+                                  <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
+                                    ● Pronta Consegna (Dep. 2GG)
+                                  </span>
+                                ) : product.stockEk > 0 ||
+                                  (product.catalogSource === 'elmark' && product.stockTotal > 0) ? (
+                                  <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded">
+                                    ● Disponibile (Dep. 7GG)
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 rounded">
+                                    Su Ordinazione
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        ) : priceMode === 'NET_ONLY' ? (
-                          <div>
-                            <span className="text-[10px] text-gray-400 mr-1">Netto:</span>
-                            <span className="text-sm font-black text-emerald-700">
-                              € {pricing.netPrice.toFixed(2)}
-                            </span>
+
+                          {/* 3. Fascia Centrale: Box Specifiche Tecniche */}
+                          <div className="mx-3.5 mb-2.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
+                            <div className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider mb-0.5">
+                              Specifiche e Descrizione Tecnica
+                            </div>
+                            <p className="text-[11px] text-slate-700 line-clamp-2 leading-relaxed">
+                              {(product.technicalDesc || product.description || product.title || '')
+                                .replace(/;/g, '  |  ')}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            {pricing.discountPct > 0 && (
+
+                          {/* 4. Fascia Inferiore: Box Prezzi della Scheda */}
+                          <div className="mx-3.5 mb-3.5 px-3 py-2 rounded-lg bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
+                            {priceMode === 'NO_PRICE' ? (
+                              <div className="w-full flex items-center justify-between text-xs text-slate-600">
+                                <span className="font-bold">SCHEDA TECNICA PRODOTTO</span>
+                                <span className="text-[11px]">Unità: {product.unit || 'PZ'}</span>
+                              </div>
+                            ) : priceMode === 'LIST_ONLY' ? (
                               <>
-                                <span className="text-xs text-gray-400 line-through">
-                                  € {pricing.listPrice.toFixed(2)}
-                                </span>
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-50 text-red-700 rounded">
-                                  -{pricing.discountPct.toFixed(1)}%
-                                </span>
+                                <div>
+                                  <div className="text-[10px] font-extrabold text-slate-600 uppercase">
+                                    Prezzo di Listino
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    IVA esclusa / per {product.unit || 'PZ'}
+                                  </div>
+                                </div>
+                                <div className="text-base font-black text-gray-900">
+                                  € {pricing.listPrice.toFixed(2).replace('.', ',')}
+                                </div>
+                              </>
+                            ) : priceMode === 'NET_ONLY' ? (
+                              <>
+                                <div>
+                                  <div className="text-[10px] font-extrabold text-emerald-800 uppercase">
+                                    Prezzo Netto Riservato
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    IVA esclusa / per {product.unit || 'PZ'}
+                                  </div>
+                                </div>
+                                <div className="text-base font-black text-emerald-800">
+                                  € {pricing.netPrice.toFixed(2).replace('.', ',')}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div>
+                                  <div className="text-xs text-slate-500">
+                                    Listino:{' '}
+                                    <span className="line-through font-semibold">
+                                      € {pricing.listPrice.toFixed(2).replace('.', ',')}
+                                    </span>
+                                  </div>
+                                  {pricing.discountPct > 0 ? (
+                                    <div className="text-[11px] font-extrabold text-red-600">
+                                      Sconto riservato: -{pricing.discountPct.toFixed(1).replace('.0', '')}%
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] text-slate-500">
+                                      IVA esclusa / {product.unit || 'PZ'}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[9px] font-extrabold text-emerald-800 uppercase">
+                                    Prezzo Netto / {product.unit || 'PZ'}
+                                  </div>
+                                  <div className="text-base font-black text-emerald-800">
+                                    € {pricing.netPrice.toFixed(2).replace('.', ',')}
+                                  </div>
+                                </div>
                               </>
                             )}
-                            <span className="text-sm font-black text-gray-900">
-                              € {pricing.netPrice.toFixed(2)}
-                            </span>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
-          </div>
-        ) : (
-          /* VISTA TABELLA COMPATTA */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-[11px] font-bold text-gray-600 uppercase border-b border-gray-200">
-                  <th className="p-3 w-10">Inc.</th>
-                  <th className="p-3">SKU</th>
-                  <th className="p-3">Articolo</th>
-                  <th className="p-3">Marchio / Tipo</th>
-                  <th className="p-3 text-center">Dep. 2GG</th>
-                  <th className="p-3 text-center">Dep. 7GG</th>
-                  {priceMode !== 'NO_PRICE' && (
-                    <>
-                      <th className="p-3 text-right">Listino</th>
-                      {priceMode === 'LIST_AND_NET' && <th className="p-3 text-center">Sconto</th>}
-                      {priceMode !== 'LIST_ONLY' && <th className="p-3 text-right">Netto</th>}
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-xs">
-                {products.map(product => {
-                  const isSelected = selectedIds.has(product.id);
-                  const pricing = calculateProductPricing(product);
-                  return (
-                    <tr
-                      key={product.id}
-                      onClick={() => toggleProductSelection(product.id)}
-                      className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-white hover:bg-amber-50/30' : 'bg-gray-50/60 opacity-60'
-                      }`}
-                    >
-                      <td className="p-3" onClick={e => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleProductSelection(product.id)}
-                          className="rounded border-gray-300 text-brand-main focus:ring-brand-main"
-                        />
-                      </td>
-                      <td className="p-3 font-mono font-bold text-gray-900 whitespace-nowrap">
-                        {product.sku}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-bold text-gray-900">{product.title}</div>
-                        {product.technicalDesc && (
-                          <div className="text-[11px] text-gray-500 truncate max-w-md">
-                            {product.technicalDesc}
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-semibold text-gray-800">{product.brandLabel}</div>
-                        <div className="text-[10px] text-gray-500">{product.categoryLabel}</div>
-                      </td>
-                      <td className="p-3 text-center font-bold">
-                        <span
-                          className={
-                            product.stockMain > 0 ? 'text-emerald-700' : 'text-gray-400'
-                          }
-                        >
-                          {product.stockMain}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center font-bold">
-                        <span
-                          className={product.stockEk > 0 ? 'text-blue-700' : 'text-gray-400'}
-                        >
-                          {product.stockEk}
-                        </span>
-                      </td>
-                      {priceMode !== 'NO_PRICE' && (
-                        <>
-                          <td className="p-3 text-right font-medium text-gray-700 whitespace-nowrap">
-                            € {pricing.listPrice.toFixed(2)}
-                          </td>
-                          {priceMode === 'LIST_AND_NET' && (
-                            <td className="p-3 text-center font-bold text-red-600">
-                              {pricing.discountPct > 0 ? `-${pricing.discountPct.toFixed(1)}%` : '—'}
-                            </td>
-                          )}
-                          {priceMode !== 'LIST_ONLY' && (
-                            <td className="p-3 text-right font-black text-gray-900 whitespace-nowrap">
-                              € {pricing.netPrice.toFixed(2)}
-                            </td>
-                          )}
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         )}
       </div>

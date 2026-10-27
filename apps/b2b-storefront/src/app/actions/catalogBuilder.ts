@@ -260,7 +260,7 @@ export async function getAgentCatalogInitData(): Promise<{
       families: [],
       categories: [],
       sortBy: 'STOCK_DESC',
-      limit: 100,
+      limit: 60,
     }),
   ]);
 
@@ -299,7 +299,7 @@ export async function searchAgentCatalogProducts(
     const isWildcard = !rawQuery || rawQuery === '*';
     const q = isWildcard ? '*' : rawQuery;
 
-    const requestedLimit = Math.min(Math.max(filters.limit || 100, 10), 500);
+    const requestedLimit = Math.min(Math.max(filters.limit || 60, 6), 300);
     const perPage = Math.min(requestedLimit, 250);
     const pagesToFetch = requestedLimit > 250 ? 2 : 1;
 
@@ -585,24 +585,61 @@ function parseBaselineJpegDimensions(buf: Buffer): {
 function toJpegThumbnailUrl(rawUrl: string): string | null {
   const url = (rawUrl || '').trim();
   if (!url) return null;
-  // Cloudinary: forza trasformazione in baseline JPEG 120x120 su sfondo bianco
+  // Cloudinary: forza trasformazione in baseline JPEG 220x220 su sfondo bianco per schede catalogo
   if (url.includes('res.cloudinary.com') && url.includes('/image/upload/')) {
     return url
       .replace(
         /\/image\/upload\/(?:[^/]+\/)?/,
-        '/image/upload/f_jpg,fl_force_strip,w_120,h_120,c_pad,b_white,q_80/'
+        '/image/upload/f_jpg,fl_force_strip,w_220,h_220,c_pad,b_white,q_85/'
       )
       .replace(/\.(webp|png|gif)$/i, '.jpg');
   }
   if (url.includes('cdn.shopify.com')) {
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}format=jpg&width=120`;
+    return `${url}${sep}format=jpg&width=220`;
   }
-  // Proxy gratuito wsrv.nl per convertire PNG Elmark in baseline JPEG 120x120
+  // Proxy wsrv.nl per convertire PNG Elmark in baseline JPEG 220x220
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=120&h=120&fit=contain&bg=white&output=jpg&q=80`;
+    return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=220&h=220&fit=contain&bg=white&output=jpg&q=85`;
   }
   return null;
+}
+
+function wrapTextLines(text: string, maxCharsPerLine: number, maxLines: number): string[] {
+  const clean = (text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return [];
+  const words = clean.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (candidate.length <= maxCharsPerLine) {
+      currentLine = candidate;
+    } else {
+      if (currentLine) {
+        lines.push(currentLine);
+        if (lines.length === maxLines) {
+          const last = lines[maxLines - 1];
+          lines[maxLines - 1] =
+            last.length >= maxCharsPerLine - 1
+              ? last.slice(0, maxCharsPerLine - 2).trim() + '..'
+              : last + '..';
+          return lines;
+        }
+        currentLine = word.length > maxCharsPerLine ? word.slice(0, maxCharsPerLine) : word;
+      } else {
+        lines.push(word.slice(0, maxCharsPerLine));
+        if (lines.length === maxLines) return lines;
+        currentLine = '';
+      }
+    }
+  }
+  if (currentLine && lines.length < maxLines) {
+    lines.push(currentLine);
+  }
+  return lines;
 }
 
 async function fetchJpegThumbnail(rawUrl?: string): Promise<{
@@ -649,13 +686,13 @@ export async function generateAgentCatalogPdfAction(
   }
 
   try {
-    // Scarica in parallelo (a blocchi di 15) le miniature JPEG per i primi 120 prodotti
+    // Scarica in parallelo (a blocchi di 18) le miniature JPEG per i prodotti selezionati
     const thumbs = new Map<
       number,
       { bytes: Buffer; width: number; height: number; components: number }
     >();
-    const maxThumbItems = Math.min(items.length, 120);
-    const batchSize = 15;
+    const maxThumbItems = Math.min(items.length, 150);
+    const batchSize = 18;
     for (let i = 0; i < maxThumbItems; i += batchSize) {
       const slice = items.slice(i, i + batchSize);
       const results = await Promise.all(slice.map(it => fetchJpegThumbnail(it.imageUrl)));
@@ -664,7 +701,16 @@ export async function generateAgentCatalogPdfAction(
       });
     }
 
-    const ITEMS_PER_PAGE = 9;
+    // 6 SCHEDE PER FOGLIO A4 (Griglia 2 colonne x 3 righe)
+    const ITEMS_PER_PAGE = 6;
+    const COLS = 2;
+    const CARD_W = 262;
+    const CARD_H = 224;
+    const GAP_X = 15;
+    const GAP_Y = 14;
+    const MARGIN_X = 28;
+    const FIRST_ROW_TOP_Y = 738; // Y superiore della prima riga di schede
+
     const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
     const dateStr = new Date().toLocaleDateString('it-IT', {
       day: '2-digit',
@@ -696,16 +742,21 @@ export async function generateAgentCatalogPdfAction(
       const cmd: string[] = [];
       const imgRefsForPage = new Map<number, number>();
 
-      // Header pagina
+      // Header pagina A4
       cmd.push('0.07 0.09 0.15 rg');
       cmd.push('0 772 595 70 re f');
       cmd.push('0.00 0.78 0.00 rg');
       cmd.push('0 769 595 3 re f');
 
-      cmd.push('BT /F2 15 Tf 1 1 1 rg 28 815 Td (IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B) Tj ET');
+      cmd.push('BT /F2 14 Tf 1 1 1 rg 28 816 Td (IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B) Tj ET');
       cmd.push(
-        `BT /F2 10 Tf 0.00 0.90 0.00 rg 28 798 Td (${toPdfSafeLatin1(
-          truncateText(input.catalogTitle || 'Catalogo Personalizzato Agente', 65)
+        `BT /F2 10 Tf 0.00 0.90 0.00 rg 28 799 Td (${toPdfSafeLatin1(
+          truncateText(
+            input.catalogTitle
+              ? `${input.catalogTitle}${input.catalogSubtitle ? ` - ${input.catalogSubtitle}` : ''}`
+              : 'Catalogo Personalizzato Agente',
+            72
+          )
         )}) Tj ET`
       );
       cmd.push(
@@ -719,191 +770,312 @@ export async function generateAgentCatalogPdfAction(
         )}) Tj ET`
       );
       cmd.push(
-        `BT /F2 9 Tf 1 1 1 rg 490 815 Td (Pag. ${pageIdx + 1} / ${totalPages}) Tj ET`
+        `BT /F2 9 Tf 1 1 1 rg 480 816 Td (Foglio ${pageIdx + 1} / ${totalPages}) Tj ET`
       );
       cmd.push(
-        `BT /F1 8 Tf 0.75 0.80 0.85 rg 450 798 Td (Articoli: ${items.length}) Tj ET`
+        `BT /F1 8 Tf 0.75 0.80 0.85 rg 465 799 Td (Tot. ${items.length} schede) Tj ET`
       );
 
       // Fascia riepilogo filtri
       cmd.push('0.95 0.96 0.98 rg');
-      cmd.push('28 744 539 20 re f');
+      cmd.push('28 745 539 19 re f');
       cmd.push('0.85 0.88 0.92 RG 0.5 w');
-      cmd.push('28 744 539 20 re S');
+      cmd.push('28 745 539 19 re S');
       cmd.push(
-        `BT /F1 7.5 Tf 0.25 0.30 0.38 rg 35 751 Td (${toPdfSafeLatin1(
-          truncateText(input.filterSummary || 'Tutti i prodotti selezionati', 110)
+        `BT /F1 7.5 Tf 0.25 0.30 0.38 rg 35 752 Td (${toPdfSafeLatin1(
+          truncateText(input.filterSummary || 'Tutti i prodotti selezionati', 112)
         )}) Tj ET`
       );
 
-      // Righe prodotti (9 card per pagina, altezza 72pt ciascuna)
-      let currentY = 664;
+      // Griglia 6 Schede per foglio (2 colonne x 3 righe)
       pageSlice.forEach((item, localIdx) => {
         const globalIdx = pageIdx * ITEMS_PER_PAGE + localIdx;
+        const col = localIdx % COLS; // 0 o 1
+        const row = Math.floor(localIdx / COLS); // 0, 1 o 2
 
-        // Box scheda prodotto
+        const cardX = MARGIN_X + col * (CARD_W + GAP_X);
+        const cardTopY = FIRST_ROW_TOP_Y - row * (CARD_H + GAP_Y);
+        const cardY = cardTopY - CARD_H;
+
+        // 1. Cornice esterna della Scheda Prodotto
         cmd.push('1 1 1 rg');
-        cmd.push(`28 ${currentY} 539 68 re f`);
-        cmd.push('0.86 0.88 0.91 RG 0.6 w');
-        cmd.push(`28 ${currentY} 539 68 re S`);
+        cmd.push(`${cardX} ${cardY} ${CARD_W} ${CARD_H} re f`);
+        cmd.push('0.82 0.85 0.90 RG 0.8 w');
+        cmd.push(`${cardX} ${cardY} ${CARD_W} ${CARD_H} re S`);
 
-        // Box miniatura foto (56x56)
-        const imgX = 34;
-        const imgY = currentY + 6;
-        const imgSize = 56;
-        cmd.push('0.97 0.98 0.99 rg');
-        cmd.push(`${imgX} ${imgY} ${imgSize} ${imgSize} re f`);
-        cmd.push('0.90 0.92 0.95 RG 0.4 w');
-        cmd.push(`${imgX} ${imgY} ${imgSize} ${imgSize} re S`);
+        // 2. Fascia superiore della Scheda (SKU a sinistra, Marchio a destra)
+        const headerH = 22;
+        const headerY = cardTopY - headerH;
+        cmd.push('0.09 0.12 0.19 rg');
+        cmd.push(`${cardX} ${headerY} ${CARD_W} ${headerH} re f`);
+        cmd.push('0.00 0.78 0.00 rg');
+        cmd.push(`${cardX} ${headerY - 1.5} ${CARD_W} 1.5 re f`);
+
+        cmd.push(
+          `BT /F2 8.5 Tf 1 1 1 rg ${cardX + 8} ${headerY + 7} Td (COD. ${toPdfSafeLatin1(
+            truncateText(item.sku, 20)
+          )}) Tj ET`
+        );
+
+        const brandTag = truncateText((item.brand || 'IZZO').toUpperCase(), 18);
+        const brandX = cardX + CARD_W - Math.min(brandTag.length * 4.7 + 12, 115);
+        cmd.push(
+          `BT /F2 7.5 Tf 0.25 0.95 0.40 rg ${brandX.toFixed(1)} ${headerY + 7} Td (${toPdfSafeLatin1(
+            brandTag
+          )}) Tj ET`
+        );
+
+        // 3. Sezione Superiore-Centrale: Foto Prodotto (94x94) a sinistra + Categoria/Titolo/Giacenza a destra
+        const imgBoxSize = 94;
+        const imgX = cardX + 8;
+        const imgY = cardY + 100;
+
+        cmd.push('0.98 0.98 0.99 rg');
+        cmd.push(`${imgX} ${imgY} ${imgBoxSize} ${imgBoxSize} re f`);
+        cmd.push('0.88 0.90 0.94 RG 0.5 w');
+        cmd.push(`${imgX} ${imgY} ${imgBoxSize} ${imgBoxSize} re S`);
 
         const imgObjNum = imageObjMap.get(globalIdx);
         if (imgObjNum) {
           imgRefsForPage.set(globalIdx, imgObjNum);
           cmd.push('q');
-          cmd.push(`${imgSize - 4} 0 0 ${imgSize - 4} ${imgX + 2} ${imgY + 2} cm`);
+          cmd.push(`${imgBoxSize - 6} 0 0 ${imgBoxSize - 6} ${imgX + 3} ${imgY + 3} cm`);
           cmd.push(`/Im${globalIdx} Do`);
           cmd.push('Q');
         } else {
           cmd.push(
-            `BT /F2 6.5 Tf 0.55 0.60 0.68 rg ${imgX + 8} ${imgY + 26} Td (${toPdfSafeLatin1(
-              truncateText(item.brand || 'FOTO', 8)
-            )}) Tj ET`
+            `BT /F2 7.5 Tf 0.58 0.63 0.70 rg ${imgX + 20} ${imgY + 48} Td ( IMMAGINE ) Tj ET`
+          );
+          cmd.push(
+            `BT /F1 6.5 Tf 0.65 0.70 0.76 rg ${imgX + 16} ${imgY + 37} Td (NON DISPONIBILE) Tj ET`
           );
         }
 
-        // Colonna centrale: SKU, Brand, Categoria, Titolo e Specifiche
-        const textX = 98;
-        const badgeLine = `${item.sku}   [${item.brand || 'IZZO'}]${
-          item.categoryLabel ? `  -  ${truncateText(item.categoryLabel, 38)}` : ''
-        }`;
+        // Colonna Destra accanto alla foto (Categoria + Titolo su 4 righe + Bollino Disponibilità)
+        const infoX = cardX + 108;
+        const infoW = CARD_W - 116; // 146pt
+
+        // Categoria
+        const catText = truncateText(
+          (item.categoryLabel || 'ARTICOLO A CATALOGO').toUpperCase(),
+          30
+        );
         cmd.push(
-          `BT /F2 8.5 Tf 0.05 0.45 0.15 rg ${textX} ${currentY + 52} Td (${toPdfSafeLatin1(
-            badgeLine
+          `BT /F2 6.5 Tf 0.38 0.45 0.56 rg ${infoX} ${cardY + 186} Td (${toPdfSafeLatin1(
+            catText
           )}) Tj ET`
         );
 
-        const cleanTitle = (item.title || '').replace(/\s+/g, ' ').trim();
-        const titleLine1 = cleanTitle.slice(0, 62);
-        const titleLine2 = cleanTitle.length > 62 ? truncateText(cleanTitle.slice(62), 62) : '';
-
-        cmd.push(
-          `BT /F2 9.5 Tf 0.08 0.10 0.15 rg ${textX} ${currentY + 38} Td (${toPdfSafeLatin1(
-            titleLine1
-          )}) Tj ET`
-        );
-        if (titleLine2) {
+        // Titolo Prodotto avvolto fino a 4 righe
+        const titleLines = wrapTextLines(item.title || item.sku, 26, 4);
+        titleLines.forEach((line, lIdx) => {
+          const lineY = cardY + 173 - lIdx * 11;
           cmd.push(
-            `BT /F1 8.5 Tf 0.18 0.22 0.28 rg ${textX} ${currentY + 26} Td (${toPdfSafeLatin1(
-              titleLine2
+            `BT /F2 8.5 Tf 0.07 0.09 0.14 rg ${infoX} ${lineY} Td (${toPdfSafeLatin1(
+              line
             )}) Tj ET`
           );
-        } else if (item.technicalDesc) {
-          cmd.push(
-            `BT /F1 7.5 Tf 0.38 0.42 0.50 rg ${textX} ${currentY + 25} Td (${toPdfSafeLatin1(
-              truncateText(item.technicalDesc.replace(/;/g, ' | '), 68)
-            )}) Tj ET`
-          );
-        }
+        });
 
-        // Giacenza / Disponibilità (in base a stockMode)
+        // Bollino Disponibilità / Giacenze (se abilitato)
         if (input.stockMode !== 'HIDE_STOCK') {
           let stockLabel = '';
+          let isReady2GG = false;
+          let isAvail7GG = false;
+
           if (input.stockMode === 'BADGE_ONLY') {
             if (item.catalogSource === 'elmark') {
-              stockLabel = item.stockTotal > 0 ? 'Disponibile (Consegna 7GG)' : 'Su ordinazione';
+              isAvail7GG = item.stockTotal > 0;
+              stockLabel = isAvail7GG ? 'Disponibile (Consegna 7GG)' : 'Su ordinazione';
             } else if (item.stockMain > 0 && item.stockEk > 0) {
-              stockLabel = 'Pronta Consegna 2GG + Deposito 7GG';
+              isReady2GG = true;
+              stockLabel = 'Pronta Consegna 2GG + 7GG';
             } else if (item.stockMain > 0) {
-              stockLabel = 'Pronta Consegna (Deposito 2GG)';
+              isReady2GG = true;
+              stockLabel = 'Pronta Consegna (Dep. 2GG)';
             } else if (item.stockEk > 0) {
-              stockLabel = 'Disponibile (Deposito 7GG)';
+              isAvail7GG = true;
+              stockLabel = 'Disponibile (Dep. 7GG)';
             } else {
               stockLabel = 'Su ordinazione';
             }
           } else {
             // EXACT_QTY
             if (item.catalogSource === 'elmark') {
-              stockLabel = `Disp. 7GG: ${item.stockTotal} ${item.unit || 'PZ'}`;
+              isAvail7GG = item.stockTotal > 0;
+              stockLabel = `Dep. 7GG: ${item.stockTotal} ${item.unit || 'PZ'}`;
             } else {
+              isReady2GG = item.stockMain > 0;
+              isAvail7GG = item.stockEk > 0;
               const parts: string[] = [];
-              if (item.stockMain > 0) parts.push(`Dep. 2GG: ${item.stockMain} ${item.unit || 'PZ'}`);
-              if (item.stockEk > 0) parts.push(`Dep. 7GG: ${item.stockEk} ${item.unit || 'PZ'}`);
-              stockLabel = parts.length > 0 ? parts.join('  |  ') : 'Esaurito (0 pz)';
+              parts.push(`2GG: ${item.stockMain} ${item.unit || 'PZ'}`);
+              parts.push(`7GG: ${item.stockEk} ${item.unit || 'PZ'}`);
+              stockLabel = parts.join(' | ');
             }
           }
+
+          if (isReady2GG) {
+            cmd.push('0.91 0.98 0.93 rg');
+            cmd.push('0.68 0.88 0.74 RG 0.5 w');
+          } else if (isAvail7GG) {
+            cmd.push('0.91 0.95 0.99 rg');
+            cmd.push('0.70 0.82 0.95 RG 0.5 w');
+          } else {
+            cmd.push('0.95 0.96 0.97 rg');
+            cmd.push('0.84 0.86 0.89 RG 0.5 w');
+          }
+          cmd.push(`${infoX} ${cardY + 100} ${infoW} 17 re B`);
+
+          if (isReady2GG) {
+            cmd.push('0.05 0.45 0.18 rg');
+          } else if (isAvail7GG) {
+            cmd.push('0.10 0.35 0.68 rg');
+          } else {
+            cmd.push('0.40 0.44 0.50 rg');
+          }
           cmd.push(
-            `BT /F2 7.5 Tf 0.15 0.35 0.65 rg ${textX} ${currentY + 11} Td (${toPdfSafeLatin1(
-              stockLabel
+            `BT /F2 7 Tf ${infoX + 6} ${cardY + 106} Td (${toPdfSafeLatin1(
+              truncateText(stockLabel, 29)
             )}) Tj ET`
           );
         }
 
-        // Colonna destra: Prezzi (in base a priceMode)
-        if (input.priceMode !== 'NO_PRICE') {
-          cmd.push('0.96 0.98 0.96 rg');
-          cmd.push(`445 ${currentY + 6} 116 56 re f`);
-          cmd.push('0.82 0.90 0.82 RG 0.5 w');
-          cmd.push(`445 ${currentY + 6} 116 56 re S`);
+        // 4. Fascia Centrale: Specifiche Tecniche (larghezza intera della scheda)
+        const specBoxX = cardX + 8;
+        const specBoxY = cardY + 50;
+        const specBoxW = CARD_W - 16; // 246pt
+        const specBoxH = 44;
+
+        cmd.push('0.96 0.97 0.99 rg');
+        cmd.push(`${specBoxX} ${specBoxY} ${specBoxW} ${specBoxH} re f`);
+        cmd.push('0.89 0.91 0.95 RG 0.4 w');
+        cmd.push(`${specBoxX} ${specBoxY} ${specBoxW} ${specBoxH} re S`);
+
+        cmd.push(
+          `BT /F2 6.5 Tf 0.38 0.43 0.52 rg ${specBoxX + 6} ${
+            specBoxY + 33
+          } Td (SPECIFICHE E DESCRIZIONE TECNICA) Tj ET`
+        );
+
+        const rawSpecs = (item.technicalDesc || item.title || '')
+          .replace(/;/g, '  |  ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        const specLines = wrapTextLines(rawSpecs, 54, 2);
+        if (specLines.length > 0) {
+          specLines.forEach((sLine, sIdx) => {
+            cmd.push(
+              `BT /F1 7 Tf 0.18 0.22 0.29 rg ${specBoxX + 6} ${
+                specBoxY + 20 - sIdx * 10
+              } Td (${toPdfSafeLatin1(sLine)}) Tj ET`
+            );
+          });
+        } else {
+          cmd.push(
+            `BT /F1 7 Tf 0.50 0.55 0.62 rg ${specBoxX + 6} ${
+              specBoxY + 18
+            } Td (Unita' di vendita: ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+          );
+        }
+
+        // 5. Fascia Inferiore della Scheda: Box Prezzi (o riepilogo tecnico se NO_PRICE)
+        const priceBoxX = cardX + 8;
+        const priceBoxY = cardY + 7;
+        const priceBoxW = CARD_W - 16; // 246pt
+        const priceBoxH = 38;
+
+        if (input.priceMode === 'NO_PRICE') {
+          cmd.push('0.94 0.95 0.97 rg');
+          cmd.push(`${priceBoxX} ${priceBoxY} ${priceBoxW} ${priceBoxH} re f`);
+          cmd.push('0.84 0.87 0.91 RG 0.5 w');
+          cmd.push(`${priceBoxX} ${priceBoxY} ${priceBoxW} ${priceBoxH} re S`);
+
+          cmd.push(
+            `BT /F2 7.5 Tf 0.25 0.30 0.38 rg ${priceBoxX + 8} ${
+              priceBoxY + 21
+            } Td (SCHEDA TECNICA PRODOTTO  -  UNITA': ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+          );
+          cmd.push(
+            `BT /F1 7 Tf 0.45 0.50 0.58 rg ${priceBoxX + 8} ${
+              priceBoxY + 10
+            } Td (Richiedi quotazione riservata al tuo agente di riferimento) Tj ET`
+          );
+        } else {
+          cmd.push('0.95 0.99 0.96 rg');
+          cmd.push(`${priceBoxX} ${priceBoxY} ${priceBoxW} ${priceBoxH} re f`);
+          cmd.push('0.76 0.89 0.78 RG 0.6 w');
+          cmd.push(`${priceBoxX} ${priceBoxY} ${priceBoxW} ${priceBoxH} re S`);
 
           const listFmt = `EUR ${item.listPrice.toFixed(2).replace('.', ',')}`;
           const netFmt = `EUR ${item.netPrice.toFixed(2).replace('.', ',')}`;
 
           if (input.priceMode === 'LIST_ONLY') {
             cmd.push(
-              `BT /F1 7.5 Tf 0.40 0.45 0.52 rg 453 ${currentY + 46} Td (Prezzo Listino) Tj ET`
+              `BT /F2 7.5 Tf 0.35 0.40 0.48 rg ${priceBoxX + 8} ${
+                priceBoxY + 22
+              } Td (PREZZO DI LISTINO) Tj ET`
             );
             cmd.push(
-              `BT /F2 11.5 Tf 0.08 0.10 0.15 rg 453 ${currentY + 28} Td (${toPdfSafeLatin1(
-                listFmt
-              )}) Tj ET`
+              `BT /F1 6.5 Tf 0.45 0.50 0.56 rg ${priceBoxX + 8} ${
+                priceBoxY + 10
+              } Td (IVA esclusa / per ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
             );
             cmd.push(
-              `BT /F1 7 Tf 0.45 0.50 0.55 rg 453 ${currentY + 14} Td (IVA esclusa / ${toPdfSafeLatin1(
-                item.unit || 'PZ'
-              )}) Tj ET`
+              `BT /F2 12.5 Tf 0.08 0.10 0.15 rg ${priceBoxX + 140} ${
+                priceBoxY + 14
+              } Td (${toPdfSafeLatin1(listFmt)}) Tj ET`
             );
           } else if (input.priceMode === 'NET_ONLY') {
             cmd.push(
-              `BT /F1 7.5 Tf 0.05 0.45 0.15 rg 453 ${currentY + 46} Td (Prezzo Riservato) Tj ET`
+              `BT /F2 7.5 Tf 0.05 0.45 0.15 rg ${priceBoxX + 8} ${
+                priceBoxY + 22
+              } Td (PREZZO NETTO RISERVATO) Tj ET`
             );
             cmd.push(
-              `BT /F2 11.5 Tf 0.05 0.45 0.15 rg 453 ${currentY + 28} Td (${toPdfSafeLatin1(
-                netFmt
-              )}) Tj ET`
+              `BT /F1 6.5 Tf 0.40 0.46 0.52 rg ${priceBoxX + 8} ${
+                priceBoxY + 10
+              } Td (IVA esclusa / per ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
             );
             cmd.push(
-              `BT /F1 7 Tf 0.45 0.50 0.55 rg 453 ${currentY + 14} Td (Netto IVA escl. / ${toPdfSafeLatin1(
-                item.unit || 'PZ'
-              )}) Tj ET`
+              `BT /F2 12.5 Tf 0.04 0.45 0.14 rg ${priceBoxX + 140} ${
+                priceBoxY + 14
+              } Td (${toPdfSafeLatin1(netFmt)}) Tj ET`
             );
           } else {
             // LIST_AND_NET
             cmd.push(
-              `BT /F1 7.5 Tf 0.45 0.48 0.54 rg 453 ${currentY + 48} Td (Listino: ${toPdfSafeLatin1(
-                listFmt
-              )}) Tj ET`
+              `BT /F1 7.5 Tf 0.40 0.44 0.50 rg ${priceBoxX + 8} ${
+                priceBoxY + 23
+              } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
             );
             if (item.discountPct > 0) {
               cmd.push(
-                `BT /F2 7.5 Tf 0.80 0.15 0.15 rg 453 ${currentY + 37} Td (Sconto: -${item.discountPct.toFixed(
-                  1
-                ).replace('.0', '')}%) Tj ET`
+                `BT /F2 7.5 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
+                  priceBoxY + 10
+                } Td (Sconto riservato: -${item.discountPct
+                  .toFixed(1)
+                  .replace('.0', '')}%) Tj ET`
+              );
+            } else {
+              cmd.push(
+                `BT /F1 6.5 Tf 0.45 0.50 0.56 rg ${priceBoxX + 8} ${
+                  priceBoxY + 10
+                } Td (IVA esclusa / ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
               );
             }
+
             cmd.push(
-              `BT /F2 11 Tf 0.05 0.45 0.15 rg 453 ${currentY + 22} Td (${toPdfSafeLatin1(
-                netFmt
-              )}) Tj ET`
+              `BT /F2 6.5 Tf 0.05 0.45 0.15 rg ${priceBoxX + 138} ${
+                priceBoxY + 26
+              } Td (PREZZO NETTO / ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
             );
             cmd.push(
-              `BT /F1 6.5 Tf 0.45 0.50 0.55 rg 453 ${currentY + 11} Td (Netto IVA escl. / ${toPdfSafeLatin1(
-                item.unit || 'PZ'
-              )}) Tj ET`
+              `BT /F2 12 Tf 0.04 0.45 0.14 rg ${priceBoxX + 138} ${
+                priceBoxY + 11
+              } Td (${toPdfSafeLatin1(netFmt)}) Tj ET`
             );
           }
         }
-
-        currentY -= 73;
       });
 
       // Footer pagina
