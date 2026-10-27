@@ -302,15 +302,20 @@ export async function searchAgentCatalogProducts(
     } else if (filters.sortBy === 'PRICE_DESC') {
       sortByStr = 'price_b2b:desc,natural_sku:asc';
     } else if (filters.sortBy === 'TITLE_ASC') {
-      sortByStr = '_text_match:desc,natural_sku:asc';
+      sortByStr = isWildcard ? 'natural_sku:asc' : '_text_match:desc,natural_sku:asc';
     } else {
-      const primaryStockSort =
-        filters.warehouse === 'EXTERNAL_7GG'
-          ? 'stock_ek:desc,stock_main:desc'
-          : 'stock_main:desc,stock_ek:desc';
-      sortByStr = isWildcard
-        ? `${primaryStockSort},natural_sku:asc`
-        : `_text_match:desc,${primaryStockSort},natural_sku:asc`;
+      // Max 3 sort fields allowed by Typesense
+      if (isWildcard) {
+        sortByStr =
+          filters.warehouse === 'EXTERNAL_7GG'
+            ? 'stock_ek:desc,stock_main:desc,natural_sku:asc'
+            : 'stock_main:desc,stock_ek:desc,natural_sku:asc';
+      } else {
+        sortByStr =
+          filters.warehouse === 'EXTERNAL_7GG'
+            ? '_text_match:desc,stock_ek:desc,natural_sku:asc'
+            : '_text_match:desc,stock_main:desc,natural_sku:asc';
+      }
     }
 
     const filterBy = buildTypesenseFilterString(filters);
@@ -337,14 +342,19 @@ export async function searchAgentCatalogProducts(
       filters.families.length > 0 ||
       filters.categories.length > 0;
 
+    const queryByFields =
+      'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description';
+    const queryByWeights = '200,180,150,100,100,100,100,80,80,80,60,50';
+    const prefixFlags = 'true,true,true,true,true,true,true,true,true,true,false,false';
+
     const firstPagePromise = typesenseClient
       .collections(PRODUCTS_COLLECTION_NAME)
       .documents()
       .search({
         q,
-        query_by:
-          'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-        query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+        query_by: queryByFields,
+        query_by_weights: queryByWeights,
+        prefix: prefixFlags,
         filter_by: filterBy || undefined,
         sort_by: sortByStr,
         facet_by: 'brand,product_group,family,category',
@@ -360,8 +370,9 @@ export async function searchAgentCatalogProducts(
           .documents()
           .search({
             q,
-            query_by:
-              'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+            query_by: queryByFields,
+            query_by_weights: queryByWeights,
+            prefix: prefixFlags,
             filter_by: baseFacetClauses.join(' && ') || undefined,
             facet_by: 'brand,product_group,family,category',
             max_facet_values: 250,
@@ -391,9 +402,9 @@ export async function searchAgentCatalogProducts(
               .documents()
               .search({
                 q,
-                query_by:
-                  'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-                query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+                query_by: queryByFields,
+                query_by_weights: queryByWeights,
+                prefix: prefixFlags,
                 filter_by: filterBy || undefined,
                 sort_by: sortByStr,
                 include_fields: includeFields,

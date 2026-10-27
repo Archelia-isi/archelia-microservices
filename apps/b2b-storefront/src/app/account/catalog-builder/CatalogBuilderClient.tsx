@@ -302,7 +302,7 @@ export default function CatalogBuilderClient({
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 350);
+    }, 200);
     return () => clearTimeout(timer);
   }, [query]);
 
