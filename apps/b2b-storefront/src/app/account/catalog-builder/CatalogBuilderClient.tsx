@@ -252,7 +252,7 @@ export default function CatalogBuilderClient({
   const [selectedProductGroups, setSelectedProductGroups] = useState<string[]>([]);
   const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<CatalogSortMode>('STOCK_DESC');
+  const [sortBy, setSortBy] = useState<CatalogSortMode>('TAXONOMY_ASC');
 
   // --- STATO RISULTATI & SELEZIONE ---
   const [products, setProducts] = useState<CatalogProductItem[]>(initialSearch.products || []);
@@ -460,7 +460,7 @@ export default function CatalogBuilderClient({
     setSelectedProductGroups([]);
     setSelectedFamilies([]);
     setSelectedCategories([]);
-    setSortBy('STOCK_DESC');
+    setSortBy('TAXONOMY_ASC');
   };
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
@@ -805,6 +805,7 @@ export default function CatalogBuilderClient({
                 onChange={e => setSortBy(e.target.value as CatalogSortMode)}
                 className="px-2.5 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white"
               >
+                <option value="TAXONOMY_ASC">Gruppo Merceologico / Famiglia / Categoria</option>
                 <option value="STOCK_DESC">Giacenza Maggiore (Prima 2GG)</option>
                 <option value="SKU_ASC">Codice Articolo (A-Z)</option>
                 <option value="PRICE_ASC">Prezzo Crescente</option>

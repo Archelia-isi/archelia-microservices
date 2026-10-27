@@ -21,6 +21,7 @@ export type CatalogPriceMode = 'LIST_AND_NET' | 'NET_ONLY' | 'LIST_ONLY' | 'NO_P
 export type CatalogStockMode = 'BADGE_ONLY' | 'HIDE_STOCK' | 'EXACT_QTY';
 
 export type CatalogSortMode =
+  | 'TAXONOMY_ASC'
   | 'STOCK_DESC'
   | 'SKU_ASC'
   | 'PRICE_ASC'
@@ -252,7 +253,7 @@ export async function getAgentCatalogInitData(): Promise<{
       productGroups: [],
       families: [],
       categories: [],
-      sortBy: 'STOCK_DESC',
+      sortBy: 'TAXONOMY_ASC',
     }),
   ]);
 
@@ -460,8 +461,30 @@ export async function searchAgentCatalogProducts(
       };
     });
 
-    if (filters.sortBy === 'TITLE_ASC') {
-      products.sort((a, b) => (a.title || a.originalName).localeCompare(b.title || b.originalName, 'it'));
+    if (filters.sortBy === 'TAXONOMY_ASC') {
+      // Ordinamento gerarchico a blocchi: 1) Gruppo Merceologico -> 2) Famiglia -> 3) Categoria -> 4) SKU
+      products.sort((a, b) => {
+        const gA = a.productGroup || '\uffff';
+        const gB = b.productGroup || '\uffff';
+        const cmpGroup = gA.localeCompare(gB, 'it', { numeric: true, sensitivity: 'base' });
+        if (cmpGroup !== 0) return cmpGroup;
+
+        const fA = a.family || '\uffff';
+        const fB = b.family || '\uffff';
+        const cmpFamily = fA.localeCompare(fB, 'it', { numeric: true, sensitivity: 'base' });
+        if (cmpFamily !== 0) return cmpFamily;
+
+        const cA = a.category || '\uffff';
+        const cB = b.category || '\uffff';
+        const cmpCat = cA.localeCompare(cB, 'it', { numeric: true, sensitivity: 'base' });
+        if (cmpCat !== 0) return cmpCat;
+
+        return (a.sku || '').localeCompare(b.sku || '', 'it', { numeric: true, sensitivity: 'base' });
+      });
+    } else if (filters.sortBy === 'TITLE_ASC') {
+      products.sort((a, b) =>
+        (a.title || a.originalName).localeCompare(b.title || b.originalName, 'it')
+      );
     }
 
     const facetSource = broadFacetRes?.facet_counts || firstPage?.facet_counts || [];
