@@ -540,6 +540,104 @@ export async function searchAgentCatalogProducts(
   }
 }
 
+export async function searchCatalogPredictiveAction(
+  query: string,
+  warehouse: WarehouseFilterMode = 'ALL_WAREHOUSES',
+  includeZeroStock = false
+): Promise<{
+  success: boolean;
+  totalFound: number;
+  products: CatalogProductItem[];
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, totalFound: 0, products: [] };
+  }
+
+  const q = (query || '').trim();
+  if (!q) {
+    return { success: true, totalFound: 0, products: [] };
+  }
+
+  try {
+    const maps = await getTaxonomyLookupMaps();
+    const clauses: string[] = ['catalog_source:=zucchetti'];
+    if (!includeZeroStock) {
+      if (warehouse === 'MAIN_2GG') {
+        clauses.push('stock_main:>0');
+      } else if (warehouse === 'EXTERNAL_7GG') {
+        clauses.push('stock_ek:>0');
+      } else {
+        clauses.push('stock:>0');
+      }
+    }
+
+    const res = await typesenseClient
+      .collections(PRODUCTS_COLLECTION_NAME)
+      .documents()
+      .search({
+        q,
+        query_by:
+          'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+        query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+        prefix: 'true,true,true,true,true,true,true,true,true,true,false,false',
+        filter_by: clauses.join(' && '),
+        sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc',
+        include_fields:
+          'id,sku,natural_sku,title,original_name,brand,product_group,family,category,technical_desc,description,unit,price,price_b2b,discgroup,stock,stock_main,stock_ek,image_url,catalog_source',
+        per_page: 16,
+        page: 1,
+      });
+
+    const products: CatalogProductItem[] = (res?.hits || []).map((hit: any) => {
+      const doc = hit.document || {};
+      const brandCode = String(doc.brand || '').trim().toUpperCase();
+      const pgCode = String(doc.product_group || '').trim().toUpperCase();
+      const famCode = String(doc.family || '').trim().toUpperCase();
+      const catCode = String(doc.category || '').trim().toUpperCase();
+      const listPrice =
+        Number(doc.price_b2b) > 0 ? Number(doc.price_b2b) : Number(doc.price || 0);
+      const stockMain = Math.max(0, Number(doc.stock_main ?? doc.stock ?? 0));
+      const stockEk = Math.max(0, Number(doc.stock_ek ?? 0));
+      const stockTotal = stockMain + stockEk || Math.max(0, Number(doc.stock ?? 0));
+
+      return {
+        id: String(doc.id || doc.sku),
+        sku: String(doc.sku || doc.natural_sku || ''),
+        title: String(doc.original_name || doc.title || ''),
+        originalName: String(doc.original_name || doc.title || ''),
+        brand: brandCode,
+        brandLabel: formatCodeWithLabel(brandCode, maps.brands),
+        productGroup: pgCode,
+        productGroupLabel: formatCodeWithLabel(pgCode, maps.productGroups),
+        family: famCode,
+        familyLabel: formatCodeWithLabel(famCode, maps.families),
+        category: catCode,
+        categoryLabel: formatCodeWithLabel(catCode, maps.categories),
+        technicalDesc: String(doc.technical_desc || ''),
+        description: String(doc.description || ''),
+        unit: String(doc.unit || 'PZ'),
+        listPrice,
+        discgroup: String(doc.discgroup || ''),
+        stockMain,
+        stockEk,
+        stockTotal,
+        imageUrl: String(doc.image_url || ''),
+        catalogSource: 'zucchetti',
+      };
+    });
+
+    return {
+      success: true,
+      totalFound: res?.found || 0,
+      products,
+    };
+  } catch (e) {
+    console.error('Errore searchCatalogPredictiveAction:', e);
+    return { success: false, totalFound: 0, products: [] };
+  }
+}
+
 export interface GenerateCatalogPdfInput {
   catalogTitle: string;
   catalogSubtitle?: string;
