@@ -253,7 +253,6 @@ export default function CatalogBuilderClient({
   const [selectedFamilies, setSelectedFamilies] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<CatalogSortMode>('STOCK_DESC');
-  const [limit, setLimit] = useState<number>(60);
 
   // --- STATO RISULTATI & SELEZIONE ---
   const [products, setProducts] = useState<CatalogProductItem[]>(initialSearch.products || []);
@@ -329,7 +328,6 @@ export default function CatalogBuilderClient({
         families: selectedFamilies,
         categories: selectedCategories,
         sortBy,
-        limit,
       };
       const res = await searchAgentCatalogProducts(filters);
       if (cancelled) return;
@@ -359,7 +357,6 @@ export default function CatalogBuilderClient({
     selectedFamilies,
     selectedCategories,
     sortBy,
-    limit,
   ]);
 
   // Clienti filtrati in modo predittivo
@@ -464,7 +461,6 @@ export default function CatalogBuilderClient({
     setSelectedFamilies([]);
     setSelectedCategories([]);
     setSortBy('STOCK_DESC');
-    setLimit(60);
   };
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
@@ -799,7 +795,7 @@ export default function CatalogBuilderClient({
           />
         </div>
 
-        {/* RIGA 3: Ordinamento, Numero massimo di articoli e Reset Filtri */}
+        {/* RIGA 3: Ordinamento e Reset Filtri */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-gray-100">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -814,22 +810,6 @@ export default function CatalogBuilderClient({
                 <option value="PRICE_ASC">Prezzo Crescente</option>
                 <option value="PRICE_DESC">Prezzo Decrescente</option>
                 <option value="TITLE_ASC">Descrizione (A-Z)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-600">Max schede in catalogo (6 per foglio):</label>
-              <select
-                value={limit}
-                onChange={e => setLimit(Number(e.target.value))}
-                className="px-2.5 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white"
-              >
-                <option value={18}>18 schede (3 fogli)</option>
-                <option value={30}>30 schede (5 fogli)</option>
-                <option value={60}>60 schede (10 fogli)</option>
-                <option value={120}>120 schede (20 fogli)</option>
-                <option value={180}>180 schede (30 fogli)</option>
-                <option value={300}>300 schede (50 fogli)</option>
               </select>
             </div>
           </div>

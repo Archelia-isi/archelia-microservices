@@ -5,6 +5,9 @@ const nextConfig = {
     staleTimes: {
       dynamic: 0,
     },
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
   },
 };
 module.exports = nextConfig;

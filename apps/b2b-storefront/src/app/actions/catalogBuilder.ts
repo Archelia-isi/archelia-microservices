@@ -37,7 +37,7 @@ export interface CatalogSearchFilters {
   families: string[];
   categories: string[];
   sortBy: CatalogSortMode;
-  limit: number;
+  limit?: number;
 }
 
 export interface CatalogProductItem {
@@ -253,7 +253,6 @@ export async function getAgentCatalogInitData(): Promise<{
       families: [],
       categories: [],
       sortBy: 'STOCK_DESC',
-      limit: 60,
     }),
   ]);
 
@@ -292,9 +291,7 @@ export async function searchAgentCatalogProducts(
     const isWildcard = !rawQuery || rawQuery === '*';
     const q = isWildcard ? '*' : rawQuery;
 
-    const requestedLimit = Math.min(Math.max(filters.limit || 60, 6), 300);
-    const perPage = Math.min(requestedLimit, 250);
-    const pagesToFetch = requestedLimit > 250 ? 2 : 1;
+    const perPage = 250;
 
     let sortByStr = 'stock_main:desc,stock_ek:desc,natural_sku:asc';
     if (filters.sortBy === 'SKU_ASC') {
@@ -329,26 +326,8 @@ export async function searchAgentCatalogProducts(
       }
     }
 
-    const pagePromises = [];
-    for (let page = 1; page <= pagesToFetch; page++) {
-      pagePromises.push(
-        typesenseClient
-          .collections(PRODUCTS_COLLECTION_NAME)
-          .documents()
-          .search({
-            q,
-            query_by:
-              'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
-            query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
-            filter_by: filterBy || undefined,
-            sort_by: sortByStr,
-            facet_by: 'brand,product_group,family,category',
-            max_facet_values: 250,
-            per_page: perPage,
-            page,
-          })
-      );
-    }
+    const includeFields =
+      'id,sku,natural_sku,title,original_name,brand,product_group,family,category,technical_desc,description,unit,price,price_b2b,discgroup,stock,stock_main,stock_ek,image_url,catalog_source';
 
     // Se ci sono filtri di marchio/categoria attivi, eseguiamo in parallelo una query leggera (per_page: 0) per non far sparire le altre opzioni dai selettori
     const hasSubFilters =
@@ -356,6 +335,23 @@ export async function searchAgentCatalogProducts(
       filters.productGroups.length > 0 ||
       filters.families.length > 0 ||
       filters.categories.length > 0;
+
+    const firstPagePromise = typesenseClient
+      .collections(PRODUCTS_COLLECTION_NAME)
+      .documents()
+      .search({
+        q,
+        query_by:
+          'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+        query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+        filter_by: filterBy || undefined,
+        sort_by: sortByStr,
+        facet_by: 'brand,product_group,family,category',
+        max_facet_values: 250,
+        include_fields: includeFields,
+        per_page: perPage,
+        page: 1,
+      });
 
     const facetResPromise = hasSubFilters
       ? typesenseClient
@@ -372,14 +368,46 @@ export async function searchAgentCatalogProducts(
           })
       : null;
 
-    const [pageResults, broadFacetRes] = await Promise.all([
-      Promise.all(pagePromises),
-      facetResPromise,
-    ]);
+    const [firstPage, broadFacetRes] = await Promise.all([firstPagePromise, facetResPromise]);
 
-    const firstPage = pageResults[0];
     const totalFound = firstPage?.found || 0;
-    const allHits = pageResults.flatMap(r => r?.hits || []).slice(0, requestedLimit);
+    const totalPages = Math.ceil(totalFound / perPage);
+    const allHits: any[] = [...(firstPage?.hits || [])];
+
+    // Scarica tutte le pagine successive per restituire l'intero elenco dei prodotti corrispondenti
+    if (totalPages > 1) {
+      const remainingPageNumbers: number[] = [];
+      for (let p = 2; p <= totalPages; p++) {
+        remainingPageNumbers.push(p);
+      }
+      const batchSize = 10;
+      for (let i = 0; i < remainingPageNumbers.length; i += batchSize) {
+        const batch = remainingPageNumbers.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(page =>
+            typesenseClient
+              .collections(PRODUCTS_COLLECTION_NAME)
+              .documents()
+              .search({
+                q,
+                query_by:
+                  'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
+                query_by_weights: '200,180,150,100,100,100,100,80,80,80,60,50',
+                filter_by: filterBy || undefined,
+                sort_by: sortByStr,
+                include_fields: includeFields,
+                per_page: perPage,
+                page,
+              })
+          )
+        );
+        for (const r of batchResults) {
+          if (r?.hits) {
+            allHits.push(...r.hits);
+          }
+        }
+      }
+    }
 
     const products: CatalogProductItem[] = allHits.map((hit: any) => {
       const doc = hit.document || {};
@@ -679,20 +707,19 @@ export async function generateAgentCatalogPdfAction(
     return { success: false, error: 'Non autorizzato' };
   }
 
-  const items = (input.items || []).slice(0, 300);
+  const items = input.items || [];
   if (items.length === 0) {
     return { success: false, error: 'Seleziona almeno un prodotto per generare il catalogo PDF.' };
   }
 
   try {
-    // Scarica in parallelo (a blocchi di 18) le miniature JPEG per i prodotti selezionati
+    // Scarica in parallelo (a blocchi di 40) le miniature JPEG per tutti i prodotti selezionati
     const thumbs = new Map<
       number,
       { bytes: Buffer; width: number; height: number; components: number }
     >();
-    const maxThumbItems = Math.min(items.length, 150);
-    const batchSize = 18;
-    for (let i = 0; i < maxThumbItems; i += batchSize) {
+    const batchSize = 40;
+    for (let i = 0; i < items.length; i += batchSize) {
       const slice = items.slice(i, i + batchSize);
       const results = await Promise.all(slice.map(it => fetchJpegThumbnail(it.imageUrl)));
       results.forEach((r, idx) => {
