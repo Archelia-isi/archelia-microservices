@@ -417,7 +417,7 @@ export async function searchAgentCatalogProducts(
       return {
         id: String(doc.id || doc.sku),
         sku: String(doc.sku || doc.natural_sku || ''),
-        title: String(doc.title || doc.original_name || ''),
+        title: String(doc.original_name || doc.title || ''),
         originalName: String(doc.original_name || doc.title || ''),
         brand: brandCode,
         brandLabel: formatCodeWithLabel(brandCode, maps.brands),
@@ -605,7 +605,12 @@ function toJpegThumbnailUrl(rawUrl: string): string | null {
   return null;
 }
 
-function wrapTextLines(text: string, maxCharsPerLine: number, maxLines: number): string[] {
+function wrapTextLines(
+  text: string,
+  maxCharsPerLine: number,
+  maxLines: number,
+  truncateOverflow = false
+): string[] {
   const clean = (text || '').replace(/\s+/g, ' ').trim();
   if (!clean) return [];
   const words = clean.split(' ');
@@ -621,11 +626,13 @@ function wrapTextLines(text: string, maxCharsPerLine: number, maxLines: number):
       if (currentLine) {
         lines.push(currentLine);
         if (lines.length === maxLines) {
-          const last = lines[maxLines - 1];
-          lines[maxLines - 1] =
-            last.length >= maxCharsPerLine - 1
-              ? last.slice(0, maxCharsPerLine - 2).trim() + '..'
-              : last + '..';
+          if (truncateOverflow) {
+            const last = lines[maxLines - 1];
+            lines[maxLines - 1] =
+              last.length >= maxCharsPerLine - 1
+                ? last.slice(0, maxCharsPerLine - 2).trim() + '..'
+                : last + '..';
+          }
           return lines;
         }
         currentLine = word.length > maxCharsPerLine ? word.slice(0, maxCharsPerLine) : word;
@@ -825,10 +832,10 @@ export async function generateAgentCatalogPdfAction(
           )}) Tj ET`
         );
 
-        // 3. Sezione Superiore-Centrale: Foto Prodotto (94x94) a sinistra + Categoria/Titolo/Giacenza a destra
-        const imgBoxSize = 94;
+        // 3. Sezione Superiore-Centrale: Foto Prodotto (78x78) a sinistra + Categoria/Titolo 40 car./Giacenza a destra
+        const imgBoxSize = 78;
         const imgX = cardX + 8;
-        const imgY = cardY + 100;
+        const imgY = cardY + 119;
 
         cmd.push('0.98 0.98 0.99 rg');
         cmd.push(`${imgX} ${imgY} ${imgBoxSize} ${imgBoxSize} re f`);
@@ -844,32 +851,32 @@ export async function generateAgentCatalogPdfAction(
           cmd.push('Q');
         } else {
           cmd.push(
-            `BT /F2 7.5 Tf 0.58 0.63 0.70 rg ${imgX + 20} ${imgY + 48} Td ( IMMAGINE ) Tj ET`
+            `BT /F2 7 Tf 0.58 0.63 0.70 rg ${imgX + 14} ${imgY + 42} Td ( IMMAGINE ) Tj ET`
           );
           cmd.push(
-            `BT /F1 6.5 Tf 0.65 0.70 0.76 rg ${imgX + 16} ${imgY + 37} Td (NON DISPONIBILE) Tj ET`
+            `BT /F1 6 Tf 0.65 0.70 0.76 rg ${imgX + 10} ${imgY + 31} Td (NON DISPONIBILE) Tj ET`
           );
         }
 
-        // Colonna Destra accanto alla foto (Categoria + Titolo su 4 righe + Bollino Disponibilità)
-        const infoX = cardX + 108;
-        const infoW = CARD_W - 116; // 146pt
+        // Colonna Destra accanto alla foto (Categoria + Titolo di 40 caratteri completo + Bollino Disponibilità)
+        const infoX = cardX + 92;
+        const infoW = CARD_W - 100; // 162pt
 
         // Categoria
         const catText = truncateText(
           (item.categoryLabel || 'ARTICOLO A CATALOGO').toUpperCase(),
-          30
+          34
         );
         cmd.push(
-          `BT /F2 6.5 Tf 0.38 0.45 0.56 rg ${infoX} ${cardY + 186} Td (${toPdfSafeLatin1(
+          `BT /F2 6.5 Tf 0.38 0.45 0.56 rg ${infoX} ${cardY + 188} Td (${toPdfSafeLatin1(
             catText
           )}) Tj ET`
         );
 
-        // Titolo Prodotto avvolto fino a 4 righe
-        const titleLines = wrapTextLines(item.title || item.sku, 26, 4);
+        // Titolo Prodotto (descrizione Zucchetti di 40 caratteri, mai troncata)
+        const titleLines = wrapTextLines(item.title || item.sku, 29, 3, false);
         titleLines.forEach((line, lIdx) => {
-          const lineY = cardY + 173 - lIdx * 11;
+          const lineY = cardY + 174 - lIdx * 11;
           cmd.push(
             `BT /F2 8.5 Tf 0.07 0.09 0.14 rg ${infoX} ${lineY} Td (${toPdfSafeLatin1(
               line
@@ -924,7 +931,7 @@ export async function generateAgentCatalogPdfAction(
             cmd.push('0.95 0.96 0.97 rg');
             cmd.push('0.84 0.86 0.89 RG 0.5 w');
           }
-          cmd.push(`${infoX} ${cardY + 100} ${infoW} 17 re B`);
+          cmd.push(`${infoX} ${cardY + 119} ${infoW} 17 re B`);
 
           if (isReady2GG) {
             cmd.push('0.05 0.45 0.18 rg');
@@ -934,17 +941,17 @@ export async function generateAgentCatalogPdfAction(
             cmd.push('0.40 0.44 0.50 rg');
           }
           cmd.push(
-            `BT /F2 7 Tf ${infoX + 6} ${cardY + 106} Td (${toPdfSafeLatin1(
-              truncateText(stockLabel, 29)
+            `BT /F2 7 Tf ${infoX + 6} ${cardY + 125} Td (${toPdfSafeLatin1(
+              truncateText(stockLabel, 32)
             )}) Tj ET`
           );
         }
 
-        // 4. Fascia Centrale: Specifiche Tecniche (larghezza intera della scheda)
+        // 4. Fascia Centrale: Specifiche e Descrizione Tecnica COMPLETA (non troncata, alta 68pt)
         const specBoxX = cardX + 8;
-        const specBoxY = cardY + 50;
+        const specBoxY = cardY + 46;
         const specBoxW = CARD_W - 16; // 246pt
-        const specBoxH = 44;
+        const specBoxH = 68;
 
         cmd.push('0.96 0.97 0.99 rg');
         cmd.push(`${specBoxX} ${specBoxY} ${specBoxW} ${specBoxH} re f`);
@@ -953,7 +960,7 @@ export async function generateAgentCatalogPdfAction(
 
         cmd.push(
           `BT /F2 6.5 Tf 0.38 0.43 0.52 rg ${specBoxX + 6} ${
-            specBoxY + 33
+            specBoxY + 57
           } Td (SPECIFICHE E DESCRIZIONE TECNICA) Tj ET`
         );
 
@@ -961,28 +968,46 @@ export async function generateAgentCatalogPdfAction(
           .replace(/;/g, '  |  ')
           .replace(/\s+/g, ' ')
           .trim();
-        const specLines = wrapTextLines(rawSpecs, 54, 2);
-        if (specLines.length > 0) {
-          specLines.forEach((sLine, sIdx) => {
-            cmd.push(
-              `BT /F1 7 Tf 0.18 0.22 0.29 rg ${specBoxX + 6} ${
-                specBoxY + 20 - sIdx * 10
-              } Td (${toPdfSafeLatin1(sLine)}) Tj ET`
-            );
+
+        if (rawSpecs) {
+          // Adatta automaticamente dimensione font e caratteri per riga per non troncare mai la descrizione tecnica
+          let specFontSize = 7;
+          let specLineStep = 9;
+          let specLines = wrapTextLines(rawSpecs, 58, 12, false);
+
+          if (specLines.length > 5 && specLines.length <= 7) {
+            specFontSize = 6.2;
+            specLineStep = 7.4;
+            specLines = wrapTextLines(rawSpecs, 66, 12, false);
+          } else if (specLines.length > 7) {
+            specFontSize = 5.5;
+            specLineStep = 6.2;
+            specLines = wrapTextLines(rawSpecs, 75, 12, false);
+          }
+
+          specLines.slice(0, 8).forEach((sLine, sIdx) => {
+            const lineY = specBoxY + 45 - sIdx * specLineStep;
+            if (lineY >= specBoxY + 3) {
+              cmd.push(
+                `BT /F1 ${specFontSize} Tf 0.18 0.22 0.29 rg ${specBoxX + 6} ${lineY.toFixed(
+                  1
+                )} Td (${toPdfSafeLatin1(sLine)}) Tj ET`
+              );
+            }
           });
         } else {
           cmd.push(
             `BT /F1 7 Tf 0.50 0.55 0.62 rg ${specBoxX + 6} ${
-              specBoxY + 18
+              specBoxY + 42
             } Td (Unita' di vendita: ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
           );
         }
 
         // 5. Fascia Inferiore della Scheda: Box Prezzi (o riepilogo tecnico se NO_PRICE)
         const priceBoxX = cardX + 8;
-        const priceBoxY = cardY + 7;
+        const priceBoxY = cardY + 6;
         const priceBoxW = CARD_W - 16; // 246pt
-        const priceBoxH = 38;
+        const priceBoxH = 35;
 
         if (input.priceMode === 'NO_PRICE') {
           cmd.push('0.94 0.95 0.97 rg');

@@ -536,7 +536,7 @@ export default function CatalogBuilderClient({
         const catParts = [p.productGroupLabel, p.familyLabel, p.categoryLabel].filter(Boolean);
         return {
           sku: p.sku,
-          title: p.title || p.originalName,
+          title: p.originalName || p.title,
           brand: p.brandLabel || p.brand,
           categoryLabel: catParts[catParts.length - 1] || '',
           technicalDesc: p.technicalDesc || p.description || '',
@@ -1265,8 +1265,8 @@ export default function CatalogBuilderClient({
                                     product.productGroupLabel ||
                                     'Articolo a Catalogo'}
                                 </div>
-                                <h3 className="text-sm font-extrabold text-gray-900 line-clamp-3 leading-snug mt-0.5">
-                                  {product.title || product.originalName}
+                                <h3 className="text-sm font-extrabold text-gray-900 leading-snug mt-0.5">
+                                  {product.originalName || product.title}
                                 </h3>
                               </div>
 
@@ -1318,13 +1318,13 @@ export default function CatalogBuilderClient({
                             </div>
                           </div>
 
-                          {/* 3. Fascia Centrale: Box Specifiche Tecniche */}
+                          {/* 3. Fascia Centrale: Box Specifiche Tecniche (non troncata) */}
                           <div className="mx-3.5 mb-2.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
                             <div className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider mb-0.5">
                               Specifiche e Descrizione Tecnica
                             </div>
-                            <p className="text-[11px] text-slate-700 line-clamp-2 leading-relaxed">
-                              {(product.technicalDesc || product.description || product.title || '')
+                            <p className="text-[11px] text-slate-700 leading-relaxed break-words">
+                              {(product.technicalDesc || product.description || product.originalName || product.title || '')
                                 .replace(/;/g, '  |  ')}
                             </p>
                           </div>
