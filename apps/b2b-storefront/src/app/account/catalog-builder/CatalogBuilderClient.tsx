@@ -299,13 +299,11 @@ export default function CatalogBuilderClient({
   const [extraDiscount, setExtraDiscount] = useState<number>(0);
   const [elmarkDiscounts, setElmarkDiscounts] = useState<Record<string, number>>({});
 
-  // Vista UI, Modale Anteprima a tutto schermo e generazione PDF
+  // Vista UI, Modale Anteprima a tutto schermo, Zoom e generazione PDF
   const [showConfigPanel, setShowConfigPanel] = useState<boolean>(true);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
   const [previewViewMode, setPreviewViewMode] = useState<'SINGLE' | 'DOUBLE'>('DOUBLE');
-  const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
-  const flipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const flipMidTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState('');
 
@@ -672,41 +670,28 @@ export default function CatalogBuilderClient({
       ? leftSpreadSheet + 2 < totalSheets
       : safeCurrentSheet < totalSheets - 1;
 
-  const flipToSheet = (targetSheet: number) => {
+  const goToSheet = (targetSheet: number) => {
     const clamped = Math.min(Math.max(0, targetSheet), totalSheets - 1);
     const normalizedTarget =
       previewViewMode === 'DOUBLE' ? Math.floor(clamped / 2) * 2 : clamped;
-    const currentBase =
-      previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet;
-
-    if (normalizedTarget === currentBase) return;
-
-    if (flipTimeoutRef.current) clearTimeout(flipTimeoutRef.current);
-    if (flipMidTimeoutRef.current) clearTimeout(flipMidTimeoutRef.current);
-
-    const dir: 'next' | 'prev' = normalizedTarget > currentBase ? 'next' : 'prev';
-    setFlipDirection(dir);
-
-    flipMidTimeoutRef.current = setTimeout(() => {
-      setCurrentSheet(normalizedTarget);
-    }, 240);
-
-    flipTimeoutRef.current = setTimeout(() => {
-      setFlipDirection(null);
-    }, 540);
+    setCurrentSheet(normalizedTarget);
   };
 
   const handlePrevPage = () => {
     if (!canGoPrev) return;
     const base = previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet;
-    flipToSheet(Math.max(0, base - pageStep));
+    goToSheet(Math.max(0, base - pageStep));
   };
 
   const handleNextPage = () => {
     if (!canGoNext) return;
     const base = previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet;
-    flipToSheet(Math.min(totalSheets - 1, base + pageStep));
+    goToSheet(Math.min(totalSheets - 1, base + pageStep));
   };
+
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(200, prev + 15));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(50, prev - 15));
+  const handleZoomReset = () => setZoomLevel(100);
 
   // Navigazione da tastiera e blocco scroll pagina quando il modale anteprima è aperto
   useEffect(() => {
@@ -723,6 +708,15 @@ export default function CatalogBuilderClient({
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handlePrevPage();
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        handleZoomIn();
+      } else if (e.key === '-') {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        handleZoomReset();
       }
     };
 
@@ -2026,78 +2020,9 @@ export default function CatalogBuilderClient({
         )}
       </div>
 
-      {/* MODALE A TUTTO SCHERMO PER L'ANTEPRIMA SFOGLIABILE DEL CATALOGO (1 PAGINA O 2 PAGINE CON ANIMAZIONE 3D DEL FOGLIO CHE SI GIRA) */}
+      {/* MODALE A TUTTO SCHERMO PER L'ANTEPRIMA SFOGLIABILE DEL CATALOGO (1 PAGINA O 2 PAGINE + ZOOM) */}
       {isPreviewModalOpen && (
         <div className="fixed inset-0 z-[120] bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden">
-          {/* Stili 3D per l'animazione realistica del foglio che si gira */}
-          <style>{`
-            @keyframes catalogPageTurnNext {
-              0% {
-                transform: perspective(2400px) rotateY(0deg) scale(1);
-                filter: brightness(1);
-              }
-              45% {
-                transform: perspective(2400px) rotateY(-88deg) scale(0.96);
-                filter: brightness(0.78);
-              }
-              55% {
-                transform: perspective(2400px) rotateY(88deg) scale(0.96);
-                filter: brightness(0.78);
-              }
-              100% {
-                transform: perspective(2400px) rotateY(0deg) scale(1);
-                filter: brightness(1);
-              }
-            }
-            @keyframes catalogPageTurnPrev {
-              0% {
-                transform: perspective(2400px) rotateY(0deg) scale(1);
-                filter: brightness(1);
-              }
-              45% {
-                transform: perspective(2400px) rotateY(88deg) scale(0.96);
-                filter: brightness(0.78);
-              }
-              55% {
-                transform: perspective(2400px) rotateY(-88deg) scale(0.96);
-                filter: brightness(0.78);
-              }
-              100% {
-                transform: perspective(2400px) rotateY(0deg) scale(1);
-                filter: brightness(1);
-              }
-            }
-            @keyframes catalogCurlShadowSweep {
-              0% {
-                opacity: 0;
-              }
-              45% {
-                opacity: 0.45;
-              }
-              55% {
-                opacity: 0.45;
-              }
-              100% {
-                opacity: 0;
-              }
-            }
-            .catalog-3d-stage {
-              perspective: 2400px;
-              transform-style: preserve-3d;
-            }
-            .catalog-flip-next {
-              animation: catalogPageTurnNext 540ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-              transform-origin: center center;
-            }
-            .catalog-flip-prev {
-              animation: catalogPageTurnPrev 540ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-              transform-origin: center center;
-            }
-            .catalog-curl-shadow {
-              animation: catalogCurlShadowSweep 540ms ease-in-out forwards;
-            }
-          `}</style>
-
           {/* Barra Superiore Modale Anteprima */}
           <div className="px-4 sm:px-6 py-3 bg-black border-b border-gray-800 text-white flex flex-wrap items-center justify-between gap-3 shrink-0">
             {/* Sinistra: Logo + Info Catalogo */}
@@ -2120,7 +2045,7 @@ export default function CatalogBuilderClient({
               </div>
             </div>
 
-            {/* Centro: Switch 1 Pagina / 2 Pagine + Controlli Sfoglia Pagina */}
+            {/* Centro: Switch 1 Pagina / 2 Pagine + Controlli Zoom + Controlli Sfoglia Pagina */}
             <div className="flex flex-wrap items-center gap-3">
               {/* Selettore Modalità di Visualizzazione: 1 Pagina vs 2 Pagine */}
               <div className="inline-flex rounded-lg bg-gray-900 p-1 border border-gray-800">
@@ -2153,11 +2078,41 @@ export default function CatalogBuilderClient({
                 </button>
               </div>
 
+              {/* Controlli Zoom - / % / + */}
+              <div className="inline-flex items-center rounded-lg bg-gray-900 p-1 border border-gray-700">
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  disabled={zoomLevel <= 50}
+                  className="px-2.5 py-1 text-xs font-black rounded text-white hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+                  title="Rimpicciolisci catalogo (Zoom -)"
+                >
+                  🔍 −
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomReset}
+                  className="px-2.5 py-1 text-xs font-mono font-black text-brand-main hover:bg-gray-800 rounded transition-colors min-w-[54px] text-center"
+                  title="Clicca per riportare lo zoom al 100%"
+                >
+                  {zoomLevel}%
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  disabled={zoomLevel >= 200}
+                  className="px-2.5 py-1 text-xs font-black rounded text-white hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+                  title="Ingrandisci catalogo (Zoom +)"
+                >
+                  🔍 +
+                </button>
+              </div>
+
               {/* Controlli di Sfoglia Pagine */}
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => flipToSheet(0)}
+                  onClick={() => goToSheet(0)}
                   disabled={!canGoPrev}
                   className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gray-900 border border-gray-700 text-gray-200 hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
                   title="Prima pagina"
@@ -2170,12 +2125,12 @@ export default function CatalogBuilderClient({
                   disabled={!canGoPrev}
                   className="px-3 py-1.5 text-xs font-black rounded-lg bg-gray-900 border border-gray-700 text-white hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                 >
-                  ◀ Sfoglia
+                  ◀ Indietro
                 </button>
 
                 <select
                   value={previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet}
-                  onChange={e => flipToSheet(Number(e.target.value))}
+                  onChange={e => goToSheet(Number(e.target.value))}
                   className="bg-gray-900 text-brand-main text-xs font-black px-3 py-1.5 rounded-lg border border-gray-700 focus:outline-none cursor-pointer"
                 >
                   {previewViewMode === 'DOUBLE'
@@ -2203,11 +2158,11 @@ export default function CatalogBuilderClient({
                   disabled={!canGoNext}
                   className="px-3 py-1.5 text-xs font-black rounded-lg bg-gray-900 border border-gray-700 text-white hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                 >
-                  Sfoglia ▶
+                  Avanti ▶
                 </button>
                 <button
                   type="button"
-                  onClick={() => flipToSheet(totalSheets - 1)}
+                  onClick={() => goToSheet(totalSheets - 1)}
                   disabled={!canGoNext}
                   className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gray-900 border border-gray-700 text-gray-200 hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
                   title="Ultima pagina"
@@ -2245,47 +2200,29 @@ export default function CatalogBuilderClient({
             </div>
           </div>
 
-          {/* Corpo Centrale Modale: Tavolo di Lettura con Fogli A4 Sfogliabili in 3D */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex items-center justify-center">
+          {/* Corpo Centrale Modale: Tavolo di Lettura con Zoom e Fogli A4 */}
+          <div className="flex-1 overflow-auto p-4 sm:p-8 flex items-start justify-center">
             <div className="w-full max-w-[1680px] mx-auto flex items-center justify-center gap-3 sm:gap-5 my-auto">
-              {/* Freccia Laterale Sinistra per Girare Pagina Indietro */}
+              {/* Freccia Laterale Sinistra */}
               <button
                 type="button"
                 onClick={handlePrevPage}
                 disabled={!canGoPrev}
-                className="hidden md:flex w-13 h-32 rounded-2xl bg-gray-900/90 hover:bg-black border border-gray-700 text-brand-main items-center justify-center shadow-2xl transition-all disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
-                title="Gira Pagina Indietro (←)"
+                className="hidden md:flex w-13 h-32 rounded-2xl bg-gray-900/90 hover:bg-black border border-gray-700 text-brand-main items-center justify-center shadow-2xl transition-all disabled:opacity-20 disabled:cursor-not-allowed shrink-0 sticky top-1/2"
+                title="Pagina Precedente (←)"
               >
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
 
-              {/* Contenitore 3D con Animazione del Foglio che si Gira */}
+              {/* Contenitore Fogli A4 con Zoom Dinamico */}
               <div
-                className={`catalog-3d-stage relative w-full ${
+                style={{ zoom: zoomLevel / 100 } as React.CSSProperties}
+                className={`relative w-full transition-all duration-150 ${
                   previewViewMode === 'DOUBLE' ? 'max-w-[1520px]' : 'max-w-4xl'
-                } ${
-                  flipDirection === 'next'
-                    ? 'catalog-flip-next'
-                    : flipDirection === 'prev'
-                    ? 'catalog-flip-prev'
-                    : ''
                 }`}
               >
-                {/* Ombra dinamica di curvatura del foglio durante la rotazione */}
-                {flipDirection && (
-                  <div
-                    className="catalog-curl-shadow pointer-events-none absolute inset-0 z-30 rounded-2xl"
-                    style={{
-                      background:
-                        flipDirection === 'next'
-                          ? 'linear-gradient(90deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.38) 50%, rgba(255,255,255,0.18) 100%)'
-                          : 'linear-gradient(270deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.38) 50%, rgba(255,255,255,0.18) 100%)',
-                    }}
-                  />
-                )}
-
                 {previewViewMode === 'SINGLE' ? (
                   /* VISTA 1 PAGINA SINGOLA */
                   renderA4Sheet(safeCurrentSheet)
@@ -2313,13 +2250,13 @@ export default function CatalogBuilderClient({
                 )}
               </div>
 
-              {/* Freccia Laterale Destra per Girare Pagina Avanti */}
+              {/* Freccia Laterale Destra */}
               <button
                 type="button"
                 onClick={handleNextPage}
                 disabled={!canGoNext}
-                className="hidden md:flex w-13 h-32 rounded-2xl bg-gray-900/90 hover:bg-black border border-gray-700 text-brand-main items-center justify-center shadow-2xl transition-all disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
-                title="Gira Pagina Avanti (→)"
+                className="hidden md:flex w-13 h-32 rounded-2xl bg-gray-900/90 hover:bg-black border border-gray-700 text-brand-main items-center justify-center shadow-2xl transition-all disabled:opacity-20 disabled:cursor-not-allowed shrink-0 sticky top-1/2"
+                title="Pagina Successiva (→)"
               >
                 <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
