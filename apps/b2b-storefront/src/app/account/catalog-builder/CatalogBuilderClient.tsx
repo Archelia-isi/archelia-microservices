@@ -1225,9 +1225,12 @@ export default function CatalogBuilderClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* INTESTAZIONE PRINCIPALE */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="relative">
+      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+        {/* COLONNA CENTRALE: CONFIGURAZIONE E AGGIUNTA PRODOTTI */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {/* INTESTAZIONE PRINCIPALE */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
@@ -1903,94 +1906,101 @@ export default function CatalogBuilderClient({
           </div>
         </div>
       )}
+        </div>
 
-      {/* PANNELLO 3: RIEPILOGO COMPATTO PRODOTTI SELEZIONATI + PULSANTE APERTURA MODALE ANTEPRIMA */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 sm:px-6 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-black text-gray-900">
-              Articoli inseriti nel catalogo: {sortedCatalogProducts.length}{' '}
-              <span className="text-xs font-semibold text-gray-500">
-                ({sortedCatalogProducts.length > 0 ? totalSheets : 0}{' '}
-                {totalSheets === 1 ? 'foglio A4' : 'fogli A4'})
+        {/* COLONNA DESTRA FISSA STILE CARRELLO AMAZON (STICKY + SCORREVOLE INTERNAMENTE) */}
+        <aside className="w-full lg:w-[340px] xl:w-[360px] shrink-0 lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] bg-white rounded-xl shadow-md border border-gray-200 flex flex-col overflow-hidden">
+          {/* Header Fisso del Carrello Catalogo */}
+          <div className="p-4 bg-black text-white border-b-2 border-brand-main shrink-0 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-main text-black font-black text-sm shrink-0">
+                  🛒
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-black tracking-wide uppercase text-white truncate">
+                    Articoli nel Catalogo
+                  </h2>
+                  <p className="text-[11px] text-gray-400">
+                    {sortedCatalogProducts.length} schede •{' '}
+                    {sortedCatalogProducts.length > 0 ? totalSheets : 0}{' '}
+                    {totalSheets === 1 ? 'foglio A4' : 'fogli A4'}
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 text-xs font-black rounded-full bg-brand-main text-black shrink-0">
+                {sortedCatalogProducts.length}
               </span>
-            </span>
-            {sortedCatalogProducts.length > 0 && (
-              <>
-                <span className="text-xs text-gray-400">|</span>
-                <button
-                  type="button"
-                  onClick={handleClearCatalog}
-                  className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline"
-                >
-                  Svuota tutto
-                </button>
-              </>
-            )}
-          </div>
+            </div>
 
-          {sortedCatalogProducts.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2.5">
+            {/* Pulsanti Rapidi in stile Checkout Carrello Amazon */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setIsPreviewModalOpen(true)}
-                className="px-4 py-2 text-xs sm:text-sm font-black rounded-lg bg-gray-900 hover:bg-black text-white shadow-sm transition-all flex items-center gap-2"
+                disabled={sortedCatalogProducts.length === 0}
+                className="px-3 py-2 text-xs font-black rounded-lg bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                <svg className="w-4 h-4 text-brand-main" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.2}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                Apri Anteprima Catalogo (1 o 2 Pagine)
+                <span>👁️</span>
+                <span>Anteprima</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
+                className="px-3 py-2 text-xs font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    <span>PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⬇</span>
+                    <span>Scarica PDF</span>
+                  </>
+                )}
               </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {isSearching ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-10 h-10 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-semibold text-gray-600">
-              Caricamento schede prodotto nel catalogo...
-            </p>
-          </div>
-        ) : searchError ? (
-          <div className="p-10 text-center text-red-600 font-semibold text-sm">{searchError}</div>
-        ) : sortedCatalogProducts.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-11 h-11 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-xl font-black">
-              +
-            </div>
-            <p className="text-sm font-bold text-gray-800">
-              Il tuo catalogo è vuoto — inizia ad aggiungere i prodotti
-            </p>
-            <p className="text-xs text-gray-500 max-w-lg mx-auto leading-relaxed">
-              Scrivi un codice nella <strong>barra predittiva qui sopra</strong> (es.{' '}
-              <code className="px-1.5 py-0.5 bg-gray-100 rounded font-bold text-gray-800">E45</code>
-              , clicca sul prodotto, poi scrivi{' '}
-              <code className="px-1.5 py-0.5 bg-gray-100 rounded font-bold text-gray-800">IL34</code>{' '}
-              e clicca sul successivo), oppure seleziona un{' '}
-              <strong>Marchio / Gruppo / Famiglia / Categoria</strong> per caricare un intero reparto.
-            </p>
-          </div>
-        ) : (
-          <div className="p-4 sm:p-5">
-            <div className="max-h-72 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pr-1">
-              {sortedCatalogProducts.map((product, idx) => {
+          {/* Lista Scorrevole degli Articoli Inseriti */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/50">
+            {isSearching ? (
+              <div className="py-16 px-4 text-center space-y-3">
+                <div className="w-8 h-8 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs font-semibold text-gray-600">
+                  Caricamento articoli nel catalogo...
+                </p>
+              </div>
+            ) : searchError ? (
+              <div className="p-6 text-center text-red-600 font-semibold text-xs">{searchError}</div>
+            ) : sortedCatalogProducts.length === 0 ? (
+              <div className="py-14 px-4 text-center space-y-2.5">
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-lg font-black">
+                  +
+                </div>
+                <p className="text-xs font-bold text-gray-800">
+                  Il tuo catalogo è vuoto
+                </p>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Cerca un codice SKU nella barra predittiva o seleziona un reparto a sinistra per aggiungere articoli qui.
+                </p>
+              </div>
+            ) : (
+              sortedCatalogProducts.map((product, idx) => {
                 const pricing = calculateProductPricing(product);
                 return (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50/70 hover:bg-white transition-colors"
+                    className="flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 shadow-sm transition-all"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="text-[10px] font-black text-gray-400 w-5 shrink-0">
                         #{idx + 1}
                       </span>
-                      <div className="w-9 h-9 rounded border border-gray-200 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
+                      <div className="w-10 h-10 rounded border border-gray-200 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
                         {product.imageUrl ? (
                           <img
                             src={product.imageUrl}
@@ -2031,10 +2041,28 @@ export default function CatalogBuilderClient({
                     </button>
                   </div>
                 );
-              })}
-            </div>
+              })
+            )}
           </div>
-        )}
+
+          {/* Footer Fisso del Carrello Catalogo */}
+          <div className="px-4 py-2.5 bg-white border-t border-gray-200 flex items-center justify-between text-xs shrink-0">
+            <span className="font-semibold text-gray-600">
+              {sortedCatalogProducts.length > 0
+                ? `${totalSheets} ${totalSheets === 1 ? 'foglio A4' : 'fogli A4'} (6/foglio)`
+                : '0 fogli A4'}
+            </span>
+            {sortedCatalogProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearCatalog}
+                className="font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                ✕ Svuota tutto
+              </button>
+            )}
+          </div>
+        </aside>
       </div>
 
       {/* MODALE A TUTTO SCHERMO PER L'ANTEPRIMA SFOGLIABILE DEL CATALOGO (1 PAGINA O 2 PAGINE + ZOOM) */}
