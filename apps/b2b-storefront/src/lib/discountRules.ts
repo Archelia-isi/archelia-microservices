@@ -6,6 +6,7 @@ import {
   DiscountTargetProductMeta,
   DiscountTargetType,
   doesRuleMatchClient,
+  isDiscountRuleExpired,
 } from './discountRulesEngine';
 
 export * from './discountRulesEngine';
@@ -39,6 +40,7 @@ export async function ensureDiscountRulesTable(): Promise<void> {
         "calculationMode" TEXT NOT NULL DEFAULT 'EXTRA_CASCADE',
         "discountValue" DOUBLE PRECISION NOT NULL DEFAULT 0,
         "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "expiresAt" TIMESTAMP(3),
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
@@ -48,7 +50,8 @@ export async function ensureDiscountRulesTable(): Promise<void> {
         ADD COLUMN IF NOT EXISTS "clientIds" JSONB NOT NULL DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS "clientCodes" JSONB NOT NULL DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS "clientsMeta" JSONB NOT NULL DEFAULT '[]'::jsonb,
-        ADD COLUMN IF NOT EXISTS "clientCategories" JSONB NOT NULL DEFAULT '[]'::jsonb;
+        ADD COLUMN IF NOT EXISTS "clientCategories" JSONB NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS "expiresAt" TIMESTAMP(3);
     `);
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "idx_b2b_agent_discount_rules_agent"
@@ -172,6 +175,7 @@ export function mapRowToAgentDiscountRule(row: any): AgentDiscountRule {
       row.calculationMode === 'FIXED_OVERRIDE' ? 'FIXED_OVERRIDE' : 'EXTRA_CASCADE',
     discountValue: Number(row.discountValue || 0),
     isActive: Boolean(row.isActive),
+    expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
     updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString(),
   };
@@ -245,6 +249,7 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
     tableInitialized = true;
     const mapped = (rows || []).map(mapRowToAgentDiscountRule);
     return mapped.filter(rule => {
+      if (isDiscountRuleExpired(rule)) return false;
       if (rule.clientScope === 'ALL_CLIENTS') {
         return !agentId || rule.agentId === agentId;
       }

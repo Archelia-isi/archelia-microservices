@@ -54,6 +54,7 @@ export interface AgentDiscountRule {
   calculationMode: DiscountCalculationMode;
   discountValue: number;
   isActive: boolean;
+  expiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -182,6 +183,36 @@ export function doesRuleMatchClient(
 }
 
 /**
+ * Verifica se una regola di sconto è scaduta rispetto alla data/ora corrente.
+ * Se `expiresAt` è nullo o vuoto ("Senza scadenza"), ritorna `false`.
+ */
+export function isDiscountRuleExpired(
+  rule: { expiresAt?: string | null },
+  now: Date = new Date()
+): boolean {
+  if (!rule.expiresAt) return false;
+  const raw = String(rule.expiresAt).trim();
+  if (!raw) return false;
+
+  // Se è nel formato YYYY-MM-DD, considera valido fino alle 23:59:59.999 di quel giorno
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  const expTime = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+        23,
+        59,
+        59,
+        999
+      ).getTime()
+    : new Date(raw).getTime();
+
+  if (isNaN(expTime)) return false;
+  return now.getTime() > expTime;
+}
+
+/**
  * Calcola il punteggio di specificità di una regola per un dato prodotto e cliente.
  * Ritorna -1 se la regola NON si applica al prodotto o al cliente.
  * Gerarchia destinatario:
@@ -194,7 +225,7 @@ export function scoreRuleForProduct(
   product: ProductDiscountInput,
   clientContext?: ClientDiscountMatchContext
 ): number {
-  if (!rule.isActive || rule.discountValue <= 0) return -1;
+  if (!rule.isActive || rule.discountValue <= 0 || isDiscountRuleExpired(rule)) return -1;
 
   // 1. Verifica destinatario cliente
   let clientScore = 0;

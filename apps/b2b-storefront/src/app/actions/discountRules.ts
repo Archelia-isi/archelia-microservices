@@ -45,6 +45,7 @@ export interface SaveDiscountRuleInput {
   calculationMode: DiscountCalculationMode;
   discountValue: number;
   isActive?: boolean;
+  expiresAt?: string | null;
 }
 
 export async function getAgentDiscountManagementInitData(): Promise<{
@@ -313,6 +314,20 @@ export async function saveAgentDiscountRuleAction(
   }
 
   const isActive = input.isActive !== undefined ? Boolean(input.isActive) : true;
+
+  // Risoluzione data di scadenza opzionale (fine giornata 23:59:59.999 se passata come YYYY-MM-DD, oppure null per "Senza scadenza")
+  let parsedExpiresAt: Date | null = null;
+  if (input.expiresAt && String(input.expiresAt).trim()) {
+    const rawExp = String(input.expiresAt).trim();
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawExp);
+    const dt = dateOnly
+      ? new Date(`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T23:59:59.999Z`)
+      : new Date(rawExp);
+    if (!isNaN(dt.getTime())) {
+      parsedExpiresAt = dt;
+    }
+  }
+
   const isSpecificClients =
     clientScope === 'SINGLE_CLIENT' || clientScope === 'SELECTED_CLIENTS';
   const primaryClientId = isSpecificClients ? clientIds[0] || null : null;
@@ -352,13 +367,14 @@ export async function saveAgentDiscountRuleAction(
         "calculationMode",
         "discountValue",
         "isActive",
+        "expiresAt",
         "createdAt",
         "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8,
         $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13,
         $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb,
-        $20, $21, $22, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $20, $21, $22, $23, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
@@ -380,6 +396,7 @@ export async function saveAgentDiscountRuleAction(
         "calculationMode" = EXCLUDED."calculationMode",
         "discountValue" = EXCLUDED."discountValue",
         "isActive" = EXCLUDED."isActive",
+        "expiresAt" = EXCLUDED."expiresAt",
         "updatedAt" = CURRENT_TIMESTAMP`,
       ruleId,
       session.user.id,
@@ -402,7 +419,8 @@ export async function saveAgentDiscountRuleAction(
       JSON.stringify(targetCategories),
       calculationMode,
       discountVal,
-      isActive
+      isActive,
+      parsedExpiresAt
     );
 
     revalidatePath('/', 'layout');
