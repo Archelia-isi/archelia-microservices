@@ -1566,19 +1566,6 @@ export default function CatalogBuilderClient({
           </div>
         </div>
 
-        {/* Barra riepilogo */}
-        <div className="px-4 py-2.5 bg-amber-50/50 border-b border-gray-100 text-xs text-gray-700 flex flex-wrap items-center justify-between gap-2">
-          <div className="truncate">
-            <span className="font-bold text-gray-900"> Sintesi Catalogo: </span>
-            <span>{filterSummaryText}</span>
-          </div>
-          {selectedClient && (
-            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[11px] shrink-0">
-              Cliente: {selectedClient.companyName} ({selectedClient.zucchettiCode})
-            </span>
-          )}
-        </div>
-
         {/* Stato di caricamento / vuoto / Foglio A4 Singolo Sfogliabile */}
         {isSearching ? (
           <div className="p-16 text-center space-y-3">
@@ -1747,11 +1734,11 @@ export default function CatalogBuilderClient({
                                 </div>
                               ) : product.stockMain > 0 ? (
                                 <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded">
-                                  ● Pronta Consegna (Dep. 2GG)
+                                  ● Pronta Consegna (2GG)
                                 </span>
                               ) : product.stockEk > 0 ? (
                                 <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 rounded">
-                                  ● Disponibile (Dep. 7GG)
+                                  ● Disponibile (Consegna 7GG)
                                 </span>
                               ) : (
                                 <span className="inline-block px-2.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-500 rounded">

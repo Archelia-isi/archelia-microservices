@@ -1075,9 +1075,9 @@ export async function generateAgentCatalogPdfAction(
     const CARD_W = 262;
     const CARD_H = 224;
     const GAP_X = 15;
-    const GAP_Y = 14;
+    const GAP_Y = 16;
     const MARGIN_X = 28;
-    const FIRST_ROW_TOP_Y = 738; // Y superiore della prima riga di schede
+    const FIRST_ROW_TOP_Y = 750; // Y superiore della prima riga di schede
 
     const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
     const dateStr = new Date().toLocaleDateString('it-IT', {
@@ -1156,17 +1156,6 @@ export async function generateAgentCatalogPdfAction(
       );
       cmd.push(
         `BT /F1 8 Tf 0.75 0.80 0.85 rg 465 799 Td (Tot. ${items.length} schede) Tj ET`
-      );
-
-      // Fascia riepilogo filtri
-      cmd.push('0.95 0.96 0.98 rg');
-      cmd.push('28 745 539 19 re f');
-      cmd.push('0.85 0.88 0.92 RG 0.5 w');
-      cmd.push('28 745 539 19 re S');
-      cmd.push(
-        `BT /F1 7.5 Tf 0.25 0.30 0.38 rg 35 752 Td (${toPdfSafeLatin1(
-          truncateText(input.filterSummary || 'Tutti i prodotti selezionati', 112)
-        )}) Tj ET`
       );
 
       // Griglia 6 Schede per foglio (2 colonne x 3 righe)
@@ -1274,10 +1263,10 @@ export async function generateAgentCatalogPdfAction(
               stockLabel = 'Pronta Consegna 2GG + 7GG';
             } else if (item.stockMain > 0) {
               isReady2GG = true;
-              stockLabel = 'Pronta Consegna (Dep. 2GG)';
+              stockLabel = 'Pronta Consegna (2GG)';
             } else if (item.stockEk > 0) {
               isAvail7GG = true;
-              stockLabel = 'Disponibile (Dep. 7GG)';
+              stockLabel = 'Disponibile (Consegna 7GG)';
             } else {
               stockLabel = 'Su ordinazione';
             }
@@ -1285,7 +1274,7 @@ export async function generateAgentCatalogPdfAction(
             // EXACT_QTY
             if (item.catalogSource === 'elmark') {
               isAvail7GG = item.stockTotal > 0;
-              stockLabel = `Dep. 7GG: ${item.stockTotal} ${item.unit || 'PZ'}`;
+              stockLabel = `Consegna 7GG: ${item.stockTotal} ${item.unit || 'PZ'}`;
             } else {
               isReady2GG = item.stockMain > 0;
               isAvail7GG = item.stockEk > 0;
