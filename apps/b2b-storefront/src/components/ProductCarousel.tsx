@@ -135,7 +135,7 @@ export default function ProductCarousel({ title, products, viewAllLink, isLogged
                           € {Number(prod.originalPriceB2b).toFixed(2).replace('.', ',')}
                         </span>
                         <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                          -{Math.round((1 - (prod.price_b2b / prod.originalPriceB2b)) * 100)}%
+                          -{prod.discountLabel ? String(prod.discountLabel).replace(/^-/, '') : `${Math.round((1 - (prod.price_b2b / prod.originalPriceB2b)) * 100)}%`}
                         </span>
                       </div>
                     )}

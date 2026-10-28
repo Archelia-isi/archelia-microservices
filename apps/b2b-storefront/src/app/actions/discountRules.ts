@@ -404,6 +404,7 @@ export async function saveAgentDiscountRuleAction(
       isActive
     );
 
+    revalidatePath('/', 'layout');
     revalidatePath('/account/discounts');
     revalidatePath('/account/catalog-builder');
     revalidatePath('/catalog');
@@ -447,6 +448,7 @@ export async function toggleAgentDiscountRuleAction(
       agentCode
     );
 
+    revalidatePath('/', 'layout');
     revalidatePath('/account/discounts');
     revalidatePath('/account/catalog-builder');
     revalidatePath('/catalog');
@@ -484,6 +486,7 @@ export async function deleteAgentDiscountRuleAction(
       agentCode
     );
 
+    revalidatePath('/', 'layout');
     revalidatePath('/account/discounts');
     revalidatePath('/account/catalog-builder');
     revalidatePath('/catalog');

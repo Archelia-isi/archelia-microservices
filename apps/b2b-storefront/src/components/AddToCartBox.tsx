@@ -138,6 +138,9 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
 
   const hasDiscount = isLoggedIn && product.originalPriceB2b && product.price_b2b < product.originalPriceB2b;
   const discountPercentage = hasDiscount ? Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100) : 0;
+  const discountBadgeText = hasDiscount
+    ? `-${product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPercentage}%`}`
+    : '';
 
   return (
     <>
@@ -152,7 +155,7 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
                   € {product.originalPriceB2b.toFixed(2).replace('.', ',')}
                 </span>
                 <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
-                  -{discountPercentage}%
+                  {discountBadgeText}
                 </span>
               </div>
             )}
@@ -280,7 +283,7 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500 line-through">€ {product.originalPriceB2b.toFixed(2)}</span>
-                        <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">-{discountPercentage}%</span>
+                        <span className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">{discountBadgeText}</span>
                       </div>
                       <span className="text-lg font-bold text-gray-900 leading-none">€ {product.price_b2b?.toFixed(2)}</span>
                     </div>

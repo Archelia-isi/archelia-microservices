@@ -4,7 +4,11 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import { getProductById } from '@archelia/typesense/dist/search.js';
-import { getEffectiveDiscount } from '@/lib/discount';
+import {
+  getEffectiveDiscount,
+  getEffectiveClientDiscountContext,
+  evaluateTypesenseProductWithContext,
+} from '@/lib/discount';
 import { getTargetUserId } from './cart';
 import { cookies } from 'next/headers';
 import { isOrderLockedForUser } from './orderLock';
@@ -150,31 +154,15 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
       };
     }
     
-    let stdDisc = 0;
-    let extDisc = 0;
-
-    if (order.storeMode === 'ZUCCHETTI') {
-      stdDisc = await getEffectiveDiscount();
-      if (session.user.role === 'AGENT') {
-        const cookieVal = cookies().get('agentExtraDiscount')?.value;
-        if (cookieVal) extDisc = parseFloat(cookieVal) || 0;
-      }
-    } else {
-      const user = await prisma.b2BUser.findUnique({ where: { id: targetUserId }, select: { elmarkDiscounts: true } });
-      const discMap = user?.elmarkDiscounts as any || {};
-      const elmarkCode = product.elmarkCode;
-      const grp = elmarkCode ? elmarkCode.split('.')[0] : null;
-      stdDisc = grp && discMap[grp] ? parseFloat(discMap[grp]) : 0;
-    }
-
-    let originalPrice = Number(order.storeMode === 'ELMARK' ? product.price : (product.price_b2b || product.price || 0));
-    let finalPrice = originalPrice;
-    
-    if (stdDisc > 0) finalPrice = finalPrice * (1 - (stdDisc / 100));
-    if (extDisc > 0) finalPrice = finalPrice * (1 - (extDisc / 100));
-
-    let dStr = stdDisc > 0 ? `${stdDisc}%` : '';
-    if (extDisc > 0) dStr += (dStr ? ` + ${extDisc}% Extra` : `${extDisc}% Extra`);
+    const discountCtx = await getEffectiveClientDiscountContext();
+    const evaluated = evaluateTypesenseProductWithContext(
+      product,
+      (order.storeMode as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI',
+      discountCtx
+    );
+    const originalPrice = evaluated.originalPriceB2b;
+    const finalPrice = evaluated.netPrice;
+    const dStr = evaluated.discountLabel || '';
 
     const finalItemQty = existingQty + quantity;
     if (existingItem) {

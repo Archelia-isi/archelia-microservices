@@ -162,11 +162,17 @@ export function doesRuleMatchClient(
   for (const id of rule.clientIds || []) {
     if (id) allIds.add(String(id).trim());
   }
+  for (const meta of rule.clientsMeta || []) {
+    if (meta?.id) allIds.add(String(meta.id).trim());
+  }
 
   const allCodes = new Set<string>();
   if (rule.clientCode) allCodes.add(rule.clientCode.trim().toUpperCase());
   for (const code of rule.clientCodes || []) {
     if (code) allCodes.add(String(code).trim().toUpperCase());
+  }
+  for (const meta of rule.clientsMeta || []) {
+    if (meta?.code) allCodes.add(String(meta.code).trim().toUpperCase());
   }
 
   const idMatches = Boolean(ctxId && allIds.has(ctxId));
@@ -307,7 +313,7 @@ export function evaluateProductDiscountWithRules(
       const netPrice = Number((afterBase * (1 - safeFallbackExtra / 100)).toFixed(4));
       const effectivePct =
         listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
-      const label = safeBase > 0 ? `${safeBase}% + ${safeFallbackExtra}%` : `${safeFallbackExtra}%`;
+      const label = safeBase > 0 ? `${safeBase}+${safeFallbackExtra}%` : `${safeFallbackExtra}%`;
       return {
         listPrice,
         netPrice,
@@ -350,7 +356,7 @@ export function evaluateProductDiscountWithRules(
       baseDiscountPct: safeBase,
       ruleDiscountPct: ruleVal,
       calculationMode: 'FIXED_OVERRIDE',
-      discountLabel: `${ruleVal}% (Fisso)`,
+      discountLabel: `${ruleVal}%`,
       appliedRuleId: winningRule.id,
       appliedRuleName: winningRule.name,
     };
@@ -362,7 +368,7 @@ export function evaluateProductDiscountWithRules(
   const effectivePct =
     listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
   const label =
-    safeBase > 0 ? `${safeBase}% + ${ruleVal}%` : `${ruleVal}%`;
+    safeBase > 0 ? `${safeBase}+${ruleVal}%` : `${ruleVal}%`;
 
   return {
     listPrice,

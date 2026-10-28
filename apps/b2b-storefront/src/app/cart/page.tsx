@@ -101,14 +101,17 @@ export default async function CartPage() {
     );
 
     const originalPrice = evaluated.originalPriceB2b;
-    const baseDisc =
-      storeMode === 'ELMARK'
-        ? Number(elmarkDiscounts[item.product.discgroup || ''] || 0)
-        : Number(genericDiscount || 0);
+    const isFixedOverride = evaluated.calculationMode === 'FIXED_OVERRIDE';
+    const baseDisc = isFixedOverride
+      ? Number(evaluated.ruleDiscountPct || 0)
+      : storeMode === 'ELMARK'
+      ? Number(elmarkDiscounts[item.product.discgroup || ''] || 0)
+      : Number(genericDiscount || 0);
     const basePrice = originalPrice * (1 - baseDisc / 100);
     const finalPrice = evaluated.netPrice;
+    const discountLabel = evaluated.discountLabel;
 
-    return { ...item, finalPrice, originalPrice, basePrice };
+    return { ...item, finalPrice, originalPrice, basePrice, discountLabel };
   });
 
   const totalAmount = finalItems.reduce((acc, item) => {

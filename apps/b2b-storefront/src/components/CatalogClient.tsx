@@ -312,7 +312,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
                           € {Number(product.originalPriceB2b).toFixed(2).replace('.', ',')}
                         </span>
                         <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                          -{Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100)}%
+                          -{product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100)}%`}
                         </span>
                       </div>
                     )}

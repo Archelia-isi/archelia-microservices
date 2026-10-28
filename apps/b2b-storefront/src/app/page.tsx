@@ -97,10 +97,12 @@ export default async function Home() {
 
   const isAuthenticated = !!session;
 
-  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
-  const genericDiscount = await getEffectiveDiscount();
-  const extraDiscount = await getExtraAgentDiscount();
-  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
+  const {
+    getEffectiveClientDiscountContext,
+    evaluateTypesenseProductWithContext,
+    fetchRuleTargetedProductsForCarousel,
+  } = await import('@/lib/discount');
+  const discountCtx = await getEffectiveClientDiscountContext();
 
   const isValidIzzoProduct = (p: any) => {
     if (!p) return false;
@@ -111,25 +113,16 @@ export default async function Home() {
   const mapPrices = (products: any[]) => {
     return products.map(cp => {
       const p = { ...cp };
-      p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
-      let finalPrice = p.originalPriceB2b;
-
-      if (storeMode === 'ELMARK') {
-        const dGroup = p.discgroup || '';
-        const groupDisc = elmarkDiscounts[dGroup] || 0;
-        if (groupDisc > 0) {
-          finalPrice = finalPrice * (1 - (groupDisc / 100));
-        }
+      if (isAuthenticated) {
+        const evaluated = evaluateTypesenseProductWithContext(p, storeMode, discountCtx);
+        p.originalPriceB2b = evaluated.originalPriceB2b;
+        p.price_b2b = evaluated.netPrice;
+        p.discountPct = evaluated.discountPct;
+        p.discountLabel = evaluated.discountLabel;
       } else {
-        if (genericDiscount > 0) {
-          finalPrice = finalPrice * (1 - (genericDiscount / 100));
-        }
-        if (extraDiscount > 0) {
-          finalPrice = finalPrice * (1 - (extraDiscount / 100));
-        }
+        p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
+        p.price_b2b = p.originalPriceB2b;
       }
-
-      p.price_b2b = finalPrice;
       return p;
     });
   };
@@ -172,8 +165,44 @@ export default async function Home() {
   const eletProducts = pickProducts(eletRes, 4);
   const civileProducts = pickProducts(civileRes, 4);
 
-  const novitaProducts = pickProducts(novitaRes, storeMode === 'ELMARK' ? 10 : 12);
-  const promoProducts = pickProducts(promoRes, storeMode === 'ELMARK' ? 10 : 12);
+  const ruleTargetedDocs =
+    isAuthenticated && storeMode === 'ZUCCHETTI'
+      ? await fetchRuleTargetedProductsForCarousel(discountCtx, storeMode, 16)
+      : [];
+  const shuffledTargeted = shuffleArray(ruleTargetedDocs.filter(isValidIzzoProduct));
+  const halfTargeted = Math.ceil(shuffledTargeted.length / 2);
+  const targetedForNovita = mapPrices(shuffledTargeted.slice(0, halfTargeted));
+  const targetedForPromo = mapPrices(shuffledTargeted.slice(halfTargeted));
+
+  for (const doc of shuffledTargeted) {
+    const key = String(doc.sku || doc.id || '');
+    if (key) usedSkus.add(key);
+  }
+
+  const carouselLimit = storeMode === 'ELMARK' ? 10 : 12;
+  const mergeTargetedIntoCarousel = (targeted: any[], randomPicks: any[], maxCount: number) => {
+    const seen = new Set<string>();
+    const combined: any[] = [];
+    for (const item of [...targeted, ...randomPicks]) {
+      const key = String(item.sku || item.id || '');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      combined.push(item);
+      if (combined.length >= maxCount) break;
+    }
+    return combined;
+  };
+
+  const novitaProducts = mergeTargetedIntoCarousel(
+    targetedForNovita,
+    pickProducts(novitaRes, carouselLimit),
+    carouselLimit
+  );
+  const promoProducts = mergeTargetedIntoCarousel(
+    targetedForPromo,
+    pickProducts(promoRes, carouselLimit),
+    carouselLimit
+  );
 
   const renderCategoryCard = (title: string, products: any[], link: string) => (
     <div className="bg-white shadow-sm flex flex-col h-full hover:shadow-md transition-shadow rounded-sm relative">

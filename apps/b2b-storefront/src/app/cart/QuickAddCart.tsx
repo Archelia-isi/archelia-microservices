@@ -187,6 +187,19 @@ export default function QuickAddCart({
   };
 
   const getPriceData = (product: any) => {
+    if (typeof product.evaluatedPriceB2b === 'number' && typeof product.originalPriceB2b === 'number') {
+      const originalPrice = product.originalPriceB2b;
+      const finalPrice = product.evaluatedPriceB2b;
+      const discountPct =
+        typeof product.discountPct === 'number'
+          ? product.discountPct
+          : originalPrice > 0 && originalPrice > finalPrice
+          ? Math.round((1 - finalPrice / originalPrice) * 100)
+          : 0;
+      const discountLabel = product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPct}%`;
+      return { originalPrice, finalPrice, discountPct, discountLabel };
+    }
+
     let originalPrice = Number(storeMode === 'ELMARK' ? (product.price || product.price_b2b || 0) : (product.price_b2b || product.price || 0));
     let finalPrice = originalPrice;
     
@@ -201,7 +214,11 @@ export default function QuickAddCart({
       }
     }
     const discountPct = originalPrice > 0 && originalPrice > finalPrice ? Math.round((1 - (finalPrice / originalPrice)) * 100) : 0;
-    return { originalPrice, finalPrice, discountPct };
+    const discountLabel =
+      storeMode === 'ZUCCHETTI' && userDiscount > 0 && extraDiscount > 0
+        ? `${userDiscount}+${extraDiscount}%`
+        : `${discountPct}%`;
+    return { originalPrice, finalPrice, discountPct, discountLabel };
   };
 
   const selectedPrices = selectedProduct ? getPriceData(selectedProduct) : null;
@@ -240,7 +257,7 @@ export default function QuickAddCart({
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto z-50">
               {results.length > 0 ? (
                 results.map((product) => {
-                  const { originalPrice, finalPrice, discountPct } = getPriceData(product);
+                  const { originalPrice, finalPrice, discountPct, discountLabel } = getPriceData(product);
                   
                   return (
                     <div 
@@ -263,7 +280,7 @@ export default function QuickAddCart({
                               € {originalPrice.toFixed(2).replace('.', ',')}
                             </span>
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                              -{discountPct}%
+                              -{discountLabel}
                             </span>
                           </div>
                         )}
@@ -353,7 +370,7 @@ export default function QuickAddCart({
                       € {selectedPrices.originalPrice.toFixed(2).replace('.', ',')}
                     </span>
                     <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
-                      -{selectedPrices.discountPct}%
+                      -{selectedPrices.discountLabel}
                     </span>
                   </>
                 )}

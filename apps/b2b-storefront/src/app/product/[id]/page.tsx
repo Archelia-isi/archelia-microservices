@@ -43,6 +43,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     getEffectiveElmarkDiscounts,
     getEffectiveClientDiscountContext,
     evaluateTypesenseProductWithContext,
+    fetchRuleTargetedProductsForCarousel,
   } = await import('@/lib/discount');
   const [genericDiscount, extraDiscount, elmarkDiscounts, discountCtx] = await Promise.all([
     getEffectiveDiscount(),
@@ -158,9 +159,10 @@ export default async function ProductPage({ params, searchParams }: { params: { 
 
     let rawRelated: any[] = [];
     let rawCatalogOthers: any[] = [];
+    let targetedCarouselDocs: any[] = [];
     try {
       const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import('@archelia/typesense/dist/client.js');
-      const [relatedProductsRes, catalogProductsRes] = await Promise.all([
+      const [relatedProductsRes, catalogProductsRes, ruleDocs] = await Promise.all([
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           q: searchQuery,
           query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
@@ -175,6 +177,9 @@ export default async function ProductPage({ params, searchParams }: { params: { 
           sort_by: randomCatalogSort,
           per_page: 250,
         }),
+        isAuthenticated
+          ? fetchRuleTargetedProductsForCarousel(discountCtx, storeMode, 12)
+          : Promise.resolve([]),
       ]);
 
       rawRelated = (relatedProductsRes?.hits || [])
@@ -184,6 +189,8 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       rawCatalogOthers = (catalogProductsRes?.hits || [])
         .map((h: any) => ({ ...h.document }))
         .filter(isValidCarouselProduct);
+
+      targetedCarouselDocs = (ruleDocs || []).filter(isValidCarouselProduct);
     } catch (e) {
       console.error('Failed to fetch related/catalog products:', e);
     }
@@ -201,8 +208,12 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       });
 
     const usedRelatedSkus = new Set(relatedProducts.map((p: any) => p.sku || p.id));
-    const filteredCatalogOthers = rawCatalogOthers.filter(
+    const filteredTargeted = targetedCarouselDocs.filter(
       (p: any) => !usedRelatedSkus.has(p.sku || p.id)
+    );
+    const usedTargetedSkus = new Set(filteredTargeted.map((p: any) => p.sku || p.id));
+    const filteredCatalogOthers = rawCatalogOthers.filter(
+      (p: any) => !usedRelatedSkus.has(p.sku || p.id) && !usedTargetedSkus.has(p.sku || p.id)
     );
 
     for (let i = filteredCatalogOthers.length - 1; i > 0; i--) {
@@ -210,7 +221,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       [filteredCatalogOthers[i], filteredCatalogOthers[j]] = [filteredCatalogOthers[j], filteredCatalogOthers[i]];
     }
 
-    otherCatalogProducts = filteredCatalogOthers
+    otherCatalogProducts = [...filteredTargeted, ...filteredCatalogOthers]
       .slice(0, 12)
       .map((p: any) => {
         if (isAuthenticated) { applyPricing(p); }

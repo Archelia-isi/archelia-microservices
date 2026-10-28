@@ -209,18 +209,20 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
       </div>
       
       <div className="col-span-4 sm:col-span-2 text-right flex flex-col items-end">
-        {item.originalPrice > (item.basePrice || item.finalPrice) && (
+        {item.originalPrice > item.finalPrice && (
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[10px] text-gray-400 line-through">
               € {item.originalPrice.toFixed(2).replace('.', ',')}
             </span>
             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-              -{Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%
+              -{item.discountLabel
+                ? String(item.discountLabel).replace(/^-/, '')
+                : `${Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%`}
             </span>
           </div>
         )}
         
-        {item.basePrice > item.finalPrice && (
+        {!item.discountLabel && item.basePrice > item.finalPrice && (
           <div className="flex items-center justify-end gap-1 mb-0.5">
             <span className="text-[11px] text-gray-500 line-through">
               € {item.basePrice.toFixed(2).replace('.', ',')}

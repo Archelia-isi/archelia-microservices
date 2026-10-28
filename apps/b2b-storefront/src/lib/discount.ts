@@ -4,6 +4,7 @@ import { prisma } from '@archelia/b2b-database';
 import {
   AgentDiscountRule,
   EvaluatedProductPricing,
+  doesRuleMatchClient,
   evaluateProductDiscountWithRules,
   getActiveDiscountRulesForClientUser,
   getAgentDiscountRulesFromDb,
@@ -118,7 +119,16 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
       clientId = impUser?.id || null;
       clientCode = impUser?.zucchettiCode || impersonatedClientCode;
       clientCategory = impUser?.customerType || null;
-      rules = allAgentRules.filter(r => r.isActive);
+      rules = allAgentRules.filter(
+        r =>
+          r.isActive &&
+          doesRuleMatchClient(r, {
+            clientId,
+            clientCode,
+            clientCategory,
+            baseDiscount,
+          })
+      );
     } else {
       clientId = null;
       clientCode = null;
@@ -158,13 +168,15 @@ export function evaluateTypesenseProductWithContext(
   itemExtraDiscountOverride?: number | null
 ): EvaluatedProductPricing & { originalPriceB2b: number } {
   const originalPriceB2b =
-    storeMode === 'ELMARK'
-      ? Number(doc.price) > 0
-        ? Number(doc.price)
-        : Number(doc.price_b2b || 0)
-      : Number(doc.price_b2b) > 0
-        ? Number(doc.price_b2b)
-        : Number(doc.price || 0);
+    Number(doc.originalPriceB2b) > 0
+      ? Number(doc.originalPriceB2b)
+      : storeMode === 'ELMARK'
+        ? Number(doc.price) > 0
+          ? Number(doc.price)
+          : Number(doc.price_b2b || 0)
+        : Number(doc.price_b2b) > 0
+          ? Number(doc.price_b2b)
+          : Number(doc.price || 0);
 
   const dGroup = String(doc.discgroup || '').trim();
   const effectiveBase =
@@ -205,4 +217,150 @@ export function evaluateTypesenseProductWithContext(
     ...evaluated,
     originalPriceB2b,
   };
+}
+
+/**
+ * Estrae da Typesense i prodotti destinatari delle regole di sconto attive per il cliente
+ * (prodotti singoli scelti per SKU, marchi, gruppi merceologici, famiglie o categorie),
+ * così da mostrarli direttamente anche nei caroselli del cliente ("Scelti per te" / "In Evidenza").
+ */
+export async function fetchRuleTargetedProductsForCarousel(
+  ctx: EffectiveClientDiscountContext,
+  storeMode: 'ZUCCHETTI' | 'ELMARK',
+  limit: number = 12
+): Promise<any[]> {
+  if (!ctx.isAuthenticated || !ctx.rules || ctx.rules.length === 0 || storeMode === 'ELMARK') {
+    return [];
+  }
+
+  const activeSpecificRules = ctx.rules.filter(
+    r => r.isActive && r.discountValue > 0 && r.targetType !== 'ALL_CATALOG'
+  );
+  if (activeSpecificRules.length === 0) {
+    return [];
+  }
+
+  const escapeVal = (v: string) => `\`${String(v || '').replace(/`/g, '').trim()}\``;
+
+  const targetSkus = Array.from(
+    new Set(
+      activeSpecificRules
+        .flatMap(r => r.targetSkus || [])
+        .map(s => String(s || '').trim())
+        .filter(Boolean)
+    )
+  );
+  const targetBrands = Array.from(
+    new Set(
+      activeSpecificRules
+        .flatMap(r => r.targetBrands || [])
+        .map(s => String(s || '').trim())
+        .filter(Boolean)
+    )
+  );
+  const targetGroups = Array.from(
+    new Set(
+      activeSpecificRules
+        .flatMap(r => r.targetProductGroups || [])
+        .map(s => String(s || '').trim())
+        .filter(Boolean)
+    )
+  );
+  const targetFamilies = Array.from(
+    new Set(
+      activeSpecificRules
+        .flatMap(r => r.targetFamilies || [])
+        .map(s => String(s || '').trim())
+        .filter(Boolean)
+    )
+  );
+  const targetCategories = Array.from(
+    new Set(
+      activeSpecificRules
+        .flatMap(r => r.targetCategories || [])
+        .map(s => String(s || '').trim())
+        .filter(Boolean)
+    )
+  );
+
+  try {
+    const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import(
+      '@archelia/typesense/dist/client.js'
+    );
+
+    const searches: Promise<any>[] = [];
+
+    if (targetSkus.length > 0) {
+      const skuList = targetSkus.slice(0, 60).map(escapeVal).join(',');
+      searches.push(
+        typesenseClient
+          .collections(PRODUCTS_COLLECTION_NAME)
+          .documents()
+          .search({
+            q: '*',
+            query_by: 'sku,title',
+            filter_by: `catalog_source:=zucchetti && stock:>0 && sku:=[${skuList}]`,
+            sort_by: 'stock_main:desc,stock:desc,natural_sku:asc',
+            per_page: Math.min(50, Math.max(limit, targetSkus.length)),
+          })
+      );
+    }
+
+    const taxonomyOrClauses: string[] = [];
+    if (targetBrands.length > 0) {
+      taxonomyOrClauses.push(`brand:=[${targetBrands.slice(0, 40).map(escapeVal).join(',')}]`);
+    }
+    if (targetGroups.length > 0) {
+      taxonomyOrClauses.push(
+        `product_group:=[${targetGroups.slice(0, 40).map(escapeVal).join(',')}]`
+      );
+    }
+    if (targetFamilies.length > 0) {
+      taxonomyOrClauses.push(`family:=[${targetFamilies.slice(0, 40).map(escapeVal).join(',')}]`);
+    }
+    if (targetCategories.length > 0) {
+      taxonomyOrClauses.push(
+        `category:=[${targetCategories.slice(0, 40).map(escapeVal).join(',')}]`
+      );
+    }
+
+    if (taxonomyOrClauses.length > 0) {
+      searches.push(
+        typesenseClient
+          .collections(PRODUCTS_COLLECTION_NAME)
+          .documents()
+          .search({
+            q: '*',
+            query_by: 'sku,title',
+            filter_by: `catalog_source:=zucchetti && stock_main:>0 && (${taxonomyOrClauses.join(' || ')})`,
+            sort_by: 'stock_main:desc,natural_sku:asc',
+            per_page: 40,
+          })
+      );
+    }
+
+    if (searches.length === 0) return [];
+
+    const results = await Promise.all(searches);
+    const seen = new Set<string>();
+    const collected: any[] = [];
+
+    for (const res of results) {
+      for (const hit of res?.hits || []) {
+        const doc = hit?.document;
+        if (!doc) continue;
+        const key = String(doc.sku || doc.id || '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        collected.push({ ...doc });
+        if (collected.length >= limit) break;
+      }
+      if (collected.length >= limit) break;
+    }
+
+    return collected;
+  } catch (err) {
+    console.warn('Avviso fetchRuleTargetedProductsForCarousel:', err);
+    return [];
+  }
 }

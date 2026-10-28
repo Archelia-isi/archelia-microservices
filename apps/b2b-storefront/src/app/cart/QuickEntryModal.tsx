@@ -132,6 +132,19 @@ function QuickEntryRow({
   };
 
   const getDiscountedPrice = (product: any) => {
+    if (typeof product.evaluatedPriceB2b === 'number' && typeof product.originalPriceB2b === 'number') {
+      const original = product.originalPriceB2b;
+      const final = product.evaluatedPriceB2b;
+      const discountPct =
+        typeof product.discountPct === 'number'
+          ? product.discountPct
+          : original > 0 && original > final
+          ? Math.round((1 - final / original) * 100)
+          : 0;
+      const discountLabel = product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPct}%`;
+      return { original, final, discountPct, discountLabel };
+    }
+
     let original = Number(storeMode === 'ELMARK' ? (product.price || product.price_b2b || 0) : (product.price_b2b || product.price || 0));
     let final = original;
     
@@ -150,12 +163,17 @@ function QuickEntryRow({
       }
     }
     const discountPct = original > 0 && original > final ? Math.round((1 - (final / original)) * 100) : 0;
-    return { original, final, discountPct };
+    const discountLabel =
+      storeMode !== 'ELMARK' && userDiscount > 0 && extraDiscount > 0
+        ? `${userDiscount}+${extraDiscount}%`
+        : `${discountPct}%`;
+    return { original, final, discountPct, discountLabel };
   };
 
   let originalPrice = 0;
   let finalPrice = 0;
   let discountPct = 0;
+  let discountLabel = '';
   let rowTotal = 0;
   const maxStock = row.selectedProduct ? getAvailableStock(row.selectedProduct, storeMode) : 0;
   const rawQty = typeof row.quantity === 'string' ? row.quantity.trim() : row.quantity;
@@ -168,6 +186,7 @@ function QuickEntryRow({
     originalPrice = prices.original;
     finalPrice = prices.final;
     discountPct = prices.discountPct;
+    discountLabel = prices.discountLabel;
     rowTotal = finalPrice * effectiveQty;
   }
 
@@ -236,7 +255,7 @@ function QuickEntryRow({
                               € {prices.original.toFixed(2).replace('.', ',')}
                             </span>
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                              -{prices.discountPct}%
+                              -{prices.discountLabel}
                             </span>
                           </div>
                         )}
@@ -311,7 +330,7 @@ function QuickEntryRow({
                       € {originalPrice.toFixed(2).replace('.', ',')}
                     </span>
                     <span className="text-[11px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
-                      -{discountPct}%
+                      -{discountLabel}
                     </span>
                   </div>
                 )}
