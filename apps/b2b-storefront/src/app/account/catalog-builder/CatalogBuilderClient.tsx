@@ -1228,6 +1228,9 @@ export default function CatalogBuilderClient({
                     setIsClientDropdownOpen(true);
                     if (!e.target.value.trim()) {
                       setSelectedClientId('');
+                      setBaseDiscount(0);
+                      setExtraDiscount(0);
+                      setElmarkDiscounts({});
                     }
                   }}
                   placeholder="Cerca tuo cliente per Ragione Sociale o Codice..."
@@ -1332,12 +1335,18 @@ export default function CatalogBuilderClient({
                       min={0}
                       max={95}
                       step={0.5}
-                      disabled={priceMode === 'LIST_ONLY' || priceMode === 'NO_PRICE'}
-                      value={baseDiscount}
-                      onChange={e =>
-                        setBaseDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)))
+                      disabled={
+                        Boolean(selectedClient) ||
+                        priceMode === 'LIST_ONLY' ||
+                        priceMode === 'NO_PRICE'
                       }
-                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:opacity-50"
+                      readOnly={Boolean(selectedClient)}
+                      value={baseDiscount}
+                      onChange={e => {
+                        if (selectedClient) return;
+                        setBaseDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)));
+                      }}
+                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-75"
                     />
                   </div>
                   <div>
@@ -1349,20 +1358,27 @@ export default function CatalogBuilderClient({
                       min={0}
                       max={95}
                       step={0.5}
-                      disabled={priceMode === 'LIST_ONLY' || priceMode === 'NO_PRICE'}
-                      value={extraDiscount}
-                      onChange={e =>
-                        setExtraDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)))
+                      disabled={
+                        Boolean(selectedClient) ||
+                        priceMode === 'LIST_ONLY' ||
+                        priceMode === 'NO_PRICE'
                       }
-                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:opacity-50"
+                      readOnly={Boolean(selectedClient)}
+                      value={extraDiscount}
+                      onChange={e => {
+                        if (selectedClient) return;
+                        setExtraDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)));
+                      }}
+                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-75"
                     />
                   </div>
                 </div>
                 <p className="text-[11px] text-gray-500 leading-tight">
                   {selectedClient ? (
                     <>
-                      Sconti caricati da <strong>{selectedClient.companyName}</strong>. Puoi
-                      comunque ritoccarli per questo catalogo.
+                      🔒 Sconto bloccato sul listino riservato di{' '}
+                      <strong>{selectedClient.companyName}</strong> ({baseDiscount}%). Scollega il
+                      cliente per inserire sconti manuali.
                     </>
                   ) : (
                     <>
