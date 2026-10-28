@@ -2,7 +2,6 @@
 
 import { verifySession } from '@/lib/session';
 import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
-import { prisma as mainPrisma } from '@archelia/database';
 import { getAgentClientsList, AgentManagedClient } from './newClient';
 import taxonomyData from '@/lib/taxonomy.json';
 import { AgentDiscountRule, getAgentDiscountRulesFromDb } from '@/lib/discountRules';
@@ -147,6 +146,7 @@ async function getTaxonomyLookupMaps(): Promise<TaxonomyMaps> {
 
     // 2. Arricchisci con le tabelle lookup del database principale (brands, product_groups, families, homogeneous_categories)
     try {
+      const { prisma: mainPrisma } = await import('@archelia/database');
       const [dbBrands, dbGroups, dbFamilies, dbCats] = await Promise.all([
         mainPrisma.brand.findMany(),
         mainPrisma.productGroup.findMany(),

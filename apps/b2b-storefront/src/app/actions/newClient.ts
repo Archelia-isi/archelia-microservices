@@ -133,7 +133,7 @@ const cachedAgentClientsByAgentId = new Map<
   }
 >();
 
-export function invalidateZucchettiClientsCache() {
+function invalidateZucchettiClientsCache() {
   cachedZucchettiClients = null;
   cachedAgentClientsByAgentId.clear();
 }
