@@ -1624,15 +1624,14 @@ export default function CatalogBuilderClient({
               {/* SINGOLO FOGLIO A4 IN ANTEPRIMA (6 SCHEDE 2x3) */}
               <div className="flex-1 bg-white rounded-2xl border-2 border-gray-300 shadow-2xl overflow-hidden">
                 {/* Intestazione Foglio A4 (come nel PDF stampato) */}
-                <div className="px-6 py-3.5 bg-gray-900 text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-3">
+                <div className="px-6 py-3.5 bg-black text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="bg-white rounded-md border border-brand-main px-2.5 py-1 shrink-0 shadow-sm">
-                      <img
-                        src="/logo-izzo.png"
-                        alt="Izzo Distribuzione"
-                        className="h-10 w-auto object-contain"
-                      />
-                    </div>
+                    <img
+                      src="/logo-izzo.png"
+                      alt="Izzo Distribuzione"
+                      className="h-11 w-auto object-contain shrink-0"
+                    />
+                    <div className="h-9 w-px bg-gray-700 hidden sm:block" />
                     <div>
                       <div className="text-[11px] font-extrabold text-brand-main tracking-wider uppercase">
                         IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B

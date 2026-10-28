@@ -981,7 +981,7 @@ function getCatalogPdfHeaderLogo(): {
       prev.set(cur);
     }
 
-    // Ritaglio sul bounding box del logo Izzo e ridimensionamento nitido a 360 x 148 su sfondo bianco
+    // Ritaglio sul bounding box del logo Izzo e ridimensionamento nitido a 360 x 148 su sfondo nero (#000000)
     const cropX = Math.min(280, Math.floor(w * 0.065));
     const cropY = Math.min(360, Math.floor(h * 0.16));
     const cropW = Math.min(w - cropX, Math.floor(w * 0.865));
@@ -1009,18 +1009,21 @@ function getCatalogPdfHeaderLogo(): {
             const idx = (sy * w + sx) * 4;
             const a = rgba[idx + 3] / 255;
             const pr = rgba[idx];
-            const pg = rgba[idx + 1];
+            let pg = rgba[idx + 1];
             const pb = rgba[idx + 2];
-            rSum += pr * a + 255 * (1 - a);
-            gSum += pg * a + 255 * (1 - a);
-            bSum += pb * a + 255 * (1 - a);
+            if (pg > pr + 20 && pg > pb + 20) {
+              pg = Math.min(255, Math.round(pg * 1.35 + 25));
+            }
+            rSum += pr * a;
+            gSum += pg * a;
+            bSum += pb * a;
             count++;
           }
         }
         const oIdx = (oy * outW + ox) * 3;
-        rgbOut[oIdx] = count > 0 ? Math.round(rSum / count) : 255;
-        rgbOut[oIdx + 1] = count > 0 ? Math.round(gSum / count) : 255;
-        rgbOut[oIdx + 2] = count > 0 ? Math.round(bSum / count) : 255;
+        rgbOut[oIdx] = count > 0 ? Math.round(rSum / count) : 0;
+        rgbOut[oIdx + 1] = count > 0 ? Math.round(gSum / count) : 0;
+        rgbOut[oIdx + 2] = count > 0 ? Math.round(bSum / count) : 0;
       }
     }
 
@@ -1109,22 +1112,20 @@ export async function generateAgentCatalogPdfAction(
       const cmd: string[] = [];
       const imgRefsForPage = new Map<number, number>();
 
-      // Header pagina A4 con Logo Izzo Distribuzione in alto a sinistra
-      cmd.push('0.07 0.09 0.15 rg');
+      // Header pagina A4 (sfondo nero come l'header del sito) con Logo Izzo Distribuzione in alto a sinistra
+      cmd.push('0 0 0 rg');
       cmd.push('0 772 595 70 re f');
       cmd.push('0.00 0.78 0.00 rg');
       cmd.push('0 769 595 3 re f');
 
-      const textStartX = logoObjNum ? 162 : 28;
+      const textStartX = logoObjNum ? 164 : 28;
       if (logoObjNum) {
-        // Riquadro bianco con bordo verde attorno al logo per massima leggibilità
-        cmd.push('1 1 1 rg');
-        cmd.push('0.00 0.78 0.00 RG 1 w');
-        cmd.push('28 780 122 53 re B');
         cmd.push('q');
-        cmd.push('114 0 0 47 32 783 cm');
+        cmd.push('118 0 0 48 28 783 cm');
         cmd.push('/ImLogo Do');
         cmd.push('Q');
+        cmd.push('0.20 0.22 0.26 RG 0.8 w');
+        cmd.push('154 782 m 154 830 l S');
       }
 
       cmd.push(
