@@ -1235,91 +1235,75 @@ export default function CatalogBuilderClient({
         }
       `}</style>
       <div className="space-y-6">
-        {/* INTESTAZIONE PRINCIPALE */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-black text-brand-main font-black text-lg">
-                📖
-              </span>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                Sviluppa Catalogo Personalizzato
-              </h1>
+        {/* INTESTAZIONE PRINCIPALE COMPATTA */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-black text-brand-main font-black text-sm shrink-0">
+                  📖
+                </span>
+                <h1 className="text-lg font-black text-gray-900 tracking-tight truncate">
+                  Sviluppa Catalogo Personalizzato
+                </h1>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Aggiungi prodotti per codice SKU con la barra predittiva o filtra per reparto.
+              </p>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
-              Aggiungi prodotti <strong>uno alla volta per codice SKU</strong> con la barra predittiva
-              oppure carica un intero reparto usando i <strong>filtri per Marchio / Categoria</strong>.
-            </p>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPreviewModalOpen(true)}
+                disabled={sortedCatalogProducts.length === 0}
+                className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-gray-900 hover:bg-black text-white shadow-sm transition-all disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-1.5 border border-gray-800"
+              >
+                <svg className="w-3.5 h-3.5 text-brand-main" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+                Anteprima ({sortedCatalogProducts.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
+                className="px-3.5 py-1.5 text-xs font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    Generazione PDF...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.2}
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Scarica PDF ({sortedCatalogProducts.length} • {Math.ceil(sortedCatalogProducts.length / 6)}{' '}
+                    {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowConfigPanel(prev => !prev)}
-              className="px-4 py-2.5 text-xs font-bold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                />
-              </svg>
-              {showConfigPanel ? 'Nascondi Opzioni Prezzi/PDF' : 'Configura Prezzi & Cliente'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsPreviewModalOpen(true)}
-              disabled={sortedCatalogProducts.length === 0}
-              className="px-5 py-2.5 text-sm font-black rounded-lg bg-gray-900 hover:bg-black text-white shadow-sm transition-all disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-2 border border-gray-800"
-            >
-              <svg className="w-4 h-4 text-brand-main" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-              Anteprima Catalogo ({sortedCatalogProducts.length} schede)
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
-              className="px-5 py-2.5 text-sm font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isGeneratingPdf ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  Generazione PDF ({sortedCatalogProducts.length} schede • {Math.ceil(sortedCatalogProducts.length / 6)} fogli)...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  Scarica Catalogo PDF ({sortedCatalogProducts.length} schede • {Math.ceil(sortedCatalogProducts.length / 6)} {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
         {pdfError && (
           <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center justify-between">
