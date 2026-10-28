@@ -37,10 +37,19 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const product: any = productRaw;
 
   // Apply B2B pricing for the main product
-  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
-  const genericDiscount = await getEffectiveDiscount();
-  const extraDiscount = await getExtraAgentDiscount();
-  const elmarkDiscounts = await getEffectiveElmarkDiscounts();
+  const {
+    getEffectiveDiscount,
+    getExtraAgentDiscount,
+    getEffectiveElmarkDiscounts,
+    getEffectiveClientDiscountContext,
+    evaluateTypesenseProductWithContext,
+  } = await import('@/lib/discount');
+  const [genericDiscount, extraDiscount, elmarkDiscounts, discountCtx] = await Promise.all([
+    getEffectiveDiscount(),
+    getExtraAgentDiscount(),
+    getEffectiveElmarkDiscounts(),
+    getEffectiveClientDiscountContext(),
+  ]);
 
     const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
@@ -80,24 +89,11 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   }
   
   const applyPricing = (p: any) => {
-    p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
-    let finalPrice = p.originalPriceB2b;
-    
-    if (storeMode === 'ELMARK') {
-      const dGroup = p.discgroup || '';
-      const groupDisc = elmarkDiscounts[dGroup] || 0;
-      if (groupDisc > 0) {
-        finalPrice = finalPrice * (1 - (groupDisc / 100));
-      }
-    } else {
-      if (genericDiscount > 0) {
-        finalPrice = finalPrice * (1 - (genericDiscount / 100));
-      }
-      if (extraDiscount > 0) {
-        finalPrice = finalPrice * (1 - (extraDiscount / 100));
-      }
-    }
-    p.price_b2b = finalPrice;
+    const evaluated = evaluateTypesenseProductWithContext(p, storeMode, discountCtx);
+    p.originalPriceB2b = evaluated.originalPriceB2b;
+    p.price_b2b = evaluated.netPrice;
+    p.discountPct = evaluated.discountPct;
+    p.discountLabel = evaluated.discountLabel;
   };
 
   if (isAuthenticated) {

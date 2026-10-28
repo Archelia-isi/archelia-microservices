@@ -21,6 +21,7 @@ export default async function AgentCatalogBuilderPage() {
       agentName={initData.agentName || session.user.username}
       agentCode={initData.agentCode || ''}
       clients={initData.clients || []}
+      discountRules={initData.discountRules || []}
       initialSearch={
         initData.initialSearch || {
           success: true,

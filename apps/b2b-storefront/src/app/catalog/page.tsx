@@ -28,35 +28,18 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
   
   const hits = results?.hits || [];
   
-  const { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
-  const genericDiscount = await getEffectiveDiscount();
-  const extraDiscount = await getExtraAgentDiscount();
-
-  const elmarkDiscounts = typeof getEffectiveElmarkDiscounts === "function" ? await getEffectiveElmarkDiscounts() : (session?.user?.elmarkDiscounts as Record<string, number> || {});
+  const { getEffectiveClientDiscountContext, evaluateTypesenseProductWithContext } = await import('@/lib/discount');
+  const discountCtx = await getEffectiveClientDiscountContext();
 
   const products = hits.map((h: any) => {
     const product = { ...h.document };
     
     if (isAuthenticated) {
-      product.originalPriceB2b = Number(product.price_b2b) > 0 ? Number(product.price_b2b) : Number(product.price || 0);
-      let finalPrice = product.originalPriceB2b;
-      
-      if (storeMode === 'ELMARK') {
-        const dGroup = product.discgroup || '';
-        const groupDisc = elmarkDiscounts[dGroup] || 0;
-        if (groupDisc > 0) {
-          finalPrice = finalPrice * (1 - (groupDisc / 100));
-        }
-      } else {
-        if (genericDiscount > 0) {
-          finalPrice = finalPrice * (1 - (genericDiscount / 100));
-        }
-        if (extraDiscount > 0) {
-          finalPrice = finalPrice * (1 - (extraDiscount / 100));
-        }
-      }
-      
-      product.price_b2b = finalPrice;
+      const evaluated = evaluateTypesenseProductWithContext(product, storeMode, discountCtx);
+      product.originalPriceB2b = evaluated.originalPriceB2b;
+      product.price_b2b = evaluated.netPrice;
+      product.discountPct = evaluated.discountPct;
+      product.discountLabel = evaluated.discountLabel;
     }
     
     return product;

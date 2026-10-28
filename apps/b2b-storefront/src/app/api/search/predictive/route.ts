@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
-import { getEffectiveDiscount, getExtraAgentDiscount, getEffectiveElmarkDiscounts } from '@/lib/discount';
+import {
+  getEffectiveClientDiscountContext,
+  evaluateTypesenseProductWithContext,
+} from '@/lib/discount';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,53 +90,18 @@ export async function GET(request: Request) {
     }
 
     const isAuthenticated = !!session;
-    let genericDiscount = 0;
-    let extraDiscount = 0;
-    let elmarkDiscounts: Record<string, number> = {};
-
-    if (isAuthenticated) {
-      if (storeMode === 'ELMARK') {
-        elmarkDiscounts = await getEffectiveElmarkDiscounts();
-      } else {
-        const [gen, ext] = await Promise.all([
-          getEffectiveDiscount(),
-          getExtraAgentDiscount()
-        ]);
-        genericDiscount = gen;
-        extraDiscount = ext;
-      }
-    }
+    const discountCtx = isAuthenticated
+      ? await getEffectiveClientDiscountContext()
+      : null;
 
     const hits = rawHits.map((hit: any) => {
       const doc = { ...hit.document };
-      if (isAuthenticated) {
-        const basePrice = storeMode === 'ELMARK'
-          ? (Number(doc.price) > 0 ? Number(doc.price) : Number(doc.price_b2b || 0))
-          : (Number(doc.price_b2b) > 0 ? Number(doc.price_b2b) : Number(doc.price || 0));
-
-        let finalPrice = basePrice;
-        if (storeMode === 'ELMARK') {
-          const dGroup = doc.discgroup || '';
-          const groupDisc = Number(elmarkDiscounts[dGroup]) || 0;
-          if (groupDisc > 0) {
-            finalPrice = finalPrice * (1 - groupDisc / 100);
-          }
-        } else {
-          if (genericDiscount > 0) {
-            finalPrice = finalPrice * (1 - genericDiscount / 100);
-          }
-          if (extraDiscount > 0) {
-            finalPrice = finalPrice * (1 - extraDiscount / 100);
-          }
-        }
-
-        const discountPct = basePrice > 0 && basePrice > finalPrice
-          ? Math.round((1 - finalPrice / basePrice) * 100)
-          : 0;
-
-        doc.originalPriceB2b = basePrice;
-        doc.price_b2b = finalPrice;
-        doc.discountPct = discountPct;
+      if (isAuthenticated && discountCtx) {
+        const evaluated = evaluateTypesenseProductWithContext(doc, storeMode, discountCtx);
+        doc.originalPriceB2b = evaluated.originalPriceB2b;
+        doc.price_b2b = evaluated.netPrice;
+        doc.discountPct = Math.round(evaluated.discountPct);
+        doc.discountLabel = evaluated.discountLabel;
       }
       return doc;
     });

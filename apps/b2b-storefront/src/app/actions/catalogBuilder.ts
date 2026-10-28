@@ -5,6 +5,7 @@ import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/d
 import { prisma as mainPrisma } from '@archelia/database';
 import { getAgentClientsList, AgentManagedClient } from './newClient';
 import taxonomyData from '@/lib/taxonomy.json';
+import { AgentDiscountRule, getAgentDiscountRulesFromDb } from '@/lib/discountRules';
 
 export interface CatalogFacetOption {
   code: string;
@@ -237,6 +238,7 @@ export async function getAgentCatalogInitData(): Promise<{
   agentCode?: string;
   clients?: AgentManagedClient[];
   initialSearch?: CatalogSearchResponse;
+  discountRules?: AgentDiscountRule[];
 }> {
   const session = await verifySession();
   if (!session || session.user.role !== 'AGENT') {
@@ -265,12 +267,16 @@ export async function getAgentCatalogInitData(): Promise<{
     `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() ||
     session.user.username;
 
+  const agentCode = clientsRes.agentCode || session.user.zucchettiCode || '';
+  const discountRules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
+
   return {
     success: true,
     agentName,
-    agentCode: clientsRes.agentCode || session.user.zucchettiCode || '',
+    agentCode,
     clients: clientsRes.clients || [],
     initialSearch,
+    discountRules,
   };
 }
 
@@ -678,6 +684,7 @@ export interface GenerateCatalogPdfInput {
     listPrice: number;
     netPrice: number;
     discountPct: number;
+    discountLabel?: string;
     stockMain: number;
     stockEk: number;
     stockTotal: number;
@@ -1243,12 +1250,13 @@ export async function generateAgentCatalogPdfAction(
               } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
             );
             if (item.discountPct > 0) {
+              const discText = item.discountLabel
+                ? `Sconto riservato: -${item.discountLabel}`
+                : `Sconto riservato: -${item.discountPct.toFixed(1).replace('.0', '')}%`;
               cmd.push(
                 `BT /F2 7.5 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
                   priceBoxY + 10
-                } Td (Sconto riservato: -${item.discountPct
-                  .toFixed(1)
-                  .replace('.0', '')}%) Tj ET`
+                } Td (${toPdfSafeLatin1(truncateText(discText, 32))}) Tj ET`
               );
             } else {
               cmd.push(

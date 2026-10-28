@@ -4,7 +4,12 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import { getProductById } from '@archelia/typesense/dist/search.js';
-import { getEffectiveDiscount, getExtraAgentDiscount } from '@/lib/discount';
+import {
+  getEffectiveDiscount,
+  getExtraAgentDiscount,
+  getEffectiveClientDiscountContext,
+  evaluateTypesenseProductWithContext,
+} from '@/lib/discount';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from './cart';
 import { redis } from '@/lib/redis';
@@ -28,19 +33,8 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       return { success: false, error: 'Il carrello è vuoto' };
     }
 
-    // Calculate final prices and totals
-    let genericDiscount = 0;
-    if (cartType === 'ZUCCHETTI') {
-       genericDiscount = await getEffectiveDiscount();
-    }
-    
-    // For Elmark, we need the user's elmarkDiscounts
-    let elmarkDiscounts: any = {};
-    if (cartType === 'ELMARK') {
-       const user = await prisma.b2BUser.findUnique({ where: { id: targetUserId }, select: { elmarkDiscounts: true } });
-       elmarkDiscounts = user?.elmarkDiscounts || {};
-    }
-    
+    // Calculate final prices and totals (including agent discount rules)
+    const discountCtx = await getEffectiveClientDiscountContext();
     let totalAmount = 0;
     const orderItemsData = [];
 
@@ -48,31 +42,16 @@ export async function checkoutCart(action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 
       const p = await getProductById(item.sku) as any;
       if (!p) continue;
 
-      let originalPrice = Number(cartType === 'ELMARK' ? p.price : (p.price_b2b || p.price || 0));
-      let finalPrice = originalPrice;
-      
-      let stdDisc = 0;
-      let extDisc = 0;
+      const evaluated = evaluateTypesenseProductWithContext(
+        p,
+        cartType,
+        discountCtx,
+        item.extraDiscount
+      );
 
-      if (cartType === 'ZUCCHETTI') {
-        stdDisc = genericDiscount || 0;
-        extDisc = item.extraDiscount || 0;
-        if (stdDisc > 0) {
-          finalPrice = finalPrice * (1 - (stdDisc / 100));
-        }
-        if (extDisc > 0) {
-          finalPrice = finalPrice * (1 - (extDisc / 100));
-        }
-      } else if (cartType === 'ELMARK') {
-        const discGroup = p.discgroup;
-        stdDisc = (discGroup && elmarkDiscounts[discGroup]) ? Number(elmarkDiscounts[discGroup]) : 0;
-        if (stdDisc > 0) {
-          finalPrice = finalPrice * (1 - (stdDisc / 100));
-        }
-      }
-
-      let dStr = stdDisc > 0 ? `${stdDisc}%` : '';
-      if (extDisc > 0) dStr += (dStr ? ` + ${extDisc}% Extra` : `${extDisc}% Extra`);
+      const originalPrice = evaluated.originalPriceB2b;
+      const finalPrice = evaluated.netPrice;
+      const dStr = evaluated.discountPct > 0 ? evaluated.discountLabel : '';
 
       totalAmount += finalPrice * item.quantity;
       

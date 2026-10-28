@@ -90,6 +90,13 @@ export default async function AgentDashboard({ user }: { user: any }) {
           </Link>
           <Link
             prefetch={true}
+            href="/account/discounts"
+            className="px-4 py-2 text-sm font-bold rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 transition-colors flex items-center gap-1.5"
+          >
+            <span>🏷️ Gestione Sconti</span>
+          </Link>
+          <Link
+            prefetch={true}
             href="/account/catalog-builder"
             className="px-4 py-2 text-sm font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-colors flex items-center gap-2"
           >

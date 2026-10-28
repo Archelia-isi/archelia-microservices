@@ -63,52 +63,50 @@ export default async function CartPage() {
         stock: p.stock || 0,
         stock_main: p.stock_main,
         stock_ek: p.stock_ek,
-        discgroup: p.discgroup || ''
+        discgroup: p.discgroup || '',
+        brand: p.brand || '',
+        product_group: p.product_group || '',
+        family: p.family || '',
+        category: p.category || '',
       } : null
     };
   }));
 
-  // Calcola il totale con gli sconti applicati
-  // Recupera elmarkDiscounts dell'utente target (il cliente impersonato)
-  let elmarkDiscounts: Record<string, number> = {};
-  if (session) {
-    let targetUser = session.user;
-    if (session.user.role === "AGENT" && cookies().get("impersonatedClientCode")?.value) {
-      const { prisma } = await import('@archelia/b2b-database');
-      const impersonated = await prisma.b2BUser.findUnique({ where: { zucchettiCode: cookies().get("impersonatedClientCode")?.value } });
-      if (impersonated) targetUser = impersonated as any;
-    }
-    elmarkDiscounts = (targetUser.elmarkDiscounts as Record<string, number>) || {};
-  }
-  const { getEffectiveDiscount, getExtraAgentDiscount } = await import('@/lib/discount');
-  const genericDiscount = await getEffectiveDiscount();
-  const extraAgentDiscount = await getExtraAgentDiscount();
+  // Calcola il totale con gli sconti applicati (inclusi sconti base fissi e regole di sconto agente)
+  const {
+    getEffectiveDiscount,
+    getExtraAgentDiscount,
+    getEffectiveElmarkDiscounts,
+    getEffectiveClientDiscountContext,
+    evaluateTypesenseProductWithContext,
+  } = await import('@/lib/discount');
+  const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx] = await Promise.all([
+    getEffectiveDiscount(),
+    getExtraAgentDiscount(),
+    getEffectiveElmarkDiscounts(),
+    getEffectiveClientDiscountContext(),
+  ]);
   
   const finalItems = populatedItems.map(item => {
     if (!item.product) return { ...item, finalPrice: 0, originalPrice: 0, basePrice: 0 };
     
-    let originalPrice = Number(item.product.priceB2b) > 0 ? Number(item.product.priceB2b) : Number(item.product.price);
-    let basePrice = originalPrice;
-    
-    if (storeMode === 'ELMARK') {
-      const dGroup = item.product.discgroup || '';
-      const groupDisc = elmarkDiscounts[dGroup] || 0;
-      if (groupDisc > 0) {
-        basePrice = basePrice * (1 - (groupDisc / 100));
-      }
-    } else {
-      if (genericDiscount > 0) {
-        basePrice = basePrice * (1 - (genericDiscount / 100));
-      }
-    }
+    const evaluated = evaluateTypesenseProductWithContext(
+      {
+        ...item.product,
+        price_b2b: item.product.priceB2b,
+      },
+      storeMode,
+      discountCtx,
+      item.extraDiscount
+    );
 
-    let finalPrice = basePrice;
-
-    // Solo l'extra discount del singolo item viene calcolato
-    // (L'extra discount globale è già stato spalmato sugli items via DB o in addToCart)
-    if (storeMode === 'ZUCCHETTI' && item.extraDiscount && item.extraDiscount > 0) {
-      finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
-    }
+    const originalPrice = evaluated.originalPriceB2b;
+    const baseDisc =
+      storeMode === 'ELMARK'
+        ? Number(elmarkDiscounts[item.product.discgroup || ''] || 0)
+        : Number(genericDiscount || 0);
+    const basePrice = originalPrice * (1 - baseDisc / 100);
+    const finalPrice = evaluated.netPrice;
 
     return { ...item, finalPrice, originalPrice, basePrice };
   });

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import {
   CatalogFacetOption,
   CatalogPriceMode,
@@ -16,11 +17,16 @@ import {
   searchCatalogPredictiveAction,
 } from '@/app/actions/catalogBuilder';
 import { AgentManagedClient } from '@/app/actions/newClient';
+import {
+  AgentDiscountRule,
+  evaluateProductDiscountWithRules,
+} from '@/lib/discountRulesEngine';
 
 interface Props {
   agentName: string;
   agentCode: string;
   clients: AgentManagedClient[];
+  discountRules?: AgentDiscountRule[];
   initialSearch: CatalogSearchResponse;
 }
 
@@ -241,6 +247,7 @@ export default function CatalogBuilderClient({
   agentName,
   agentCode,
   clients,
+  discountRules = [],
   initialSearch,
 }: Props) {
   // --- STATO FILTRI ---
@@ -561,16 +568,42 @@ export default function CatalogBuilderClient({
     setIsClientDropdownOpen(false);
   };
 
-  // Calcolo prezzo netto e sconto per singolo prodotto
+  // Regole di sconto attive pertinenti per il cliente selezionato (o per tutti i clienti)
+  const applicableRulesCount = useMemo(() => {
+    return (discountRules || []).filter(r => {
+      if (!r.isActive) return false;
+      if (r.clientScope === 'ALL_CLIENTS') return true;
+      if (!selectedClient) return false;
+      return (
+        r.clientId === selectedClient.id ||
+        (r.clientCode &&
+          selectedClient.zucchettiCode &&
+          r.clientCode.toUpperCase() === selectedClient.zucchettiCode.toUpperCase())
+      );
+    }).length;
+  }, [discountRules, selectedClient]);
+
+  // Calcolo prezzo netto e sconto per singolo prodotto (Sconto Base Fisso + Regole Sconto Prodotto/Marchio/Categoria)
   const calculateProductPricing = (product: CatalogProductItem) => {
-    const listPrice = Number(product.listPrice || 0);
-    const bDisc = Number(baseDiscount || 0);
-    const eDisc = Number(extraDiscount || 0);
-    const afterBase = listPrice * (1 - bDisc / 100);
-    const netPrice = Number((afterBase * (1 - eDisc / 100)).toFixed(4));
-    const effectivePct =
-      listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
-    return { listPrice, netPrice, discountPct: Math.max(0, effectivePct) };
+    return evaluateProductDiscountWithRules(
+      {
+        sku: product.sku,
+        brand: product.brand,
+        productGroup: product.productGroup,
+        family: product.family,
+        category: product.category,
+        listPrice: Number(product.listPrice || 0),
+        catalogSource: product.catalogSource,
+        discgroup: product.discgroup,
+      },
+      Number(baseDiscount || 0),
+      discountRules || [],
+      {
+        clientId: selectedClient?.id || null,
+        clientCode: selectedClient?.zucchettiCode || null,
+      },
+      selectedClient ? 0 : Number(extraDiscount || 0)
+    );
   };
 
   // Prodotti del catalogo ordinati secondo la scelta "Ordina per"
@@ -701,6 +734,7 @@ export default function CatalogBuilderClient({
           listPrice: pricing.listPrice,
           netPrice: pricing.netPrice,
           discountPct: pricing.discountPct,
+          discountLabel: pricing.discountLabel,
           stockMain: p.stockMain,
           stockEk: p.stockEk,
           stockTotal: p.stockTotal,
@@ -1376,17 +1410,23 @@ export default function CatalogBuilderClient({
                 <p className="text-[11px] text-gray-500 leading-tight">
                   {selectedClient ? (
                     <>
-                      🔒 Sconto bloccato sul listino riservato di{' '}
-                      <strong>{selectedClient.companyName}</strong> ({baseDiscount}%). Scollega il
-                      cliente per inserire sconti manuali.
+                      🔒 Sconto Base fisso di{' '}
+                      <strong>{selectedClient.companyName}</strong> ({baseDiscount}%) +{' '}
+                      <strong>{applicableRulesCount}</strong> regole di sconto attive.
                     </>
                   ) : (
                     <>
                       Imposta uno sconto manuale oppure seleziona un cliente per applicare il suo
-                      listino riservato.
+                      listino riservato ({applicableRulesCount} regole generali attive).
                     </>
                   )}
                 </p>
+                <Link
+                  href="/account/discounts"
+                  className="w-full px-3 py-1.5 text-[11px] font-extrabold rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <span>🏷️ Gestisci Sconti Prodotti / Marchi / Categorie ({applicableRulesCount})</span>
+                </Link>
               </div>
             </div>
 
@@ -1763,8 +1803,15 @@ export default function CatalogBuilderClient({
                                   </span>
                                 </div>
                                 {pricing.discountPct > 0 ? (
-                                  <div className="text-[11px] font-extrabold text-red-600">
-                                    Sconto riservato: -{pricing.discountPct.toFixed(1).replace('.0', '')}%
+                                  <div>
+                                    <div className="text-[11px] font-extrabold text-red-600">
+                                      Sconto riservato: -{pricing.discountLabel || `${pricing.discountPct.toFixed(1).replace('.0', '')}%`}
+                                    </div>
+                                    {pricing.appliedRuleName && (
+                                      <div className="text-[9px] font-bold text-emerald-700 truncate max-w-[160px]">
+                                        🏷️ {pricing.appliedRuleName}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <div className="text-[10px] text-slate-500">
