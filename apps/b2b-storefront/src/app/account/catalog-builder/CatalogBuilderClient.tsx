@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import HTMLFlipBook from 'react-pageflip';
 import {
   CatalogFacetOption,
   CatalogPriceMode,
@@ -299,11 +300,12 @@ export default function CatalogBuilderClient({
   const [extraDiscount, setExtraDiscount] = useState<number>(0);
   const [elmarkDiscounts, setElmarkDiscounts] = useState<Record<string, number>>({});
 
-  // Vista UI, Modale Anteprima a tutto schermo, Zoom e generazione PDF
+  // Vista UI, Modale Anteprima a tutto schermo, FlipBook Ref, Zoom e generazione PDF
   const [showConfigPanel, setShowConfigPanel] = useState<boolean>(true);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
   const [previewViewMode, setPreviewViewMode] = useState<'SINGLE' | 'DOUBLE'>('DOUBLE');
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [zoomLevel, setZoomLevel] = useState<number>(85);
+  const flipBookRef = useRef<any>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfError, setPdfError] = useState('');
 
@@ -674,19 +676,46 @@ export default function CatalogBuilderClient({
     const clamped = Math.min(Math.max(0, targetSheet), totalSheets - 1);
     const normalizedTarget =
       previewViewMode === 'DOUBLE' ? Math.floor(clamped / 2) * 2 : clamped;
+    const pf = flipBookRef.current?.pageFlip?.();
+    if (pf) {
+      try {
+        pf.flip(normalizedTarget, 'top');
+        return;
+      } catch {
+        // fallback diretto se l'animazione non è disponibile
+      }
+    }
     setCurrentSheet(normalizedTarget);
   };
 
   const handlePrevPage = () => {
     if (!canGoPrev) return;
+    const pf = flipBookRef.current?.pageFlip?.();
+    if (pf) {
+      try {
+        pf.flipPrev('top');
+        return;
+      } catch {
+        // fallback
+      }
+    }
     const base = previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet;
-    goToSheet(Math.max(0, base - pageStep));
+    setCurrentSheet(Math.max(0, base - pageStep));
   };
 
   const handleNextPage = () => {
     if (!canGoNext) return;
+    const pf = flipBookRef.current?.pageFlip?.();
+    if (pf) {
+      try {
+        pf.flipNext('top');
+        return;
+      } catch {
+        // fallback
+      }
+    }
     const base = previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet;
-    goToSheet(Math.min(totalSheets - 1, base + pageStep));
+    setCurrentSheet(Math.min(totalSheets - 1, base + pageStep));
   };
 
   const handleZoomIn = () => setZoomLevel(prev => Math.min(200, prev + 15));
@@ -886,8 +915,8 @@ export default function CatalogBuilderClient({
     [catalogItems]
   );
 
-  // Renderizza un singolo Foglio A4 (6 schede 2x3) riutilizzabile sia in vista 1 Pagina che in vista 2 Pagine (Libro Aperto)
-  const renderA4Sheet = (sheetIdx: number, side?: 'left' | 'right') => {
+  // Renderizza un singolo Foglio A4 (6 schede 2x3) compatibile con HTMLFlipBook (StPageFlip)
+  const renderA4Sheet = (sheetIdx: number) => {
     const sheetProducts = sortedCatalogProducts.slice(sheetIdx * 6, (sheetIdx + 1) * 6);
     const isOutOfBounds = sheetIdx >= totalSheets || sheetProducts.length === 0;
 
@@ -895,22 +924,16 @@ export default function CatalogBuilderClient({
       return (
         <div
           key={`empty-sheet-${sheetIdx}`}
-          className={`flex-1 bg-white border-2 border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between min-h-[680px] ${
-            side === 'left'
-              ? 'rounded-l-2xl rounded-r-sm'
-              : side === 'right'
-              ? 'rounded-r-2xl rounded-l-sm'
-              : 'rounded-2xl'
-          }`}
+          className="w-[740px] h-[1020px] bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between select-none"
         >
-          <div className="px-5 py-3.5 bg-black text-white border-b-4 border-brand-main flex items-center justify-between gap-3">
+          <div className="px-5 py-3.5 bg-black text-white border-b-4 border-brand-main flex items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
               <img
                 src="/logo-izzo.png"
                 alt="Izzo Distribuzione"
                 className="h-10 w-auto object-contain shrink-0"
               />
-              <div className="h-8 w-px bg-gray-700 hidden sm:block" />
+              <div className="h-8 w-px bg-gray-700" />
               <div>
                 <div className="text-[10px] font-extrabold text-brand-main tracking-wider uppercase">
                   IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B
@@ -942,7 +965,7 @@ export default function CatalogBuilderClient({
             </p>
           </div>
 
-          <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500">
+          <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500 shrink-0">
             <span>www.izzodistribuzione.it</span>
             <span>Catalogo Riservato B2B</span>
           </div>
@@ -953,13 +976,7 @@ export default function CatalogBuilderClient({
     return (
       <div
         key={`sheet-${sheetIdx}`}
-        className={`flex-1 bg-white border-2 border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between ${
-          side === 'left'
-            ? 'rounded-l-2xl rounded-r-sm'
-            : side === 'right'
-            ? 'rounded-r-2xl rounded-l-sm'
-            : 'rounded-2xl'
-        }`}
+        className="w-[740px] h-[1020px] bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between select-none"
       >
         {/* Intestazione Foglio A4 (come nel PDF stampato) */}
         <div className="px-5 py-3 bg-black text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-2.5">
@@ -2216,38 +2233,54 @@ export default function CatalogBuilderClient({
                 </svg>
               </button>
 
-              {/* Contenitore Fogli A4 con Zoom Dinamico */}
+              {/* Contenitore FlipBook (react-pageflip / StPageFlip) con Zoom Dinamico e Piega Angolo Realistica */}
               <div
                 style={{ zoom: zoomLevel / 100 } as React.CSSProperties}
-                className={`relative w-full transition-all duration-150 ${
-                  previewViewMode === 'DOUBLE' ? 'max-w-[1520px]' : 'max-w-4xl'
-                }`}
+                className="relative flex items-center justify-center transition-all duration-150"
               >
-                {previewViewMode === 'SINGLE' ? (
-                  /* VISTA 1 PAGINA SINGOLA */
-                  renderA4Sheet(safeCurrentSheet)
-                ) : (
-                  /* VISTA 2 PAGINE AFFIANCATE (LIBRO APERTO CON RILEGATURA CENTRALE) */
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:gap-0 items-stretch relative">
-                    {/* Pagina Sinistra */}
-                    <div className="flex flex-col">{renderA4Sheet(leftSpreadSheet, 'left')}</div>
-
-                    {/* Rilegatura / Piega Centrale del Libro */}
-                    <div
-                      aria-hidden="true"
-                      className="hidden xl:block pointer-events-none absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-7 z-20"
-                      style={{
-                        background:
-                          'linear-gradient(90deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.06) 35%, rgba(255,255,255,0.25) 50%, rgba(0,0,0,0.08) 65%, rgba(0,0,0,0.24) 100%)',
-                      }}
-                    />
-
-                    {/* Pagina Destra */}
-                    <div className="flex flex-col">
-                      {renderA4Sheet(rightSpreadSheet ?? leftSpreadSheet + 1, 'right')}
-                    </div>
-                  </div>
-                )}
+                <HTMLFlipBook
+                  key={`flipbook-${previewViewMode}-${totalSheets}-${priceMode}-${stockMode}-${baseDiscount}-${extraDiscount}-${selectedClientId}`}
+                  ref={flipBookRef}
+                  width={740}
+                  height={1020}
+                  size="fixed"
+                  minWidth={740}
+                  maxWidth={740}
+                  minHeight={1020}
+                  maxHeight={1020}
+                  drawShadow={true}
+                  maxShadowOpacity={0.55}
+                  flippingTime={750}
+                  usePortrait={previewViewMode === 'SINGLE'}
+                  startPage={previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet}
+                  startZIndex={10}
+                  autoSize={false}
+                  showCover={false}
+                  mobileScrollSupport={true}
+                  clickEventForward={true}
+                  useMouseEvents={true}
+                  swipeDistance={30}
+                  showPageCorners={true}
+                  disableFlipByClick={false}
+                  className="shadow-2xl"
+                  style={{
+                    width: previewViewMode === 'SINGLE' ? 740 : 1480,
+                    height: 1020,
+                    margin: '0 auto',
+                  }}
+                  onFlip={(e: any) => {
+                    if (typeof e?.data === 'number') {
+                      setCurrentSheet(e.data);
+                    }
+                  }}
+                >
+                  {Array.from({
+                    length:
+                      previewViewMode === 'DOUBLE' && totalSheets % 2 !== 0
+                        ? totalSheets + 1
+                        : totalSheets,
+                  }).map((_, idx) => renderA4Sheet(idx))}
+                </HTMLFlipBook>
               </div>
 
               {/* Freccia Laterale Destra */}
