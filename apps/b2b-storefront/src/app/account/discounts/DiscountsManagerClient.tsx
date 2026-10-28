@@ -9,6 +9,7 @@ import {
 import {
   CatalogFacetOption,
   CatalogProductItem,
+  searchAgentCatalogProducts,
   searchCatalogPredictiveAction,
 } from '@/app/actions/catalogBuilder';
 import {
@@ -337,6 +338,109 @@ export default function DiscountsManagerClient({
     () => clients.filter(c => selectedClientIds.includes(c.id)),
     [clients, selectedClientIds]
   );
+
+  // Clienti effettivamente coinvolti dalla regola in creazione (mostrati nel 1/3 superiore della barra destra)
+  const sidebarClients = useMemo(() => {
+    if (clientScope === 'ALL_CLIENTS') {
+      return clients;
+    }
+    if (clientScope === 'CLIENT_CATEGORY') {
+      if (selectedClientCategories.length === 0) return [];
+      return clients.filter(c =>
+        selectedClientCategories.includes(getClientCategoryInfo(c).code)
+      );
+    }
+    return selectedClientsObjects;
+  }, [clientScope, clients, selectedClientCategories, selectedClientsObjects]);
+
+  // Prodotti corrispondenti a Marchio / Gruppo / Famiglia / Categoria / Tutto il Catalogo per il 2/3 inferiore della barra destra
+  const [scopeProducts, setScopeProducts] = useState<CatalogProductItem[]>([]);
+  const [scopeProductsTotal, setScopeProductsTotal] = useState<number>(0);
+  const [isLoadingScopeProducts, setIsLoadingScopeProducts] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (targetType === 'PRODUCTS') {
+      setScopeProducts([]);
+      setScopeProductsTotal(0);
+      setIsLoadingScopeProducts(false);
+      return;
+    }
+
+    const activeBrands = targetType === 'BRAND' ? selectedBrands : [];
+    const activeGroups = targetType === 'PRODUCT_GROUP' ? selectedProductGroups : [];
+    const activeFamilies = targetType === 'FAMILY' ? selectedFamilies : [];
+    const activeCategories = targetType === 'CATEGORY' ? selectedCategories : [];
+
+    const hasActiveFacet =
+      targetType === 'ALL_CATALOG' ||
+      activeBrands.length > 0 ||
+      activeGroups.length > 0 ||
+      activeFamilies.length > 0 ||
+      activeCategories.length > 0;
+
+    if (!hasActiveFacet) {
+      setScopeProducts([]);
+      setScopeProductsTotal(0);
+      setIsLoadingScopeProducts(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsLoadingScopeProducts(true);
+      try {
+        const res = await searchAgentCatalogProducts({
+          catalogSource: 'ALL',
+          query: '',
+          warehouse: 'ALL_WAREHOUSES',
+          includeZeroStock: true,
+          brands: activeBrands,
+          productGroups: activeGroups,
+          families: activeFamilies,
+          categories: activeCategories,
+          sortBy: 'SKU_ASC',
+          limit: 200,
+        });
+        if (!cancelled && res.success) {
+          setScopeProducts(res.products);
+          setScopeProductsTotal(res.totalFound || res.products.length);
+        }
+      } catch (e) {
+        console.error('Errore caricamento prodotti ambito sconto:', e);
+      } finally {
+        if (!cancelled) setIsLoadingScopeProducts(false);
+      }
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    targetType,
+    selectedBrands,
+    selectedProductGroups,
+    selectedFamilies,
+    selectedCategories,
+  ]);
+
+  const sidebarProductsList = useMemo<DiscountTargetProductMeta[]>(() => {
+    if (targetType === 'PRODUCTS') {
+      return selectedProducts;
+    }
+    return scopeProducts.map(p => ({
+      sku: p.sku,
+      title: p.originalName || p.title,
+      brand: p.brandLabel || p.brand,
+      imageUrl: p.imageUrl,
+      listPrice: p.listPrice,
+    }));
+  }, [targetType, selectedProducts, scopeProducts]);
+
+  const sidebarProductsTotalCount =
+    targetType === 'PRODUCTS'
+      ? selectedProducts.length
+      : scopeProductsTotal || scopeProducts.length;
 
   const filteredClientsForDropdown = useMemo(() => {
     const q = clientSearchText.trim().toLowerCase();
@@ -708,7 +812,16 @@ export default function DiscountsManagerClient({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <>
+      <style>{`
+        @media (min-width: 1024px) {
+          body > main {
+            max-width: 1620px !important;
+            padding-right: 286px !important;
+          }
+        }
+      `}</style>
+      <div className="space-y-6 pb-12">
       {/* INTESTAZIONE */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -1036,57 +1149,6 @@ export default function DiscountsManagerClient({
                     </div>
                   )}
                 </div>
-
-                {/* RIEPILOGO CLIENTI SELEZIONATI CON CATEGORIA E SCONTO BASE FISSO BLOCCATO */}
-                {selectedClientsObjects.length > 0 ? (
-                  <div className="p-3 rounded-xl bg-white border border-gray-200 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] text-gray-600 font-bold">
-                      <span>
-                        Clienti abbinati alla regola ({selectedClientsObjects.length}) — ciascuno mantiene il proprio Sconto Base fisso non modificabile:
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
-                      {selectedClientsObjects.map(c => {
-                        const catInfo = getClientCategoryInfo(c);
-                        return (
-                          <div
-                            key={c.id}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50/40 border border-amber-300 shadow-sm text-xs"
-                          >
-                            <div>
-                              <span className="font-extrabold text-gray-900">
-                                {c.companyName}
-                              </span>
-                              <span className="ml-1 font-mono text-[11px] text-gray-500">
-                                ({c.zucchettiCode})
-                              </span>
-                            </div>
-                            {catInfo.code && (
-                              <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-900 font-bold text-[10px]">
-                                {catInfo.shortLabel}
-                              </span>
-                            )}
-                            <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-800 font-black text-[11px]">
-                              🔒 Base: {c.discount || 0}%
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => toggleClientSelection(c.id)}
-                              className="text-gray-400 hover:text-red-600 font-black ml-1"
-                              title="Rimuovi cliente dalla regola"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-white border border-dashed border-gray-300 text-xs text-gray-500">
-                    Nessun cliente ancora selezionato. Clicca nella barra qui sopra per scegliere <strong>uno o più clienti</strong>.
-                  </div>
-                )}
               </div>
             )}
 
@@ -1396,58 +1458,6 @@ export default function DiscountsManagerClient({
                     </div>
                   )}
                 </div>
-
-                {/* PRODOTTI SELEZIONATI */}
-                {selectedProducts.length > 0 ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-extrabold text-gray-700">
-                        Prodotti inclusi nella regola ({selectedProducts.length}):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedProducts([])}
-                        className="text-xs font-bold text-red-600 hover:underline"
-                      >
-                        Rimuovi tutti
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {selectedProducts.map(item => (
-                        <div
-                          key={item.sku}
-                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white border border-amber-300 shadow-sm"
-                        >
-                          <div className="min-w-0">
-                            <div className="font-mono text-xs font-extrabold text-gray-900">
-                              {item.sku}
-                            </div>
-                            <div className="text-[11px] text-gray-600 truncate">
-                              {item.title}
-                            </div>
-                            {item.listPrice !== undefined && (
-                              <div className="text-[10px] text-gray-400">
-                                Listino: € {Number(item.listPrice).toFixed(2)}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeProductFromRule(item.sku)}
-                            className="px-2 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg shrink-0"
-                            title="Rimuovi prodotto"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-500 italic">
-                    Nessun prodotto singolo selezionato. Cerca un articolo qui sopra o scegli &ldquo;Tutto il Catalogo&rdquo; / Marchio / Gruppo / Famiglia / Categoria.
-                  </div>
-                )}
               </div>
             )}
 
@@ -1847,6 +1857,241 @@ export default function DiscountsManagerClient({
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* COLONNA DESTRA ANCORATA ALLA BARRA SUPERIORE E AL BORDO DESTRO DELLO SCHERMO (1/3 CLIENTI + 2/3 PRODOTTI, CORPO UNICO) */}
+      <aside className="fixed top-[81px] right-0 bottom-0 z-40 w-[270px] bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+        {/* SEZIONE SUPERIORE (1/3): CLIENTI A CUI STIAMO APPLICANDO LO SCONTO */}
+        <div className="h-1/3 flex flex-col min-h-0">
+          <div className="px-3.5 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
+            <span className="text-xs font-extrabold text-gray-800">
+              Clienti ({sidebarClients.length})
+            </span>
+            {(clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT') &&
+            selectedClientsObjects.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedClientIds([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota tutto
+              </button>
+            ) : clientScope === 'CLIENT_CATEGORY' && selectedClientCategories.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedClientCategories([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota
+              </button>
+            ) : clientScope === 'ALL_CLIENTS' ? (
+              <span className="text-[11px] font-semibold text-blue-600">Tutti</span>
+            ) : (
+              <span className="text-[11px] text-gray-400">0 scelti</span>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/40">
+            {sidebarClients.length === 0 ? (
+              <div className="py-8 px-3 text-center space-y-1">
+                <p className="text-xs font-semibold text-gray-500">
+                  Nessun cliente inserito
+                </p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  {clientScope === 'CLIENT_CATEGORY'
+                    ? 'Seleziona una o più categorie clienti a sinistra.'
+                    : 'Seleziona i clienti a cui applicare lo sconto.'}
+                </p>
+              </div>
+            ) : (
+              sidebarClients.map((client, idx) => {
+                const catInfo = getClientCategoryInfo(client);
+                return (
+                  <div
+                    key={client.id}
+                    className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-all"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">
+                        {idx + 1}.
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-extrabold text-gray-900 truncate">
+                          {client.companyName}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                          <span className="font-mono">{client.zucchettiCode}</span>
+                          {catInfo.code && (
+                            <span className="px-1 py-0.2 rounded bg-indigo-50 text-indigo-800 font-bold text-[9px]">
+                              {catInfo.code}
+                            </span>
+                          )}
+                          <span className="font-extrabold text-emerald-700">
+                            Base {client.discount || 0}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {(clientScope === 'SELECTED_CLIENTS' ||
+                      clientScope === 'SINGLE_CLIENT') && (
+                      <button
+                        type="button"
+                        onClick={() => toggleClientSelection(client.id)}
+                        title="Rimuovi cliente"
+                        className="w-6 h-6 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* SEZIONE INFERIORE (2/3): PRODOTTI SU CUI STIAMO APPLICANDO LO SCONTO */}
+        <div className="h-2/3 flex flex-col min-h-0 border-t border-gray-200">
+          <div className="px-3.5 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
+            <span className="text-xs font-extrabold text-gray-800">
+              Prodotti ({sidebarProductsTotalCount})
+            </span>
+            {targetType === 'PRODUCTS' && selectedProducts.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedProducts([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota tutto
+              </button>
+            ) : targetType === 'BRAND' && selectedBrands.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedBrands([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota
+              </button>
+            ) : targetType === 'PRODUCT_GROUP' && selectedProductGroups.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedProductGroups([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota
+              </button>
+            ) : targetType === 'FAMILY' && selectedFamilies.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedFamilies([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota
+              </button>
+            ) : targetType === 'CATEGORY' && selectedCategories.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setSelectedCategories([])}
+                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
+              >
+                Svuota
+              </button>
+            ) : targetType === 'ALL_CATALOG' ? (
+              <span className="text-[11px] font-semibold text-emerald-700">
+                Intero catalogo
+              </span>
+            ) : (
+              <span className="text-[11px] text-gray-400">0 articoli</span>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/40">
+            {isLoadingScopeProducts ? (
+              <div className="py-12 px-4 text-center space-y-2.5">
+                <div className="w-6 h-6 border-2 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs font-semibold text-gray-600">
+                  Caricamento prodotti...
+                </p>
+              </div>
+            ) : sidebarProductsList.length === 0 ? (
+              <div className="py-12 px-4 text-center space-y-1.5">
+                <p className="text-xs font-semibold text-gray-500">
+                  Nessun prodotto selezionato
+                </p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  {targetType === 'PRODUCTS'
+                    ? 'Aggiungi i prodotti dalla barra di ricerca.'
+                    : 'Seleziona uno o più filtri per visualizzare i prodotti inclusi.'}
+                </p>
+              </div>
+            ) : (
+              sidebarProductsList.map((product, idx) => {
+                const listPrice = Number(product.listPrice || 0);
+                const val = Math.max(0, Math.min(95, Number(discountValue || 0)));
+                const baseDisc = simulationPreview.sampleBaseDiscount;
+                const netPrice =
+                  listPrice > 0
+                    ? calculationMode === 'FIXED_OVERRIDE'
+                      ? listPrice * (1 - val / 100)
+                      : listPrice * (1 - baseDisc / 100) * (1 - val / 100)
+                    : 0;
+
+                return (
+                  <div
+                    key={`${product.sku}-${idx}`}
+                    className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-all"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">
+                        {idx + 1}.
+                      </span>
+                      <div className="w-8 h-8 rounded border border-gray-100 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.title || product.sku}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="text-[8px] font-bold text-gray-300">N/D</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[11px] font-black text-gray-900 truncate">
+                            {product.sku}
+                          </span>
+                          {listPrice > 0 && (
+                            <span className="text-[11px] font-extrabold text-emerald-700 shrink-0">
+                              € {netPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-gray-500 truncate">
+                          {product.title}
+                        </div>
+                      </div>
+                    </div>
+
+                    {targetType === 'PRODUCTS' && (
+                      <button
+                        type="button"
+                        onClick={() => removeProductFromRule(product.sku)}
+                        title="Rimuovi prodotto"
+                        className="w-6 h-6 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }
