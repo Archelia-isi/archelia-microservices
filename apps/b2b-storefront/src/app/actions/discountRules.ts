@@ -3,7 +3,11 @@
 import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
-import { getAgentClientsList, AgentManagedClient } from './newClient';
+import {
+  getAgentClientsList,
+  AgentManagedClient,
+  CommercialCategoryOption,
+} from './newClient';
 import {
   CatalogFacetOption,
   searchAgentCatalogProducts,
@@ -17,6 +21,7 @@ import {
   DiscountTargetType,
   ensureDiscountRulesTable,
   getAgentDiscountRulesFromDb,
+  normalizeClientCategoryCode,
 } from '@/lib/discountRules';
 
 export interface SaveDiscountRuleInput {
@@ -29,6 +34,7 @@ export interface SaveDiscountRuleInput {
   clientIds?: string[];
   clientCodes?: string[];
   clientsMeta?: DiscountTargetClientMeta[];
+  clientCategories?: string[];
   targetType: DiscountTargetType;
   targetSkus?: string[];
   targetProductsMeta?: DiscountTargetProductMeta[];
@@ -47,6 +53,7 @@ export async function getAgentDiscountManagementInitData(): Promise<{
   agentName: string;
   agentCode: string;
   clients: AgentManagedClient[];
+  clientCategories: CommercialCategoryOption[];
   facets: {
     brands: CatalogFacetOption[];
     productGroups: CatalogFacetOption[];
@@ -63,6 +70,7 @@ export async function getAgentDiscountManagementInitData(): Promise<{
       agentName: '',
       agentCode: '',
       clients: [],
+      clientCategories: [],
       facets: { brands: [], productGroups: [], families: [], categories: [] },
       rules: [],
     };
@@ -93,11 +101,50 @@ export async function getAgentDiscountManagementInitData(): Promise<{
 
   const rules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
 
+  const rawCategories = clientsRes.categories || [
+    { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
+    { code: 'ist', label: 'IST - Installatore / Impiantista (Sconto base 40%)', discount: 40 },
+    { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
+  ];
+
+  // Rendiamo più chiara l'etichetta IST come "IST - Installatore / Impiantista"
+  const clientCategories: CommercialCategoryOption[] = rawCategories
+    .filter(c => Boolean(c.code && c.code.trim()))
+    .map(c => {
+      const upper = c.code.trim().toUpperCase();
+      if (upper === 'IST') {
+        return {
+          ...c,
+          code: 'IST',
+          label: `IST - Installatore / Impiantista (Sconto base ${c.discount}%)`,
+        };
+      }
+      if (upper === 'RIV') {
+        return {
+          ...c,
+          code: 'RIV',
+          label: `RIV - Rivenditore (Sconto base ${c.discount}%)`,
+        };
+      }
+      if (upper === 'GEN') {
+        return {
+          ...c,
+          code: 'GEN',
+          label: `GEN - Generale (Sconto base ${c.discount}%)`,
+        };
+      }
+      return {
+        ...c,
+        code: upper,
+      };
+    });
+
   return {
     success: true,
     agentName,
     agentCode,
     clients: clientsRes.clients || [],
+    clientCategories,
     facets: facetSearchRes.facets || {
       brands: [],
       productGroups: [],
@@ -162,18 +209,37 @@ export async function saveAgentDiscountRuleAction(
     ? input.clientsMeta
     : [];
 
-  const clientScope: DiscountClientScope =
-    input.clientScope === 'ALL_CLIENTS'
-      ? 'ALL_CLIENTS'
-      : clientIds.length > 1 || clientCodes.length > 1
+  const clientCategories = Array.from(
+    new Set(
+      (input.clientCategories || [])
+        .map(c => normalizeClientCategoryCode(c))
+        .filter(Boolean)
+    )
+  );
+
+  let clientScope: DiscountClientScope = 'ALL_CLIENTS';
+  if (input.clientScope === 'ALL_CLIENTS') {
+    clientScope = 'ALL_CLIENTS';
+  } else if (input.clientScope === 'CLIENT_CATEGORY') {
+    clientScope = 'CLIENT_CATEGORY';
+    if (clientCategories.length === 0) {
+      return {
+        success: false,
+        error:
+          'Seleziona almeno una Categoria Cliente (es. Rivenditore, Installatore / Impiantista, Generale).',
+      };
+    }
+  } else {
+    clientScope =
+      clientIds.length > 1 || clientCodes.length > 1
         ? 'SELECTED_CLIENTS'
         : 'SINGLE_CLIENT';
-
-  if (clientScope !== 'ALL_CLIENTS' && clientIds.length === 0 && clientCodes.length === 0) {
-    return {
-      success: false,
-      error: 'Seleziona almeno un cliente a cui abbinare questa regola di sconto.',
-    };
+    if (clientIds.length === 0 && clientCodes.length === 0) {
+      return {
+        success: false,
+        error: 'Seleziona almeno un cliente a cui abbinare questa regola di sconto.',
+      };
+    }
   }
 
   const targetType: DiscountTargetType = input.targetType || 'PRODUCTS';
@@ -246,15 +312,18 @@ export async function saveAgentDiscountRuleAction(
   }
 
   const isActive = input.isActive !== undefined ? Boolean(input.isActive) : true;
-  const primaryClientId = clientScope !== 'ALL_CLIENTS' ? clientIds[0] || null : null;
-  const primaryClientCode = clientScope !== 'ALL_CLIENTS' ? clientCodes[0] || null : null;
-  const primaryClientName =
-    clientScope !== 'ALL_CLIENTS'
-      ? clientsMeta.length === 1
-        ? clientsMeta[0].name
-        : clientsMeta.length > 1
-          ? `${clientsMeta.length} Clienti selezionati`
-          : input.clientName || null
+  const isSpecificClients =
+    clientScope === 'SINGLE_CLIENT' || clientScope === 'SELECTED_CLIENTS';
+  const primaryClientId = isSpecificClients ? clientIds[0] || null : null;
+  const primaryClientCode = isSpecificClients ? clientCodes[0] || null : null;
+  const primaryClientName = isSpecificClients
+    ? clientsMeta.length === 1
+      ? clientsMeta[0].name
+      : clientsMeta.length > 1
+        ? `${clientsMeta.length} Clienti selezionati`
+        : input.clientName || null
+    : clientScope === 'CLIENT_CATEGORY'
+      ? `Cat. Clienti: ${clientCategories.join(', ')}`
       : null;
 
   try {
@@ -271,6 +340,7 @@ export async function saveAgentDiscountRuleAction(
         "clientIds",
         "clientCodes",
         "clientsMeta",
+        "clientCategories",
         "targetType",
         "targetSkus",
         "targetProductsMeta",
@@ -285,9 +355,9 @@ export async function saveAgentDiscountRuleAction(
         "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8,
-        $9::jsonb, $10::jsonb, $11::jsonb, $12,
-        $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb,
-        $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13,
+        $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb,
+        $20, $21, $22, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
@@ -298,6 +368,7 @@ export async function saveAgentDiscountRuleAction(
         "clientIds" = EXCLUDED."clientIds",
         "clientCodes" = EXCLUDED."clientCodes",
         "clientsMeta" = EXCLUDED."clientsMeta",
+        "clientCategories" = EXCLUDED."clientCategories",
         "targetType" = EXCLUDED."targetType",
         "targetSkus" = EXCLUDED."targetSkus",
         "targetProductsMeta" = EXCLUDED."targetProductsMeta",
@@ -317,9 +388,10 @@ export async function saveAgentDiscountRuleAction(
       primaryClientId,
       primaryClientCode,
       primaryClientName,
-      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientIds : []),
-      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientCodes : []),
-      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientsMeta : []),
+      JSON.stringify(isSpecificClients ? clientIds : []),
+      JSON.stringify(isSpecificClients ? clientCodes : []),
+      JSON.stringify(isSpecificClients ? clientsMeta : []),
+      JSON.stringify(clientScope === 'CLIENT_CATEGORY' ? clientCategories : []),
       targetType,
       JSON.stringify(targetSkus),
       JSON.stringify(targetProductsMeta),

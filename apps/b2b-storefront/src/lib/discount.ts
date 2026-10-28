@@ -65,14 +65,16 @@ export interface EffectiveClientDiscountContext {
   elmarkDiscounts: Record<string, number>;
   clientId: string | null;
   clientCode: string | null;
+  clientCategory: string | null;
   rules: AgentDiscountRule[];
 }
 
 /**
  * Risolve il contesto sconti completo per la sessione attiva (Cliente B2B oppure Agente in impersonificazione):
  * - Sconto base fisso del cliente (non modificabile)
+ * - Categoria cliente (es. RIV - Rivenditore, IST - Installatore/Impiantista, GEN - Generale)
  * - Sconti Elmark effettivi (tramite getEffectiveElmarkDiscounts)
- * - Regole di sconto attive create dall'agente (per prodotto singolo/selezione, marchio, gruppo, famiglia, categoria)
+ * - Regole di sconto attive create dall'agente (per tutto il catalogo, prodotto singolo/selezione, marchio, gruppo, famiglia, categoria)
  */
 export async function getEffectiveClientDiscountContext(): Promise<EffectiveClientDiscountContext> {
   const session = await verifySession();
@@ -84,6 +86,7 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
       elmarkDiscounts: {},
       clientId: null,
       clientCode: null,
+      clientCategory: null,
       rules: [],
     };
   }
@@ -96,6 +99,7 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
 
   let clientId: string | null = session.user.id || null;
   let clientCode: string | null = session.user.zucchettiCode || null;
+  let clientCategory: string | null = (session.user as any).customerType || null;
   let rules: AgentDiscountRule[] = [];
 
   if (session.user.role === 'AGENT') {
@@ -109,14 +113,16 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
     if (impersonatedClientCode) {
       const impUser = await prisma.b2BUser.findUnique({
         where: { zucchettiCode: impersonatedClientCode },
-        select: { id: true, zucchettiCode: true },
+        select: { id: true, zucchettiCode: true, customerType: true },
       });
       clientId = impUser?.id || null;
       clientCode = impUser?.zucchettiCode || impersonatedClientCode;
+      clientCategory = impUser?.customerType || null;
       rules = allAgentRules.filter(r => r.isActive);
     } else {
       clientId = null;
       clientCode = null;
+      clientCategory = null;
       rules = allAgentRules.filter(r => r.isActive && r.clientScope === 'ALL_CLIENTS');
     }
   } else {
@@ -124,6 +130,8 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
       id: session.user.id,
       zucchettiCode: session.user.zucchettiCode,
       agentId: (session.user as any).agentId || null,
+      customerType: (session.user as any).customerType || null,
+      discount: baseDiscount,
     });
   }
 
@@ -134,6 +142,7 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
     elmarkDiscounts,
     clientId,
     clientCode,
+    clientCategory,
     rules,
   };
 }
@@ -183,7 +192,12 @@ export function evaluateTypesenseProductWithContext(
     },
     effectiveBase,
     ctx.rules,
-    { clientId: ctx.clientId, clientCode: ctx.clientCode },
+    {
+      clientId: ctx.clientId,
+      clientCode: ctx.clientCode,
+      clientCategory: ctx.clientCategory,
+      baseDiscount: effectiveBase,
+    },
     fallbackExtra
   );
 

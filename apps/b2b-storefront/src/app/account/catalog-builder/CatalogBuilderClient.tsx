@@ -578,6 +578,8 @@ export default function CatalogBuilderClient({
       return doesRuleMatchClient(r, {
         clientId: selectedClient.id,
         clientCode: selectedClient.zucchettiCode,
+        clientCategory: selectedClient.categoriaCode || selectedClient.customerType || null,
+        baseDiscount: Number(selectedClient.discount || 0),
       });
     }).length;
   }, [discountRules, selectedClient]);
@@ -600,6 +602,8 @@ export default function CatalogBuilderClient({
       {
         clientId: selectedClient?.id || null,
         clientCode: selectedClient?.zucchettiCode || null,
+        clientCategory: selectedClient?.categoriaCode || selectedClient?.customerType || null,
+        baseDiscount: Number(baseDiscount || 0),
       },
       selectedClient ? 0 : Number(extraDiscount || 0)
     );
@@ -1306,7 +1310,11 @@ export default function CatalogBuilderClient({
                         <div className="truncate pr-2">
                           <div className="font-bold text-gray-900 truncate">{c.companyName}</div>
                           <div className="text-[11px] text-gray-500">
-                            Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
+                            Cod. {c.zucchettiCode}{' '}
+                            {c.customerType && !c.customerType.toLowerCase().includes('nessuna')
+                              ? `• ${c.customerType}`
+                              : ''}{' '}
+                            {c.city ? `• ${c.city}` : ''}
                           </div>
                         </div>
                         <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded shrink-0">

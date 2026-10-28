@@ -1,4 +1,8 @@
-export type DiscountClientScope = 'ALL_CLIENTS' | 'SINGLE_CLIENT' | 'SELECTED_CLIENTS';
+export type DiscountClientScope =
+  | 'ALL_CLIENTS'
+  | 'SINGLE_CLIENT'
+  | 'SELECTED_CLIENTS'
+  | 'CLIENT_CATEGORY';
 
 export type DiscountTargetType =
   | 'ALL_CATALOG'
@@ -23,6 +27,8 @@ export interface DiscountTargetClientMeta {
   code: string;
   name: string;
   baseDiscount?: number;
+  categoryCode?: string;
+  categoryLabel?: string;
 }
 
 export interface AgentDiscountRule {
@@ -37,6 +43,7 @@ export interface AgentDiscountRule {
   clientIds: string[];
   clientCodes: string[];
   clientsMeta: DiscountTargetClientMeta[];
+  clientCategories: string[];
   targetType: DiscountTargetType;
   targetSkus: string[];
   targetProductsMeta: DiscountTargetProductMeta[];
@@ -62,6 +69,13 @@ export interface ProductDiscountInput {
   discgroup?: string;
 }
 
+export interface ClientDiscountMatchContext {
+  clientId?: string | null;
+  clientCode?: string | null;
+  clientCategory?: string | null;
+  baseDiscount?: number | null;
+}
+
 export interface EvaluatedProductPricing {
   listPrice: number;
   netPrice: number;
@@ -75,13 +89,69 @@ export interface EvaluatedProductPricing {
 }
 
 /**
- * Verifica se una regola è applicabile a un determinato cliente.
+ * Estrae il codice categoria cliente normalizzato in maiuscolo (es. 'RIV', 'IST', 'GEN')
+ * da un codice diretto ('riv'), da una descrizione ('RIV - Rivenditore', 'Installatore / Impiantista')
+ * oppure, come fallback, dallo sconto base standard (50% -> RIV, 40% -> IST, 25% -> GEN).
+ */
+export function normalizeClientCategoryCode(
+  rawCategory?: string | null,
+  fallbackDiscount?: number | null
+): string {
+  const s = String(rawCategory || '').trim().toUpperCase();
+  if (s) {
+    if (s === 'RIV' || s.startsWith('RIV ') || s.startsWith('RIV-') || s.includes('RIVENDIT')) {
+      return 'RIV';
+    }
+    if (
+      s === 'IST' ||
+      s.startsWith('IST ') ||
+      s.startsWith('IST-') ||
+      s.includes('INSTALLAT') ||
+      s.includes('IMPIANTIST')
+    ) {
+      return 'IST';
+    }
+    if (s === 'GEN' || s.startsWith('GEN ') || s.startsWith('GEN-') || s.includes('GENERAL')) {
+      return 'GEN';
+    }
+    const prefix = s.split(/[\s\-]/)[0]?.trim();
+    if (prefix && prefix.length <= 6 && prefix !== 'NESSUNA') {
+      return prefix;
+    }
+  }
+
+  if (fallbackDiscount !== undefined && fallbackDiscount !== null) {
+    const d = Number(fallbackDiscount);
+    if (d === 50) return 'RIV';
+    if (d === 40) return 'IST';
+    if (d === 25) return 'GEN';
+  }
+
+  return '';
+}
+
+/**
+ * Verifica se una regola è applicabile a un determinato cliente (per ID/Codice, per Categoria Cliente, o Tutti).
  */
 export function doesRuleMatchClient(
   rule: AgentDiscountRule,
-  clientContext?: { clientId?: string | null; clientCode?: string | null }
+  clientContext?: ClientDiscountMatchContext
 ): boolean {
   if (rule.clientScope === 'ALL_CLIENTS') return true;
+
+  if (rule.clientScope === 'CLIENT_CATEGORY') {
+    const ruleCats = (rule.clientCategories || []).map(c =>
+      normalizeClientCategoryCode(c)
+    ).filter(Boolean);
+    if (ruleCats.length === 0) return false;
+
+    const ctxCat = normalizeClientCategoryCode(
+      clientContext?.clientCategory,
+      clientContext?.baseDiscount
+    );
+    if (!ctxCat) return false;
+    return ruleCats.includes(ctxCat);
+  }
 
   const ctxId = (clientContext?.clientId || '').trim();
   const ctxCode = (clientContext?.clientCode || '').trim().toUpperCase();
@@ -108,14 +178,15 @@ export function doesRuleMatchClient(
 /**
  * Calcola il punteggio di specificità di una regola per un dato prodotto e cliente.
  * Ritorna -1 se la regola NON si applica al prodotto o al cliente.
- * Gerarchia:
- * - Cliente singolo (+1100) > Selezione di più clienti (+1000) > Tutti i clienti (+0)
+ * Gerarchia destinatario:
+ * - Cliente singolo (+1100) > Selezione di più clienti (+1000) > Categoria Cliente (+600) > Tutti i clienti (+0)
+ * Gerarchia articoli:
  * - Prodotto Singolo SKU (+500) > Categoria L3 (+40) > Famiglia L2 (+30) > Gruppo L1 (+20) > Marchio (+10) > Tutto il Catalogo (+1)
  */
 export function scoreRuleForProduct(
   rule: AgentDiscountRule,
   product: ProductDiscountInput,
-  clientContext?: { clientId?: string | null; clientCode?: string | null }
+  clientContext?: ClientDiscountMatchContext
 ): number {
   if (!rule.isActive || rule.discountValue <= 0) return -1;
 
@@ -125,12 +196,16 @@ export function scoreRuleForProduct(
     if (!doesRuleMatchClient(rule, clientContext)) {
       return -1;
     }
-    const countClients = Math.max(
-      rule.clientIds?.length || 0,
-      rule.clientCodes?.length || 0,
-      rule.clientId || rule.clientCode ? 1 : 0
-    );
-    clientScore = countClients <= 1 ? 1100 : 1000;
+    if (rule.clientScope === 'CLIENT_CATEGORY') {
+      clientScore = 600;
+    } else {
+      const countClients = Math.max(
+        rule.clientIds?.length || 0,
+        rule.clientCodes?.length || 0,
+        rule.clientId || rule.clientCode ? 1 : 0
+      );
+      clientScore = countClients <= 1 ? 1100 : 1000;
+    }
   }
 
   // 2. Se la regola è su TUTTO IL CATALOGO
@@ -203,18 +278,23 @@ export function evaluateProductDiscountWithRules(
   product: ProductDiscountInput,
   baseDiscount: number,
   rules: AgentDiscountRule[],
-  clientContext?: { clientId?: string | null; clientCode?: string | null },
+  clientContext?: ClientDiscountMatchContext,
   fallbackExtraDiscountPct?: number
 ): EvaluatedProductPricing {
   const listPrice = Math.max(0, Number(product.listPrice || 0));
   const safeBase = Math.max(0, Math.min(95, Number(baseDiscount || 0)));
   const safeFallbackExtra = Math.max(0, Math.min(95, Number(fallbackExtraDiscountPct || 0)));
 
+  const enrichedContext: ClientDiscountMatchContext = {
+    ...clientContext,
+    baseDiscount: clientContext?.baseDiscount ?? safeBase,
+  };
+
   let winningRule: AgentDiscountRule | null = null;
   let bestScore = -1;
 
   for (const rule of rules || []) {
-    const score = scoreRuleForProduct(rule, product, clientContext);
+    const score = scoreRuleForProduct(rule, product, enrichedContext);
     if (score > bestScore) {
       bestScore = score;
       winningRule = rule;

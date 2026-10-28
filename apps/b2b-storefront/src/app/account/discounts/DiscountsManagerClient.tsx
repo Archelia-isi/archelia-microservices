@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { AgentManagedClient } from '@/app/actions/newClient';
+import {
+  AgentManagedClient,
+  CommercialCategoryOption,
+} from '@/app/actions/newClient';
 import {
   CatalogFacetOption,
   CatalogProductItem,
@@ -21,12 +24,14 @@ import {
   DiscountTargetProductMeta,
   DiscountTargetType,
   doesRuleMatchClient,
+  normalizeClientCategoryCode,
 } from '@/lib/discountRulesEngine';
 
 interface Props {
   agentName: string;
   agentCode: string;
   clients: AgentManagedClient[];
+  clientCategories: CommercialCategoryOption[];
   facets: {
     brands: CatalogFacetOption[];
     productGroups: CatalogFacetOption[];
@@ -169,6 +174,7 @@ export default function DiscountsManagerClient({
   agentName,
   agentCode,
   clients,
+  clientCategories,
   facets,
   initialRules,
 }: Props) {
@@ -177,9 +183,18 @@ export default function DiscountsManagerClient({
 
   // Stato form regola
   const [ruleName, setRuleName] = useState<string>('');
-  const [clientScope, setClientScope] = useState<DiscountClientScope>('SELECTED_CLIENTS');
+  const [clientScope, setClientScope] =
+    useState<DiscountClientScope>('SELECTED_CLIENTS');
   // Array di ID clienti selezionati (1 o più clienti)
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  // Array di Categorie Clienti selezionate (es. ['RIV', 'IST'])
+  const [selectedClientCategories, setSelectedClientCategories] = useState<string[]>(
+    []
+  );
+  // Filtro rapido per categoria cliente dentro la tendina di selezione clienti
+  const [dropdownClientCatFilter, setDropdownClientCatFilter] =
+    useState<string>('ALL');
+
   const [clientSearchText, setClientSearchText] = useState<string>('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState<boolean>(false);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
@@ -254,6 +269,70 @@ export default function DiscountsManagerClient({
     return () => clearTimeout(timer);
   }, [productQuery]);
 
+  // Helper per determinare il codice e l'etichetta della categoria di un cliente
+  const getClientCategoryInfo = (c: AgentManagedClient) => {
+    const normCode = normalizeClientCategoryCode(
+      c.categoriaCode || c.customerType,
+      c.discount
+    );
+    if (normCode === 'RIV') {
+      return { code: 'RIV', shortLabel: 'Rivenditore', fullLabel: 'RIV - Rivenditore' };
+    }
+    if (normCode === 'IST') {
+      return {
+        code: 'IST',
+        shortLabel: 'Installatore / Impiantista',
+        fullLabel: 'IST - Installatore / Impiantista',
+      };
+    }
+    if (normCode === 'GEN') {
+      return { code: 'GEN', shortLabel: 'Generale', fullLabel: 'GEN - Generale' };
+    }
+    if (normCode) {
+      return {
+        code: normCode,
+        shortLabel: c.customerType || normCode,
+        fullLabel: c.customerType || normCode,
+      };
+    }
+    return {
+      code: '',
+      shortLabel: 'Nessuna Cat.',
+      fullLabel: 'Nessuna Categoria',
+    };
+  };
+
+  // Lista categorie clienti disponibili (arricchita col conteggio dei clienti dell'agente in ogni categoria)
+  const enrichedClientCategories = useMemo(() => {
+    const baseList =
+      clientCategories && clientCategories.length > 0
+        ? clientCategories
+        : [
+            { code: 'RIV', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
+            {
+              code: 'IST',
+              label: 'IST - Installatore / Impiantista (Sconto base 40%)',
+              discount: 40,
+            },
+            { code: 'GEN', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
+          ];
+
+    return baseList.map(cat => {
+      const upperCode = normalizeClientCategoryCode(cat.code, cat.discount);
+      const matchingClientsCount = clients.filter(
+        c => getClientCategoryInfo(c).code === upperCode
+      ).length;
+      const cleanName = cat.label.replace(/\s*\(Sconto.*\)$/i, '').trim();
+      return {
+        code: upperCode,
+        name: cleanName,
+        label: cat.label,
+        discount: cat.discount,
+        clientsCount: matchingClientsCount,
+      };
+    });
+  }, [clientCategories, clients]);
+
   const selectedClientsObjects = useMemo(
     () => clients.filter(c => selectedClientIds.includes(c.id)),
     [clients, selectedClientIds]
@@ -261,21 +340,35 @@ export default function DiscountsManagerClient({
 
   const filteredClientsForDropdown = useMemo(() => {
     const q = clientSearchText.trim().toLowerCase();
-    if (!q) return clients;
-    return clients.filter(
-      c =>
+    return clients.filter(c => {
+      if (dropdownClientCatFilter !== 'ALL') {
+        const catInfo = getClientCategoryInfo(c);
+        if (catInfo.code !== dropdownClientCatFilter) return false;
+      }
+      if (!q) return true;
+      const catInfo = getClientCategoryInfo(c);
+      return (
         (c.companyName || '').toLowerCase().includes(q) ||
         (c.zucchettiCode || '').toLowerCase().includes(q) ||
         (c.email || '').toLowerCase().includes(q) ||
-        (c.city || '').toLowerCase().includes(q)
-    );
-  }, [clients, clientSearchText]);
+        (c.city || '').toLowerCase().includes(q) ||
+        catInfo.fullLabel.toLowerCase().includes(q)
+      );
+    });
+  }, [clients, clientSearchText, dropdownClientCatFilter]);
 
   const toggleClientSelection = (clientId: string) => {
     setSelectedClientIds(prev =>
       prev.includes(clientId)
         ? prev.filter(id => id !== clientId)
         : [...prev, clientId]
+    );
+  };
+
+  const toggleClientCategorySelection = (catCode: string) => {
+    const upper = catCode.toUpperCase();
+    setSelectedClientCategories(prev =>
+      prev.includes(upper) ? prev.filter(c => c !== upper) : [...prev, upper]
     );
   };
 
@@ -312,7 +405,9 @@ export default function DiscountsManagerClient({
     setRuleName('');
     setClientScope('SELECTED_CLIENTS');
     setSelectedClientIds([]);
+    setSelectedClientCategories([]);
     setClientSearchText('');
+    setDropdownClientCatFilter('ALL');
     setTargetType('PRODUCTS');
     setSelectedProducts([]);
     setSelectedBrands([]);
@@ -330,9 +425,18 @@ export default function DiscountsManagerClient({
     if (rule.clientScope === 'ALL_CLIENTS') {
       setClientScope('ALL_CLIENTS');
       setSelectedClientIds([]);
+      setSelectedClientCategories([]);
+      setClientSearchText('');
+    } else if (rule.clientScope === 'CLIENT_CATEGORY') {
+      setClientScope('CLIENT_CATEGORY');
+      setSelectedClientCategories(
+        (rule.clientCategories || []).map(c => normalizeClientCategoryCode(c)).filter(Boolean)
+      );
+      setSelectedClientIds([]);
       setClientSearchText('');
     } else {
       setClientScope('SELECTED_CLIENTS');
+      setSelectedClientCategories([]);
       const ruleIds = new Set(rule.clientIds || (rule.clientId ? [rule.clientId] : []));
       const ruleCodes = new Set(
         (rule.clientCodes || (rule.clientCode ? [rule.clientCode] : [])).map(c =>
@@ -375,41 +479,53 @@ export default function DiscountsManagerClient({
 
     try {
       const targetSkus = selectedProducts.map(p => p.sku.trim().toUpperCase());
-      const clientsMeta: DiscountTargetClientMeta[] = selectedClientsObjects.map(c => ({
-        id: c.id,
-        code: c.zucchettiCode,
-        name: c.companyName,
-        baseDiscount: Number(c.discount || 0),
-      }));
+      const clientsMeta: DiscountTargetClientMeta[] = selectedClientsObjects.map(c => {
+        const catInfo = getClientCategoryInfo(c);
+        return {
+          id: c.id,
+          code: c.zucchettiCode,
+          name: c.companyName,
+          baseDiscount: Number(c.discount || 0),
+          categoryCode: catInfo.code,
+          categoryLabel: catInfo.shortLabel,
+        };
+      });
+
+      const resolvedScope: DiscountClientScope =
+        clientScope === 'ALL_CLIENTS'
+          ? 'ALL_CLIENTS'
+          : clientScope === 'CLIENT_CATEGORY'
+            ? 'CLIENT_CATEGORY'
+            : selectedClientsObjects.length > 1
+              ? 'SELECTED_CLIENTS'
+              : 'SINGLE_CLIENT';
+
+      const isSpecificClients =
+        resolvedScope === 'SINGLE_CLIENT' || resolvedScope === 'SELECTED_CLIENTS';
 
       const res = await saveAgentDiscountRuleAction({
         id: editingRuleId || undefined,
         name: ruleName,
-        clientScope:
-          clientScope === 'ALL_CLIENTS'
-            ? 'ALL_CLIENTS'
-            : selectedClientsObjects.length > 1
-              ? 'SELECTED_CLIENTS'
-              : 'SINGLE_CLIENT',
+        clientScope: resolvedScope,
         clientId:
-          clientScope !== 'ALL_CLIENTS' && selectedClientsObjects[0]
+          isSpecificClients && selectedClientsObjects[0]
             ? selectedClientsObjects[0].id
             : null,
         clientCode:
-          clientScope !== 'ALL_CLIENTS' && selectedClientsObjects[0]
+          isSpecificClients && selectedClientsObjects[0]
             ? selectedClientsObjects[0].zucchettiCode
             : null,
         clientName:
-          clientScope !== 'ALL_CLIENTS' && selectedClientsObjects[0]
+          isSpecificClients && selectedClientsObjects[0]
             ? selectedClientsObjects[0].companyName
             : null,
-        clientIds:
-          clientScope !== 'ALL_CLIENTS' ? selectedClientsObjects.map(c => c.id) : [],
-        clientCodes:
-          clientScope !== 'ALL_CLIENTS'
-            ? selectedClientsObjects.map(c => c.zucchettiCode)
-            : [],
-        clientsMeta: clientScope !== 'ALL_CLIENTS' ? clientsMeta : [],
+        clientIds: isSpecificClients ? selectedClientsObjects.map(c => c.id) : [],
+        clientCodes: isSpecificClients
+          ? selectedClientsObjects.map(c => c.zucchettiCode)
+          : [],
+        clientsMeta: isSpecificClients ? clientsMeta : [],
+        clientCategories:
+          resolvedScope === 'CLIENT_CATEGORY' ? selectedClientCategories : [],
         targetType,
         targetSkus,
         targetProductsMeta: selectedProducts,
@@ -459,14 +575,26 @@ export default function DiscountsManagerClient({
 
   // Simulazione prezzo in tempo reale nel pannello di creazione
   const simulationPreview = useMemo(() => {
-    const sampleBaseDiscount =
-      clientScope !== 'ALL_CLIENTS' && selectedClientsObjects.length > 0
-        ? Number(selectedClientsObjects[0].discount || 0)
-        : 40; // Esempio 40% se è "Tutti i clienti" o nessun cliente ancora scelto
-    const sampleClientName =
-      clientScope !== 'ALL_CLIENTS' && selectedClientsObjects.length > 0
-        ? selectedClientsObjects[0].companyName
-        : 'Cliente tipo';
+    let sampleBaseDiscount = 40;
+    let sampleClientName = 'Cliente tipo';
+
+    if (clientScope === 'CLIENT_CATEGORY' && selectedClientCategories.length > 0) {
+      const firstCat = enrichedClientCategories.find(
+        c => c.code === selectedClientCategories[0]
+      );
+      if (firstCat) {
+        sampleBaseDiscount = Number(firstCat.discount || 0);
+        sampleClientName = firstCat.name;
+      }
+    } else if (
+      clientScope !== 'ALL_CLIENTS' &&
+      clientScope !== 'CLIENT_CATEGORY' &&
+      selectedClientsObjects.length > 0
+    ) {
+      sampleBaseDiscount = Number(selectedClientsObjects[0].discount || 0);
+      sampleClientName = selectedClientsObjects[0].companyName;
+    }
+
     const sampleListPrice =
       targetType === 'PRODUCTS' &&
       selectedProducts.length > 0 &&
@@ -506,6 +634,8 @@ export default function DiscountsManagerClient({
   }, [
     clientScope,
     selectedClientsObjects,
+    selectedClientCategories,
+    enrichedClientCategories,
     targetType,
     selectedProducts,
     calculationMode,
@@ -517,13 +647,20 @@ export default function DiscountsManagerClient({
       if (filterClientScope === 'ALL_CLIENTS' && r.clientScope !== 'ALL_CLIENTS') {
         return false;
       }
-      if (filterClientScope !== 'ALL' && filterClientScope !== 'ALL_CLIENTS') {
+      if (filterClientScope.startsWith('CAT:')) {
+        const catCode = filterClientScope.replace('CAT:', '');
+        if (r.clientScope !== 'CLIENT_CATEGORY') return false;
+        if (!(r.clientCategories || []).includes(catCode)) return false;
+      } else if (filterClientScope !== 'ALL' && filterClientScope !== 'ALL_CLIENTS') {
         const targetClient = clients.find(c => c.id === filterClientScope);
+        const catInfo = targetClient ? getClientCategoryInfo(targetClient) : null;
         if (
           r.clientScope === 'ALL_CLIENTS' ||
           !doesRuleMatchClient(r, {
             clientId: filterClientScope,
             clientCode: targetClient?.zucchettiCode || filterClientScope,
+            clientCategory: catInfo?.code || targetClient?.customerType || '',
+            baseDiscount: targetClient?.discount ?? null,
           })
         ) {
           return false;
@@ -536,7 +673,8 @@ export default function DiscountsManagerClient({
           r.clientName || '',
           r.clientCode || '',
           ...(r.clientCodes || []),
-          ...(r.clientsMeta || []).map(cm => `${cm.name} ${cm.code}`),
+          ...(r.clientsMeta || []).map(cm => `${cm.name} ${cm.code} ${cm.categoryLabel || ''}`),
+          ...(r.clientCategories || []),
           ...r.targetSkus,
           ...r.targetBrands,
           ...r.targetProductGroups,
@@ -555,6 +693,18 @@ export default function DiscountsManagerClient({
   const formatFacetLabel = (code: string, list: CatalogFacetOption[]) => {
     const found = list.find(o => o.code.toUpperCase() === code.toUpperCase());
     return found ? found.label : code;
+  };
+
+  const formatClientCategoryBadge = (catCode: string) => {
+    const upper = normalizeClientCategoryCode(catCode);
+    const found = enrichedClientCategories.find(c => c.code === upper);
+    if (found) {
+      return `${found.name} (Sconto Base Fisso: ${found.discount}%)`;
+    }
+    if (upper === 'RIV') return 'RIV - Rivenditore (Sconto Base Fisso: 50%)';
+    if (upper === 'IST') return 'IST - Installatore / Impiantista (Sconto Base Fisso: 40%)';
+    if (upper === 'GEN') return 'GEN - Generale (Sconto Base Fisso: 25%)';
+    return upper;
   };
 
   return (
@@ -580,7 +730,8 @@ export default function DiscountsManagerClient({
               Ogni cliente mantiene il suo <strong>Sconto Base fisso non modificabile</strong>. Qui puoi abbinare sconti dedicati su{' '}
               <strong>tutto il catalogo</strong>, <strong>singoli prodotti (o selezioni di prodotti)</strong>,{' '}
               <strong>marchi</strong>, <strong>gruppi</strong>, <strong>famiglie</strong> o <strong>categorie</strong> per{' '}
-              <strong>uno o più clienti scelti</strong> oppure per <strong>tutti i tuoi clienti</strong>.
+              <strong>uno o più clienti scelti</strong>, per <strong>Categoria Cliente (Rivenditore, Installatore / Impiantista, ecc.)</strong> oppure per{' '}
+              <strong>tutti i tuoi clienti</strong>.
             </p>
           </div>
 
@@ -632,213 +783,289 @@ export default function DiscountsManagerClient({
             </div>
           )}
 
-          {/* STEP 1: DESTINATARIO (UNO O PIÙ CLIENTI SCELTI OPPURE TUTTI I CLIENTI) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            <div className="lg:col-span-5">
-              <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider mb-2">
-                1. A quali clienti vuoi applicare lo sconto?
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setClientScope('SELECTED_CLIENTS')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    clientScope !== 'ALL_CLIENTS'
-                      ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-gray-900">
-                      👤 Uno o più Clienti Scelti
-                    </span>
-                    {selectedClientsObjects.length > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
-                        {selectedClientsObjects.length}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
-                    Seleziona 1 cliente singolo oppure più clienti specifici
-                  </div>
-                </button>
+          {/* STEP 1: DESTINATARIO (CLIENTI SCELTI, CATEGORIA CLIENTE: RIVENDITORE/IMPIANTISTA/ECC., OPPURE TUTTI I CLIENTI) */}
+          <div className="space-y-4">
+            <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
+              1. A quali clienti vuoi applicare lo sconto?
+            </label>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClientScope('ALL_CLIENTS');
-                    setSelectedClientIds([]);
-                    setClientSearchText('');
-                  }}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    clientScope === 'ALL_CLIENTS'
-                      ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-xs font-extrabold text-gray-900">
-                    👥 Tutti i miei Clienti
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
-                    Valido per l&apos;intero tuo portafoglio ({clients.length} clienti)
-                  </div>
-                </button>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setClientScope('SELECTED_CLIENTS')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT'
+                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-gray-900">
+                    👤 Uno o più Clienti Scelti
+                  </span>
+                  {selectedClientsObjects.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
+                      {selectedClientsObjects.length}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  Seleziona 1 cliente singolo oppure più clienti specifici
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setClientScope('CLIENT_CATEGORY')}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  clientScope === 'CLIENT_CATEGORY'
+                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-gray-900">
+                    🏢 Per Categoria Cliente
+                  </span>
+                  {selectedClientCategories.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
+                      {selectedClientCategories.length}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  Rivenditore (RIV), Installatore / Impiantista (IST), Generale (GEN)...
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setClientScope('ALL_CLIENTS');
+                  setSelectedClientIds([]);
+                  setSelectedClientCategories([]);
+                  setClientSearchText('');
+                }}
+                className={`p-3 rounded-xl border text-left transition-all ${
+                  clientScope === 'ALL_CLIENTS'
+                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
+                    : 'border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="text-xs font-extrabold text-gray-900">
+                  👥 Tutti i miei Clienti
+                </div>
+                <div className="text-[11px] text-gray-500 mt-0.5">
+                  Valido per l&apos;intero tuo portafoglio ({clients.length} clienti)
+                </div>
+              </button>
             </div>
 
-            {/* SELETTORE MULTI-CLIENTE + SCONTO BASE FISSO BLOCCATO PER CIASCUNO */}
-            <div className="lg:col-span-7">
-              {clientScope !== 'ALL_CLIENTS' ? (
-                <div className="space-y-3">
-                  <div className="relative" ref={clientDropdownRef}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                        Cerca e seleziona uno o più Clienti B2B ({selectedClientsObjects.length} selezionat{selectedClientsObjects.length === 1 ? 'o' : 'i'})
-                      </label>
+            {/* CONTENUTO DESTINATARIO: UNO O PIÙ CLIENTI SCELTI */}
+            {(clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT') && (
+              <div className="space-y-3 p-4 rounded-xl bg-gray-50/70 border border-gray-200">
+                <div className="relative" ref={clientDropdownRef}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
+                      Cerca e seleziona uno o più Clienti B2B ({selectedClientsObjects.length} selezionat{selectedClientsObjects.length === 1 ? 'o' : 'i'})
+                    </label>
+
+                    {/* Pill filtro rapido per Categoria Cliente */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-gray-500 font-semibold mr-1">
+                        Filtra per categoria:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownClientCatFilter('ALL');
+                          setIsClientDropdownOpen(true);
+                        }}
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
+                          dropdownClientCatFilter === 'ALL'
+                            ? 'bg-gray-900 text-white border-gray-900'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        Tutti ({clients.length})
+                      </button>
+                      {enrichedClientCategories.map(cat => (
+                        <button
+                          key={cat.code}
+                          type="button"
+                          onClick={() => {
+                            setDropdownClientCatFilter(cat.code);
+                            setIsClientDropdownOpen(true);
+                          }}
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
+                            dropdownClientCatFilter === cat.code
+                              ? 'bg-brand-main text-black border-brand-main'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                          }`}
+                        >
+                          {cat.name} ({cat.clientsCount})
+                        </button>
+                      ))}
                       {selectedClientsObjects.length > 0 && (
                         <button
                           type="button"
                           onClick={() => setSelectedClientIds([])}
-                          className="text-xs font-bold text-red-600 hover:underline"
+                          className="ml-2 text-xs font-bold text-red-600 hover:underline"
                         >
-                          Svuota clienti ({selectedClientsObjects.length})
+                          Svuota ({selectedClientsObjects.length})
                         </button>
                       )}
                     </div>
-
-                    <div className="relative flex items-center">
-                      <input
-                        ref={clientSearchInputRef}
-                        type="text"
-                        value={clientSearchText}
-                        onFocus={() => setIsClientDropdownOpen(true)}
-                        onChange={e => {
-                          setClientSearchText(e.target.value);
-                          setIsClientDropdownOpen(true);
-                        }}
-                        placeholder="Digita ragione sociale, codice cliente o città per aggiungere uno o più clienti..."
-                        className="w-full px-3.5 py-2.5 pr-28 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-main"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setIsClientDropdownOpen(prev => !prev)}
-                        className="absolute right-2 px-2.5 py-1 text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
-                      >
-                        {isClientDropdownOpen ? 'Chiudi ▲' : 'Sfoglia ▼'}
-                      </button>
-                    </div>
-
-                    {isClientDropdownOpen && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-40 overflow-hidden">
-                        <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
-                          <span className="text-gray-600 font-semibold">
-                            Clicca sui clienti per selezionarli o deselezionarli ({filteredClientsForDropdown.length} trovati)
-                          </span>
-                          <div className="flex items-center gap-3">
-                            {filteredClientsForDropdown.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const idsToAdd = filteredClientsForDropdown.map(c => c.id);
-                                  setSelectedClientIds(prev =>
-                                    Array.from(new Set([...prev, ...idsToAdd]))
-                                  );
-                                }}
-                                className="font-bold text-brand-main hover:underline"
-                              >
-                                + Seleziona tutti i filtrati
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setIsClientDropdownOpen(false)}
-                              className="font-bold text-gray-500 hover:text-gray-800"
-                            >
-                              Chiudi ✕
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                          {filteredClientsForDropdown.length === 0 ? (
-                            <div className="p-4 text-xs text-gray-400 text-center">
-                              Nessun cliente trovato
-                            </div>
-                          ) : (
-                            filteredClientsForDropdown.map(c => {
-                              const isSelected = selectedClientIds.includes(c.id);
-                              return (
-                                <button
-                                  key={c.id}
-                                  type="button"
-                                  onClick={() => toggleClientSelection(c.id)}
-                                  className={`w-full text-left px-3.5 py-2.5 transition-colors flex items-center justify-between gap-2 ${
-                                    isSelected
-                                      ? 'bg-emerald-50/90 hover:bg-emerald-100/80'
-                                      : 'hover:bg-amber-50'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <input
-                                      type="checkbox"
-                                      readOnly
-                                      checked={isSelected}
-                                      className="rounded border-gray-300 text-brand-main focus:ring-brand-main pointer-events-none"
-                                    />
-                                    <div className="min-w-0">
-                                      <div className="text-xs font-bold text-gray-900 truncate">
-                                        {c.companyName}
-                                      </div>
-                                      <div className="text-[11px] text-gray-500 font-mono">
-                                        Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <span className="px-2 py-0.5 text-[11px] font-extrabold bg-gray-100 text-gray-800 rounded">
-                                      🔒 Sconto Base: {c.discount || 0}%
-                                    </span>
-                                    <span
-                                      className={`px-2 py-0.5 text-[10px] font-extrabold rounded ${
-                                        isSelected
-                                          ? 'bg-emerald-600 text-white'
-                                          : 'bg-brand-main text-black'
-                                      }`}
-                                    >
-                                      {isSelected ? '✓ Scelto' : '+ Aggiungi'}
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
-                  {/* RIEPILOGO CLIENTI SELEZIONATI CON SCONTO BASE FISSO BLOCCATO */}
-                  {selectedClientsObjects.length > 0 ? (
-                    <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
-                      <div className="flex items-center justify-between text-[11px] text-gray-600 font-bold">
-                        <span>
-                          Clienti abbinati alla regola ({selectedClientsObjects.length}) — ciascuno parte dal proprio Sconto Base fisso non modificabile:
+                  <div className="relative flex items-center">
+                    <input
+                      ref={clientSearchInputRef}
+                      type="text"
+                      value={clientSearchText}
+                      onFocus={() => setIsClientDropdownOpen(true)}
+                      onChange={e => {
+                        setClientSearchText(e.target.value);
+                        setIsClientDropdownOpen(true);
+                      }}
+                      placeholder="Digita ragione sociale, codice cliente, categoria (es. Rivenditore, Installatore) o città..."
+                      className="w-full px-3.5 py-2.5 pr-28 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-main"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsClientDropdownOpen(prev => !prev)}
+                      className="absolute right-2 px-2.5 py-1 text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                    >
+                      {isClientDropdownOpen ? 'Chiudi ▲' : 'Sfoglia ▼'}
+                    </button>
+                  </div>
+
+                  {isClientDropdownOpen && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-40 overflow-hidden">
+                      <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
+                        <span className="text-gray-600 font-semibold">
+                          Clicca sui clienti per selezionarli o deselezionarli ({filteredClientsForDropdown.length} trovati)
                         </span>
+                        <div className="flex items-center gap-3">
+                          {filteredClientsForDropdown.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const idsToAdd = filteredClientsForDropdown.map(c => c.id);
+                                setSelectedClientIds(prev =>
+                                  Array.from(new Set([...prev, ...idsToAdd]))
+                                );
+                              }}
+                              className="font-bold text-brand-main hover:underline"
+                            >
+                              + Seleziona tutti i {filteredClientsForDropdown.length} filtrati
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setIsClientDropdownOpen(false)}
+                            className="font-bold text-gray-500 hover:text-gray-800"
+                          >
+                            Chiudi ✕
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
-                        {selectedClientsObjects.map(c => (
+
+                      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                        {filteredClientsForDropdown.length === 0 ? (
+                          <div className="p-4 text-xs text-gray-400 text-center">
+                            Nessun cliente trovato
+                          </div>
+                        ) : (
+                          filteredClientsForDropdown.map(c => {
+                            const isSelected = selectedClientIds.includes(c.id);
+                            const catInfo = getClientCategoryInfo(c);
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => toggleClientSelection(c.id)}
+                                className={`w-full text-left px-3.5 py-2.5 transition-colors flex items-center justify-between gap-2 ${
+                                  isSelected
+                                    ? 'bg-emerald-50/90 hover:bg-emerald-100/80'
+                                    : 'hover:bg-amber-50'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    readOnly
+                                    checked={isSelected}
+                                    className="rounded border-gray-300 text-brand-main focus:ring-brand-main pointer-events-none"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs font-bold text-gray-900 truncate">
+                                        {c.companyName}
+                                      </span>
+                                      {catInfo.code && (
+                                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                          🏢 {catInfo.fullLabel}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 font-mono">
+                                      Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="px-2 py-0.5 text-[11px] font-extrabold bg-gray-100 text-gray-800 rounded">
+                                    🔒 Sconto Base: {c.discount || 0}%
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 text-[10px] font-extrabold rounded ${
+                                      isSelected
+                                        ? 'bg-emerald-600 text-white'
+                                        : 'bg-brand-main text-black'
+                                    }`}
+                                  >
+                                    {isSelected ? '✓ Scelto' : '+ Aggiungi'}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIEPILOGO CLIENTI SELEZIONATI CON CATEGORIA E SCONTO BASE FISSO BLOCCATO */}
+                {selectedClientsObjects.length > 0 ? (
+                  <div className="p-3 rounded-xl bg-white border border-gray-200 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-gray-600 font-bold">
+                      <span>
+                        Clienti abbinati alla regola ({selectedClientsObjects.length}) — ciascuno mantiene il proprio Sconto Base fisso non modificabile:
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                      {selectedClientsObjects.map(c => {
+                        const catInfo = getClientCategoryInfo(c);
+                        return (
                           <div
                             key={c.id}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-amber-300 shadow-sm text-xs"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50/40 border border-amber-300 shadow-sm text-xs"
                           >
                             <div>
                               <span className="font-extrabold text-gray-900">
                                 {c.companyName}
                               </span>
-                              <span className="ml-1.5 font-mono text-[11px] text-gray-500">
+                              <span className="ml-1 font-mono text-[11px] text-gray-500">
                                 ({c.zucchettiCode})
                               </span>
                             </div>
+                            {catInfo.code && (
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-900 font-bold text-[10px]">
+                                {catInfo.shortLabel}
+                              </span>
+                            )}
                             <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-800 font-black text-[11px]">
                               🔒 Base: {c.discount || 0}%
                             </span>
@@ -851,26 +1078,97 @@ export default function DiscountsManagerClient({
                               ✕
                             </button>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  ) : (
-                    <div className="p-3 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-xs text-gray-500">
-                      Nessun cliente ancora selezionato. Clicca nella barra qui sopra per scegliere <strong>uno o più clienti</strong>.
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-white border border-dashed border-gray-300 text-xs text-gray-500">
+                    Nessun cliente ancora selezionato. Clicca nella barra qui sopra per scegliere <strong>uno o più clienti</strong>.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* CONTENUTO DESTINATARIO: PER CATEGORIA CLIENTE (RIVENDITORE, INSTALLATORE / IMPIANTISTA, GENERALE, ECC.) */}
+            {clientScope === 'CLIENT_CATEGORY' && (
+              <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">
+                      🏢 Seleziona una o più Categorie Clienti
                     </div>
+                    <p className="text-[11px] text-indigo-800">
+                      Lo sconto verrà applicato automaticamente a tutti i tuoi clienti appartenenti alla categoria scelta (mantenendo fisso il rispettivo Sconto Base di categoria).
+                    </p>
+                  </div>
+                  {selectedClientCategories.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedClientCategories([])}
+                      className="text-xs font-bold text-red-600 hover:underline shrink-0"
+                    >
+                      Deseleziona tutte
+                    </button>
                   )}
                 </div>
-              ) : (
-                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950">
-                  <div className="font-extrabold">
-                    👥 Regola valida per tutti i tuoi clienti ({clients.length} clienti in anagrafica)
-                  </div>
-                  <p className="text-[11px] text-blue-800 mt-0.5">
-                    Ogni cliente manterrà il proprio <strong>Sconto Base fisso individuale</strong> come punto di partenza, a cui si applicherà questa regola.
-                  </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {enrichedClientCategories.map(cat => {
+                    const checked = selectedClientCategories.includes(cat.code);
+                    return (
+                      <button
+                        key={cat.code}
+                        type="button"
+                        onClick={() => toggleClientCategorySelection(cat.code)}
+                        className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
+                          checked
+                            ? 'border-indigo-600 bg-white ring-2 ring-indigo-500/30 shadow-sm'
+                            : 'border-gray-200 bg-white/80 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              readOnly
+                              checked={checked}
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 pointer-events-none"
+                            />
+                            <span className="text-xs font-extrabold text-gray-900">
+                              {cat.name}
+                            </span>
+                          </div>
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 rounded-full shrink-0">
+                            {cat.clientsCount} client{cat.clientsCount === 1 ? 'e' : 'i'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px]">
+                          <span className="text-gray-500 font-medium">
+                            🔒 Sconto Base Fisso:
+                          </span>
+                          <span className="font-black text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                            {cat.discount}%
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* CONTENUTO DESTINATARIO: TUTTI I CLIENTI */}
+            {clientScope === 'ALL_CLIENTS' && (
+              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950">
+                <div className="font-extrabold">
+                  👥 Regola valida per tutti i tuoi clienti ({clients.length} clienti in anagrafica)
+                </div>
+                <p className="text-[11px] text-blue-800 mt-0.5">
+                  Ogni cliente manterrà il proprio <strong>Sconto Base fisso individuale</strong> (es. Rivenditore 50%, Installatore 40%, Generale 25%) come punto di partenza, a cui si applicherà questa regola.
+                </p>
+              </div>
+            )}
           </div>
 
           <hr className="border-gray-100" />
@@ -993,13 +1291,7 @@ export default function DiscountsManagerClient({
                     <span>🌐 Sconto applicato a TUTTO IL CATALOGO</span>
                   </div>
                   <p className="text-xs text-emerald-800 leading-relaxed">
-                    Questa regola verrà applicata automaticamente su <strong>tutti gli articoli del catalogo</strong> per{' '}
-                    {clientScope === 'ALL_CLIENTS'
-                      ? 'tutti i tuoi clienti'
-                      : selectedClientsObjects.length > 0
-                        ? `i ${selectedClientsObjects.length} clienti selezionati`
-                        : 'i clienti che selezionerai'}
-                    . Se imposti anche regole più specifiche (es. su un singolo prodotto o un marchio), quelle più specifiche avranno sempre priorità.
+                    Questa regola verrà applicata automaticamente su <strong>tutti gli articoli del catalogo</strong>. Se imposti anche regole più specifiche (es. su un singolo prodotto o un marchio), quelle più specifiche avranno sempre priorità.
                   </p>
                 </div>
               </div>
@@ -1329,7 +1621,7 @@ export default function DiscountsManagerClient({
               Regole di Sconto Configurate ({filteredRules.length})
             </h2>
             <p className="text-xs text-gray-500">
-              Ordine di priorità automatico: <strong>Clienti Scelti</strong> batte Tutti i Clienti •{' '}
+              Ordine di priorità automatico: <strong>Clienti Scelti</strong> &gt; <strong>Categoria Cliente</strong> &gt; Tutti i Clienti •{' '}
               <strong>Prodotto Singolo</strong> &gt; Categoria &gt; Famiglia &gt; Gruppo &gt; Marchio &gt; Tutto il Catalogo.
             </p>
           </div>
@@ -1342,18 +1634,30 @@ export default function DiscountsManagerClient({
             >
               <option value="ALL">Tutti i destinatari ({rules.length})</option>
               <option value="ALL_CLIENTS">👥 Solo regole &ldquo;Tutti i clienti&rdquo;</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>
-                  👤 {c.companyName} (Base {c.discount || 0}%)
-                </option>
-              ))}
+              <optgroup label="🏢 Per Categoria Cliente">
+                {enrichedClientCategories.map(cat => (
+                  <option key={cat.code} value={`CAT:${cat.code}`}>
+                    🏢 {cat.name} (Base {cat.discount}%)
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="👤 Per Singolo Cliente">
+                {clients.map(c => {
+                  const catInfo = getClientCategoryInfo(c);
+                  return (
+                    <option key={c.id} value={c.id}>
+                      👤 {c.companyName} ({catInfo.code || 'Base'} {c.discount || 0}%)
+                    </option>
+                  );
+                })}
+              </optgroup>
             </select>
 
             <input
               type="text"
               value={filterSearch}
               onChange={e => setFilterSearch(e.target.value)}
-              placeholder="Cerca SKU, marchio, cliente..."
+              placeholder="Cerca SKU, marchio, cliente, categoria..."
               className="px-3 py-2 text-xs border border-gray-300 rounded-lg"
             />
           </div>
@@ -1365,7 +1669,7 @@ export default function DiscountsManagerClient({
               Nessuna regola di sconto presente.
             </div>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Usa il modulo qui sopra per aggiungere uno sconto su tutto il catalogo, singoli prodotti, marchi o categorie per uno o più clienti o per tutti i tuoi clienti.
+              Usa il modulo qui sopra per aggiungere uno sconto su tutto il catalogo, singoli prodotti, marchi o categorie per uno o più clienti, per Categoria Cliente (Rivenditore, Installatore / Impiantista, ecc.) o per tutti i tuoi clienti.
             </p>
           </div>
         ) : (
@@ -1385,7 +1689,8 @@ export default function DiscountsManagerClient({
               );
 
               const matchedClients =
-                rule.clientScope !== 'ALL_CLIENTS'
+                rule.clientScope === 'SINGLE_CLIENT' ||
+                rule.clientScope === 'SELECTED_CLIENTS'
                   ? clients.filter(
                       c =>
                         ruleClientIds.has(c.id) ||
@@ -1407,15 +1712,29 @@ export default function DiscountsManagerClient({
                         <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-blue-100 text-blue-900">
                           👥 Tutti i miei Clienti
                         </span>
-                      ) : matchedClients.length > 0 ? (
-                        matchedClients.map(mc => (
+                      ) : rule.clientScope === 'CLIENT_CATEGORY' ? (
+                        (rule.clientCategories || []).map(catCode => (
                           <span
-                            key={mc.id}
-                            className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-purple-100 text-purple-900"
+                            key={catCode}
+                            className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200"
                           >
-                            👤 {mc.companyName} (Base Fisso: {mc.discount || 0}%)
+                            🏢 Categoria: {formatClientCategoryBadge(catCode)}
                           </span>
                         ))
+                      ) : matchedClients.length > 0 ? (
+                        matchedClients.map(mc => {
+                          const catInfo = getClientCategoryInfo(mc);
+                          return (
+                            <span
+                              key={mc.id}
+                              className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-purple-100 text-purple-900"
+                            >
+                              👤 {mc.companyName}{' '}
+                              {catInfo.code ? `[${catInfo.shortLabel}] ` : ''}(Base Fisso:{' '}
+                              {mc.discount || 0}%)
+                            </span>
+                          );
+                        })
                       ) : (
                         <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-purple-100 text-purple-900">
                           👤 {rule.clientName || rule.clientCode || 'Clienti selezionati'}

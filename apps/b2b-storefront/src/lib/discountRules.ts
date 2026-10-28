@@ -28,6 +28,7 @@ export async function ensureDiscountRulesTable(): Promise<void> {
         "clientIds" JSONB NOT NULL DEFAULT '[]'::jsonb,
         "clientCodes" JSONB NOT NULL DEFAULT '[]'::jsonb,
         "clientsMeta" JSONB NOT NULL DEFAULT '[]'::jsonb,
+        "clientCategories" JSONB NOT NULL DEFAULT '[]'::jsonb,
         "targetType" TEXT NOT NULL DEFAULT 'PRODUCTS',
         "targetSkus" JSONB NOT NULL DEFAULT '[]'::jsonb,
         "targetProductsMeta" JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -46,7 +47,8 @@ export async function ensureDiscountRulesTable(): Promise<void> {
       ALTER TABLE "b2b_agent_discount_rules"
         ADD COLUMN IF NOT EXISTS "clientIds" JSONB NOT NULL DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS "clientCodes" JSONB NOT NULL DEFAULT '[]'::jsonb,
-        ADD COLUMN IF NOT EXISTS "clientsMeta" JSONB NOT NULL DEFAULT '[]'::jsonb;
+        ADD COLUMN IF NOT EXISTS "clientsMeta" JSONB NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS "clientCategories" JSONB NOT NULL DEFAULT '[]'::jsonb;
     `);
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "idx_b2b_agent_discount_rules_agent"
@@ -114,13 +116,16 @@ function parseClientsMeta(val: any): DiscountTargetClientMeta[] {
 export function mapRowToAgentDiscountRule(row: any): AgentDiscountRule {
   const rawScope = String(row.clientScope || 'ALL_CLIENTS');
   const clientScope: DiscountClientScope =
-    rawScope === 'SINGLE_CLIENT' || rawScope === 'SELECTED_CLIENTS'
+    rawScope === 'SINGLE_CLIENT' ||
+    rawScope === 'SELECTED_CLIENTS' ||
+    rawScope === 'CLIENT_CATEGORY'
       ? (rawScope as DiscountClientScope)
       : 'ALL_CLIENTS';
 
   const parsedIds = parseJsonStringArray(row.clientIds, false);
   const parsedCodes = parseJsonStringArray(row.clientCodes, true);
   const parsedMeta = parseClientsMeta(row.clientsMeta);
+  const clientCategories = parseJsonStringArray(row.clientCategories, true);
 
   const singleId = row.clientId ? String(row.clientId) : null;
   const singleCode = row.clientCode ? String(row.clientCode) : null;
@@ -155,6 +160,7 @@ export function mapRowToAgentDiscountRule(row: any): AgentDiscountRule {
     clientIds,
     clientCodes,
     clientsMeta,
+    clientCategories,
     targetType: (row.targetType as DiscountTargetType) || 'PRODUCTS',
     targetSkus: parseJsonStringArray(row.targetSkus, true),
     targetProductsMeta: parseProductsMeta(row.targetProductsMeta),
@@ -197,18 +203,22 @@ export async function getAgentDiscountRulesFromDb(
 
 /**
  * Carica le regole di sconto attive applicabili a uno specifico cliente B2B
- * (sia quelle create dal suo agente per lui/più clienti scelti, sia quelle 'ALL_CLIENTS' del suo agente).
+ * (sia quelle create dal suo agente per lui/più clienti scelti, sia per la sua Categoria Cliente, sia 'ALL_CLIENTS').
  */
 export async function getActiveDiscountRulesForClientUser(clientUser: {
   id: string;
   zucchettiCode?: string | null;
   agentId?: string | null;
+  customerType?: string | null;
+  discount?: number | null;
 }): Promise<AgentDiscountRule[]> {
   await ensureDiscountRulesTable();
   try {
     const clientId = clientUser.id || '';
     const clientCode = (clientUser.zucchettiCode || '').trim().toUpperCase();
     const agentId = clientUser.agentId || '';
+    const clientCategory = clientUser.customerType || '';
+    const baseDiscount = clientUser.discount ?? null;
 
     const rows: any[] = agentId
       ? await prisma.$queryRawUnsafe(
@@ -229,7 +239,15 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
       if (rule.clientScope === 'ALL_CLIENTS') {
         return !agentId || rule.agentId === agentId;
       }
-      return doesRuleMatchClient(rule, { clientId, clientCode });
+      if (rule.clientScope === 'CLIENT_CATEGORY') {
+        if (agentId && rule.agentId && rule.agentId !== agentId) return false;
+      }
+      return doesRuleMatchClient(rule, {
+        clientId,
+        clientCode,
+        clientCategory,
+        baseDiscount,
+      });
     });
   } catch (err) {
     console.error('Errore getActiveDiscountRulesForClientUser:', err);

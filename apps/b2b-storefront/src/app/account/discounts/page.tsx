@@ -21,6 +21,7 @@ export default async function AgentDiscountsPage() {
       agentName={initData.agentName}
       agentCode={initData.agentCode}
       clients={initData.clients}
+      clientCategories={initData.clientCategories}
       facets={initData.facets}
       initialRules={initData.rules}
     />
