@@ -14,9 +14,17 @@ import {
   createB2BUserFromZucchettiClient,
 } from '@/app/actions/newClient';
 import { setImpersonatedClient } from '@/app/actions/agent';
+import { removeDiscountFromClientAction } from '@/app/actions/discountRules';
+import {
+  AgentDiscountRule,
+  doesRuleMatchClient,
+  isDiscountRuleExpired,
+  normalizeClientCategoryCode,
+} from '@/lib/discountRulesEngine';
 
 interface Props {
   initialClients: AgentManagedClient[];
+  initialDiscountRules?: AgentDiscountRule[];
   categories: CommercialCategoryOption[];
   agentName: string;
   agentCode: string;
@@ -128,12 +136,17 @@ function scoreClientMatch(c: AgentManagedClient, rawQuery: string): number {
 
 export default function ClientsManager({
   initialClients,
+  initialDiscountRules = [],
   categories,
   agentName,
   agentCode,
 }: Props) {
   const router = useRouter();
   const [clients, setClients] = useState<AgentManagedClient[]>(initialClients);
+  const [discountRules, setDiscountRules] = useState<AgentDiscountRule[]>(
+    initialDiscountRules
+  );
+  const [removingRuleKey, setRemovingRuleKey] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -165,6 +178,72 @@ export default function ClientsManager({
   useEffect(() => {
     setClients(initialClients);
   }, [initialClients]);
+
+  useEffect(() => {
+    setDiscountRules(initialDiscountRules || []);
+  }, [initialDiscountRules]);
+
+  const getRulesForClient = (c: AgentManagedClient): AgentDiscountRule[] => {
+    const catCode = normalizeClientCategoryCode(
+      c.categoriaCode || c.customerType,
+      c.discount
+    );
+    return discountRules.filter(r =>
+      doesRuleMatchClient(r, {
+        clientId: c.id,
+        clientCode: c.zucchettiCode,
+        clientCategory: catCode,
+        baseDiscount: c.discount ?? null,
+      })
+    );
+  };
+
+  const handleRemoveDiscountFromClient = async (
+    ruleId: string,
+    c: AgentManagedClient
+  ) => {
+    const key = `${c.id}_${ruleId}`;
+    setRemovingRuleKey(key);
+    try {
+      const res = await removeDiscountFromClientAction(ruleId, c.id, c.zucchettiCode);
+      if (res.success && res.rules) {
+        setDiscountRules(res.rules);
+      }
+    } finally {
+      setRemovingRuleKey(null);
+    }
+  };
+
+  const formatRuleTargetSummary = (rule: AgentDiscountRule): string => {
+    if (rule.targetType === 'ALL_CATALOG') return 'Tutto il Catalogo';
+    const parts: string[] = [];
+    if (rule.targetSkus?.length) {
+      parts.push(
+        rule.targetSkus.length <= 2
+          ? `Art. ${rule.targetSkus.join(', ')}`
+          : `${rule.targetSkus.length} Prodotti`
+      );
+    }
+    if (rule.targetBrands?.length) parts.push(`Marchi: ${rule.targetBrands.join(', ')}`);
+    if (rule.targetProductGroups?.length)
+      parts.push(`Gruppi: ${rule.targetProductGroups.join(', ')}`);
+    if (rule.targetFamilies?.length)
+      parts.push(`Famiglie: ${rule.targetFamilies.join(', ')}`);
+    if (rule.targetCategories?.length)
+      parts.push(`Cat.: ${rule.targetCategories.join(', ')}`);
+    return parts.join(' • ') || rule.name || 'Sconto dedicato';
+  };
+
+  const formatExpiryShort = (expiresAt?: string | null): string => {
+    if (!expiresAt) return 'Senza scadenza';
+    const d = new Date(expiresAt);
+    if (isNaN(d.getTime())) return expiresAt;
+    return `Scade ${d.toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })}`;
+  };
 
   // Chiude il menu predittivo cliccando fuori
   useEffect(() => {
@@ -775,6 +854,56 @@ export default function ClientsManager({
                     </span>
                   )}
                 </div>
+
+                {/* SCONTI PERSONALIZZATI ATTIVI SUL CLIENTE (CON ELIMINAZIONE SOLO PER QUESTO CLIENTE) */}
+                {(() => {
+                  const clientRules = getRulesForClient(c);
+                  if (clientRules.length === 0) return null;
+                  return (
+                    <div className="pt-2 mt-1 border-t border-gray-100 space-y-1.5">
+                      <div className="text-[11px] font-extrabold text-gray-600 uppercase tracking-wider">
+                        🏷️ Sconti Personalizzati Attivi su {c.companyName} ({clientRules.length}):
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {clientRules.map(rule => {
+                          const expired = isDiscountRuleExpired(rule);
+                          const isRemoving = removingRuleKey === `${c.id}_${rule.id}`;
+                          return (
+                            <div
+                              key={`${c.id}_${rule.id}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs ${
+                                expired
+                                  ? 'bg-red-50 border-red-200 text-red-800'
+                                  : 'bg-amber-50/80 border-amber-300 text-gray-900'
+                              }`}
+                            >
+                              <span className="font-black text-emerald-800">
+                                {rule.calculationMode === 'EXTRA_CASCADE'
+                                  ? `+${rule.discountValue}% Extra`
+                                  : `${rule.discountValue}% Fisso`}
+                              </span>
+                              <span className="text-gray-700 font-semibold">
+                                • {formatRuleTargetSummary(rule)}
+                              </span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-white/80 text-gray-600 border border-gray-200">
+                                {expired ? '⛔ Scaduto' : formatExpiryShort(rule.expiresAt)}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={isRemoving}
+                                onClick={() => handleRemoveDiscountFromClient(rule.id, c)}
+                                title={`Elimina questo sconto solo per ${c.companyName}`}
+                                className="ml-1 text-gray-400 hover:text-red-600 font-black disabled:opacity-40"
+                              >
+                                {isRemoving ? '...' : '✕'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Pulsanti Azione */}
@@ -1488,6 +1617,81 @@ export default function ClientsManager({
                         </span>
                       )}
                     </label>
+                  </div>
+
+                  {/* SCONTI PERSONALIZZATI DEL CLIENTE NELLA SCHEDA VISUALIZZAZIONE CLIENTE */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-extrabold uppercase tracking-wider text-gray-900">
+                          🏷️ Sconti Personalizzati Attivi sul Cliente ({getRulesForClient(selectedClient).length})
+                        </div>
+                        <p className="text-[11px] text-gray-600">
+                          L&apos;eliminazione da qui rimuove lo sconto <strong>solo per {selectedClient.companyName}</strong> senza toccare gli altri clienti.
+                        </p>
+                      </div>
+                      <Link
+                        href="/account/discounts"
+                        className="px-3 py-1.5 rounded-lg bg-brand-main hover:bg-amber-400 text-black text-xs font-extrabold shrink-0 transition-colors"
+                      >
+                        + Gestisci Sconti
+                      </Link>
+                    </div>
+
+                    {getRulesForClient(selectedClient).length === 0 ? (
+                      <div className="p-3 rounded-lg bg-white border border-gray-200 text-xs text-gray-500">
+                        Nessuno sconto extra o sostitutivo attivo su questo cliente (si applica solo lo Sconto Base {selectedClient.discount}%).
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {getRulesForClient(selectedClient).map(rule => {
+                          const expired = isDiscountRuleExpired(rule);
+                          const isRemoving =
+                            removingRuleKey === `${selectedClient.id}_${rule.id}`;
+                          return (
+                            <div
+                              key={rule.id}
+                              className="p-3 rounded-lg bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            >
+                              <div className="space-y-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-xs font-black">
+                                    {rule.calculationMode === 'EXTRA_CASCADE'
+                                      ? `+${rule.discountValue}% Extra a cascata (oltre Base ${selectedClient.discount}%)`
+                                      : `${rule.discountValue}% Sconto Fisso Sostitutivo`}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                                      expired
+                                        ? 'bg-red-50 text-red-800 border-red-200'
+                                        : 'bg-gray-50 text-gray-700 border-gray-200'
+                                    }`}
+                                  >
+                                    {expired
+                                      ? `⛔ Scaduto (${formatExpiryShort(rule.expiresAt)})`
+                                      : `📅 ${formatExpiryShort(rule.expiresAt)}`}
+                                  </span>
+                                </div>
+                                <div className="text-xs font-semibold text-gray-800">
+                                  {formatRuleTargetSummary(rule)}
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={isRemoving}
+                                onClick={() =>
+                                  handleRemoveDiscountFromClient(rule.id, selectedClient)
+                                }
+                                className="px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-extrabold shrink-0 transition-colors disabled:opacity-50"
+                              >
+                                {isRemoving ? 'Eliminazione...' : '🗑️ Elimina dal cliente'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 

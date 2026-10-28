@@ -1,6 +1,7 @@
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { getAgentClientsList } from '@/app/actions/newClient';
+import { getAgentDiscountRulesFromDb } from '@/lib/discountRules';
 import ClientsManager from './ClientsManager';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,15 @@ export default async function AgentClientsPage() {
     redirect('/account');
   }
 
-  const data = await getAgentClientsList();
+  const [data, discountRules] = await Promise.all([
+    getAgentClientsList(),
+    getAgentDiscountRulesFromDb(session.user.id, session.user.zucchettiCode || ''),
+  ]);
 
   return (
     <ClientsManager
       initialClients={data.clients || []}
+      initialDiscountRules={discountRules || []}
       categories={
         data.categories || [
           { code: '', label: 'Nessuna Categoria (Sconto base 0%)', discount: 0 },

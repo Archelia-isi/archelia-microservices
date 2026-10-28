@@ -19,6 +19,7 @@ import {
   DiscountTargetClientMeta,
   DiscountTargetProductMeta,
   DiscountTargetType,
+  doesRuleMatchClient,
   ensureDiscountRulesTable,
   getAgentDiscountRulesFromDb,
   normalizeClientCategoryCode,
@@ -328,21 +329,100 @@ export async function saveAgentDiscountRuleAction(
     }
   }
 
-  const isSpecificClients =
-    clientScope === 'SINGLE_CLIENT' || clientScope === 'SELECTED_CLIENTS';
-  const primaryClientId = isSpecificClients ? clientIds[0] || null : null;
-  const primaryClientCode = isSpecificClients ? clientCodes[0] || null : null;
-  const primaryClientName = isSpecificClients
-    ? clientsMeta.length === 1
-      ? clientsMeta[0].name
-      : clientsMeta.length > 1
-        ? `${clientsMeta.length} Clienti selezionati`
-        : input.clientName || null
-    : clientScope === 'CLIENT_CATEGORY'
-      ? `Cat. Clienti: ${clientCategories.join(', ')}`
-      : null;
+  // Risolvi i singoli clienti destinatari: ogni impostazione di sconto viene salvata per singolo cliente
+  const agentClientsRes = await getAgentClientsList();
+  const allAgentClients = agentClientsRes.clients || [];
 
-  const executeUpsert = async () => {
+  let resolvedTargetClients: DiscountTargetClientMeta[] = [];
+
+  if (clientScope === 'ALL_CLIENTS') {
+    resolvedTargetClients = allAgentClients.map(c => ({
+      id: c.id,
+      code: (c.zucchettiCode || '').trim().toUpperCase(),
+      name: c.companyName,
+      baseDiscount: Number(c.discount || 0),
+      categoryCode: normalizeClientCategoryCode(c.categoriaCode || c.customerType, c.discount),
+      categoryLabel: c.customerType || '',
+    }));
+  } else if (clientScope === 'CLIENT_CATEGORY') {
+    resolvedTargetClients = allAgentClients
+      .filter(c => {
+        const catCode = normalizeClientCategoryCode(
+          c.categoriaCode || c.customerType,
+          c.discount
+        );
+        return catCode && clientCategories.includes(catCode);
+      })
+      .map(c => ({
+        id: c.id,
+        code: (c.zucchettiCode || '').trim().toUpperCase(),
+        name: c.companyName,
+        baseDiscount: Number(c.discount || 0),
+        categoryCode: normalizeClientCategoryCode(c.categoriaCode || c.customerType, c.discount),
+        categoryLabel: c.customerType || '',
+      }));
+  } else if (clientsMeta.length > 0) {
+    resolvedTargetClients = clientsMeta.map(cm => ({
+      id: String(cm.id || cm.code || '').trim(),
+      code: String(cm.code || '').trim().toUpperCase(),
+      name: String(cm.name || cm.code || '').trim(),
+      baseDiscount: Number(cm.baseDiscount || 0),
+      categoryCode: cm.categoryCode || '',
+      categoryLabel: cm.categoryLabel || '',
+    }));
+  } else {
+    const idSet = new Set(clientIds);
+    const codeSet = new Set(clientCodes.map(c => c.toUpperCase()));
+    const matchedFromPortfolio = allAgentClients.filter(
+      c =>
+        idSet.has(c.id) ||
+        (c.zucchettiCode && codeSet.has(c.zucchettiCode.trim().toUpperCase()))
+    );
+    if (matchedFromPortfolio.length > 0) {
+      resolvedTargetClients = matchedFromPortfolio.map(c => ({
+        id: c.id,
+        code: (c.zucchettiCode || '').trim().toUpperCase(),
+        name: c.companyName,
+        baseDiscount: Number(c.discount || 0),
+        categoryCode: normalizeClientCategoryCode(c.categoriaCode || c.customerType, c.discount),
+        categoryLabel: c.customerType || '',
+      }));
+    } else if (clientIds.length > 0 || clientCodes.length > 0) {
+      resolvedTargetClients = [
+        {
+          id: clientIds[0] || clientCodes[0] || '',
+          code: (clientCodes[0] || '').toUpperCase(),
+          name: input.clientName || clientCodes[0] || 'Cliente',
+        },
+      ];
+    }
+  }
+
+  // Deduplica per id / codice
+  const uniqueClientsMap = new Map<string, DiscountTargetClientMeta>();
+  for (const tc of resolvedTargetClients) {
+    const key = (tc.code || tc.id).toUpperCase();
+    if (key && !uniqueClientsMap.has(key)) {
+      uniqueClientsMap.set(key, tc);
+    }
+  }
+  const finalClientsList = Array.from(uniqueClientsMap.values());
+
+  if (finalClientsList.length === 0) {
+    return {
+      success: false,
+      error: 'Nessun cliente corrispondente ai criteri selezionati.',
+    };
+  }
+
+  const upsertSingleClientRule = async (
+    targetRuleId: string,
+    clientMeta: DiscountTargetClientMeta
+  ) => {
+    const cId = clientMeta.id || clientMeta.code;
+    const cCode = (clientMeta.code || '').toUpperCase();
+    const cName = clientMeta.name || cCode || 'Cliente';
+
     await prisma.$executeRawUnsafe(
       `INSERT INTO "b2b_agent_discount_rules" (
         "id",
@@ -371,21 +451,21 @@ export async function saveAgentDiscountRuleAction(
         "createdAt",
         "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8,
-        $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13,
-        $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19::jsonb,
-        $20, $21, $22, $23, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
+        $8::jsonb, $9::jsonb, $10::jsonb, '[]'::jsonb, $11,
+        $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb,
+        $18, $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
-        "clientScope" = EXCLUDED."clientScope",
+        "clientScope" = 'SINGLE_CLIENT',
         "clientId" = EXCLUDED."clientId",
         "clientCode" = EXCLUDED."clientCode",
         "clientName" = EXCLUDED."clientName",
         "clientIds" = EXCLUDED."clientIds",
         "clientCodes" = EXCLUDED."clientCodes",
         "clientsMeta" = EXCLUDED."clientsMeta",
-        "clientCategories" = EXCLUDED."clientCategories",
+        "clientCategories" = '[]'::jsonb,
         "targetType" = EXCLUDED."targetType",
         "targetSkus" = EXCLUDED."targetSkus",
         "targetProductsMeta" = EXCLUDED."targetProductsMeta",
@@ -398,18 +478,16 @@ export async function saveAgentDiscountRuleAction(
         "isActive" = EXCLUDED."isActive",
         "expiresAt" = EXCLUDED."expiresAt",
         "updatedAt" = CURRENT_TIMESTAMP`,
-      ruleId,
+      targetRuleId,
       session.user.id,
       agentCode,
       autoName,
-      clientScope,
-      primaryClientId,
-      primaryClientCode,
-      primaryClientName,
-      JSON.stringify(isSpecificClients ? clientIds : []),
-      JSON.stringify(isSpecificClients ? clientCodes : []),
-      JSON.stringify(isSpecificClients ? clientsMeta : []),
-      JSON.stringify(clientScope === 'CLIENT_CATEGORY' ? clientCategories : []),
+      cId,
+      cCode,
+      cName,
+      JSON.stringify(cId ? [cId] : []),
+      JSON.stringify(cCode ? [cCode] : []),
+      JSON.stringify([clientMeta]),
       targetType,
       JSON.stringify(targetSkus),
       JSON.stringify(targetProductsMeta),
@@ -424,12 +502,34 @@ export async function saveAgentDiscountRuleAction(
     );
   };
 
+  const executeBatchUpsert = async () => {
+    if (input.id && input.id.trim() && finalClientsList.length === 1) {
+      await upsertSingleClientRule(input.id.trim(), finalClientsList[0]);
+    } else {
+      if (input.id && input.id.trim()) {
+        await prisma.$executeRawUnsafe(
+          `DELETE FROM "b2b_agent_discount_rules" WHERE "id" = $1 AND ("agentId" = $2 OR ("agentCode" != '' AND "agentCode" = $3))`,
+          input.id.trim(),
+          session.user.id,
+          agentCode
+        );
+      }
+      for (let i = 0; i < finalClientsList.length; i++) {
+        const cm = finalClientsList[i];
+        const perClientRuleId = `drule_${Date.now()}_${i}_${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
+        await upsertSingleClientRule(perClientRuleId, cm);
+      }
+    }
+  };
+
   try {
     try {
-      await executeUpsert();
+      await executeBatchUpsert();
     } catch (firstErr: any) {
       await ensureDiscountRulesTable(true);
-      await executeUpsert();
+      await executeBatchUpsert();
     }
 
     revalidatePath('/', 'layout');
@@ -525,5 +625,168 @@ export async function deleteAgentDiscountRuleAction(
   } catch (err: any) {
     console.error('Errore deleteAgentDiscountRuleAction:', err);
     return { success: false, error: err.message || 'Errore eliminazione regola.' };
+  }
+}
+
+/**
+ * Rimuove uno sconto ESCLUSIVAMENTE per uno specifico cliente.
+ * Se la regola era originariamente condivisa con più clienti (o categoria / tutti i clienti),
+ * mantiene lo sconto attivo su tutti gli altri clienti e lo elimina solo dal cliente scelto.
+ */
+export async function removeDiscountFromClientAction(
+  ruleId: string,
+  clientId: string,
+  clientCode?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  rules?: AgentDiscountRule[];
+}> {
+  const session = await verifySession();
+  if (!session || session.user.role !== 'AGENT') {
+    return { success: false, error: 'Non autorizzato' };
+  }
+
+  await ensureDiscountRulesTable();
+  const agentCode = session.user.zucchettiCode || '';
+
+  try {
+    const existingRules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
+    const targetRule = existingRules.find(r => r.id === ruleId);
+    if (!targetRule) {
+      return { success: true, rules: existingRules };
+    }
+
+    const cleanTargetId = (clientId || '').trim();
+    const cleanTargetCode = (clientCode || '').trim().toUpperCase();
+
+    const clientsRes = await getAgentClientsList();
+    const allClients = clientsRes.clients || [];
+
+    // Trova tutti i clienti dell'agente a cui si applicava questa regola
+    const matchingClients = allClients.filter(c => {
+      const catCode = normalizeClientCategoryCode(
+        c.categoriaCode || c.customerType,
+        c.discount
+      );
+      return doesRuleMatchClient(targetRule, {
+        clientId: c.id,
+        clientCode: c.zucchettiCode,
+        clientCategory: catCode,
+        baseDiscount: c.discount,
+      });
+    });
+
+    // Filtra via SOLO il cliente da cui vogliamo eliminare lo sconto
+    const remainingClients = matchingClients.filter(c => {
+      const cId = (c.id || '').trim();
+      const cCode = (c.zucchettiCode || '').trim().toUpperCase();
+      if (cleanTargetId && cId === cleanTargetId) return false;
+      if (cleanTargetCode && cCode === cleanTargetCode) return false;
+      return true;
+    });
+
+    // Elimina la regola originale
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "b2b_agent_discount_rules"
+       WHERE "id" = $1 AND ("agentId" = $2 OR ("agentCode" != '' AND "agentCode" = $3))`,
+      ruleId,
+      session.user.id,
+      agentCode
+    );
+
+    // Se c'erano altri clienti associati a quella regola, crea per ciascuno di loro la propria regola individuale
+    for (let i = 0; i < remainingClients.length; i++) {
+      const rc = remainingClients[i];
+      const newRuleId = `drule_${Date.now()}_${i}_${Math.random()
+        .toString(36)
+        .slice(2, 7)}`;
+      const cId = rc.id || rc.zucchettiCode;
+      const cCode = (rc.zucchettiCode || '').trim().toUpperCase();
+      const cName = rc.companyName || cCode || 'Cliente';
+      const cm: DiscountTargetClientMeta = {
+        id: cId,
+        code: cCode,
+        name: cName,
+        baseDiscount: Number(rc.discount || 0),
+        categoryCode: normalizeClientCategoryCode(
+          rc.categoriaCode || rc.customerType,
+          rc.discount
+        ),
+        categoryLabel: rc.customerType || '',
+      };
+
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "b2b_agent_discount_rules" (
+          "id",
+          "agentId",
+          "agentCode",
+          "name",
+          "clientScope",
+          "clientId",
+          "clientCode",
+          "clientName",
+          "clientIds",
+          "clientCodes",
+          "clientsMeta",
+          "clientCategories",
+          "targetType",
+          "targetSkus",
+          "targetProductsMeta",
+          "targetBrands",
+          "targetProductGroups",
+          "targetFamilies",
+          "targetCategories",
+          "calculationMode",
+          "discountValue",
+          "isActive",
+          "expiresAt",
+          "createdAt",
+          "updatedAt"
+        ) VALUES (
+          $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
+          $8::jsonb, $9::jsonb, $10::jsonb, '[]'::jsonb, $11,
+          $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb,
+          $18, $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )`,
+        newRuleId,
+        session.user.id,
+        agentCode,
+        targetRule.name,
+        cId,
+        cCode,
+        cName,
+        JSON.stringify(cId ? [cId] : []),
+        JSON.stringify(cCode ? [cCode] : []),
+        JSON.stringify([cm]),
+        targetRule.targetType,
+        JSON.stringify(targetRule.targetSkus || []),
+        JSON.stringify(targetRule.targetProductsMeta || []),
+        JSON.stringify(targetRule.targetBrands || []),
+        JSON.stringify(targetRule.targetProductGroups || []),
+        JSON.stringify(targetRule.targetFamilies || []),
+        JSON.stringify(targetRule.targetCategories || []),
+        targetRule.calculationMode,
+        targetRule.discountValue,
+        targetRule.isActive,
+        targetRule.expiresAt ? new Date(targetRule.expiresAt) : null
+      );
+    }
+
+    revalidatePath('/', 'layout');
+    revalidatePath('/account/discounts');
+    revalidatePath('/account/clients');
+    revalidatePath('/account/catalog-builder');
+    revalidatePath('/catalog');
+    revalidatePath('/cart');
+
+    const updatedRules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
+    return { success: true, rules: updatedRules };
+  } catch (err: any) {
+    console.error('Errore removeDiscountFromClientAction:', err);
+    return {
+      success: false,
+      error: err.message || 'Errore durante la rimozione dello sconto dal cliente.',
+    };
   }
 }
