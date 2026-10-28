@@ -1,6 +1,7 @@
-export type DiscountClientScope = 'ALL_CLIENTS' | 'SINGLE_CLIENT';
+export type DiscountClientScope = 'ALL_CLIENTS' | 'SINGLE_CLIENT' | 'SELECTED_CLIENTS';
 
 export type DiscountTargetType =
+  | 'ALL_CATALOG'
   | 'PRODUCTS'
   | 'BRAND'
   | 'PRODUCT_GROUP'
@@ -17,6 +18,13 @@ export interface DiscountTargetProductMeta {
   listPrice?: number;
 }
 
+export interface DiscountTargetClientMeta {
+  id: string;
+  code: string;
+  name: string;
+  baseDiscount?: number;
+}
+
 export interface AgentDiscountRule {
   id: string;
   agentId: string;
@@ -26,6 +34,9 @@ export interface AgentDiscountRule {
   clientId: string | null;
   clientCode: string | null;
   clientName: string | null;
+  clientIds: string[];
+  clientCodes: string[];
+  clientsMeta: DiscountTargetClientMeta[];
   targetType: DiscountTargetType;
   targetSkus: string[];
   targetProductsMeta: DiscountTargetProductMeta[];
@@ -64,11 +75,42 @@ export interface EvaluatedProductPricing {
 }
 
 /**
+ * Verifica se una regola è applicabile a un determinato cliente.
+ */
+export function doesRuleMatchClient(
+  rule: AgentDiscountRule,
+  clientContext?: { clientId?: string | null; clientCode?: string | null }
+): boolean {
+  if (rule.clientScope === 'ALL_CLIENTS') return true;
+
+  const ctxId = (clientContext?.clientId || '').trim();
+  const ctxCode = (clientContext?.clientCode || '').trim().toUpperCase();
+  if (!ctxId && !ctxCode) return false;
+
+  const allIds = new Set<string>();
+  if (rule.clientId) allIds.add(rule.clientId.trim());
+  for (const id of rule.clientIds || []) {
+    if (id) allIds.add(String(id).trim());
+  }
+
+  const allCodes = new Set<string>();
+  if (rule.clientCode) allCodes.add(rule.clientCode.trim().toUpperCase());
+  for (const code of rule.clientCodes || []) {
+    if (code) allCodes.add(String(code).trim().toUpperCase());
+  }
+
+  const idMatches = Boolean(ctxId && allIds.has(ctxId));
+  const codeMatches = Boolean(ctxCode && allCodes.has(ctxCode));
+
+  return idMatches || codeMatches;
+}
+
+/**
  * Calcola il punteggio di specificità di una regola per un dato prodotto e cliente.
  * Ritorna -1 se la regola NON si applica al prodotto o al cliente.
  * Gerarchia:
- * - SINGLE_CLIENT (+1000) batte ALL_CLIENTS (+0)
- * - Prodotto Singolo SKU (+500) > Categoria L3 (+40) > Famiglia L2 (+30) > Gruppo L1 (+20) > Marchio (+10)
+ * - Cliente singolo (+1100) > Selezione di più clienti (+1000) > Tutti i clienti (+0)
+ * - Prodotto Singolo SKU (+500) > Categoria L3 (+40) > Famiglia L2 (+30) > Gruppo L1 (+20) > Marchio (+10) > Tutto il Catalogo (+1)
  */
 export function scoreRuleForProduct(
   rule: AgentDiscountRule,
@@ -79,22 +121,24 @@ export function scoreRuleForProduct(
 
   // 1. Verifica destinatario cliente
   let clientScore = 0;
-  if (rule.clientScope === 'SINGLE_CLIENT') {
-    const ctxId = (clientContext?.clientId || '').trim();
-    const ctxCode = (clientContext?.clientCode || '').trim().toUpperCase();
-    const ruleClientId = (rule.clientId || '').trim();
-    const ruleClientCode = (rule.clientCode || '').trim().toUpperCase();
-
-    const idMatches = Boolean(ctxId && ruleClientId && ctxId === ruleClientId);
-    const codeMatches = Boolean(ctxCode && ruleClientCode && ctxCode === ruleClientCode);
-
-    if (!idMatches && !codeMatches) {
+  if (rule.clientScope !== 'ALL_CLIENTS') {
+    if (!doesRuleMatchClient(rule, clientContext)) {
       return -1;
     }
-    clientScore = 1000;
+    const countClients = Math.max(
+      rule.clientIds?.length || 0,
+      rule.clientCodes?.length || 0,
+      rule.clientId || rule.clientCode ? 1 : 0
+    );
+    clientScore = countClients <= 1 ? 1100 : 1000;
   }
 
-  // 2. Verifica target prodotto
+  // 2. Se la regola è su TUTTO IL CATALOGO
+  if (rule.targetType === 'ALL_CATALOG') {
+    return clientScore + 1;
+  }
+
+  // 3. Verifica target prodotto specifici
   const pSku = (product.sku || '').trim().toUpperCase();
   const pBrand = (product.brand || '').trim().toUpperCase();
   const pGroup = (product.productGroup || '').trim().toUpperCase();

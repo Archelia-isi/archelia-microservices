@@ -19,6 +19,7 @@ import {
 import { AgentManagedClient } from '@/app/actions/newClient';
 import {
   AgentDiscountRule,
+  doesRuleMatchClient,
   evaluateProductDiscountWithRules,
 } from '@/lib/discountRulesEngine';
 
@@ -574,12 +575,10 @@ export default function CatalogBuilderClient({
       if (!r.isActive) return false;
       if (r.clientScope === 'ALL_CLIENTS') return true;
       if (!selectedClient) return false;
-      return (
-        r.clientId === selectedClient.id ||
-        (r.clientCode &&
-          selectedClient.zucchettiCode &&
-          r.clientCode.toUpperCase() === selectedClient.zucchettiCode.toUpperCase())
-      );
+      return doesRuleMatchClient(r, {
+        clientId: selectedClient.id,
+        clientCode: selectedClient.zucchettiCode,
+      });
     }).length;
   }, [discountRules, selectedClient]);
 

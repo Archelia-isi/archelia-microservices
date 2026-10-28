@@ -12,6 +12,7 @@ import {
   AgentDiscountRule,
   DiscountCalculationMode,
   DiscountClientScope,
+  DiscountTargetClientMeta,
   DiscountTargetProductMeta,
   DiscountTargetType,
   ensureDiscountRulesTable,
@@ -25,6 +26,9 @@ export interface SaveDiscountRuleInput {
   clientId?: string | null;
   clientCode?: string | null;
   clientName?: string | null;
+  clientIds?: string[];
+  clientCodes?: string[];
+  clientsMeta?: DiscountTargetClientMeta[];
   targetType: DiscountTargetType;
   targetSkus?: string[];
   targetProductsMeta?: DiscountTargetProductMeta[];
@@ -126,28 +130,64 @@ export async function saveAgentDiscountRuleAction(
     };
   }
 
-  const clientScope: DiscountClientScope =
-    input.clientScope === 'SINGLE_CLIENT' ? 'SINGLE_CLIENT' : 'ALL_CLIENTS';
+  const cleanArray = (arr?: string[], uppercase = true) =>
+    Array.from(
+      new Set(
+        (arr || [])
+          .map(s => {
+            const v = String(s || '').trim();
+            return uppercase ? v.toUpperCase() : v;
+          })
+          .filter(Boolean)
+      )
+    );
 
-  if (clientScope === 'SINGLE_CLIENT' && !input.clientId && !input.clientCode) {
+  const clientIds = cleanArray(
+    input.clientIds && input.clientIds.length > 0
+      ? input.clientIds
+      : input.clientId
+        ? [input.clientId]
+        : [],
+    false
+  );
+  const clientCodes = cleanArray(
+    input.clientCodes && input.clientCodes.length > 0
+      ? input.clientCodes
+      : input.clientCode
+        ? [input.clientCode]
+        : [],
+    true
+  );
+  const clientsMeta: DiscountTargetClientMeta[] = Array.isArray(input.clientsMeta)
+    ? input.clientsMeta
+    : [];
+
+  const clientScope: DiscountClientScope =
+    input.clientScope === 'ALL_CLIENTS'
+      ? 'ALL_CLIENTS'
+      : clientIds.length > 1 || clientCodes.length > 1
+        ? 'SELECTED_CLIENTS'
+        : 'SINGLE_CLIENT';
+
+  if (clientScope !== 'ALL_CLIENTS' && clientIds.length === 0 && clientCodes.length === 0) {
     return {
       success: false,
-      error: 'Seleziona il cliente a cui abbinare questa regola di sconto.',
+      error: 'Seleziona almeno un cliente a cui abbinare questa regola di sconto.',
     };
   }
 
-  const cleanUpperArray = (arr?: string[]) =>
-    Array.from(
-      new Set((arr || []).map(s => String(s || '').trim().toUpperCase()).filter(Boolean))
-    );
-
-  const targetSkus = cleanUpperArray(input.targetSkus);
-  const targetBrands = cleanUpperArray(input.targetBrands);
-  const targetProductGroups = cleanUpperArray(input.targetProductGroups);
-  const targetFamilies = cleanUpperArray(input.targetFamilies);
-  const targetCategories = cleanUpperArray(input.targetCategories);
+  const targetType: DiscountTargetType = input.targetType || 'PRODUCTS';
+  const targetSkus = targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetSkus, true);
+  const targetBrands = targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetBrands, true);
+  const targetProductGroups =
+    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetProductGroups, true);
+  const targetFamilies =
+    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetFamilies, true);
+  const targetCategories =
+    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetCategories, true);
 
   const hasTarget =
+    targetType === 'ALL_CATALOG' ||
     targetSkus.length > 0 ||
     targetBrands.length > 0 ||
     targetProductGroups.length > 0 ||
@@ -158,17 +198,18 @@ export async function saveAgentDiscountRuleAction(
     return {
       success: false,
       error:
-        'Seleziona almeno un prodotto (SKU), un marchio, un gruppo merceologico, una famiglia o una categoria.',
+        'Seleziona "Tutto il Catalogo" oppure almeno un prodotto (SKU), marchio, gruppo merceologico, famiglia o categoria.',
     };
   }
 
-  const targetProductsMeta: DiscountTargetProductMeta[] = Array.isArray(
-    input.targetProductsMeta
-  )
-    ? input.targetProductsMeta.filter(
-        m => m && m.sku && targetSkus.includes(String(m.sku).trim().toUpperCase())
-      )
-    : [];
+  const targetProductsMeta: DiscountTargetProductMeta[] =
+    targetType === 'ALL_CATALOG'
+      ? []
+      : Array.isArray(input.targetProductsMeta)
+        ? input.targetProductsMeta.filter(
+            m => m && m.sku && targetSkus.includes(String(m.sku).trim().toUpperCase())
+          )
+        : [];
 
   const calculationMode: DiscountCalculationMode =
     input.calculationMode === 'FIXED_OVERRIDE' ? 'FIXED_OVERRIDE' : 'EXTRA_CASCADE';
@@ -183,24 +224,38 @@ export async function saveAgentDiscountRuleAction(
   // Genera un nome descrittivo automatico se non specificato
   let autoName = (input.name || '').trim();
   if (!autoName) {
-    const parts: string[] = [];
-    if (targetSkus.length > 0) {
-      parts.push(
-        targetSkus.length === 1
-          ? `Art. ${targetSkus[0]}`
-          : `${targetSkus.length} Prodotti scelti`
-      );
+    if (targetType === 'ALL_CATALOG') {
+      autoName = 'Tutto il Catalogo';
+    } else {
+      const parts: string[] = [];
+      if (targetSkus.length > 0) {
+        parts.push(
+          targetSkus.length === 1
+            ? `Art. ${targetSkus[0]}`
+            : `${targetSkus.length} Prodotti scelti`
+        );
+      }
+      if (targetBrands.length > 0) parts.push(`Marchio: ${targetBrands.join(', ')}`);
+      if (targetProductGroups.length > 0)
+        parts.push(`Gruppo: ${targetProductGroups.join(', ')}`);
+      if (targetFamilies.length > 0) parts.push(`Famiglia: ${targetFamilies.join(', ')}`);
+      if (targetCategories.length > 0)
+        parts.push(`Cat.: ${targetCategories.join(', ')}`);
+      autoName = parts.join(' • ').slice(0, 120) || 'Regola Sconto';
     }
-    if (targetBrands.length > 0) parts.push(`Marchio: ${targetBrands.join(', ')}`);
-    if (targetProductGroups.length > 0)
-      parts.push(`Gruppo: ${targetProductGroups.join(', ')}`);
-    if (targetFamilies.length > 0) parts.push(`Famiglia: ${targetFamilies.join(', ')}`);
-    if (targetCategories.length > 0)
-      parts.push(`Cat.: ${targetCategories.join(', ')}`);
-    autoName = parts.join(' • ').slice(0, 120) || 'Regola Sconto';
   }
 
   const isActive = input.isActive !== undefined ? Boolean(input.isActive) : true;
+  const primaryClientId = clientScope !== 'ALL_CLIENTS' ? clientIds[0] || null : null;
+  const primaryClientCode = clientScope !== 'ALL_CLIENTS' ? clientCodes[0] || null : null;
+  const primaryClientName =
+    clientScope !== 'ALL_CLIENTS'
+      ? clientsMeta.length === 1
+        ? clientsMeta[0].name
+        : clientsMeta.length > 1
+          ? `${clientsMeta.length} Clienti selezionati`
+          : input.clientName || null
+      : null;
 
   try {
     await prisma.$executeRawUnsafe(
@@ -213,6 +268,9 @@ export async function saveAgentDiscountRuleAction(
         "clientId",
         "clientCode",
         "clientName",
+        "clientIds",
+        "clientCodes",
+        "clientsMeta",
         "targetType",
         "targetSkus",
         "targetProductsMeta",
@@ -226,9 +284,10 @@ export async function saveAgentDiscountRuleAction(
         "createdAt",
         "updatedAt"
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9,
-        $10::jsonb, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb,
-        $16, $17, $18, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9::jsonb, $10::jsonb, $11::jsonb, $12,
+        $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb,
+        $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
@@ -236,6 +295,9 @@ export async function saveAgentDiscountRuleAction(
         "clientId" = EXCLUDED."clientId",
         "clientCode" = EXCLUDED."clientCode",
         "clientName" = EXCLUDED."clientName",
+        "clientIds" = EXCLUDED."clientIds",
+        "clientCodes" = EXCLUDED."clientCodes",
+        "clientsMeta" = EXCLUDED."clientsMeta",
         "targetType" = EXCLUDED."targetType",
         "targetSkus" = EXCLUDED."targetSkus",
         "targetProductsMeta" = EXCLUDED."targetProductsMeta",
@@ -252,10 +314,13 @@ export async function saveAgentDiscountRuleAction(
       agentCode,
       autoName,
       clientScope,
-      clientScope === 'SINGLE_CLIENT' ? input.clientId || null : null,
-      clientScope === 'SINGLE_CLIENT' ? input.clientCode || null : null,
-      clientScope === 'SINGLE_CLIENT' ? input.clientName || null : null,
-      input.targetType || 'PRODUCTS',
+      primaryClientId,
+      primaryClientCode,
+      primaryClientName,
+      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientIds : []),
+      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientCodes : []),
+      JSON.stringify(clientScope !== 'ALL_CLIENTS' ? clientsMeta : []),
+      targetType,
       JSON.stringify(targetSkus),
       JSON.stringify(targetProductsMeta),
       JSON.stringify(targetBrands),
