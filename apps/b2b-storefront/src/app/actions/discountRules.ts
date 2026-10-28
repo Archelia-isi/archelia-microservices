@@ -342,7 +342,7 @@ export async function saveAgentDiscountRuleAction(
       ? `Cat. Clienti: ${clientCategories.join(', ')}`
       : null;
 
-  try {
+  const executeUpsert = async () => {
     await prisma.$executeRawUnsafe(
       `INSERT INTO "b2b_agent_discount_rules" (
         "id",
@@ -422,6 +422,15 @@ export async function saveAgentDiscountRuleAction(
       isActive,
       parsedExpiresAt
     );
+  };
+
+  try {
+    try {
+      await executeUpsert();
+    } catch (firstErr: any) {
+      await ensureDiscountRulesTable(true);
+      await executeUpsert();
+    }
 
     revalidatePath('/', 'layout');
     revalidatePath('/account/discounts');

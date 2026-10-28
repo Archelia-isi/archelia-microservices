@@ -13,8 +13,8 @@ export * from './discountRulesEngine';
 
 let tableInitialized = false;
 
-export async function ensureDiscountRulesTable(): Promise<void> {
-  if (tableInitialized) return;
+export async function ensureDiscountRulesTable(force = false): Promise<void> {
+  if (tableInitialized && !force) return;
   try {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "b2b_agent_discount_rules" (
@@ -197,7 +197,6 @@ export async function getAgentDiscountRulesFromDb(
           `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" = $1 ORDER BY "createdAt" DESC`,
           agentId
         );
-    tableInitialized = true;
     return (rows || []).map(mapRowToAgentDiscountRule);
   };
 
@@ -205,7 +204,7 @@ export async function getAgentDiscountRulesFromDb(
     return await queryRules();
   } catch (err) {
     try {
-      await ensureDiscountRulesTable();
+      await ensureDiscountRulesTable(true);
       return await queryRules();
     } catch (retryErr) {
       console.error('Errore lettura b2b_agent_discount_rules:', retryErr);
@@ -246,7 +245,6 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
            ORDER BY "updatedAt" DESC`
         );
 
-    tableInitialized = true;
     const mapped = (rows || []).map(mapRowToAgentDiscountRule);
     return mapped.filter(rule => {
       if (isDiscountRuleExpired(rule)) return false;
@@ -269,7 +267,7 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
     return await queryClientRules();
   } catch (err) {
     try {
-      await ensureDiscountRulesTable();
+      await ensureDiscountRulesTable(true);
       return await queryClientRules();
     } catch (retryErr) {
       console.error('Errore getActiveDiscountRulesForClientUser:', retryErr);
