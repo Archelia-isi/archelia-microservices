@@ -1624,27 +1624,36 @@ export default function CatalogBuilderClient({
               {/* SINGOLO FOGLIO A4 IN ANTEPRIMA (6 SCHEDE 2x3) */}
               <div className="flex-1 bg-white rounded-2xl border-2 border-gray-300 shadow-2xl overflow-hidden">
                 {/* Intestazione Foglio A4 (come nel PDF stampato) */}
-                <div className="px-6 py-3.5 bg-gray-900 text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 text-xs font-black bg-brand-main text-black rounded">
-                      PAGINA {safeCurrentSheet + 1} DI {totalSheets}
-                    </span>
+                <div className="px-6 py-3.5 bg-gray-900 text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div className="bg-white rounded-md border border-brand-main px-2.5 py-1 shrink-0 shadow-sm">
+                      <img
+                        src="/logo-izzo.png"
+                        alt="Izzo Distribuzione"
+                        className="h-10 w-auto object-contain"
+                      />
+                    </div>
                     <div>
+                      <div className="text-[11px] font-extrabold text-brand-main tracking-wider uppercase">
+                        IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B
+                      </div>
                       <div className="text-sm font-black tracking-wide uppercase">
                         {catalogTitle || 'Catalogo Prodotti B2B'}
                       </div>
                       <div className="text-[11px] text-gray-300">
-                        Schede {safeCurrentSheet * 6 + 1}–{safeCurrentSheet * 6 + currentSheetProducts.length} di{' '}
-                        {sortedCatalogProducts.length} totali
+                        {selectedClient
+                          ? `Cliente: ${selectedClient.companyName}  •  Agente: ${agentName}`
+                          : `Agente: ${agentName}`}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right hidden sm:block">
-                    <div className="text-xs font-extrabold text-brand-main">IZZO DISTRIBUZIONE</div>
+                  <div className="text-right flex flex-col items-end gap-0.5">
+                    <span className="px-2.5 py-1 text-xs font-black bg-brand-main text-black rounded">
+                      FOGLIO {safeCurrentSheet + 1} / {totalSheets}
+                    </span>
                     <div className="text-[11px] text-gray-400">
-                      {selectedClient
-                        ? `Riservato a: ${selectedClient.companyName}`
-                        : `Agente: ${agentName}`}
+                      Schede {safeCurrentSheet * 6 + 1}–{safeCurrentSheet * 6 + currentSheetProducts.length} di{' '}
+                      {sortedCatalogProducts.length} totali
                     </div>
                   </div>
                 </div>

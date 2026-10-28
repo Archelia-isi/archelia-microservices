@@ -1,5 +1,8 @@
 'use server';
 
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
 import { verifySession } from '@/lib/session';
 import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
 import { getAgentClientsList, AgentManagedClient } from './newClient';
@@ -899,6 +902,137 @@ async function fetchJpegThumbnail(rawUrl?: string): Promise<{
   }
 }
 
+let cachedPdfHeaderLogo: {
+  flateBytes: Buffer;
+  width: number;
+  height: number;
+} | null = null;
+
+function getCatalogPdfHeaderLogo(): {
+  flateBytes: Buffer;
+  width: number;
+  height: number;
+} | null {
+  if (cachedPdfHeaderLogo) return cachedPdfHeaderLogo;
+
+  try {
+    const candidatePaths = [
+      path.join(process.cwd(), 'public', 'logo-izzo.png'),
+      path.join(process.cwd(), 'apps', 'b2b-storefront', 'public', 'logo-izzo.png'),
+    ];
+    const logoPath = candidatePaths.find(p => fs.existsSync(p));
+    if (!logoPath) return null;
+
+    const buf = fs.readFileSync(logoPath);
+    if (buf.length < 32 || buf[0] !== 0x89 || buf[1] !== 0x50) return null;
+
+    const w = buf.readUInt32BE(16);
+    const h = buf.readUInt32BE(20);
+    const bitDepth = buf[24];
+    const colorType = buf[25];
+    if (bitDepth !== 8 || colorType !== 6 || w <= 0 || h <= 0) return null;
+
+    const idatChunks: Buffer[] = [];
+    let pos = 8;
+    while (pos + 8 <= buf.length) {
+      const len = buf.readUInt32BE(pos);
+      const type = buf.toString('ascii', pos + 4, pos + 8);
+      if (type === 'IDAT' && pos + 8 + len <= buf.length) {
+        idatChunks.push(buf.subarray(pos + 8, pos + 8 + len));
+      }
+      pos += 12 + len;
+    }
+
+    const raw = zlib.inflateSync(Buffer.concat(idatChunks));
+    const stride = w * 4 + 1;
+    const rgba = new Uint8Array(w * h * 4);
+    const prev = new Uint8Array(w * 4);
+    const cur = new Uint8Array(w * 4);
+
+    const paeth = (a: number, b: number, c: number) => {
+      const p = a + b - c;
+      const pa = Math.abs(p - a);
+      const pb = Math.abs(p - b);
+      const pc = Math.abs(p - c);
+      return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+    };
+
+    for (let y = 0; y < h; y++) {
+      const filter = raw[y * stride];
+      const rowStart = y * stride + 1;
+      for (let i = 0; i < w * 4; i++) {
+        const x = raw[rowStart + i];
+        const a = i >= 4 ? cur[i - 4] : 0;
+        const b = prev[i];
+        const c = i >= 4 ? prev[i - 4] : 0;
+        const recon =
+          filter === 1
+            ? a
+            : filter === 2
+            ? b
+            : filter === 3
+            ? (a + b) >> 1
+            : filter === 4
+            ? paeth(a, b, c)
+            : 0;
+        cur[i] = (x + recon) & 0xff;
+      }
+      rgba.set(cur, y * w * 4);
+      prev.set(cur);
+    }
+
+    // Ritaglio sul bounding box del logo Izzo e ridimensionamento nitido a 360 x 148 su sfondo bianco
+    const cropX = Math.min(280, Math.floor(w * 0.065));
+    const cropY = Math.min(360, Math.floor(h * 0.16));
+    const cropW = Math.min(w - cropX, Math.floor(w * 0.865));
+    const cropH = Math.min(h - cropY, Math.floor(h * 0.66));
+
+    const outW = 360;
+    const outH = 148;
+
+    const rgbOut = Buffer.alloc(outW * outH * 3);
+    const scaleX = cropW / outW;
+    const scaleY = cropH / outH;
+
+    for (let oy = 0; oy < outH; oy++) {
+      const sy0 = Math.floor(cropY + oy * scaleY);
+      const sy1 = Math.min(h, Math.ceil(cropY + (oy + 1) * scaleY));
+      for (let ox = 0; ox < outW; ox++) {
+        const sx0 = Math.floor(cropX + ox * scaleX);
+        const sx1 = Math.min(w, Math.ceil(cropX + (ox + 1) * scaleX));
+        let rSum = 0;
+        let gSum = 0;
+        let bSum = 0;
+        let count = 0;
+        for (let sy = sy0; sy < sy1; sy += 2) {
+          for (let sx = sx0; sx < sx1; sx += 2) {
+            const idx = (sy * w + sx) * 4;
+            const a = rgba[idx + 3] / 255;
+            const pr = rgba[idx];
+            const pg = rgba[idx + 1];
+            const pb = rgba[idx + 2];
+            rSum += pr * a + 255 * (1 - a);
+            gSum += pg * a + 255 * (1 - a);
+            bSum += pb * a + 255 * (1 - a);
+            count++;
+          }
+        }
+        const oIdx = (oy * outW + ox) * 3;
+        rgbOut[oIdx] = count > 0 ? Math.round(rSum / count) : 255;
+        rgbOut[oIdx + 1] = count > 0 ? Math.round(gSum / count) : 255;
+        rgbOut[oIdx + 2] = count > 0 ? Math.round(bSum / count) : 255;
+      }
+    }
+
+    const flateBytes = zlib.deflateSync(rgbOut, { level: 9 });
+    cachedPdfHeaderLogo = { flateBytes, width: outW, height: outH };
+    return cachedPdfHeaderLogo;
+  } catch (e) {
+    console.warn('Impossibile caricare logo-izzo.png per header PDF:', e);
+    return null;
+  }
+}
+
 export async function generateAgentCatalogPdfAction(
   input: GenerateCatalogPdfInput
 ): Promise<{
@@ -949,10 +1083,12 @@ export async function generateAgentCatalogPdfAction(
       year: 'numeric',
     });
 
-    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG
+    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG + Logo Header
     // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Regular, Obj 4: Font Bold
+    const headerLogo = getCatalogPdfHeaderLogo();
     const imageObjMap = new Map<number, number>(); // itemIdx -> objectNumber
     let nextObjNum = 5;
+    const logoObjNum = headerLogo ? nextObjNum++ : null;
 
     for (const [itemIdx] of Array.from(thumbs.entries())) {
       imageObjMap.set(itemIdx, nextObjNum++);
@@ -973,30 +1109,44 @@ export async function generateAgentCatalogPdfAction(
       const cmd: string[] = [];
       const imgRefsForPage = new Map<number, number>();
 
-      // Header pagina A4
+      // Header pagina A4 con Logo Izzo Distribuzione in alto a sinistra
       cmd.push('0.07 0.09 0.15 rg');
       cmd.push('0 772 595 70 re f');
       cmd.push('0.00 0.78 0.00 rg');
       cmd.push('0 769 595 3 re f');
 
-      cmd.push('BT /F2 14 Tf 1 1 1 rg 28 816 Td (IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B) Tj ET');
+      const textStartX = logoObjNum ? 162 : 28;
+      if (logoObjNum) {
+        // Riquadro bianco con bordo verde attorno al logo per massima leggibilità
+        cmd.push('1 1 1 rg');
+        cmd.push('0.00 0.78 0.00 RG 1 w');
+        cmd.push('28 780 122 53 re B');
+        cmd.push('q');
+        cmd.push('114 0 0 47 32 783 cm');
+        cmd.push('/ImLogo Do');
+        cmd.push('Q');
+      }
+
       cmd.push(
-        `BT /F2 10 Tf 0.00 0.90 0.00 rg 28 799 Td (${toPdfSafeLatin1(
+        `BT /F2 12.5 Tf 1 1 1 rg ${textStartX} 816 Td (IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B) Tj ET`
+      );
+      cmd.push(
+        `BT /F2 10 Tf 0.00 0.90 0.00 rg ${textStartX} 799 Td (${toPdfSafeLatin1(
           truncateText(
             input.catalogTitle
               ? `${input.catalogTitle}${input.catalogSubtitle ? ` - ${input.catalogSubtitle}` : ''}`
               : 'Catalogo Personalizzato Agente',
-            72
+            logoObjNum ? 56 : 72
           )
         )}) Tj ET`
       );
       cmd.push(
-        `BT /F1 8 Tf 0.82 0.85 0.90 rg 28 783 Td (${toPdfSafeLatin1(
+        `BT /F1 8 Tf 0.82 0.85 0.90 rg ${textStartX} 783 Td (${toPdfSafeLatin1(
           truncateText(
             `Agente: ${input.agentName}${
               input.clientName ? `  |  Cliente: ${input.clientName}` : ''
             }  |  Data: ${dateStr}`,
-            95
+            logoObjNum ? 74 : 95
           )
         )}) Tj ET`
       );
@@ -1375,6 +1525,16 @@ export async function generateAgentCatalogPdfAction(
       '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n'
     );
 
+    // Oggetto XObject Logo Header (FlateDecode RGB)
+    if (headerLogo && logoObjNum) {
+      offsets[logoObjNum] = currentLength;
+      pushStr(
+        `${logoObjNum} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${headerLogo.width} /Height ${headerLogo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${headerLogo.flateBytes.length} >>\nstream\n`
+      );
+      pushBuffer(headerLogo.flateBytes);
+      pushStr('\nendstream\nendobj\n');
+    }
+
     // Oggetti Immagini XObject (JPEG)
     for (const [itemIdx, objNum] of Array.from(imageObjMap.entries())) {
       const thumb = thumbs.get(itemIdx)!;
@@ -1392,9 +1552,14 @@ export async function generateAgentCatalogPdfAction(
       const pageObjNum = pageObjNums[p];
       const contentObjNum = contentObjNums[p];
       const imgRefs = pageImageRefs[p];
-      const xObjectEntries = Array.from(imgRefs.entries())
-        .map(([idx, oNum]) => `/Im${idx} ${oNum} 0 R`)
-        .join(' ');
+      const xObjectParts: string[] = [];
+      if (logoObjNum) {
+        xObjectParts.push(`/ImLogo ${logoObjNum} 0 R`);
+      }
+      for (const [idx, oNum] of Array.from(imgRefs.entries())) {
+        xObjectParts.push(`/Im${idx} ${oNum} 0 R`);
+      }
+      const xObjectEntries = xObjectParts.join(' ');
       const xObjectDict = xObjectEntries ? ` /XObject << ${xObjectEntries} >>` : '';
 
       offsets[pageObjNum] = currentLength;
