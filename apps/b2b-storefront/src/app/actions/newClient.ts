@@ -94,9 +94,167 @@ function getZucchettiBaseUrl(): string {
   return (process.env.ZUCCHETTI_BASE_URL || 'https://infinity.immobiliareizzo.com/ahrweb').replace(/\/$/, '');
 }
 
-async function zFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const fetchOptions = { ...options, dispatcher: zucchettiDispatcher } as unknown as RequestInit;
-  return fetch(url, fetchOptions);
+async function zFetch(url: string, options: RequestInit = {}, timeoutMs = 4500): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const fetchOptions = {
+      ...options,
+      dispatcher: zucchettiDispatcher,
+      signal: options.signal || controller.signal,
+    } as unknown as RequestInit;
+    return await fetch(url, fetchOptions);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+let cachedZucchettiCategories: { data: CommercialCategoryOption[]; expiresAt: number } | null = null;
+let inflightZucchettiCategories: Promise<CommercialCategoryOption[]> | null = null;
+
+let cachedZucchettiClients: {
+  rows: any[];
+  map: Map<string, any>;
+  expiresAt: number;
+} | null = null;
+let inflightZucchettiClients: Promise<{ rows: any[]; map: Map<string, any> }> | null = null;
+
+const cachedAgentClientsByAgentId = new Map<
+  string,
+  {
+    data: {
+      success: boolean;
+      agentName: string;
+      agentCode: string;
+      categories: CommercialCategoryOption[];
+      clients: AgentManagedClient[];
+    };
+    expiresAt: number;
+  }
+>();
+
+export function invalidateZucchettiClientsCache() {
+  cachedZucchettiClients = null;
+  cachedAgentClientsByAgentId.clear();
+}
+
+async function fetchZucchettiCategoriesCached(): Promise<CommercialCategoryOption[]> {
+  if (cachedZucchettiCategories && Date.now() < cachedZucchettiCategories.expiresAt) {
+    return cachedZucchettiCategories.data;
+  }
+  if (inflightZucchettiCategories) {
+    return inflightZucchettiCategories;
+  }
+
+  inflightZucchettiCategories = (async () => {
+    const noneCategoryOption: CommercialCategoryOption = {
+      code: '',
+      label: 'Nessuna Categoria (Sconto base 0%)',
+      discount: 0,
+    };
+    const defaultCategories: CommercialCategoryOption[] = [
+      noneCategoryOption,
+      { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
+      { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
+      { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
+    ];
+
+    let categories: CommercialCategoryOption[] = [...defaultCategories];
+    try {
+      const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_cat_scont?sp_company=A0002&limit=1000&offset=0`;
+      const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' }, 3000);
+      if (res.ok) {
+        const json: any = await res.json();
+        const rows: any[] = json.data || [];
+        if (rows.length > 0) {
+          const map = new Map<string, CommercialCategoryOption>();
+          for (const r of rows) {
+            const code = String(r.tscatcli || '').trim().toLowerCase();
+            if (!code) continue;
+            const discount = Math.abs(parseFloat(r.tsscont1 || '0')) || 0;
+            let name = code.toUpperCase();
+            if (code === 'riv') name = 'RIV - Rivenditore';
+            else if (code === 'ist') name = 'IST - Installatore';
+            else if (code === 'gen') name = 'GEN - Generale';
+            else name = `${code.toUpperCase()} - Categoria ${code.toUpperCase()}`;
+            map.set(code, { code, label: `${name} (Sconto base ${discount}%)`, discount });
+          }
+          if (map.size > 0) {
+            categories = [noneCategoryOption, ...Array.from(map.values())];
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback categorie commerciali Zucchetti:', e);
+    }
+
+    cachedZucchettiCategories = {
+      data: categories,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    };
+    return categories;
+  })().finally(() => {
+    inflightZucchettiCategories = null;
+  });
+
+  return inflightZucchettiCategories;
+}
+
+async function fetchZucchettiClientsCached(
+  forceRefresh = false
+): Promise<{ rows: any[]; map: Map<string, any> }> {
+  if (!forceRefresh && cachedZucchettiClients && Date.now() < cachedZucchettiClients.expiresAt) {
+    return cachedZucchettiClients;
+  }
+  if (!forceRefresh && inflightZucchettiClients) {
+    return inflightZucchettiClients;
+  }
+
+  inflightZucchettiClients = (async () => {
+    const map = new Map<string, any>();
+    let rows: any[] = [];
+    try {
+      const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
+      const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' }, 4500);
+      if (res.ok) {
+        const json: any = await res.json();
+        rows = json.data || json.dataset || json.zzna_clienti || [];
+        for (const r of rows) {
+          const code = String(r.ancodice || r.Ancodice || '').trim().toUpperCase();
+          if (!code) continue;
+          const prev = map.get(code);
+          if (!prev) {
+            map.set(code, r);
+          } else {
+            const prevAg = String(prev.ancodag1 || prev.Ancodag1 || '').trim();
+            const currAg = String(r.ancodag1 || r.Ancodag1 || '').trim();
+            map.set(code, {
+              ...prev,
+              ...r,
+              ancodag1: currAg || prevAg,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Avviso lettura zzna_clienti (uso eventuale cache/DB fallback):', e);
+      if (cachedZucchettiClients) {
+        return cachedZucchettiClients;
+      }
+    }
+
+    const entry = {
+      rows,
+      map,
+      expiresAt: Date.now() + 3 * 60 * 1000,
+    };
+    cachedZucchettiClients = entry;
+    return entry;
+  })().finally(() => {
+    inflightZucchettiClients = null;
+  });
+
+  return inflightZucchettiClients;
 }
 
 /**
@@ -280,18 +438,13 @@ async function computeNextZucchettiCustomerCode(reserveInRedis: boolean = false)
 
   // 1. Controlla tutti i codici realmente presenti su Zucchetti (zzna_clienti A0002)
   try {
-    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
-    const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
-    if (res.ok) {
-      const json: any = await res.json();
-      const clients: any[] = json.data || json.dataset || json.zzna_clienti || [];
-      for (const c of clients) {
-        const code = String(c.ancodice || c.Ancodice || '').trim();
-        const m = code.match(/^C(\d+)$/i);
-        if (m) {
-          const n = parseInt(m[1], 10);
-          if (!isNaN(n)) occupied.add(n);
-        }
+    const { rows: clients } = await fetchZucchettiClientsCached(reserveInRedis);
+    for (const c of clients) {
+      const code = String(c.ancodice || c.Ancodice || '').trim();
+      const m = code.match(/^C(\d+)$/i);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n)) occupied.add(n);
       }
     }
   } catch (e) {
@@ -357,50 +510,10 @@ export async function getAgentNewClientInitData() {
     return { success: false, error: 'Non autorizzato' };
   }
 
-  const noneCategoryOption: CommercialCategoryOption = {
-    code: '',
-    label: 'Nessuna Categoria (Sconto base 0%)',
-    discount: 0,
-  };
-
-  const defaultCategories: CommercialCategoryOption[] = [
-    noneCategoryOption,
-    { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
-    { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
-    { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
-  ];
-
-  let categories: CommercialCategoryOption[] = [...defaultCategories];
-
-  try {
-    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_cat_scont?sp_company=A0002&limit=1000&offset=0`;
-    const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
-    if (res.ok) {
-      const json: any = await res.json();
-      const rows: any[] = json.data || [];
-      if (rows.length > 0) {
-        const map = new Map<string, CommercialCategoryOption>();
-        for (const r of rows) {
-          const code = String(r.tscatcli || '').trim().toLowerCase();
-          if (!code) continue;
-          const discount = Math.abs(parseFloat(r.tsscont1 || '0')) || 0;
-          let name = code.toUpperCase();
-          if (code === 'riv') name = 'RIV - Rivenditore';
-          else if (code === 'ist') name = 'IST - Installatore';
-          else if (code === 'gen') name = 'GEN - Generale';
-          else name = `${code.toUpperCase()} - Categoria ${code.toUpperCase()}`;
-          map.set(code, { code, label: `${name} (Sconto base ${discount}%)`, discount });
-        }
-        if (map.size > 0) {
-          categories = [noneCategoryOption, ...Array.from(map.values())];
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Fallback categorie commerciali Zucchetti:', e);
-  }
-
-  const nextCodePreview = await computeNextZucchettiCustomerCode(false);
+  const [categories, nextCodePreview] = await Promise.all([
+    fetchZucchettiCategoriesCached(),
+    computeNextZucchettiCustomerCode(false),
+  ]);
   const agentName =
     session.user.companyName ||
     `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() ||
@@ -468,16 +581,12 @@ export async function validateAndLookupVat(rawVat: string): Promise<VatLookupRes
     if (existingB2B) {
       existingWarning = `Attenzione: questa Partita IVA risulta già registrata sul portale B2B per "${existingB2B.companyName}" (Cod. ${existingB2B.zucchettiCode || 'N/A'}).`;
     } else {
-      const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
-      const zRes = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
-      if (zRes.ok) {
-        const zJson: any = await zRes.json();
-        const foundZ = (zJson.data || []).find(
-          (c: any) => String(c.anpariva || c.Anpariva || '').trim() === cleanVat
-        );
-        if (foundZ) {
-          existingWarning = `Attenzione: questa Partita IVA è già presente in Zucchetti sotto il codice ${foundZ.ancodice} ("${foundZ.andescri}").`;
-        }
+      const { rows } = await fetchZucchettiClientsCached();
+      const foundZ = (rows || []).find(
+        (c: any) => String(c.anpariva || c.Anpariva || '').trim() === cleanVat
+      );
+      if (foundZ) {
+        existingWarning = `Attenzione: questa Partita IVA è già presente in Zucchetti sotto il codice ${foundZ.ancodice} ("${foundZ.andescri}").`;
       }
     }
   } catch (e) {}
@@ -943,6 +1052,7 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
 
   // Non eseguiamo revalidatePath('/account') qui per non attivare la Suspense boundary (loading.tsx)
   // che smonterebbe il componente client NewClientWizard prima della visualizzazione del pop-up.
+  invalidateZucchettiClientsCache();
 
   const createdAt = new Date().toLocaleDateString('it-IT', {
     day: '2-digit',
@@ -1277,67 +1387,47 @@ export async function getAgentClientsList(): Promise<{
     return { success: false, error: 'Non autorizzato' };
   }
 
-  const initData = await getAgentNewClientInitData();
-  const categories = initData.categories || [
-    { code: '', label: 'Nessuna Categoria (Sconto base 0%)', discount: 0 },
-    { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
-    { code: 'ist', label: 'IST - Installatore (Sconto base 40%)', discount: 40 },
-    { code: 'gen', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
-  ];
-
-  // Carica anagrafica live Zucchetti (A0002) per arricchire PEC, SDI, Forma Giuridica, Cod. Fiscale
-  const zucchettiMap = new Map<string, any>();
-  try {
-    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
-    const res = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
-    if (res.ok) {
-      const json: any = await res.json();
-      const rows: any[] = json.data || json.dataset || json.zzna_clienti || [];
-      for (const r of rows) {
-        const code = String(r.ancodice || r.Ancodice || '').trim().toUpperCase();
-        if (!code) continue;
-        const prev = zucchettiMap.get(code);
-        if (!prev) {
-          zucchettiMap.set(code, r);
-        } else {
-          const prevAg = String(prev.ancodag1 || prev.Ancodag1 || '').trim();
-          const currAg = String(r.ancodag1 || r.Ancodag1 || '').trim();
-          zucchettiMap.set(code, {
-            ...prev,
-            ...r,
-            ancodag1: currAg || prevAg,
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Avviso lettura zzna_clienti in getAgentClientsList:', e);
+  const cachedForAgent = cachedAgentClientsByAgentId.get(session.userId);
+  if (cachedForAgent && Date.now() < cachedForAgent.expiresAt) {
+    return cachedForAgent.data;
   }
 
-  // Tutti i codici Zucchetti e P.IVA già registrati sul DB B2B (anche di altri agenti)
-  const allExistingB2B = await prisma.b2BUser.findMany({
-    where: { role: 'USER' },
-    select: { zucchettiCode: true, vatNumber: true },
-  });
+  const agentCode = session.user.zucchettiCode || '';
+  const agentName =
+    session.user.companyName ||
+    `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() ||
+    session.user.username;
+
+  // Esegue in parallelo il recupero categorie, anagrafica Zucchetti (con cache) e query DB B2B
+  const [categories, zucchettiClientsData, allExistingB2B, dbClients] = await Promise.all([
+    fetchZucchettiCategoriesCached(),
+    fetchZucchettiClientsCached(),
+    prisma.b2BUser.findMany({
+      where: { role: 'USER' },
+      select: { zucchettiCode: true, vatNumber: true },
+    }),
+    prisma.b2BUser.findMany({
+      where: {
+        agentId: session.userId,
+        role: 'USER',
+      },
+      include: {
+        _count: {
+          select: { orders: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  const zucchettiMap = zucchettiClientsData.map;
+
   const existingB2BCodes = new Set<string>();
   const existingB2BVats = new Set<string>();
   for (const row of allExistingB2B) {
     if (row.zucchettiCode) existingB2BCodes.add(row.zucchettiCode.trim().toUpperCase());
     if (row.vatNumber) existingB2BVats.add(row.vatNumber.trim().toUpperCase());
   }
-
-  const dbClients = await prisma.b2BUser.findMany({
-    where: {
-      agentId: session.userId,
-      role: 'USER',
-    },
-    include: {
-      _count: {
-        select: { orders: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
 
   const standardElmarkDiscounts: Record<string, number> = {
     E1: 20,
@@ -1347,7 +1437,7 @@ export async function getAgentClientsList(): Promise<{
     F: 5,
   };
 
-  const normAgentCode = normalizeAgentCode(initData.agentCode);
+  const normAgentCode = normalizeAgentCode(agentCode);
 
   // Filtra anche i clienti B2B verificando che, se presenti in Zucchetti (es. serie C000xxx),
   // siano effettivamente assegnati al codice agente corrente su Zucchetti (ancodag1)
@@ -1495,13 +1585,20 @@ export async function getAgentClientsList(): Promise<{
   // Ordina i clienti solo-Zucchetti per codice decrescente (i più recenti in alto)
   zucchettiOnlyClients.sort((a, b) => b.zucchettiCode.localeCompare(a.zucchettiCode));
 
-  return {
+  const resultData = {
     success: true,
-    agentName: initData.agentName || session.user.username,
-    agentCode: initData.agentCode || '',
+    agentName,
+    agentCode,
     categories,
     clients: [...mappedB2B, ...zucchettiOnlyClients],
   };
+
+  cachedAgentClientsByAgentId.set(session.userId, {
+    data: resultData,
+    expiresAt: Date.now() + 60 * 1000,
+  });
+
+  return resultData;
 }
 
 export async function updateAgentClient(input: UpdateAgentClientInput): Promise<{
@@ -1676,6 +1773,7 @@ export async function updateAgentClient(input: UpdateAgentClientInput): Promise<
     }
   }
 
+  invalidateZucchettiClientsCache();
   return { success: true, zucchettiUpdated };
 }
 
@@ -1842,24 +1940,19 @@ export async function createB2BUserFromZucchettiClient(
 
   // Verifica lato server che il cliente su Zucchetti sia effettivamente assegnato a questo agente
   try {
-    const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_clienti?sp_company=A0002&limit=100000&offset=0`;
-    const zRes = await zFetch(url, { headers: getZucchettiHeaders(), cache: 'no-store' });
-    if (zRes.ok) {
-      const zJson: any = await zRes.json();
-      const rows: any[] = zJson.data || zJson.dataset || zJson.zzna_clienti || [];
-      const matchingRows = rows.filter(
-        r => String(r.ancodice || r.Ancodice || '').trim().toUpperCase() === zucchettiCode
+    const { rows } = await fetchZucchettiClientsCached();
+    const matchingRows = rows.filter(
+      r => String(r.ancodice || r.Ancodice || '').trim().toUpperCase() === zucchettiCode
+    );
+    if (matchingRows.length > 0) {
+      const assignedToCurrentAgent = matchingRows.some(
+        r => normalizeAgentCode(r.ancodag1 || r.Ancodag1) === normAgentCode && Boolean(normAgentCode)
       );
-      if (matchingRows.length > 0) {
-        const assignedToCurrentAgent = matchingRows.some(
-          r => normalizeAgentCode(r.ancodag1 || r.Ancodag1) === normAgentCode && Boolean(normAgentCode)
-        );
-        if (!assignedToCurrentAgent) {
-          return {
-            success: false,
-            error: 'Operazione negata: questo cliente Zucchetti non risulta assegnato al tuo profilo agente.',
-          };
-        }
+      if (!assignedToCurrentAgent) {
+        return {
+          success: false,
+          error: 'Operazione negata: questo cliente Zucchetti non risulta assegnato al tuo profilo agente.',
+        };
       }
     }
   } catch (e) {}
@@ -2012,6 +2105,8 @@ export async function createB2BUserFromZucchettiClient(
     ordersCount: 0,
     createdAt: createdUser.createdAt.toISOString(),
   };
+
+  invalidateZucchettiClientsCache();
 
   return {
     success: true,

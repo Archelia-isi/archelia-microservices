@@ -181,8 +181,7 @@ export async function getAgentDiscountRulesFromDb(
   agentId: string,
   agentCode?: string
 ): Promise<AgentDiscountRule[]> {
-  await ensureDiscountRulesTable();
-  try {
+  const queryRules = async () => {
     const cleanCode = (agentCode || '').trim();
     const rows: any[] = cleanCode
       ? await prisma.$queryRawUnsafe(
@@ -194,10 +193,20 @@ export async function getAgentDiscountRulesFromDb(
           `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" = $1 ORDER BY "createdAt" DESC`,
           agentId
         );
+    tableInitialized = true;
     return (rows || []).map(mapRowToAgentDiscountRule);
+  };
+
+  try {
+    return await queryRules();
   } catch (err) {
-    console.error('Errore lettura b2b_agent_discount_rules:', err);
-    return [];
+    try {
+      await ensureDiscountRulesTable();
+      return await queryRules();
+    } catch (retryErr) {
+      console.error('Errore lettura b2b_agent_discount_rules:', retryErr);
+      return [];
+    }
   }
 }
 
@@ -212,8 +221,7 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
   customerType?: string | null;
   discount?: number | null;
 }): Promise<AgentDiscountRule[]> {
-  await ensureDiscountRulesTable();
-  try {
+  const queryClientRules = async () => {
     const clientId = clientUser.id || '';
     const clientCode = (clientUser.zucchettiCode || '').trim().toUpperCase();
     const agentId = clientUser.agentId || '';
@@ -234,6 +242,7 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
            ORDER BY "updatedAt" DESC`
         );
 
+    tableInitialized = true;
     const mapped = (rows || []).map(mapRowToAgentDiscountRule);
     return mapped.filter(rule => {
       if (rule.clientScope === 'ALL_CLIENTS') {
@@ -249,8 +258,17 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
         baseDiscount,
       });
     });
+  };
+
+  try {
+    return await queryClientRules();
   } catch (err) {
-    console.error('Errore getActiveDiscountRulesForClientUser:', err);
-    return [];
+    try {
+      await ensureDiscountRulesTable();
+      return await queryClientRules();
+    } catch (retryErr) {
+      console.error('Errore getActiveDiscountRulesForClientUser:', retryErr);
+      return [];
+    }
   }
 }

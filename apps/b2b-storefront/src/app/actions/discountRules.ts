@@ -76,7 +76,9 @@ export async function getAgentDiscountManagementInitData(): Promise<{
     };
   }
 
-  const [clientsRes, facetSearchRes] = await Promise.all([
+  const sessionAgentCode = session.user.zucchettiCode || '';
+
+  const [clientsRes, facetSearchRes, rules] = await Promise.all([
     getAgentClientsList(),
     searchAgentCatalogProducts({
       catalogSource: 'ZUCCHETTI',
@@ -88,18 +90,17 @@ export async function getAgentDiscountManagementInitData(): Promise<{
       families: [],
       categories: [],
       sortBy: 'TAXONOMY_ASC',
-      limit: 1,
+      limit: 0,
     }),
+    getAgentDiscountRulesFromDb(session.user.id, sessionAgentCode),
   ]);
 
-  const agentCode = clientsRes.agentCode || session.user.zucchettiCode || '';
+  const agentCode = clientsRes.agentCode || sessionAgentCode;
   const agentName =
     clientsRes.agentName ||
     session.user.companyName ||
     `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() ||
     session.user.username;
-
-  const rules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
 
   const rawCategories = clientsRes.categories || [
     { code: 'riv', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { prisma } from '@archelia/b2b-database';
 
@@ -46,14 +47,18 @@ export async function deleteSession() {
   cookies().delete({ name: SESSION_COOKIE_NAME, ...cookieOptions });
 }
 
+const findSessionByTokenCached = cache(async (token: string) => {
+  return prisma.b2BSession.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+});
+
 export async function verifySession() {
   const token = cookies().get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
 
-  const session = await prisma.b2BSession.findUnique({
-    where: { token },
-    include: { user: true },
-  });
+  const session = await findSessionByTokenCached(token);
 
   if (!session || session.expiresAt < new Date() || !session.user.isActive) {
     return null;

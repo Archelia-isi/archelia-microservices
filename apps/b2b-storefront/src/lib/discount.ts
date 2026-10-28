@@ -92,11 +92,10 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
     };
   }
 
-  const [baseDiscount, extraAgentDiscount, elmarkDiscounts] = await Promise.all([
-    getEffectiveDiscount(),
-    getExtraAgentDiscount(),
-    getEffectiveElmarkDiscounts(),
-  ]);
+  let baseDiscount = session.user.discount || 0;
+  let extraAgentDiscount = 0;
+  let elmarkDiscounts: Record<string, number> =
+    (session.user.elmarkDiscounts as Record<string, number>) || {};
 
   let clientId: string | null = session.user.id || null;
   let clientCode: string | null = session.user.zucchettiCode || null;
@@ -105,17 +104,34 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
 
   if (session.user.role === 'AGENT') {
     const cookieStore = cookies();
+    const impersonatedDiscountStr = cookieStore.get('impersonatedClientDiscount')?.value;
+    if (impersonatedDiscountStr) {
+      baseDiscount = parseFloat(impersonatedDiscountStr) || 0;
+    }
+    const extraStr = cookieStore.get('agentExtraDiscount')?.value;
+    extraAgentDiscount = extraStr ? parseFloat(extraStr) || 0 : 0;
+
     const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
-    const allAgentRules = await getAgentDiscountRulesFromDb(
-      session.user.id,
-      session.user.zucchettiCode || ''
-    );
+
+    const [allAgentRules, impUser] = await Promise.all([
+      getAgentDiscountRulesFromDb(session.user.id, session.user.zucchettiCode || ''),
+      impersonatedClientCode
+        ? prisma.b2BUser.findUnique({
+            where: { zucchettiCode: impersonatedClientCode },
+            select: {
+              id: true,
+              zucchettiCode: true,
+              customerType: true,
+              elmarkDiscounts: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (impersonatedClientCode) {
-      const impUser = await prisma.b2BUser.findUnique({
-        where: { zucchettiCode: impersonatedClientCode },
-        select: { id: true, zucchettiCode: true, customerType: true },
-      });
+      if (impUser) {
+        elmarkDiscounts = (impUser.elmarkDiscounts as Record<string, number>) || {};
+      }
       clientId = impUser?.id || null;
       clientCode = impUser?.zucchettiCode || impersonatedClientCode;
       clientCategory = impUser?.customerType || null;

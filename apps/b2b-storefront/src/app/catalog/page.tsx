@@ -10,26 +10,30 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
   const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const catalogSource = storeMode === 'ELMARK' ? 'elmark' : 'zucchetti';
-  const session = await verifySession();
+  const query = searchParams.q || '*';
+
+  const { getEffectiveClientDiscountContext, evaluateTypesenseProductWithContext } = await import('@/lib/discount');
+
+  // Esegui sessione, ricerca Typesense e contesto sconti in parallelo
+  const [session, results, discountCtx] = await Promise.all([
+    verifySession(),
+    searchProducts(query, {
+      catalogSource,
+      b2bMode: true,
+      limit: 250,
+      l1: searchParams.l1,
+      l2: searchParams.l2,
+      l3: searchParams.l3,
+    }),
+    getEffectiveClientDiscountContext(),
+  ]);
+
   if (session?.user?.mustChangePassword) {
     redirect('/setup-password');
   }
-  
-  const isAuthenticated = !!session;
 
-  const query = searchParams.q || '*';
-  // Richiedi fino a 250 prodotti per popolare i filtri in modo ricco (replicando il comportamento del tema originale)
-  const results = await searchProducts(query, { catalogSource, b2bMode: true, 
-    limit: 250,
-    l1: searchParams.l1,
-    l2: searchParams.l2,
-    l3: searchParams.l3,
-  });
-  
+  const isAuthenticated = !!session;
   const hits = results?.hits || [];
-  
-  const { getEffectiveClientDiscountContext, evaluateTypesenseProductWithContext } = await import('@/lib/discount');
-  const discountCtx = await getEffectiveClientDiscountContext();
 
   const products = hits.map((h: any) => {
     const product = { ...h.document };

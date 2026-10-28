@@ -101,76 +101,91 @@ const KNOWN_BRAND_FALLBACKS: Record<string, string> = {
 };
 
 let cachedTaxonomyMaps: { data: TaxonomyMaps; expiresAt: number } | null = null;
+let inflightTaxonomyMaps: Promise<TaxonomyMaps> | null = null;
+
+const cachedInitialFacets = new Map<
+  string,
+  { data: CatalogSearchResponse; expiresAt: number }
+>();
 
 async function getTaxonomyLookupMaps(): Promise<TaxonomyMaps> {
   if (cachedTaxonomyMaps && Date.now() < cachedTaxonomyMaps.expiresAt) {
     return cachedTaxonomyMaps.data;
   }
-
-  const brands = new Map<string, string>();
-  const productGroups = new Map<string, string>();
-  const families = new Map<string, string>();
-  const categories = new Map<string, string>();
-
-  for (const [k, v] of Object.entries(KNOWN_BRAND_FALLBACKS)) {
-    brands.set(k.toUpperCase(), v);
+  if (inflightTaxonomyMaps) {
+    return inflightTaxonomyMaps;
   }
 
-  // 1. Popola da taxonomy.json locale (3 livelli: L1 product_group, L2 family, L3 category)
-  try {
-    for (const l1 of taxonomyData as any[]) {
-      if (l1?.id && l1?.name) {
-        productGroups.set(String(l1.id).trim().toUpperCase(), String(l1.name).trim());
-      }
-      for (const l2 of l1?.children || []) {
-        if (l2?.id && l2?.name) {
-          families.set(String(l2.id).trim().toUpperCase(), String(l2.name).trim());
+  inflightTaxonomyMaps = (async () => {
+    const brands = new Map<string, string>();
+    const productGroups = new Map<string, string>();
+    const families = new Map<string, string>();
+    const categories = new Map<string, string>();
+
+    for (const [k, v] of Object.entries(KNOWN_BRAND_FALLBACKS)) {
+      brands.set(k.toUpperCase(), v);
+    }
+
+    // 1. Popola da taxonomy.json locale (3 livelli: L1 product_group, L2 family, L3 category)
+    try {
+      for (const l1 of taxonomyData as any[]) {
+        if (l1?.id && l1?.name) {
+          productGroups.set(String(l1.id).trim().toUpperCase(), String(l1.name).trim());
         }
-        for (const l3 of l2?.children || []) {
-          if (l3?.id && l3?.name) {
-            categories.set(String(l3.id).trim().toUpperCase(), String(l3.name).trim());
+        for (const l2 of l1?.children || []) {
+          if (l2?.id && l2?.name) {
+            families.set(String(l2.id).trim().toUpperCase(), String(l2.name).trim());
+          }
+          for (const l3 of l2?.children || []) {
+            if (l3?.id && l3?.name) {
+              categories.set(String(l3.id).trim().toUpperCase(), String(l3.name).trim());
+            }
           }
         }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
 
-  // 2. Arricchisci con le tabelle lookup del database principale (brands, product_groups, families, homogeneous_categories)
-  try {
-    const [dbBrands, dbGroups, dbFamilies, dbCats] = await Promise.all([
-      mainPrisma.brand.findMany(),
-      mainPrisma.productGroup.findMany(),
-      mainPrisma.family.findMany(),
-      mainPrisma.homogeneousCategory.findMany(),
-    ]);
+    // 2. Arricchisci con le tabelle lookup del database principale (brands, product_groups, families, homogeneous_categories)
+    try {
+      const [dbBrands, dbGroups, dbFamilies, dbCats] = await Promise.all([
+        mainPrisma.brand.findMany(),
+        mainPrisma.productGroup.findMany(),
+        mainPrisma.family.findMany(),
+        mainPrisma.homogeneousCategory.findMany(),
+      ]);
 
-    for (const b of dbBrands) {
-      if (b.code && b.name) {
-        brands.set(b.code.trim().toUpperCase(), b.name.trim());
+      for (const b of dbBrands) {
+        if (b.code && b.name) {
+          brands.set(b.code.trim().toUpperCase(), b.name.trim());
+        }
       }
-    }
-    for (const g of dbGroups) {
-      if (g.code && g.name) {
-        productGroups.set(g.code.trim().toUpperCase(), g.name.trim());
+      for (const g of dbGroups) {
+        if (g.code && g.name) {
+          productGroups.set(g.code.trim().toUpperCase(), g.name.trim());
+        }
       }
-    }
-    for (const f of dbFamilies) {
-      if (f.code && f.name) {
-        families.set(f.code.trim().toUpperCase(), f.name.trim());
+      for (const f of dbFamilies) {
+        if (f.code && f.name) {
+          families.set(f.code.trim().toUpperCase(), f.name.trim());
+        }
       }
-    }
-    for (const c of dbCats) {
-      if (c.code && c.name) {
-        categories.set(c.code.trim().toUpperCase(), c.name.trim());
+      for (const c of dbCats) {
+        if (c.code && c.name) {
+          categories.set(c.code.trim().toUpperCase(), c.name.trim());
+        }
       }
+    } catch (e) {
+      console.warn('Avviso caricamento tabelle lookup tassonomia:', e);
     }
-  } catch (e) {
-    console.warn('Avviso caricamento tabelle lookup tassonomia:', e);
-  }
 
-  const data = { brands, productGroups, families, categories };
-  cachedTaxonomyMaps = { data, expiresAt: Date.now() + 5 * 60 * 1000 };
-  return data;
+    const data = { brands, productGroups, families, categories };
+    cachedTaxonomyMaps = { data, expiresAt: Date.now() + 30 * 60 * 1000 };
+    return data;
+  })().finally(() => {
+    inflightTaxonomyMaps = null;
+  });
+
+  return inflightTaxonomyMaps;
 }
 
 function formatCodeWithLabel(code: string, map: Map<string, string>): string {
@@ -245,7 +260,9 @@ export async function getAgentCatalogInitData(): Promise<{
     return { success: false, error: 'Non autorizzato' };
   }
 
-  const [clientsRes, initialSearch] = await Promise.all([
+  const sessionAgentCode = session.user.zucchettiCode || '';
+
+  const [clientsRes, initialSearch, discountRules] = await Promise.all([
     getAgentClientsList(),
     searchAgentCatalogProducts({
       catalogSource: 'ZUCCHETTI',
@@ -257,8 +274,9 @@ export async function getAgentCatalogInitData(): Promise<{
       families: [],
       categories: [],
       sortBy: 'TAXONOMY_ASC',
-      limit: 1,
+      limit: 0,
     }),
+    getAgentDiscountRulesFromDb(session.user.id, sessionAgentCode),
   ]);
 
   const agentName =
@@ -267,8 +285,7 @@ export async function getAgentCatalogInitData(): Promise<{
     `${session.user.firstName || ''} ${session.user.lastName || ''}`.trim() ||
     session.user.username;
 
-  const agentCode = clientsRes.agentCode || session.user.zucchettiCode || '';
-  const discountRules = await getAgentDiscountRulesFromDb(session.user.id, agentCode);
+  const agentCode = clientsRes.agentCode || sessionAgentCode;
 
   return {
     success: true,
@@ -295,12 +312,35 @@ export async function searchAgentCatalogProducts(
   }
 
   try {
-    const maps = await getTaxonomyLookupMaps();
     const rawQuery = (filters.query || '').trim();
     const isWildcard = !rawQuery || rawQuery === '*';
     const q = isWildcard ? '*' : rawQuery;
 
-    const perPage = 250;
+    const hasSubFilters =
+      filters.brands.length > 0 ||
+      filters.productGroups.length > 0 ||
+      filters.families.length > 0 ||
+      filters.categories.length > 0;
+
+    // Se è richiesto solo il conteggio e le faccette (es. limit <= 1 all'apertura della pagina Sconti / Catalogo),
+    // non scarichiamo le migliaia di schede prodotto da Typesense!
+    const onlyFacetsRequested = typeof filters.limit === 'number' && filters.limit <= 1;
+    const facetCacheKey = `${filters.warehouse}|${Boolean(filters.includeZeroStock)}`;
+
+    if (onlyFacetsRequested && isWildcard && !hasSubFilters) {
+      const cachedFacetRes = cachedInitialFacets.get(facetCacheKey);
+      if (cachedFacetRes && Date.now() < cachedFacetRes.expiresAt) {
+        return cachedFacetRes.data;
+      }
+    }
+
+    const maps = await getTaxonomyLookupMaps();
+
+    const perPage = onlyFacetsRequested
+      ? 0
+      : typeof filters.limit === 'number' && filters.limit > 0
+      ? Math.min(250, filters.limit)
+      : 250;
 
     let sortByStr = 'stock_main:desc,stock_ek:desc,natural_sku:asc';
     if (filters.sortBy === 'SKU_ASC') {
@@ -343,13 +383,6 @@ export async function searchAgentCatalogProducts(
     const includeFields =
       'id,sku,natural_sku,title,original_name,brand,product_group,family,category,technical_desc,description,unit,price,price_b2b,discgroup,stock,stock_main,stock_ek,image_url,catalog_source';
 
-    // Se ci sono filtri di marchio/categoria attivi, eseguiamo in parallelo una query leggera (per_page: 0) per non far sparire le altre opzioni dai selettori
-    const hasSubFilters =
-      filters.brands.length > 0 ||
-      filters.productGroups.length > 0 ||
-      filters.families.length > 0 ||
-      filters.categories.length > 0;
-
     const queryByFields =
       'sku_prefixes,sku,natural_sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description';
     const queryByWeights = '200,180,150,100,100,100,100,80,80,80,60,50';
@@ -391,11 +424,17 @@ export async function searchAgentCatalogProducts(
     const [firstPage, broadFacetRes] = await Promise.all([firstPagePromise, facetResPromise]);
 
     const totalFound = firstPage?.found || 0;
-    const totalPages = Math.ceil(totalFound / perPage);
-    const allHits: any[] = [...(firstPage?.hits || [])];
+    const maxProductsToFetch =
+      onlyFacetsRequested
+        ? 0
+        : typeof filters.limit === 'number' && filters.limit > 0
+        ? filters.limit
+        : totalFound;
+    const totalPages = perPage > 0 ? Math.ceil(Math.min(totalFound, maxProductsToFetch) / perPage) : 0;
+    const allHits: any[] = onlyFacetsRequested ? [] : [...(firstPage?.hits || [])];
 
-    // Scarica tutte le pagine successive per restituire l'intero elenco dei prodotti corrispondenti
-    if (totalPages > 1) {
+    // Scarica le pagine successive solo quando servono effettivamente i prodotti (non per le sole faccette)
+    if (!onlyFacetsRequested && totalPages > 1) {
       const remainingPageNumbers: number[] = [];
       for (let p = 2; p <= totalPages; p++) {
         remainingPageNumbers.push(p);
@@ -525,7 +564,7 @@ export async function searchAgentCatalogProducts(
         });
     };
 
-    return {
+    const responsePayload: CatalogSearchResponse = {
       success: true,
       totalFound,
       products,
@@ -536,6 +575,15 @@ export async function searchAgentCatalogProducts(
         categories: extractFacetList('category', maps.categories),
       },
     };
+
+    if (onlyFacetsRequested && isWildcard && !hasSubFilters) {
+      cachedInitialFacets.set(facetCacheKey, {
+        data: responsePayload,
+        expiresAt: Date.now() + 5 * 60 * 1000,
+      });
+    }
+
+    return responsePayload;
   } catch (err: any) {
     console.error('Errore searchAgentCatalogProducts:', err);
     return {
