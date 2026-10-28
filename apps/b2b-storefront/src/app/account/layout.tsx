@@ -23,11 +23,11 @@ export default async function AccountLayout({ children }: { children: React.Reac
   }
 
   return (
-    <div className="max-w-[1640px] mx-auto px-4 py-4">
-      <div className="flex flex-col md:flex-row gap-6">
+    <div className="max-w-7xl mx-auto py-4">
+      <div className="flex flex-col md:flex-row gap-8">
         
         {/* Sidebar */}
-        <aside className="w-full md:w-64 flex-shrink-0 md:sticky md:top-24 md:self-start">
+        <aside className="w-full md:w-64 flex-shrink-0">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 bg-black text-white">
               <h2 className="text-xl font-bold">Area Privata</h2>

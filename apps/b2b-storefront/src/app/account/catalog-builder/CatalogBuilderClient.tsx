@@ -1225,12 +1225,9 @@ export default function CatalogBuilderClient({
   };
 
   return (
-    <div className="relative">
-      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-        {/* COLONNA CENTRALE: CONFIGURAZIONE E AGGIUNTA PRODOTTI */}
-        <div className="flex-1 min-w-0 space-y-6">
-          {/* INTESTAZIONE PRINCIPALE */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div className="space-y-6">
+      {/* INTESTAZIONE PRINCIPALE */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
@@ -1906,164 +1903,162 @@ export default function CatalogBuilderClient({
           </div>
         </div>
       )}
+
+      {/* COLONNA DESTRA ANCORATA AL BORDO DESTRO DELLO SCHERMO (STILE CARRELLO AMAZON) */}
+      <aside className="fixed top-20 right-0 bottom-0 z-40 w-72 xl:w-80 bg-white border-l border-gray-200 shadow-2xl flex flex-col overflow-hidden">
+        {/* Header Fisso del Carrello Catalogo */}
+        <div className="p-3.5 bg-black text-white border-b-2 border-brand-main shrink-0 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-main text-black font-black text-sm shrink-0">
+                🛒
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-xs font-black tracking-wide uppercase text-white truncate">
+                  Articoli nel Catalogo
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  {sortedCatalogProducts.length} schede •{' '}
+                  {sortedCatalogProducts.length > 0 ? totalSheets : 0}{' '}
+                  {totalSheets === 1 ? 'foglio A4' : 'fogli A4'}
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-0.5 text-xs font-black rounded-full bg-brand-main text-black shrink-0">
+              {sortedCatalogProducts.length}
+            </span>
+          </div>
+
+          {/* Pulsanti Rapidi in stile Checkout Carrello Amazon */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPreviewModalOpen(true)}
+              disabled={sortedCatalogProducts.length === 0}
+              className="px-2.5 py-2 text-xs font-black rounded-lg bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              <span>👁️</span>
+              <span>Anteprima</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
+              className="px-2.5 py-2 text-xs font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span>PDF...</span>
+                </>
+              ) : (
+                <>
+                  <span>⬇</span>
+                  <span>Scarica PDF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* COLONNA DESTRA FISSA STILE CARRELLO AMAZON (STICKY + SCORREVOLE INTERNAMENTE) */}
-        <aside className="w-full lg:w-[340px] xl:w-[360px] shrink-0 lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] bg-white rounded-xl shadow-md border border-gray-200 flex flex-col overflow-hidden">
-          {/* Header Fisso del Carrello Catalogo */}
-          <div className="p-4 bg-black text-white border-b-2 border-brand-main shrink-0 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-main text-black font-black text-sm shrink-0">
-                  🛒
-                </span>
-                <div className="min-w-0">
-                  <h2 className="text-sm font-black tracking-wide uppercase text-white truncate">
-                    Articoli nel Catalogo
-                  </h2>
-                  <p className="text-[11px] text-gray-400">
-                    {sortedCatalogProducts.length} schede •{' '}
-                    {sortedCatalogProducts.length > 0 ? totalSheets : 0}{' '}
-                    {totalSheets === 1 ? 'foglio A4' : 'fogli A4'}
-                  </p>
-                </div>
-              </div>
-              <span className="px-2.5 py-1 text-xs font-black rounded-full bg-brand-main text-black shrink-0">
-                {sortedCatalogProducts.length}
-              </span>
+        {/* Lista Scorrevole degli Articoli Inseriti */}
+        <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/50">
+          {isSearching ? (
+            <div className="py-16 px-4 text-center space-y-3">
+              <div className="w-8 h-8 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs font-semibold text-gray-600">
+                Caricamento articoli nel catalogo...
+              </p>
             </div>
-
-            {/* Pulsanti Rapidi in stile Checkout Carrello Amazon */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setIsPreviewModalOpen(true)}
-                disabled={sortedCatalogProducts.length === 0}
-                className="px-3 py-2 text-xs font-black rounded-lg bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                <span>👁️</span>
-                <span>Anteprima</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
-                className="px-3 py-2 text-xs font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                {isGeneratingPdf ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                    <span>PDF...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>⬇</span>
-                    <span>Scarica PDF</span>
-                  </>
-                )}
-              </button>
+          ) : searchError ? (
+            <div className="p-6 text-center text-red-600 font-semibold text-xs">{searchError}</div>
+          ) : sortedCatalogProducts.length === 0 ? (
+            <div className="py-14 px-4 text-center space-y-2.5">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-lg font-black">
+                +
+              </div>
+              <p className="text-xs font-bold text-gray-800">
+                Il tuo catalogo è vuoto
+              </p>
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Cerca un codice SKU nella barra predittiva o seleziona un reparto per aggiungere articoli qui.
+              </p>
             </div>
-          </div>
-
-          {/* Lista Scorrevole degli Articoli Inseriti */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/50">
-            {isSearching ? (
-              <div className="py-16 px-4 text-center space-y-3">
-                <div className="w-8 h-8 border-3 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-gray-600">
-                  Caricamento articoli nel catalogo...
-                </p>
-              </div>
-            ) : searchError ? (
-              <div className="p-6 text-center text-red-600 font-semibold text-xs">{searchError}</div>
-            ) : sortedCatalogProducts.length === 0 ? (
-              <div className="py-14 px-4 text-center space-y-2.5">
-                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-lg font-black">
-                  +
-                </div>
-                <p className="text-xs font-bold text-gray-800">
-                  Il tuo catalogo è vuoto
-                </p>
-                <p className="text-[11px] text-gray-500 leading-relaxed">
-                  Cerca un codice SKU nella barra predittiva o seleziona un reparto a sinistra per aggiungere articoli qui.
-                </p>
-              </div>
-            ) : (
-              sortedCatalogProducts.map((product, idx) => {
-                const pricing = calculateProductPricing(product);
-                return (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 shadow-sm transition-all"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[10px] font-black text-gray-400 w-5 shrink-0">
-                        #{idx + 1}
-                      </span>
-                      <div className="w-10 h-10 rounded border border-gray-200 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
-                        {product.imageUrl ? (
-                          <img
-                            src={product.imageUrl}
-                            alt={product.title}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="text-[8px] font-bold text-gray-300">N/D</span>
+          ) : (
+            sortedCatalogProducts.map((product, idx) => {
+              const pricing = calculateProductPricing(product);
+              return (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 shadow-sm transition-all"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-black text-gray-400 w-5 shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <div className="w-9 h-9 rounded border border-gray-200 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="text-[8px] font-bold text-gray-300">N/D</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-black text-gray-900 truncate">
+                          {product.sku}
+                        </span>
+                        {priceMode !== 'NO_PRICE' && (
+                          <span className="text-[11px] font-extrabold text-emerald-700 shrink-0">
+                            €{' '}
+                            {(priceMode === 'LIST_ONLY' ? pricing.listPrice : pricing.netPrice)
+                              .toFixed(2)
+                              .replace('.', ',')}
+                          </span>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-black text-gray-900 truncate">
-                            {product.sku}
-                          </span>
-                          {priceMode !== 'NO_PRICE' && (
-                            <span className="text-[11px] font-extrabold text-emerald-700 shrink-0">
-                              €{' '}
-                              {(priceMode === 'LIST_ONLY' ? pricing.listPrice : pricing.netPrice)
-                                .toFixed(2)
-                                .replace('.', ',')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-gray-600 truncate">
-                          {product.originalName || product.title}
-                        </div>
+                      <div className="text-[11px] text-gray-600 truncate">
+                        {product.originalName || product.title}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveProductFromCatalog(product.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
-                      title="Rimuovi dal catalogo"
-                    >
-                      ✕
-                    </button>
                   </div>
-                );
-              })
-            )}
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveProductFromCatalog(product.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
+                    title="Rimuovi dal catalogo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
 
-          {/* Footer Fisso del Carrello Catalogo */}
-          <div className="px-4 py-2.5 bg-white border-t border-gray-200 flex items-center justify-between text-xs shrink-0">
-            <span className="font-semibold text-gray-600">
-              {sortedCatalogProducts.length > 0
-                ? `${totalSheets} ${totalSheets === 1 ? 'foglio A4' : 'fogli A4'} (6/foglio)`
-                : '0 fogli A4'}
-            </span>
-            {sortedCatalogProducts.length > 0 && (
-              <button
-                type="button"
-                onClick={handleClearCatalog}
-                className="font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                ✕ Svuota tutto
-              </button>
-            )}
-          </div>
-        </aside>
-      </div>
+        {/* Footer Fisso del Carrello Catalogo */}
+        <div className="px-3.5 py-2.5 bg-white border-t border-gray-200 flex items-center justify-between text-xs shrink-0">
+          <span className="font-semibold text-gray-600">
+            {sortedCatalogProducts.length > 0
+              ? `${totalSheets} ${totalSheets === 1 ? 'foglio A4' : 'fogli A4'} (6/foglio)`
+              : '0 fogli A4'}
+          </span>
+          {sortedCatalogProducts.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearCatalog}
+              className="font-bold text-red-600 hover:text-red-800 hover:underline"
+            >
+              ✕ Svuota tutto
+            </button>
+          )}
+        </div>
+      </aside>
 
       {/* MODALE A TUTTO SCHERMO PER L'ANTEPRIMA SFOGLIABILE DEL CATALOGO (1 PAGINA O 2 PAGINE + ZOOM) */}
       {isPreviewModalOpen && (
