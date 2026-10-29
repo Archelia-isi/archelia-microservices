@@ -1043,15 +1043,15 @@ function estimatePdfTextWidth(text: string, fontSize: number, isBold: boolean): 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if ('iIl1|.,:;\'!` '.includes(ch)) {
-      units += isBold ? 0.31 : 0.28;
-    } else if ('fjtJ()-/\\[]'.includes(ch)) {
-      units += isBold ? 0.36 : 0.33;
+      units += isBold ? 0.30 : 0.27;
+    } else if ('fjtJ()-/\\[]"'.includes(ch)) {
+      units += isBold ? 0.38 : 0.34;
     } else if ('mMWGOQ@#%&'.includes(ch)) {
-      units += isBold ? 0.84 : 0.78;
+      units += isBold ? 0.82 : 0.76;
     } else if (ch >= 'A' && ch <= 'Z') {
-      units += isBold ? 0.69 : 0.65;
+      units += isBold ? 0.67 : 0.63;
     } else {
-      units += isBold ? 0.56 : 0.52;
+      units += isBold ? 0.55 : 0.51;
     }
   }
   return units * fontSize;
@@ -1067,7 +1067,7 @@ function drawCenteredPdfTextCmd(
 ): string {
   const isBold = font === '/F2';
   const estW = estimatePdfTextWidth(text, fontSize, isBold);
-  const startX = Math.max(24, centerX - estW / 2);
+  const startX = Math.max(44, centerX - estW / 2);
   return `BT ${font} ${fontSize} Tf ${rgbStr} rg ${startX.toFixed(1)} ${y.toFixed(
     1
   )} Td (${toPdfSafeLatin1(text)}) Tj ET`;
@@ -1232,40 +1232,49 @@ export async function generateAgentCatalogPdfAction(
       coverCmd.push('0.00 0.92 0.20 rg');
       coverCmd.push('293.5 318 8 8 re f');
 
-      // 6. FRASE AD EFFETTO E MESSAGGIO INTEGRATO (Elettrico, Illuminazione, Ferramenta | Professionisti & Ferramenta)
+      // 6. FRASE AD EFFETTO E MESSAGGIO INTEGRATO (su righe ben calibrate dentro i margini)
       coverCmd.push(
         drawCenteredPdfTextCmd(
           '/F2',
-          15.5,
+          15,
           '0.00 0.92 0.22',
-          278,
-          '"ENERGIA, LUCE E STRUMENTI PER CHI COSTRUISCE OGNI GIORNO."'
+          286,
+          '"ENERGIA, LUCE E STRUMENTI'
         )
       );
       coverCmd.push(
         drawCenteredPdfTextCmd(
           '/F2',
-          11,
+          15,
+          '0.00 0.92 0.22',
+          264,
+          'PER CHI COSTRUISCE OGNI GIORNO."'
+        )
+      );
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          10.5,
           '1 1 1',
-          248,
+          234,
           'Forniture di Materiale Elettrico, Illuminazione e Ferramenta d\'eccellenza.'
         )
       );
       coverCmd.push(
         drawCenteredPdfTextCmd(
           '/F1',
-          9.5,
+          9.2,
           '0.75 0.80 0.88',
-          222,
+          208,
           'Il partner di riferimento per una clientela che spazia dai professionisti e installatori'
         )
       );
       coverCmd.push(
         drawCenteredPdfTextCmd(
           '/F1',
-          9.5,
+          9.2,
           '0.75 0.80 0.88',
-          204,
+          192,
           'fino alle ferramenta e alle rivendite specializzate, con qualita\' certificata e pronta consegna.'
         )
       );
@@ -1298,7 +1307,7 @@ export async function generateAgentCatalogPdfAction(
 
     // =========================================================================
     // PAGINA 2 (index 1): PAGINA SUCCESSIVA CON I DATI DEL CATALOGO E DEL CLIENTE
-    // (Senza numero di articoli e senza numero di pagine)
+    // (Senza codici clienti interni, senza numero di articoli e senza numero di pagine)
     // =========================================================================
     {
       const infoCmd: string[] = [];
@@ -1347,80 +1356,72 @@ export async function generateAgentCatalogPdfAction(
       infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
       infoCmd.push('90 618 m 505 618 l S');
 
-      // Titolo e Sottotitolo del Catalogo
+      // Titolo e Sottotitolo del Catalogo (con a capo automatico per non uscire mai dai bordi)
       infoCmd.push(
         drawCenteredPdfTextCmd(
           '/F2',
           9.5,
           '0.00 0.88 0.22',
-          566,
+          570,
           'EDIZIONE CATALOGO PERSONALIZZATO B2B'
         )
       );
 
-      const mainTitleText = truncateText(
+      const titleLines = wrapTextLines(
         (input.catalogTitle || 'Catalogo Prodotti Selezionati').toUpperCase(),
-        44
+        34,
+        2,
+        true
       );
-      infoCmd.push(
-        drawCenteredPdfTextCmd('/F2', 20, '1 1 1', 534, mainTitleText)
-      );
+      titleLines.forEach((tLine, tIdx) => {
+        infoCmd.push(
+          drawCenteredPdfTextCmd('/F2', 17.5, '1 1 1', 538 - tIdx * 22, tLine)
+        );
+      });
 
-      if (input.catalogSubtitle) {
+      const subBaseY = titleLines.length > 1 ? 490 : 508;
+      const subtitleSource =
+        input.catalogSubtitle ||
+        'Selezione tecnica ed economica riservata con condizioni commerciali dedicate';
+      const subtitleLines = wrapTextLines(subtitleSource, 62, 2, true);
+      subtitleLines.forEach((sLine, sIdx) => {
         infoCmd.push(
           drawCenteredPdfTextCmd(
             '/F1',
-            11,
-            '0.78 0.84 0.92',
-            506,
-            truncateText(input.catalogSubtitle, 68)
+            10,
+            '0.72 0.78 0.88',
+            subBaseY - sIdx * 15,
+            sLine
           )
         );
-      } else {
-        infoCmd.push(
-          drawCenteredPdfTextCmd(
-            '/F1',
-            10.5,
-            '0.65 0.72 0.82',
-            506,
-            'Selezione tecnica ed economica riservata con condizioni commerciali dedicate'
-          )
-        );
-      }
+      });
 
       // Divisore centrale
       infoCmd.push('0.00 0.82 0.00 RG 1 w');
-      infoCmd.push('140 468 m 455 468 l S');
+      infoCmd.push('140 462 m 455 462 l S');
 
-      // Sezione Destinatario / Cliente Riservato e Dettagli Documento (senza articoli e senza pagine)
+      // Sezione Destinatario / Cliente Riservato (solo nome azienda, mai codici interni) e Dettagli Documento
       const leftColX = 82;
       const rightColX = 328;
 
       infoCmd.push('0.18 0.24 0.34 RG 0.8 w');
-      infoCmd.push('297.5 316 m 297.5 432 l S');
+      infoCmd.push('297.5 332 m 297.5 428 l S');
 
       infoCmd.push(
-        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${leftColX} 414 Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
+        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${leftColX} 412 Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
       );
       if (input.clientName) {
-        const clientLines = wrapTextLines(input.clientName.toUpperCase(), 28, 2, true);
+        const clientLines = wrapTextLines(input.clientName.toUpperCase(), 26, 2, true);
         clientLines.forEach((cLine, cIdx) => {
           infoCmd.push(
-            `BT /F2 13 Tf 1 1 1 rg ${leftColX} ${390 - cIdx * 17} Td (${toPdfSafeLatin1(
+            `BT /F2 12.5 Tf 1 1 1 rg ${leftColX} ${388 - cIdx * 17} Td (${toPdfSafeLatin1(
               cLine
             )}) Tj ET`
           );
         });
-        if (input.clientCode) {
-          infoCmd.push(
-            `BT /F1 9.5 Tf 0.70 0.76 0.86 rg ${leftColX} 350 Td (Codice Cliente: ${toPdfSafeLatin1(
-              input.clientCode
-            )}) Tj ET`
-          );
-        }
       } else {
         infoCmd.push(
-          `BT /F2 12 Tf 1 1 1 rg ${leftColX} 390 Td (PROFESSIONISTI E FERRAMENTA B2B) Tj ET`
+          `BT /F2 11.5 Tf 1 1 1 rg ${leftColX} 388 Td (PROFESSIONISTI E FERRAMENTA B2B) Tj ET`
         );
         infoCmd.push(
           `BT /F1 9.5 Tf 0.70 0.76 0.86 rg ${leftColX} 368 Td (Selezione ufficiale Izzo Distribuzione) Tj ET`
@@ -1428,11 +1429,11 @@ export async function generateAgentCatalogPdfAction(
       }
 
       infoCmd.push(
-        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${rightColX} 414 Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
+        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${rightColX} 412 Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
       );
       infoCmd.push(
-        `BT /F2 11.5 Tf 1 1 1 rg ${rightColX} 390 Td (Agente: ${toPdfSafeLatin1(
-          truncateText(input.agentName || 'Ufficio Commerciale', 26)
+        `BT /F2 11.5 Tf 1 1 1 rg ${rightColX} 388 Td (Agente: ${toPdfSafeLatin1(
+          truncateText(input.agentName || 'Ufficio Commerciale', 24)
         )}) Tj ET`
       );
       infoCmd.push(

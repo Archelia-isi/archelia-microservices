@@ -763,7 +763,7 @@ export default function CatalogBuilderClient({
     if (!lastAddedSku || sortedCatalogProducts.length === 0) return;
     const idx = sortedCatalogProducts.findIndex(p => p.sku === lastAddedSku);
     if (idx >= 0) {
-      setCurrentSheet(1 + Math.floor(idx / 6));
+      setCurrentSheet(2 + Math.floor(idx / 6));
     }
   }, [lastAddedSku, sortedCatalogProducts]);
 
@@ -936,179 +936,182 @@ export default function CatalogBuilderClient({
       return (
         <div
           key="cover-sheet-0"
-          className="w-[740px] h-[1020px] bg-black text-white border border-gray-800 shadow-2xl overflow-hidden flex flex-col justify-between select-none relative"
+          className="w-[740px] h-[1020px] bg-black text-white border border-gray-800 shadow-2xl overflow-hidden select-none relative"
         >
-          {/* Fasce verdi istituzionali Izzo in testa e a piè di pagina */}
-          <div className="h-3 w-full bg-[#00c800] shrink-0" />
+          {/* Wrapper interno a tutta altezza (necessario perché HTMLFlipBook/StPageFlip forza display:block sul nodo radice) */}
+          <div className="w-full h-[1020px] relative bg-black text-white">
+            {/* Striscia verde istituzionale in alto */}
+            <div className="absolute top-0 left-0 right-0 h-3 bg-[#00c800]" />
 
-          {/* Cornice perimetrale unica continua su tutta la pagina (nessuna divisione a blocchi) */}
-          <div className="flex-1 mx-6 my-5 border border-slate-800 p-1.5 flex flex-col relative">
-            {/* Angolari verdi agli estremi della cornice della pagina */}
-            <span className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#00e626]" />
-            <span className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#00e626]" />
-            <span className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#00e626]" />
-            <span className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#00e626]" />
+            {/* Cornice perimetrale unica continua da cima a fondo (nessuna divisione a blocchi) */}
+            <div className="absolute top-8 bottom-8 left-6 right-6 border border-slate-800 p-1.5 flex flex-col">
+              {/* Angolari verdi agli estremi della cornice della pagina */}
+              <span className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#00e626]" />
+              <span className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#00e626]" />
+              <span className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#00e626]" />
+              <span className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#00e626]" />
 
-            <div className="flex-1 border border-[#00c800]/50 px-10 py-10 flex flex-col items-center justify-between text-center">
-              {/* 1. Intestazione superiore integrata: i 3 settori merceologici */}
-              <div className="w-full flex flex-col items-center pt-2">
-                <div className="text-xs font-black tracking-[0.25em] text-[#00e626] uppercase mb-2.5">
-                  Distribuzione B2B Ufficiale
-                </div>
-                <div className="text-base font-black tracking-[0.18em] text-white uppercase">
-                  Materiale Elettrico &nbsp;&bull;&nbsp; Illuminazione &nbsp;&bull;&nbsp; Ferramenta
-                </div>
-                <div className="w-80 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mt-4" />
-              </div>
-
-              {/* 2. CENTRO UNICO INTEGRATO: LOGO IZZO DISTRIBUZIONE + FRASE AD EFFETTO */}
-              <div className="w-full flex flex-col items-center justify-center my-auto py-6">
-                <div className="w-64 h-px bg-gradient-to-r from-transparent via-[#00c800]/60 to-transparent mb-8" />
-
-                <img
-                  src="/logo-izzo.png"
-                  alt="Izzo Distribuzione S.r.l."
-                  className="w-[540px] max-w-full h-auto max-h-[235px] object-contain mx-auto drop-shadow-[0_0_35px_rgba(0,200,0,0.28)]"
-                />
-
-                {/* Divisore centrale luminoso */}
-                <div className="flex items-center justify-center gap-3.5 mt-9 mb-7">
-                  <span className="w-28 h-0.5 bg-gradient-to-r from-transparent to-[#00d600]" />
-                  <span className="w-2.5 h-2.5 bg-[#00e626] rotate-45 inline-block shadow-[0_0_10px_#00e626]" />
-                  <span className="w-28 h-0.5 bg-gradient-to-l from-transparent to-[#00d600]" />
+              <div className="flex-1 h-full border border-[#00c800]/50 px-10 py-10 flex flex-col items-center justify-between text-center">
+                {/* 1. Intestazione superiore integrata: i 3 settori merceologici */}
+                <div className="w-full flex flex-col items-center pt-2">
+                  <div className="text-xs font-black tracking-[0.25em] text-[#00e626] uppercase mb-2.5">
+                    Distribuzione B2B Ufficiale
+                  </div>
+                  <div className="text-base font-black tracking-[0.18em] text-white uppercase">
+                    Materiale Elettrico &nbsp;&bull;&nbsp; Illuminazione &nbsp;&bull;&nbsp; Ferramenta
+                  </div>
+                  <div className="w-80 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mt-4" />
                 </div>
 
-                {/* Frase ad effetto e copy dedicato a Professionisti e Ferramenta */}
-                <h2 className="text-[22px] font-black tracking-wide text-[#00eb3b] uppercase leading-snug max-w-2xl">
-                  &ldquo;ENERGIA, LUCE E STRUMENTI PER CHI COSTRUISCE OGNI GIORNO.&rdquo;
-                </h2>
-                <p className="text-sm font-extrabold text-white tracking-wide mt-3">
-                  Forniture di Materiale Elettrico, Illuminazione e Ferramenta d&apos;eccellenza.
-                </p>
-                <p className="text-xs text-slate-300 max-w-xl mx-auto leading-relaxed mt-2.5">
-                  Il partner di riferimento per una clientela che spazia dai professionisti e
-                  installatori fino alle ferramenta e alle rivendite specializzate, con qualità
-                  certificata e pronta consegna.
-                </p>
-              </div>
+                {/* 2. CENTRO UNICO INTEGRATO: LOGO IZZO DISTRIBUZIONE + FRASE AD EFFETTO */}
+                <div className="w-full flex flex-col items-center justify-center my-auto py-6">
+                  <div className="w-64 h-px bg-gradient-to-r from-transparent via-[#00c800]/60 to-transparent mb-8" />
 
-              {/* 3. Firma istituzionale integrata in basso */}
-              <div className="w-full flex flex-col items-center pb-1">
-                <div className="w-72 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-4" />
-                <div className="text-xs font-black tracking-[0.16em] text-slate-100 uppercase">
-                  IZZO DISTRIBUZIONE S.R.L. &mdash; www.izzodistribuzione.it
+                  <img
+                    src="/logo-izzo.png"
+                    alt="Izzo Distribuzione S.r.l."
+                    className="w-[540px] max-w-full h-auto max-h-[235px] object-contain mx-auto drop-shadow-[0_0_35px_rgba(0,200,0,0.28)]"
+                  />
+
+                  {/* Divisore centrale luminoso */}
+                  <div className="flex items-center justify-center gap-3.5 mt-9 mb-7">
+                    <span className="w-28 h-0.5 bg-gradient-to-r from-transparent to-[#00d600]" />
+                    <span className="w-2.5 h-2.5 bg-[#00e626] rotate-45 inline-block shadow-[0_0_10px_#00e626]" />
+                    <span className="w-28 h-0.5 bg-gradient-to-l from-transparent to-[#00d600]" />
+                  </div>
+
+                  {/* Frase ad effetto e copy dedicato a Professionisti e Ferramenta */}
+                  <h2 className="text-[22px] font-black tracking-wide text-[#00eb3b] uppercase leading-snug max-w-2xl">
+                    &ldquo;ENERGIA, LUCE E STRUMENTI
+                    <br />
+                    PER CHI COSTRUISCE OGNI GIORNO.&rdquo;
+                  </h2>
+                  <p className="text-sm font-extrabold text-white tracking-wide mt-3">
+                    Forniture di Materiale Elettrico, Illuminazione e Ferramenta d&apos;eccellenza.
+                  </p>
+                  <p className="text-xs text-slate-300 max-w-xl mx-auto leading-relaxed mt-2.5">
+                    Il partner di riferimento per una clientela che spazia dai professionisti e
+                    installatori fino alle ferramenta e alle rivendite specializzate, con qualità
+                    certificata e pronta consegna.
+                  </p>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Soluzioni e forniture B2B per Professionisti, Installatori, Rivenditori e
-                  Ferramenta
+
+                {/* 3. Firma istituzionale integrata in basso */}
+                <div className="w-full flex flex-col items-center pb-1">
+                  <div className="w-72 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent mb-4" />
+                  <div className="text-xs font-black tracking-[0.16em] text-slate-100 uppercase">
+                    IZZO DISTRIBUZIONE S.R.L. &mdash; www.izzodistribuzione.it
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    Soluzioni e forniture B2B per Professionisti, Installatori, Rivenditori e
+                    Ferramenta
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="h-3 w-full bg-[#00c800] shrink-0" />
+            {/* Striscia verde istituzionale in fondo */}
+            <div className="absolute bottom-0 left-0 right-0 h-3 bg-[#00c800]" />
+          </div>
         </div>
       );
     }
 
     // FOGLIO 2 (sheetIdx === 1): PAGINA SUCCESSIVA CON I DATI DEL CATALOGO E DEL CLIENTE
-    // (Senza numero di articoli e senza numero di pagine)
+    // (Senza codici clienti interni, senza numero di articoli e senza numero di pagine)
     if (sheetIdx === 1 && sortedCatalogProducts.length > 0) {
       return (
         <div
           key="info-sheet-1"
-          className="w-[740px] h-[1020px] bg-black text-white border border-gray-800 shadow-2xl overflow-hidden flex flex-col justify-between select-none relative"
+          className="w-[740px] h-[1020px] bg-black text-white border border-gray-800 shadow-2xl overflow-hidden select-none relative"
         >
-          <div className="h-3 w-full bg-[#00c800] shrink-0" />
+          <div className="w-full h-[1020px] relative bg-black text-white">
+            {/* Striscia verde istituzionale in alto */}
+            <div className="absolute top-0 left-0 right-0 h-3 bg-[#00c800]" />
 
-          <div className="flex-1 mx-6 my-5 border border-slate-800 p-1.5 flex flex-col relative">
-            <div className="flex-1 border border-[#00c800]/50 px-12 py-12 flex flex-col items-center justify-between text-center">
-              {/* Richiamo Logo superiore */}
-              <div className="w-full flex flex-col items-center">
-                <img
-                  src="/logo-izzo.png"
-                  alt="Izzo Distribuzione S.r.l."
-                  className="w-[260px] h-auto object-contain mx-auto mb-3"
-                />
-                <div className="text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
-                  Materiale Elettrico &nbsp;&bull;&nbsp; Illuminazione &nbsp;&bull;&nbsp; Ferramenta
-                </div>
-                <div className="w-full max-w-lg h-px bg-slate-800 mt-5" />
-              </div>
-
-              {/* Dati Catalogo, Destinatario e Riferimenti Agente (senza numero articoli e senza pagine) */}
-              <div className="w-full max-w-xl my-auto space-y-8">
-                <div className="space-y-2.5">
-                  <div className="text-xs font-black tracking-[0.22em] text-[#00e626] uppercase">
-                    Edizione Catalogo Personalizzato B2B
+            <div className="absolute top-8 bottom-8 left-6 right-6 border border-slate-800 p-1.5 flex flex-col">
+              <div className="flex-1 h-full border border-[#00c800]/50 px-12 py-12 flex flex-col items-center justify-between text-center">
+                {/* Richiamo Logo superiore */}
+                <div className="w-full flex flex-col items-center">
+                  <img
+                    src="/logo-izzo.png"
+                    alt="Izzo Distribuzione S.r.l."
+                    className="w-[260px] h-auto object-contain mx-auto mb-3"
+                  />
+                  <div className="text-[11px] font-bold tracking-[0.18em] text-slate-400 uppercase">
+                    Materiale Elettrico &nbsp;&bull;&nbsp; Illuminazione &nbsp;&bull;&nbsp; Ferramenta
                   </div>
-                  <div className="text-2xl font-black text-white uppercase tracking-wide">
-                    {catalogTitle || 'Catalogo Prodotti Selezionati'}
-                  </div>
-                  <div className="text-sm text-slate-300">
-                    {catalogSubtitle ||
-                      'Selezione tecnica ed economica riservata con condizioni commerciali dedicate'}
-                  </div>
+                  <div className="w-full max-w-lg h-px bg-slate-800 mt-5" />
                 </div>
 
-                <div className="w-3/4 mx-auto h-px bg-[#00c800]/70" />
-
-                <div className="grid grid-cols-2 gap-8 pt-2 text-left">
-                  <div className="border-r border-slate-800 pr-6">
-                    <div className="text-[11px] font-black tracking-wider text-[#00e626] uppercase mb-2">
-                      Destinatario / Cliente Riservato
+                {/* Dati Catalogo, Destinatario (solo nome azienda) e Riferimenti Agente */}
+                <div className="w-full max-w-xl my-auto space-y-8">
+                  <div className="space-y-2.5">
+                    <div className="text-xs font-black tracking-[0.22em] text-[#00e626] uppercase">
+                      Edizione Catalogo Personalizzato B2B
                     </div>
-                    {selectedClient ? (
-                      <>
+                    <div className="text-2xl font-black text-white uppercase tracking-wide leading-snug break-words">
+                      {catalogTitle || 'Catalogo Prodotti Selezionati'}
+                    </div>
+                    <div className="text-sm text-slate-300 leading-relaxed break-words">
+                      {catalogSubtitle ||
+                        'Selezione tecnica ed economica riservata con condizioni commerciali dedicate'}
+                    </div>
+                  </div>
+
+                  <div className="w-3/4 mx-auto h-px bg-[#00c800]/70" />
+
+                  <div className="grid grid-cols-2 gap-8 pt-2 text-left">
+                    <div className="border-r border-slate-800 pr-6">
+                      <div className="text-[11px] font-black tracking-wider text-[#00e626] uppercase mb-2">
+                        Destinatario / Cliente Riservato
+                      </div>
+                      {selectedClient ? (
                         <div className="text-base font-black text-white uppercase leading-snug">
                           {selectedClient.companyName}
                         </div>
-                        {selectedClient.zucchettiCode && (
-                          <div className="text-xs text-slate-400 mt-1.5">
-                            Codice Cliente: {selectedClient.zucchettiCode}
+                      ) : (
+                        <>
+                          <div className="text-base font-black text-white uppercase">
+                            Professionisti e Ferramenta B2B
                           </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-base font-black text-white uppercase">
-                          Professionisti e Ferramenta B2B
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1.5">
-                          Selezione ufficiale Izzo Distribuzione
-                        </div>
-                      </>
-                    )}
+                          <div className="text-xs text-slate-400 mt-1.5">
+                            Selezione ufficiale Izzo Distribuzione
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="pl-2 space-y-2">
+                      <div className="text-[11px] font-black tracking-wider text-[#00e626] uppercase mb-2">
+                        Dettagli Documento e Riferimenti
+                      </div>
+                      <div className="text-sm font-extrabold text-white">
+                        Agente: {agentName || 'Ufficio Commerciale'}
+                      </div>
+                      <div className="text-xs text-slate-400">Data emissione: {todayStr}</div>
+                    </div>
                   </div>
 
-                  <div className="pl-2 space-y-2">
-                    <div className="text-[11px] font-black tracking-wider text-[#00e626] uppercase mb-2">
-                      Dettagli Documento e Riferimenti
-                    </div>
-                    <div className="text-sm font-extrabold text-white">
-                      Agente: {agentName || 'Ufficio Commerciale'}
-                    </div>
-                    <div className="text-xs text-slate-400">Data emissione: {todayStr}</div>
+                  <div className="w-full h-px bg-slate-800" />
+                </div>
+
+                {/* Nota condizioni e footer */}
+                <div className="w-full flex flex-col items-center">
+                  <div className="text-[11px] text-slate-400 mb-1.5">
+                    Tutti i prezzi e le condizioni commerciali riportati si intendono IVA esclusa e
+                    riservati agli operatori B2B.
                   </div>
-                </div>
-
-                <div className="w-full h-px bg-slate-800" />
-              </div>
-
-              {/* Nota condizioni e footer */}
-              <div className="w-full flex flex-col items-center">
-                <div className="text-[11px] text-slate-400 mb-1.5">
-                  Tutti i prezzi e le condizioni commerciali riportati si intendono IVA esclusa e
-                  riservati agli operatori B2B.
-                </div>
-                <div className="text-xs font-black tracking-[0.14em] text-slate-200 uppercase">
-                  IZZO DISTRIBUZIONE S.R.L. &mdash; www.izzodistribuzione.it
+                  <div className="text-xs font-black tracking-[0.14em] text-slate-200 uppercase">
+                    IZZO DISTRIBUZIONE S.R.L. &mdash; www.izzodistribuzione.it
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="h-3 w-full bg-[#00c800] shrink-0" />
+            {/* Striscia verde istituzionale in fondo */}
+            <div className="absolute bottom-0 left-0 right-0 h-3 bg-[#00c800]" />
+          </div>
         </div>
       );
     }
