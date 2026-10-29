@@ -657,73 +657,151 @@ export default function CatalogBuilderClient({
     return copy;
   }, [catalogItems, sortBy]);
 
+  // Helper per rimuovere i codici tassonomici (es. "CA - CASA" -> "CASA", "AER - AREATORI E ROMIGETTO" -> "AREATORI E ROMIGETTO")
+  const stripTaxonomyCode = (raw: string): string => {
+    let s = (raw || '').trim();
+    while (/^[A-Z0-9_.]+\s*-\s+/i.test(s)) {
+      s = s.replace(/^[A-Z0-9_.]+\s*-\s+/i, '').trim();
+    }
+    return s;
+  };
+
   // =========================================================================
   // STRUTTURA IMPAGINAZIONE CATALOGO:
-  // 1) INDICE MERCEOLOGICO ALL'INIZIO (Pag. 1..numIndexPages) CLICCABILE
-  // 2) OGNI CATEGORIA MERCEOLOGICA INIZIA SU UNA NUOVA PAGINA (max 6 schede/pag)
+  // 1) INDICE MERCEOLOGICO ALL'INIZIO (Pag. 1..numIndexPages) CLICCABILE:
+  //    - Fascia scura Gruppo (solo nome senza codice, es. "CASA")
+  //    - Righe bianche Categoria (solo nome Categoria senza codice e senza Famiglia, es. "AREATORI E ROMIGETTO")
+  // 2) PAGINE PRODOTTI RAGGRUPPATE PER FAMIGLIA (max 6 schede/pag):
+  //    - Ogni nuova Famiglia inizia su una nuova pagina
+  //    - All'interno della Famiglia i prodotti sono ordinati per Categoria e ogni voce dell'Indice punta alla pagina esatta in cui inizia quella Categoria
   // =========================================================================
   const catalogLayout = useMemo(() => {
-    type CategorySection = {
+    type FamilySection = {
       key: string;
       groupLabel: string;
       familyLabel: string;
-      categoryLabel: string;
       items: CatalogProductItem[];
     };
 
-    const sectionMap = new Map<string, CategorySection>();
-    const sections: CategorySection[] = [];
+    const familyMap = new Map<string, FamilySection>();
+    const familiesList: FamilySection[] = [];
 
     for (const item of sortedCatalogProducts) {
-      const groupLabel = (item.productGroupLabel || item.productGroup || 'Catalogo Generale').trim();
-      const familyLabel = (item.familyLabel || item.family || '').trim();
-      const categoryLabel = (
-        item.categoryLabel ||
-        item.category ||
-        familyLabel ||
-        groupLabel ||
-        'Articoli Selezionati'
-      ).trim();
-      const key = `${groupLabel.toUpperCase()}|||${familyLabel.toUpperCase()}|||${categoryLabel.toUpperCase()}`;
-      let sec = sectionMap.get(key);
-      if (!sec) {
-        sec = {
-          key,
+      const groupLabel =
+        stripTaxonomyCode(item.productGroupLabel || item.productGroup || '') || 'Catalogo Generale';
+      const familyLabel =
+        stripTaxonomyCode(item.familyLabel || item.family || '') ||
+        stripTaxonomyCode(item.categoryLabel || item.category || '') ||
+        groupLabel;
+
+      const famKey = `${groupLabel.toUpperCase()}|||${familyLabel.toUpperCase()}`;
+      let famSec = familyMap.get(famKey);
+      if (!famSec) {
+        famSec = {
+          key: famKey,
           groupLabel,
           familyLabel,
-          categoryLabel,
           items: [],
         };
-        sectionMap.set(key, sec);
-        sections.push(sec);
+        familyMap.set(famKey, famSec);
+        familiesList.push(famSec);
       }
-      sec.items.push(item);
+      famSec.items.push(item);
     }
 
     type ProductPageDef = {
       groupLabel: string;
       familyLabel: string;
-      categoryLabel: string;
       items: CatalogProductItem[];
-      categoryPageIdx: number;
-      categoryTotalPages: number;
+      familyPageIdx: number;
+      familyTotalPages: number;
     };
 
     const productPages: ProductPageDef[] = [];
-    const sectionFirstPageOffset = new Map<string, number>();
 
-    for (const sec of sections) {
-      sectionFirstPageOffset.set(sec.key, productPages.length);
-      const catTotalPages = Math.max(1, Math.ceil(sec.items.length / 6));
-      for (let i = 0; i < sec.items.length; i += 6) {
-        productPages.push({
-          groupLabel: sec.groupLabel,
-          familyLabel: sec.familyLabel,
-          categoryLabel: sec.categoryLabel,
-          items: sec.items.slice(i, i + 6),
-          categoryPageIdx: Math.floor(i / 6) + 1,
-          categoryTotalPages: catTotalPages,
+    type GroupIndexBucket = {
+      groupLabel: string;
+      totalItemsInGroup: number;
+      firstProductPageOffset: number;
+      categories: {
+        categoryLabel: string;
+        itemsCount: number;
+        firstProductPageOffset: number;
+      }[];
+    };
+
+    const groupBucketsMap = new Map<string, GroupIndexBucket>();
+    const orderedGroupBuckets: GroupIndexBucket[] = [];
+    let totalCategoriesCount = 0;
+
+    for (const famSec of familiesList) {
+      // Raggruppiamo gli articoli della stessa Famiglia per Categoria così sono contigui nelle pagine della Famiglia
+      const catBucketsMap = new Map<string, { label: string; list: CatalogProductItem[] }>();
+      const catOrder: string[] = [];
+
+      for (const item of famSec.items) {
+        const cleanCat =
+          stripTaxonomyCode(item.categoryLabel || item.category || '') ||
+          famSec.familyLabel ||
+          famSec.groupLabel ||
+          'Articoli Selezionati';
+        const cKey = cleanCat.toUpperCase();
+        if (!catBucketsMap.has(cKey)) {
+          catBucketsMap.set(cKey, { label: cleanCat, list: [] });
+          catOrder.push(cKey);
+        }
+        catBucketsMap.get(cKey)!.list.push(item);
+      }
+
+      const orderedFamItems: CatalogProductItem[] = [];
+      const catStartInfo = new Map<string, { label: string; count: number; startIdx: number }>();
+
+      for (const cKey of catOrder) {
+        const bucket = catBucketsMap.get(cKey)!;
+        catStartInfo.set(cKey, {
+          label: bucket.label,
+          count: bucket.list.length,
+          startIdx: orderedFamItems.length,
         });
+        orderedFamItems.push(...bucket.list);
+      }
+
+      const familyFirstPageOffset = productPages.length;
+      const famTotalPages = Math.max(1, Math.ceil(orderedFamItems.length / 6));
+
+      for (let i = 0; i < orderedFamItems.length; i += 6) {
+        productPages.push({
+          groupLabel: famSec.groupLabel,
+          familyLabel: famSec.familyLabel,
+          items: orderedFamItems.slice(i, i + 6),
+          familyPageIdx: Math.floor(i / 6) + 1,
+          familyTotalPages: famTotalPages,
+        });
+      }
+
+      const gUpper = famSec.groupLabel.toUpperCase();
+      let gBucket = groupBucketsMap.get(gUpper);
+      if (!gBucket) {
+        gBucket = {
+          groupLabel: famSec.groupLabel,
+          totalItemsInGroup: 0,
+          firstProductPageOffset: familyFirstPageOffset,
+          categories: [],
+        };
+        groupBucketsMap.set(gUpper, gBucket);
+        orderedGroupBuckets.push(gBucket);
+      }
+      gBucket.totalItemsInGroup += orderedFamItems.length;
+
+      for (const cKey of catOrder) {
+        const info = catStartInfo.get(cKey)!;
+        const catPageOffset = familyFirstPageOffset + Math.floor(info.startIdx / 6);
+        gBucket.categories.push({
+          categoryLabel: info.label,
+          itemsCount: info.count,
+          firstProductPageOffset: catPageOffset,
+        });
+        totalCategoriesCount++;
       }
     }
 
@@ -736,39 +814,27 @@ export default function CatalogBuilderClient({
         }
       | {
           kind: 'CATEGORY';
-          groupLabel: string;
-          familyLabel: string;
           categoryLabel: string;
           itemsCount: number;
           firstProductPageOffset: number;
         };
 
     const indexRows: IndexRowDef[] = [];
-    let lastGroupUpper = '';
-
-    for (const sec of sections) {
-      const gUpper = sec.groupLabel.toUpperCase();
-      const firstOffset = sectionFirstPageOffset.get(sec.key) ?? 0;
-      if (gUpper !== lastGroupUpper) {
-        const totalItemsInGroup = sections
-          .filter(s => s.groupLabel.toUpperCase() === gUpper)
-          .reduce((acc, s) => acc + s.items.length, 0);
-        indexRows.push({
-          kind: 'GROUP',
-          groupLabel: sec.groupLabel,
-          totalItemsInGroup,
-          firstProductPageOffset: firstOffset,
-        });
-        lastGroupUpper = gUpper;
-      }
+    for (const gBucket of orderedGroupBuckets) {
       indexRows.push({
-        kind: 'CATEGORY',
-        groupLabel: sec.groupLabel,
-        familyLabel: sec.familyLabel,
-        categoryLabel: sec.categoryLabel,
-        itemsCount: sec.items.length,
-        firstProductPageOffset: firstOffset,
+        kind: 'GROUP',
+        groupLabel: gBucket.groupLabel,
+        totalItemsInGroup: gBucket.totalItemsInGroup,
+        firstProductPageOffset: gBucket.firstProductPageOffset,
       });
+      for (const cat of gBucket.categories) {
+        indexRows.push({
+          kind: 'CATEGORY',
+          categoryLabel: cat.categoryLabel,
+          itemsCount: cat.itemsCount,
+          firstProductPageOffset: cat.firstProductPageOffset,
+        });
+      }
     }
 
     const MAX_INDEX_ROWS_PER_PAGE = 16;
@@ -806,7 +872,8 @@ export default function CatalogBuilderClient({
     ];
 
     return {
-      sections,
+      familiesList,
+      totalCategoriesCount,
       productPages,
       indexPages,
       numIndexPages,
@@ -1171,8 +1238,8 @@ export default function CatalogBuilderClient({
                 FOGLIO {sheetIdx + 1} / {totalSheets}
               </span>
               <div className="text-[10px] text-gray-400">
-                Indice Merceologico ({catalogLayout.sections.length}{' '}
-                {catalogLayout.sections.length === 1 ? 'categoria' : 'categorie'})
+                Indice Merceologico ({catalogLayout.totalCategoriesCount}{' '}
+                {catalogLayout.totalCategoriesCount === 1 ? 'categoria' : 'categorie'})
               </div>
             </div>
           </div>
@@ -1195,7 +1262,8 @@ export default function CatalogBuilderClient({
                 {sortedCatalogProducts.length} Articoli
               </div>
               <div className="text-[10px] text-gray-400">
-                {catalogLayout.sections.length} Reparti
+                {catalogLayout.familiesList.length}{' '}
+                {catalogLayout.familiesList.length === 1 ? 'Famiglia' : 'Famiglie'}
               </div>
             </div>
           </div>
@@ -1236,12 +1304,6 @@ export default function CatalogBuilderClient({
                 );
               }
 
-              const catBreadcrumb =
-                row.familyLabel &&
-                row.familyLabel.toUpperCase() !== row.categoryLabel.toUpperCase()
-                  ? `${row.familyLabel}  ›  ${row.categoryLabel}`
-                  : row.categoryLabel;
-
               return (
                 <button
                   key={`idx-cat-${rIdx}-${row.categoryLabel}`}
@@ -1257,13 +1319,13 @@ export default function CatalogBuilderClient({
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover:bg-brand-main shrink-0" />
                     <span className="text-xs font-bold text-gray-800 group-hover:text-black truncate">
-                      {catBreadcrumb}
+                      {row.categoryLabel}
                     </span>
                   </div>
                   <div className="flex-1 border-b border-dotted border-gray-300 mx-2 min-w-[20px]" />
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-[10px] font-semibold text-gray-500">
-                      {row.itemsCount} {row.itemsCount === 1 ? 'art.' : 'art.'}
+                      {row.itemsCount} art.
                     </span>
                     <span className="px-2 py-0.5 rounded bg-emerald-50 group-hover:bg-brand-main text-emerald-800 group-hover:text-black border border-emerald-200 group-hover:border-brand-main text-[10px] font-black transition-colors">
                       PAG. {targetPageNumber} →
@@ -1289,20 +1351,15 @@ export default function CatalogBuilderClient({
     }
 
     // =====================================================================
-    // FOGLIO SCHEDE PRODOTTO (OGNI CATEGORIA INIZIA SU PAGINA NUOVA)
+    // FOGLIO SCHEDE PRODOTTO (OGNI FAMIGLIA INIZIA SU PAGINA NUOVA)
     // =====================================================================
     const { pageDef } = sheetDef;
     const sheetProducts = pageDef.items;
-    const categoryBreadcrumb = [
+    const familyBreadcrumb = [
       pageDef.groupLabel,
       pageDef.familyLabel &&
       pageDef.familyLabel.toUpperCase() !== pageDef.groupLabel.toUpperCase()
         ? pageDef.familyLabel
-        : '',
-      pageDef.categoryLabel &&
-      pageDef.categoryLabel.toUpperCase() !== pageDef.familyLabel.toUpperCase() &&
-      pageDef.categoryLabel.toUpperCase() !== pageDef.groupLabel.toUpperCase()
-        ? pageDef.categoryLabel
         : '',
     ]
       .filter(Boolean)
@@ -1313,7 +1370,7 @@ export default function CatalogBuilderClient({
         key={`sheet-${sheetIdx}`}
         className="w-[740px] h-[1020px] bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between select-none"
       >
-        {/* Intestazione Foglio A4 + Fascia Categoria Merceologica */}
+        {/* Intestazione Foglio A4 + Fascia Famiglia Merceologica */}
         <div className="shrink-0">
           <div className="px-5 py-2.5 bg-black text-white border-b-2 border-brand-main flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex items-center gap-3 min-w-0">
@@ -1357,19 +1414,19 @@ export default function CatalogBuilderClient({
             </div>
           </div>
 
-          {/* Fascia Categoria della Pagina */}
+          {/* Fascia Famiglia della Pagina */}
           <div className="px-5 py-1.5 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span className="px-1.5 py-0.5 rounded bg-brand-main/20 text-brand-main text-[9px] font-black uppercase shrink-0">
-                Reparto
+                Famiglia
               </span>
               <span className="text-[11px] font-extrabold tracking-wide uppercase text-white truncate">
-                {categoryBreadcrumb}
+                {familyBreadcrumb}
               </span>
             </div>
             <span className="text-[10px] font-semibold text-gray-300 shrink-0">
-              {pageDef.categoryTotalPages > 1
-                ? `Pag. ${pageDef.categoryPageIdx}/${pageDef.categoryTotalPages} del reparto • `
+              {pageDef.familyTotalPages > 1
+                ? `Pag. ${pageDef.familyPageIdx}/${pageDef.familyTotalPages} della famiglia • `
                 : ''}
               {sheetProducts.length} {sheetProducts.length === 1 ? 'scheda' : 'schede'}
             </span>
@@ -1393,7 +1450,7 @@ export default function CatalogBuilderClient({
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase">
-                      {product.brandLabel || product.brand || 'IZZO'}
+                      {stripTaxonomyCode(product.brandLabel || product.brand || 'IZZO') || 'IZZO'}
                     </span>
                     <button
                       type="button"
@@ -1431,10 +1488,12 @@ export default function CatalogBuilderClient({
                   <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[80px]">
                     <div>
                       <div className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider truncate">
-                        {product.categoryLabel ||
-                          product.familyLabel ||
-                          product.productGroupLabel ||
-                          'Articolo a Catalogo'}
+                        {stripTaxonomyCode(
+                          product.categoryLabel ||
+                            product.familyLabel ||
+                            product.productGroupLabel ||
+                            'Articolo a Catalogo'
+                        )}
                       </div>
                       <h3 className="text-xs font-extrabold text-gray-900 leading-snug mt-0.5 line-clamp-2">
                         {product.originalName || product.title}
@@ -2501,7 +2560,7 @@ export default function CatalogBuilderClient({
                         const leftTag =
                           leftSheet?.type === 'INDEX'
                             ? 'Indice'
-                            : leftSheet?.pageDef?.categoryLabel || '';
+                            : leftSheet?.pageDef?.familyLabel || '';
                         return (
                           <option key={spreadIdx} value={leftIdx}>
                             {rightIdx < totalSheets
@@ -2513,7 +2572,7 @@ export default function CatalogBuilderClient({
                     : Array.from({ length: totalSheets }).map((_, idx) => {
                         const sh = catalogLayout.allSheets[idx];
                         const tag =
-                          sh?.type === 'INDEX' ? 'Indice' : sh?.pageDef?.categoryLabel || '';
+                          sh?.type === 'INDEX' ? 'Indice' : sh?.pageDef?.familyLabel || '';
                         return (
                           <option key={idx} value={idx}>
                             Pagina {idx + 1} di {totalSheets}
