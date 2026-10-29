@@ -983,14 +983,14 @@ function getCatalogPdfHeaderLogo(): {
       prev.set(cur);
     }
 
-    // Ritaglio sul bounding box del logo Izzo e ridimensionamento nitido a 360 x 148 su sfondo nero (#000000)
+    // Ritaglio sul bounding box del logo Izzo e ridimensionamento nitido ad alta risoluzione (720 x 296) su sfondo nero (#000000)
     const cropX = Math.min(280, Math.floor(w * 0.065));
     const cropY = Math.min(360, Math.floor(h * 0.16));
     const cropW = Math.min(w - cropX, Math.floor(w * 0.865));
     const cropH = Math.min(h - cropY, Math.floor(h * 0.66));
 
-    const outW = 360;
-    const outH = 148;
+    const outW = 720;
+    const outH = 296;
 
     const rgbOut = Buffer.alloc(outW * outH * 3);
     const scaleX = cropW / outW;
@@ -1006,8 +1006,8 @@ function getCatalogPdfHeaderLogo(): {
         let gSum = 0;
         let bSum = 0;
         let count = 0;
-        for (let sy = sy0; sy < sy1; sy += 2) {
-          for (let sx = sx0; sx < sx1; sx += 2) {
+        for (let sy = sy0; sy < sy1; sy += 1) {
+          for (let sx = sx0; sx < sx1; sx += 1) {
             const idx = (sy * w + sx) * 4;
             const a = rgba[idx + 3] / 255;
             const pr = rgba[idx];
@@ -1036,6 +1036,41 @@ function getCatalogPdfHeaderLogo(): {
     console.warn('Impossibile caricare logo-izzo.png per header PDF:', e);
     return null;
   }
+}
+
+function estimatePdfTextWidth(text: string, fontSize: number, isBold: boolean): number {
+  let units = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if ('iIl1|.,:;\'!` '.includes(ch)) {
+      units += isBold ? 0.31 : 0.28;
+    } else if ('fjtJ()-/\\[]'.includes(ch)) {
+      units += isBold ? 0.36 : 0.33;
+    } else if ('mMWGOQ@#%&'.includes(ch)) {
+      units += isBold ? 0.84 : 0.78;
+    } else if (ch >= 'A' && ch <= 'Z') {
+      units += isBold ? 0.69 : 0.65;
+    } else {
+      units += isBold ? 0.56 : 0.52;
+    }
+  }
+  return units * fontSize;
+}
+
+function drawCenteredPdfTextCmd(
+  font: '/F1' | '/F2',
+  fontSize: number,
+  rgbStr: string,
+  y: number,
+  text: string,
+  centerX = 297.5
+): string {
+  const isBold = font === '/F2';
+  const estW = estimatePdfTextWidth(text, fontSize, isBold);
+  const startX = Math.max(24, centerX - estW / 2);
+  return `BT ${font} ${fontSize} Tf ${rgbStr} rg ${startX.toFixed(1)} ${y.toFixed(
+    1
+  )} Td (${toPdfSafeLatin1(text)}) Tj ET`;
 }
 
 export async function generateAgentCatalogPdfAction(
@@ -1081,7 +1116,8 @@ export async function generateAgentCatalogPdfAction(
     const MARGIN_X = 28;
     const FIRST_ROW_TOP_Y = 750; // Y superiore della prima riga di schede
 
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+    const productPagesCount = Math.ceil(items.length / ITEMS_PER_PAGE);
+    const totalPages = 1 + productPagesCount; // Pagina 1 = Copertina + Pagine Prodotti
     const dateStr = new Date().toLocaleDateString('it-IT', {
       day: '2-digit',
       month: '2-digit',
@@ -1111,8 +1147,275 @@ export async function generateAgentCatalogPdfAction(
     const pageUriAnnots: { rect: [number, number, number, number]; uri: string }[][] =
       Array.from({ length: totalPages }, () => []);
 
-    for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-      const pageSlice = items.slice(pageIdx * ITEMS_PER_PAGE, (pageIdx + 1) * ITEMS_PER_PAGE);
+    // =========================================================================
+    // PAGINA 1 (index 0): COPERTINA DEL CATALOGO CON ENFASI SUL LOGO E FRASE AD EFFETTO
+    // =========================================================================
+    {
+      const coverCmd: string[] = [];
+
+      // 1. Sfondo scuro Carbon / Blu Notte profondo su tutto il foglio A4 (595x842)
+      coverCmd.push('0.03 0.04 0.07 rg');
+      coverCmd.push('0 0 595 842 re f');
+
+      // 2. Fasce verdi istituzionali Izzo in testa e a piè di pagina
+      coverCmd.push('0.00 0.78 0.00 rg');
+      coverCmd.push('0 832 595 10 re f');
+      coverCmd.push('0 0 595 10 re f');
+
+      // 3. Cornice architettonica esterna
+      coverCmd.push('0.14 0.19 0.27 RG 1 w');
+      coverCmd.push('24 26 547 790 re S');
+      coverCmd.push('0.00 0.55 0.12 RG 0.6 w');
+      coverCmd.push('28 30 539 782 re S');
+
+      // 4. Badge superiore istituzionale
+      coverCmd.push('0.06 0.10 0.15 rg');
+      coverCmd.push('0.00 0.78 0.00 RG 0.8 w');
+      coverCmd.push('105 764 385 26 re B');
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          8.5,
+          '0.20 0.95 0.35',
+          774,
+          'PORTALE B2B UFFICIALE  -  FORNITURE ELETTRICHE E ILLUMINOTECNICA'
+        )
+      );
+
+      // 5. HERO STAGE CENTRALE PER IL LOGO IZZO DISTRIBUZIONE
+      const heroX = 48;
+      const heroY = 468;
+      const heroW = 499;
+      const heroH = 266;
+
+      // Riquadro nero puro (#000000) per far risaltare al massimo il logo Izzo
+      coverCmd.push('0 0 0 rg');
+      coverCmd.push(`${heroX} ${heroY} ${heroW} ${heroH} re f`);
+      coverCmd.push('0.00 0.82 0.00 RG 1.8 w');
+      coverCmd.push(`${heroX} ${heroY} ${heroW} ${heroH} re S`);
+
+      // Angolari decorativi verdi ad alto impatto attorno al palco del logo
+      coverCmd.push('0.00 0.90 0.15 rg');
+      coverCmd.push(`${heroX - 3} ${heroY + heroH - 28} 6 31 re f`);
+      coverCmd.push(`${heroX - 3} ${heroY + heroH - 3} 31 6 re f`);
+      coverCmd.push(`${heroX + heroW - 3} ${heroY + heroH - 28} 6 31 re f`);
+      coverCmd.push(`${heroX + heroW - 28} ${heroY + heroH - 3} 31 6 re f`);
+      coverCmd.push(`${heroX - 3} ${heroY - 3} 6 31 re f`);
+      coverCmd.push(`${heroX - 3} ${heroY - 3} 31 6 re f`);
+      coverCmd.push(`${heroX + heroW - 3} ${heroY - 3} 6 31 re f`);
+      coverCmd.push(`${heroX + heroW - 28} ${heroY - 3} 31 6 re f`);
+
+      if (logoObjNum) {
+        // Logo Izzo gigante centrato nel palco (420 x 172 pt)
+        const logoDrawW = 420;
+        const logoDrawH = 172;
+        const logoDrawX = (595 - logoDrawW) / 2;
+        const logoDrawY = heroY + (heroH - logoDrawH) / 2 + 8;
+        coverCmd.push('q');
+        coverCmd.push(
+          `${logoDrawW.toFixed(1)} 0 0 ${logoDrawH.toFixed(1)} ${logoDrawX.toFixed(
+            1
+          )} ${logoDrawY.toFixed(1)} cm`
+        );
+        coverCmd.push('/ImLogo Do');
+        coverCmd.push('Q');
+      } else {
+        coverCmd.push(
+          drawCenteredPdfTextCmd('/F2', 36, '0.00 0.85 0.00', heroY + 130, 'IZZO DISTRIBUZIONE')
+        );
+      }
+
+      // Sottotitolo nel palco sotto il logo
+      coverCmd.push('0.15 0.20 0.28 RG 0.6 w');
+      coverCmd.push(`${heroX + 40} ${heroY + 34} m ${heroX + heroW - 40} ${heroY + 34} l S`);
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          8.5,
+          '0.72 0.78 0.86',
+          heroY + 16,
+          'IL PARTNER DI RIFERIMENTO PER I PROFESSIONISTI DELLA DISTRIBUZIONE B2B'
+        )
+      );
+
+      // 6. SEZIONE FRASE AD EFFETTO (SLOGAN CENTRALE)
+      coverCmd.push('0.00 0.85 0.00 RG 1.2 w');
+      coverCmd.push('195 438 m 283 438 l S');
+      coverCmd.push('312 438 m 400 438 l S');
+      coverCmd.push('0.00 0.90 0.15 rg');
+      coverCmd.push('293.5 434 8 8 re f');
+
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          17.5,
+          '0.00 0.92 0.20',
+          404,
+          '"L\'ENERGIA CHE ILLUMINA IL TUO LAVORO."'
+        )
+      );
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          11,
+          '1 1 1',
+          382,
+          'Eccellenza, innovazione e pronta consegna per i professionisti del settore elettrico.'
+        )
+      );
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F1',
+          9.5,
+          '0.68 0.74 0.82',
+          364,
+          'Qualita\' certificata, disponibilita\' immediata e soluzioni su misura per dare valore ad ogni tuo progetto.'
+        )
+      );
+
+      // 7. BOX INFERIORE: TITOLO DEL CATALOGO, CLIENTE E RIEPILOGO
+      const boxX = 48;
+      const boxY = 104;
+      const boxW = 499;
+      const boxH = 232;
+
+      coverCmd.push('0.06 0.08 0.13 rg');
+      coverCmd.push(`${boxX} ${boxY} ${boxW} ${boxH} re f`);
+      coverCmd.push('0.20 0.26 0.36 RG 1 w');
+      coverCmd.push(`${boxX} ${boxY} ${boxW} ${boxH} re S`);
+      coverCmd.push('0.00 0.78 0.00 rg');
+      coverCmd.push(`${boxX} ${boxY + boxH - 5} ${boxW} 5 re f`);
+
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          8.5,
+          '0.00 0.88 0.20',
+          boxY + boxH - 28,
+          'EDIZIONE CATALOGO PERSONALIZZATO B2B'
+        )
+      );
+
+      const mainTitleText = truncateText(
+        (input.catalogTitle || 'Catalogo Prodotti Selezionati').toUpperCase(),
+        46
+      );
+      coverCmd.push(
+        drawCenteredPdfTextCmd('/F2', 17, '1 1 1', boxY + boxH - 54, mainTitleText)
+      );
+
+      if (input.catalogSubtitle) {
+        coverCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F1',
+            10.5,
+            '0.78 0.84 0.92',
+            boxY + boxH - 74,
+            truncateText(input.catalogSubtitle, 68)
+          )
+        );
+      } else {
+        coverCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F1',
+            10,
+            '0.62 0.68 0.78',
+            boxY + boxH - 74,
+            'Selezione tecnica ed economica riservata con condizioni commerciali dedicate'
+          )
+        );
+      }
+
+      // Linea divisoria interna al box
+      const divY = boxY + 128;
+      coverCmd.push('0.18 0.23 0.32 RG 0.7 w');
+      coverCmd.push(`${boxX + 24} ${divY} m ${boxX + boxW - 24} ${divY} l S`);
+
+      // Riquadro Cliente Riservato (a sinistra) e Dati Agente/Catalogo (a destra)
+      const leftColX = boxX + 24;
+      const rightColX = boxX + 280;
+
+      coverCmd.push('0.18 0.23 0.32 RG 0.7 w');
+      coverCmd.push(`${boxX + 262} ${boxY + 18} m ${boxX + 262} ${divY - 12} l S`);
+
+      coverCmd.push(
+        `BT /F2 7.5 Tf 0.00 0.88 0.20 rg ${leftColX} ${divY - 22} Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
+      );
+      if (input.clientName) {
+        const clientLines = wrapTextLines(input.clientName.toUpperCase(), 30, 2, true);
+        clientLines.forEach((cLine, cIdx) => {
+          coverCmd.push(
+            `BT /F2 11 Tf 1 1 1 rg ${leftColX} ${divY - 40 - cIdx * 14} Td (${toPdfSafeLatin1(
+              cLine
+            )}) Tj ET`
+          );
+        });
+        if (input.clientCode) {
+          coverCmd.push(
+            `BT /F1 8.5 Tf 0.65 0.72 0.82 rg ${leftColX} ${divY - 72} Td (Codice Cliente: ${toPdfSafeLatin1(
+              input.clientCode
+            )}) Tj ET`
+          );
+        }
+      } else {
+        coverCmd.push(
+          `BT /F2 11 Tf 1 1 1 rg ${leftColX} ${divY - 40} Td (CLIENTELA PROFESSIONALE B2B) Tj ET`
+        );
+        coverCmd.push(
+          `BT /F1 8.5 Tf 0.65 0.72 0.82 rg ${leftColX} ${divY - 56} Td (Listino e selezione ufficiale Izzo Distribuzione) Tj ET`
+        );
+      }
+
+      coverCmd.push(
+        `BT /F2 7.5 Tf 0.00 0.88 0.20 rg ${rightColX} ${divY - 22} Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
+      );
+      coverCmd.push(
+        `BT /F2 9.5 Tf 1 1 1 rg ${rightColX} ${divY - 40} Td (Agente: ${toPdfSafeLatin1(
+          truncateText(input.agentName || 'Ufficio Commerciale', 28)
+        )}) Tj ET`
+      );
+      coverCmd.push(
+        `BT /F1 9 Tf 0.82 0.86 0.92 rg ${rightColX} ${divY - 56} Td (Referenze a catalogo: ${
+          items.length
+        } articoli) Tj ET`
+      );
+      coverCmd.push(
+        `BT /F1 9 Tf 0.82 0.86 0.92 rg ${rightColX} ${divY - 72} Td (Estensione: ${totalPages} pagine totali) Tj ET`
+      );
+      coverCmd.push(
+        `BT /F1 8.5 Tf 0.65 0.72 0.82 rg ${rightColX} ${divY - 88} Td (Data emissione: ${dateStr}) Tj ET`
+      );
+
+      // 8. Footer Copertina
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F2',
+          9,
+          '0.85 0.90 0.96',
+          62,
+          'IZZO DISTRIBUZIONE S.R.L.  -  www.izzodistribuzione.it'
+        )
+      );
+      coverCmd.push(
+        drawCenteredPdfTextCmd(
+          '/F1',
+          7.5,
+          '0.52 0.58 0.68',
+          46,
+          'Tutti i prezzi e le condizioni si intendono IVA esclusa e riservati agli operatori professionali B2B.'
+        )
+      );
+
+      pageContents.push(Buffer.from(coverCmd.join('\n'), 'latin1'));
+      pageImageRefs.push(new Map<number, number>());
+    }
+
+    for (let productPageIdx = 0; productPageIdx < productPagesCount; productPageIdx++) {
+      const pageIdx = productPageIdx + 1; // Pagina 0 è la copertina
+      const pageSlice = items.slice(
+        productPageIdx * ITEMS_PER_PAGE,
+        (productPageIdx + 1) * ITEMS_PER_PAGE
+      );
       const cmd: string[] = [];
       const imgRefsForPage = new Map<number, number>();
 
@@ -1164,7 +1467,7 @@ export async function generateAgentCatalogPdfAction(
 
       // Griglia 6 Schede per foglio (2 colonne x 3 righe)
       pageSlice.forEach((item, localIdx) => {
-        const globalIdx = pageIdx * ITEMS_PER_PAGE + localIdx;
+        const globalIdx = productPageIdx * ITEMS_PER_PAGE + localIdx;
         const col = localIdx % COLS; // 0 o 1
         const row = Math.floor(localIdx / COLS); // 0, 1 o 2
 
