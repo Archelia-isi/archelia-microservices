@@ -1331,11 +1331,6 @@ export async function generateAgentCatalogPdfAction(
             specBoxY + 57
           } Td (SPECIFICHE E DESCRIZIONE TECNICA) Tj ET`
         );
-        cmd.push(
-          `BT /F2 6.5 Tf 0.04 0.45 0.14 rg ${specBoxX + 178} ${
-            specBoxY + 57
-          } Td (Vedi sul sito ->) Tj ET`
-        );
 
         const rawTargetProductUrl =
           (item.productUrl || '').trim() ||
@@ -1345,8 +1340,19 @@ export async function generateAgentCatalogPdfAction(
         const targetProductUrl = rawTargetProductUrl.includes('from_pdf=')
           ? rawTargetProductUrl
           : `${rawTargetProductUrl}${rawTargetProductUrl.includes('?') ? '&' : '?'}from_pdf=1`;
+
+        // Link cliccabile SOLO sull'immagine del prodotto
         pageUriAnnots[pageIdx].push({
-          rect: [cardX, cardY, cardX + CARD_W, cardY + CARD_H],
+          rect: [imgX, imgY, imgX + imgBoxSize, imgY + imgBoxSize],
+          uri: targetProductUrl,
+        });
+
+        // Link cliccabile SOLO sul titolo del prodotto
+        const titleLineCount = Math.max(1, titleLines.length);
+        const titleBottomY = cardY + 174 - (titleLineCount - 1) * 11 - 3;
+        const titleTopY = cardY + 184;
+        pageUriAnnots[pageIdx].push({
+          rect: [infoX, titleBottomY, infoX + infoW, titleTopY],
           uri: targetProductUrl,
         });
 

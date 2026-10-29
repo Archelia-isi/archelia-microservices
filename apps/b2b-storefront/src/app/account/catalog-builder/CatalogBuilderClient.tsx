@@ -1031,18 +1031,9 @@ export default function CatalogBuilderClient({
               >
                 {/* 1. Fascia Superiore Scheda: SKU + Marchio + Tasto Rimuovi */}
                 <div className="px-3 py-1.5 bg-gray-900 text-white border-b-2 border-emerald-500 flex items-center justify-between gap-2">
-                  <a
-                    href={`/product/${encodeURIComponent(product.id || product.sku)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onMouseDown={e => e.stopPropagation()}
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={e => e.stopPropagation()}
-                    className="font-mono text-[11px] font-black tracking-wide text-white hover:text-brand-main hover:underline truncate"
-                    title="Apri scheda prodotto sul sito"
-                  >
+                  <span className="font-mono text-[11px] font-black tracking-wide text-white truncate">
                     COD. {product.sku}
-                  </a>
+                  </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase">
                       {product.brandLabel || product.brand || 'IZZO'}
@@ -1159,22 +1150,8 @@ export default function CatalogBuilderClient({
 
                 {/* 3. Fascia Centrale: Box Specifiche Tecniche */}
                 <div className="mx-3 mb-2 p-2 rounded-lg bg-slate-50 border border-slate-200/80">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-wider">
-                      Specifiche e Descrizione Tecnica
-                    </div>
-                    <a
-                      href={`/product/${encodeURIComponent(product.id || product.sku)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onMouseDown={e => e.stopPropagation()}
-                      onPointerDown={e => e.stopPropagation()}
-                      onClick={e => e.stopPropagation()}
-                      className="text-[9px] font-extrabold text-emerald-700 hover:text-emerald-900 hover:underline shrink-0"
-                      title="Apri questo prodotto sul sito B2B"
-                    >
-                      Vedi sul sito ↗
-                    </a>
+                  <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-wider mb-0.5">
+                    Specifiche e Descrizione Tecnica
                   </div>
                   <p className="text-[10px] text-slate-700 leading-relaxed break-words line-clamp-3">
                     {(

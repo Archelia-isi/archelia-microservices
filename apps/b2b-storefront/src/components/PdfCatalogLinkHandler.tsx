@@ -18,8 +18,8 @@ export default function PdfCatalogLinkHandler() {
       return;
     }
 
-    // Se il viewer PDF di Chrome ha aperto il link nella stessa scheda del catalogo (history.length > 1),
-    // proviamo subito ad aprire il prodotto in una nuova scheda e riportare questa scheda indietro al PDF.
+    // Proviamo subito ad aprire il prodotto in una nuova scheda e riportare questa scheda indietro al PDF.
+    // (Funziona istantaneamente in automatico se i popup per il sito sono consentiti nel browser).
     try {
       const newWin = window.open(cleanUrl, '_blank');
       if (newWin) {
@@ -28,17 +28,23 @@ export default function PdfCatalogLinkHandler() {
         return;
       }
     } catch {
-      // Ignora errori blocco popup iniziale
+      // Bloccato dal blocco popup automatico di Chrome
     }
 
-    // Se il browser richiede un gesto utente sulla pagina per consentire window.open('_blank'),
-    // al primo clic in qualsiasi punto apriamo la nuova scheda col prodotto e riportiamo questa scheda al catalogo PDF.
+    // Se Chrome ha bloccato il window.open automatico al caricamento (perché il clic proveniva dal plugin PDF interno),
+    // mostriamo l'avviso e al primo clic in qualsiasi punto apriamo la nuova scheda col prodotto e riportiamo questa scheda al PDF.
     setNeedsManualSplit(true);
 
-    const handleFirstUserClick = () => {
+    const handleFirstUserClick = (e: MouseEvent) => {
+      // Se ha cliccato su "Torna solo al Catalogo", lascia gestire al bottone dedicato
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-pdf-back-only="true"]')) {
+        return;
+      }
       try {
         const win = window.open(cleanUrl, '_blank');
         if (win) {
+          (window as any).__pdfSplitDone = true;
           window.history.back();
         }
       } catch {
@@ -58,6 +64,7 @@ export default function PdfCatalogLinkHandler() {
     const cleanUrl = window.location.pathname;
     const win = window.open(cleanUrl, '_blank');
     if (win) {
+      (window as any).__pdfSplitDone = true;
       window.history.back();
     }
   };
@@ -71,34 +78,47 @@ export default function PdfCatalogLinkHandler() {
   if (!needsManualSplit) return null;
 
   return (
-    <div className="mb-6 rounded-xl bg-gray-900 text-white px-4 py-3 shadow-lg border border-brand-main/40 flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5 text-xs md:text-sm font-medium">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-brand-main text-black font-black shrink-0">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer">
+      <div className="bg-white rounded-2xl shadow-2xl border-2 border-gray-900 max-w-lg w-full p-6 text-center space-y-4">
+        <div className="w-12 h-12 rounded-xl bg-brand-main text-black font-black text-lg flex items-center justify-center mx-auto shadow">
           PDF
-        </span>
-        <div>
-          <span className="font-bold text-brand-main">Articolo aperto dal Catalogo PDF</span>
-          <span className="hidden sm:inline text-gray-300">
-            {' '}
-            — Clicca per mantenere il catalogo sempre aperto nella scheda precedente.
-          </span>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleOpenInNewTabAndReturn}
-          className="px-3 py-1.5 rounded-lg bg-brand-main hover:bg-amber-400 text-black font-extrabold text-xs transition-colors shadow-sm"
-        >
-          ↗ Apri in nuova scheda e mantieni Catalogo
-        </button>
-        <button
-          type="button"
-          onClick={handleBackToCatalogOnly}
-          className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs border border-gray-700 transition-colors"
-        >
-          ⬅ Torna al Catalogo PDF
-        </button>
+        <h2 className="text-lg font-black text-gray-900">
+          Apertura scheda prodotto in una nuova scheda
+        </h2>
+        <p className="text-xs text-gray-600 leading-relaxed">
+          Il lettore PDF integrato di Chrome blocca l&apos;apertura automatica di nuove schede se i
+          pop-up non sono abilitati per il sito.
+          <br />
+          <strong>Clicca sul pulsante qui sotto (o in qualsiasi punto)</strong> per aprire il
+          prodotto in una nuova scheda e lasciare il <strong>Catalogo PDF</strong> aperto in questa
+          scheda.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={handleOpenInNewTabAndReturn}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-main hover:bg-amber-400 text-black font-black text-xs transition-colors shadow-md"
+          >
+            ↗ Apri in nuova scheda e mantieni Catalogo qui
+          </button>
+          <button
+            type="button"
+            data-pdf-back-only="true"
+            onClick={handleBackToCatalogOnly}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs border border-gray-300 transition-colors"
+          >
+            ⬅ Torna solo al Catalogo PDF
+          </button>
+        </div>
+        <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-500 leading-snug">
+          💡 <strong>Per non vedere più questo messaggio:</strong> clicca sull&apos;icona{' '}
+          <strong>Pop-up bloccato</strong> a destra nella barra degli indirizzi di Chrome e
+          seleziona <em>&quot;Consenti sempre pop-up e reindirizzamenti da questo sito&quot;</em>{' '}
+          (oppure tieni premuto <kbd className="px-1 py-0.5 bg-gray-100 border rounded">Cmd</kbd> /{' '}
+          <kbd className="px-1 py-0.5 bg-gray-100 border rounded">Ctrl</kbd> quando clicchi nel
+          PDF).
+        </div>
       </div>
     </div>
   );
