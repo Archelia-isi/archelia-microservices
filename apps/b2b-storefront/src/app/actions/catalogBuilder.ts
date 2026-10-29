@@ -729,6 +729,8 @@ export interface GenerateCatalogPdfInput {
     sku: string;
     title: string;
     brand: string;
+    productGroupLabel?: string;
+    familyLabel?: string;
     categoryLabel: string;
     technicalDesc: string;
     unit: string;
@@ -1073,20 +1075,156 @@ export async function generateAgentCatalogPdfAction(
     const ITEMS_PER_PAGE = 6;
     const COLS = 2;
     const CARD_W = 262;
-    const CARD_H = 224;
+    const CARD_H = 220;
     const GAP_X = 15;
-    const GAP_Y = 16;
+    const GAP_Y = 14;
     const MARGIN_X = 28;
-    const FIRST_ROW_TOP_Y = 750; // Y superiore della prima riga di schede
+    const FIRST_ROW_TOP_Y = 738; // Y superiore della prima riga di schede (sotto la barra categoria)
 
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+    // 1. Raggruppamento per Categoria Merceologica (Gruppo -> Famiglia -> Categoria): ogni nuova categoria inizia su una pagina nuova
+    interface IndexedItem {
+      item: GenerateCatalogPdfInput['items'][number];
+      globalIdx: number;
+      groupLabel: string;
+      familyLabel: string;
+      categoryLabel: string;
+    }
+
+    interface CategorySection {
+      key: string;
+      groupLabel: string;
+      familyLabel: string;
+      categoryLabel: string;
+      breadcrumb: string;
+      entries: IndexedItem[];
+    }
+
+    const sectionMap = new Map<string, CategorySection>();
+    const orderedSections: CategorySection[] = [];
+
+    items.forEach((it, idx) => {
+      const groupLabel = (it.productGroupLabel || 'CATALOGO GENERALE').trim();
+      const familyLabel = (it.familyLabel || '').trim();
+      const categoryLabel = (
+        it.categoryLabel ||
+        familyLabel ||
+        groupLabel ||
+        'Articoli a Catalogo'
+      ).trim();
+      const key = `${groupLabel.toUpperCase()}|||${familyLabel.toUpperCase()}|||${categoryLabel.toUpperCase()}`;
+      let sec = sectionMap.get(key);
+      if (!sec) {
+        const breadcrumb = Array.from(
+          new Set([groupLabel, familyLabel, categoryLabel].filter(Boolean))
+        ).join('  >  ');
+        sec = {
+          key,
+          groupLabel,
+          familyLabel,
+          categoryLabel,
+          breadcrumb,
+          entries: [],
+        };
+        sectionMap.set(key, sec);
+        orderedSections.push(sec);
+      }
+      sec.entries.push({
+        item: it,
+        globalIdx: idx,
+        groupLabel,
+        familyLabel,
+        categoryLabel,
+      });
+    });
+
+    interface ProductPageSlice {
+      groupLabel: string;
+      familyLabel: string;
+      categoryLabel: string;
+      breadcrumb: string;
+      entries: IndexedItem[];
+    }
+
+    const productPages: ProductPageSlice[] = [];
+    const sectionStartOffset = new Map<string, number>();
+
+    for (const sec of orderedSections) {
+      sectionStartOffset.set(sec.key, productPages.length);
+      for (let i = 0; i < sec.entries.length; i += ITEMS_PER_PAGE) {
+        productPages.push({
+          groupLabel: sec.groupLabel,
+          familyLabel: sec.familyLabel,
+          categoryLabel: sec.categoryLabel,
+          breadcrumb: sec.breadcrumb,
+          entries: sec.entries.slice(i, i + ITEMS_PER_PAGE),
+        });
+      }
+    }
+
+    // 2. Costruzione righe dell'Indice (Gruppo Merceologico -> Famiglia -> Categoria)
+    interface PdfIndexRow {
+      kind: 'GROUP' | 'CATEGORY';
+      groupLabel: string;
+      familyLabel: string;
+      categoryLabel: string;
+      itemsCount: number;
+      firstProductPageOffset: number;
+    }
+
+    const rawIndexRows: PdfIndexRow[] = [];
+    const groupsOrder: string[] = [];
+    const sectionsByGroup = new Map<string, CategorySection[]>();
+
+    for (const sec of orderedSections) {
+      const gKey = sec.groupLabel.toUpperCase();
+      if (!sectionsByGroup.has(gKey)) {
+        sectionsByGroup.set(gKey, []);
+        groupsOrder.push(gKey);
+      }
+      sectionsByGroup.get(gKey)!.push(sec);
+    }
+
+    for (const gKey of groupsOrder) {
+      const secs = sectionsByGroup.get(gKey)!;
+      const firstSec = secs[0];
+      const totalInGroup = secs.reduce((acc, s) => acc + s.entries.length, 0);
+      const groupFirstOffset = sectionStartOffset.get(firstSec.key) || 0;
+
+      rawIndexRows.push({
+        kind: 'GROUP',
+        groupLabel: firstSec.groupLabel,
+        familyLabel: '',
+        categoryLabel: '',
+        itemsCount: totalInGroup,
+        firstProductPageOffset: groupFirstOffset,
+      });
+
+      for (const sec of secs) {
+        rawIndexRows.push({
+          kind: 'CATEGORY',
+          groupLabel: sec.groupLabel,
+          familyLabel: sec.familyLabel,
+          categoryLabel: sec.categoryLabel,
+          itemsCount: sec.entries.length,
+          firstProductPageOffset: sectionStartOffset.get(sec.key) || 0,
+        });
+      }
+    }
+
+    const MAX_INDEX_ROWS_PER_PAGE = 16;
+    const numIndexPages = Math.max(
+      1,
+      Math.ceil(rawIndexRows.length / MAX_INDEX_ROWS_PER_PAGE)
+    );
+    const totalPages = numIndexPages + productPages.length;
+
     const dateStr = new Date().toLocaleDateString('it-IT', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
 
-    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG + Logo Header
+    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG + Logo Header + Annotazioni Link Indice
     // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Regular, Obj 4: Font Bold
     const headerLogo = getCatalogPdfHeaderLogo();
     const imageObjMap = new Map<number, number>(); // itemIdx -> objectNumber
@@ -1106,12 +1244,12 @@ export async function generateAgentCatalogPdfAction(
 
     const pageContents: Buffer[] = [];
     const pageImageRefs: Map<number, number>[] = []; // per pagina: itemIdx -> objNum
+    const pageLinkAnnots: {
+      rect: [number, number, number, number];
+      targetPageObjNum: number;
+    }[][] = Array.from({ length: totalPages }, () => []);
 
-    for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
-      const pageSlice = items.slice(pageIdx * ITEMS_PER_PAGE, (pageIdx + 1) * ITEMS_PER_PAGE);
-      const cmd: string[] = [];
-      const imgRefsForPage = new Map<number, number>();
-
+    const pushCommonPageHeaderAndFooter = (cmd: string[], pageIdx: number) => {
       // Header pagina A4 (sfondo nero come l'header del sito) con Logo Izzo Distribuzione in alto a sinistra
       cmd.push('0 0 0 rg');
       cmd.push('0 772 595 70 re f');
@@ -1157,10 +1295,167 @@ export async function generateAgentCatalogPdfAction(
       cmd.push(
         `BT /F1 8 Tf 0.75 0.80 0.85 rg 465 799 Td (Tot. ${items.length} schede) Tj ET`
       );
+    };
+
+    // 3A. Generazione Pagine INDICE (all'inizio del catalogo: Foglio 1 .. numIndexPages)
+    for (let idxPage = 0; idxPage < numIndexPages; idxPage++) {
+      const cmd: string[] = [];
+      const rowsSlice = rawIndexRows.slice(
+        idxPage * MAX_INDEX_ROWS_PER_PAGE,
+        (idxPage + 1) * MAX_INDEX_ROWS_PER_PAGE
+      );
+
+      pushCommonPageHeaderAndFooter(cmd, idxPage);
+
+      // Fascia Titolo Indice
+      cmd.push('0.07 0.09 0.14 rg');
+      cmd.push('28 724 539 34 re f');
+      cmd.push('0.00 0.78 0.00 rg');
+      cmd.push('28 724 5 34 re f');
+      cmd.push(
+        `BT /F2 11 Tf 1 1 1 rg 42 742 Td (INDICE MERCEOLOGICO DEL CATALOGO${
+          numIndexPages > 1 ? ` (PARTE ${idxPage + 1}/${numIndexPages})` : ''
+        }) Tj ET`
+      );
+      cmd.push(
+        `BT /F1 7.5 Tf 0.75 0.80 0.88 rg 42 730 Td (Suddivisione per Gruppo Merceologico, Famiglia e Categoria  -  Clicca su una voce per andare alla pagina) Tj ET`
+      );
+
+      let curY = 706;
+      for (const row of rowsSlice) {
+        const targetSheetIdx = numIndexPages + row.firstProductPageOffset;
+        const targetPageNumber = targetSheetIdx + 1;
+        const targetPageObj = pageObjNums[targetSheetIdx] || pageObjNums[0];
+
+        if (row.kind === 'GROUP') {
+          const boxH = 26;
+          const boxY = curY - boxH;
+
+          cmd.push('0.11 0.15 0.22 rg');
+          cmd.push(`28 ${boxY} 539 ${boxH} re f`);
+          cmd.push('0.00 0.78 0.00 rg');
+          cmd.push(`28 ${boxY} 4 ${boxH} re f`);
+
+          const grpText = truncateText(
+            `GRUPPO: ${row.groupLabel.toUpperCase()}`,
+            64
+          );
+          cmd.push(
+            `BT /F2 9 Tf 1 1 1 rg 40 ${boxY + 9} Td (${toPdfSafeLatin1(grpText)}) Tj ET`
+          );
+
+          const countText = `${row.itemsCount} ${
+            row.itemsCount === 1 ? 'articolo' : 'articoli'
+          }`;
+          cmd.push(
+            `BT /F1 8 Tf 0.65 0.92 0.72 rg 425 ${boxY + 9} Td (${toPdfSafeLatin1(
+              countText
+            )}) Tj ET`
+          );
+
+          // Pill Pagina
+          cmd.push('0.00 0.78 0.00 rg');
+          cmd.push(`504 ${boxY + 4} 55 18 re f`);
+          cmd.push(
+            `BT /F2 8.5 Tf 0 0 0 rg 513 ${boxY + 9} Td (PAG. ${targetPageNumber}) Tj ET`
+          );
+
+          pageLinkAnnots[idxPage].push({
+            rect: [28, boxY, 567, boxY + boxH],
+            targetPageObjNum: targetPageObj,
+          });
+
+          curY -= boxH + 8;
+        } else {
+          const boxH = 24;
+          const boxY = curY - boxH;
+
+          cmd.push('0.98 0.98 0.99 rg');
+          cmd.push(`38 ${boxY} 529 ${boxH} re f`);
+          cmd.push('0.86 0.89 0.93 RG 0.6 w');
+          cmd.push(`38 ${boxY} 529 ${boxH} re S`);
+
+          const catTitle =
+            row.familyLabel &&
+            row.familyLabel.toUpperCase() !== row.categoryLabel.toUpperCase()
+              ? `${row.familyLabel}  >  ${row.categoryLabel}`
+              : row.categoryLabel;
+          const cleanCatTitle = truncateText(catTitle, 58);
+
+          cmd.push(
+            `BT /F2 8.5 Tf 0.10 0.14 0.20 rg 48 ${boxY + 8} Td (${toPdfSafeLatin1(
+              cleanCatTitle
+            )}) Tj ET`
+          );
+
+          // Puntini di guida
+          const approxTextW = Math.min(285, cleanCatTitle.length * 4.5 + 14);
+          const dotsStartX = 48 + approxTextW;
+          if (dotsStartX < 410) {
+            cmd.push('0.75 0.79 0.85 RG 0.5 w [1.5 2.5] 0 d');
+            cmd.push(`${dotsStartX.toFixed(1)} ${boxY + 9} m 415 ${boxY + 9} l S`);
+            cmd.push('[] 0 d');
+          }
+
+          const countBadge = `${row.itemsCount} art.`;
+          cmd.push(
+            `BT /F1 7.5 Tf 0.40 0.45 0.54 rg 428 ${boxY + 8} Td (${toPdfSafeLatin1(
+              countBadge
+            )}) Tj ET`
+          );
+
+          cmd.push('0.91 0.98 0.93 rg');
+          cmd.push('0.00 0.68 0.20 RG 0.6 w');
+          cmd.push(`504 ${boxY + 3.5} 55 17 re B`);
+          cmd.push(
+            `BT /F2 8 Tf 0.04 0.42 0.14 rg 514 ${boxY + 8} Td (Pag. ${targetPageNumber}) Tj ET`
+          );
+
+          pageLinkAnnots[idxPage].push({
+            rect: [38, boxY, 567, boxY + boxH],
+            targetPageObjNum: targetPageObj,
+          });
+
+          curY -= boxH + 6;
+        }
+      }
+
+      // Footer pagina indice
+      cmd.push('0.85 0.87 0.90 RG 0.5 w');
+      cmd.push('28 28 567 28 m l S');
+      cmd.push(
+        'BT /F1 7.5 Tf 0.45 0.48 0.53 rg 28 16 Td (Izzo Distribuzione S.r.l. - Portale B2B www.izzodistribuzione.it - Prezzi IVA esclusa salvo errori e/o omissioni.) Tj ET'
+      );
+
+      pageContents.push(Buffer.from(cmd.join('\n'), 'latin1'));
+      pageImageRefs.push(new Map<number, number>());
+    }
+
+    // 3B. Generazione Pagine PRODOTTI (ogni nuova categoria inizia su una pagina nuova)
+    for (let prodPageIdx = 0; prodPageIdx < productPages.length; prodPageIdx++) {
+      const pageIdx = numIndexPages + prodPageIdx;
+      const pageData = productPages[prodPageIdx];
+      const pageSlice = pageData.entries;
+      const cmd: string[] = [];
+      const imgRefsForPage = new Map<number, number>();
+
+      pushCommonPageHeaderAndFooter(cmd, pageIdx);
+
+      // Barra Categoria Merceologica della Pagina
+      cmd.push('0.94 0.96 0.99 rg');
+      cmd.push('28 744 539 18 re f');
+      cmd.push('0.00 0.78 0.00 rg');
+      cmd.push('28 744 4 18 re f');
+      cmd.push(
+        `BT /F2 7.5 Tf 0.10 0.15 0.24 rg 38 750 Td (${toPdfSafeLatin1(
+          truncateText(pageData.breadcrumb.toUpperCase(), 92)
+        )}) Tj ET`
+      );
 
       // Griglia 6 Schede per foglio (2 colonne x 3 righe)
-      pageSlice.forEach((item, localIdx) => {
-        const globalIdx = pageIdx * ITEMS_PER_PAGE + localIdx;
+      pageSlice.forEach((entry, localIdx) => {
+        const item = entry.item;
+        const globalIdx = entry.globalIdx;
         const col = localIdx % COLS; // 0 o 1
         const row = Math.floor(localIdx / COLS); // 0, 1 o 2
 
@@ -1552,9 +1847,23 @@ export async function generateAgentCatalogPdfAction(
       const xObjectEntries = xObjectParts.join(' ');
       const xObjectDict = xObjectEntries ? ` /XObject << ${xObjectEntries} >>` : '';
 
+      const links = pageLinkAnnots[p] || [];
+      let annotsDict = '';
+      if (links.length > 0) {
+        const inlineAnnots = links
+          .map(
+            l =>
+              `<< /Type /Annot /Subtype /Link /Rect [${l.rect
+                .map(n => n.toFixed(1))
+                .join(' ')}] /Border [0 0 0] /Dest [${l.targetPageObjNum} 0 R /Fit] >>`
+          )
+          .join(' ');
+        annotsDict = ` /Annots [${inlineAnnots}]`;
+      }
+
       offsets[pageObjNum] = currentLength;
       pushStr(
-        `${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xObjectDict} >> /Contents ${contentObjNum} 0 R >>\nendobj\n`
+        `${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>${xObjectDict} >>${annotsDict} /Contents ${contentObjNum} 0 R >>\nendobj\n`
       );
 
       const contentBuf = pageContents[p];
