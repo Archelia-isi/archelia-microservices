@@ -87,6 +87,8 @@ export interface EvaluatedProductPricing {
   discountLabel: string;
   appliedRuleId: string | null;
   appliedRuleName: string | null;
+  appliedRuleExpiresAt: string | null;
+  appliedRuleExpiresFormatted: string | null;
 }
 
 /**
@@ -210,6 +212,29 @@ export function isDiscountRuleExpired(
 
   if (isNaN(expTime)) return false;
   return now.getTime() > expTime;
+}
+
+/**
+ * Formatta la data di scadenza di una regola di sconto in formato italiano GG/MM/AAAA.
+ * Ritorna `null` se la regola non ha scadenza o la data non è valida.
+ */
+export function formatDiscountRuleExpiryDate(expiresAt?: string | null): string | null {
+  if (!expiresAt) return null;
+  const raw = String(expiresAt).trim();
+  if (!raw) return null;
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
+  if (dateOnlyMatch) {
+    return `${dateOnlyMatch[3]}/${dateOnlyMatch[2]}/${dateOnlyMatch[1]}`;
+  }
+
+  const parsed = new Date(raw);
+  if (isNaN(parsed.getTime())) return null;
+
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const year = String(parsed.getFullYear());
+  return `${day}/${month}/${year}`;
 }
 
 /**
@@ -355,6 +380,8 @@ export function evaluateProductDiscountWithRules(
         discountLabel: label,
         appliedRuleId: null,
         appliedRuleName: null,
+        appliedRuleExpiresAt: null,
+        appliedRuleExpiresFormatted: null,
       };
     }
 
@@ -371,10 +398,14 @@ export function evaluateProductDiscountWithRules(
       discountLabel: safeBase > 0 ? `${safeBase}%` : '0%',
       appliedRuleId: null,
       appliedRuleName: null,
+      appliedRuleExpiresAt: null,
+      appliedRuleExpiresFormatted: null,
     };
   }
 
   const ruleVal = Math.max(0, Math.min(95, Number(winningRule.discountValue || 0)));
+  const appliedRuleExpiresAt = winningRule.expiresAt ? String(winningRule.expiresAt).trim() : null;
+  const appliedRuleExpiresFormatted = formatDiscountRuleExpiryDate(appliedRuleExpiresAt);
 
   if (winningRule.calculationMode === 'FIXED_OVERRIDE') {
     const netPrice = Number((listPrice * (1 - ruleVal / 100)).toFixed(4));
@@ -390,6 +421,8 @@ export function evaluateProductDiscountWithRules(
       discountLabel: `${ruleVal}%`,
       appliedRuleId: winningRule.id,
       appliedRuleName: winningRule.name,
+      appliedRuleExpiresAt,
+      appliedRuleExpiresFormatted,
     };
   }
 
@@ -411,5 +444,7 @@ export function evaluateProductDiscountWithRules(
     discountLabel: label,
     appliedRuleId: winningRule.id,
     appliedRuleName: winningRule.name,
+    appliedRuleExpiresAt,
+    appliedRuleExpiresFormatted,
   };
 }

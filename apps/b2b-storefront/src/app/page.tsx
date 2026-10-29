@@ -119,6 +119,8 @@ export default async function Home() {
         p.price_b2b = evaluated.netPrice;
         p.discountPct = evaluated.discountPct;
         p.discountLabel = evaluated.discountLabel;
+        p.discountExpiresAt = evaluated.appliedRuleExpiresAt;
+        p.discountExpiresFormatted = evaluated.appliedRuleExpiresFormatted;
       } else {
         p.originalPriceB2b = Number(p.price_b2b) > 0 ? Number(p.price_b2b) : Number(p.price || 0);
         p.price_b2b = p.originalPriceB2b;

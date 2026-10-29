@@ -150,13 +150,18 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
         {isLoggedIn ? (
           <>
             {hasDiscount && (
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <span className="text-sm text-gray-400 line-through">
                   € {product.originalPriceB2b.toFixed(2).replace('.', ',')}
                 </span>
                 <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
                   {discountBadgeText}
                 </span>
+                {product.discountExpiresFormatted && (
+                  <span className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded whitespace-nowrap">
+                    ⏳ Promo valida fino al {product.discountExpiresFormatted}
+                  </span>
+                )}
               </div>
             )}
             <div className="flex items-end gap-2">

@@ -96,6 +96,8 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     p.price_b2b = evaluated.netPrice;
     p.discountPct = evaluated.discountPct;
     p.discountLabel = evaluated.discountLabel;
+    p.discountExpiresAt = evaluated.appliedRuleExpiresAt;
+    p.discountExpiresFormatted = evaluated.appliedRuleExpiresFormatted;
   };
 
   if (isAuthenticated) {

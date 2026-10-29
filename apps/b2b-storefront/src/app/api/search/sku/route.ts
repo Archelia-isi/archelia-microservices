@@ -45,6 +45,8 @@ export async function GET(request: Request) {
             evaluatedPriceB2b: evaluated.netPrice,
             discountPct: evaluated.discountPct,
             discountLabel: evaluated.discountLabel,
+            discountExpiresAt: evaluated.appliedRuleExpiresAt,
+            discountExpiresFormatted: evaluated.appliedRuleExpiresFormatted,
           };
         })
       : rawHits;

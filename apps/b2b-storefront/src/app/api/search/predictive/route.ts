@@ -102,6 +102,8 @@ export async function GET(request: Request) {
         doc.price_b2b = evaluated.netPrice;
         doc.discountPct = Math.round(evaluated.discountPct);
         doc.discountLabel = evaluated.discountLabel;
+        doc.discountExpiresAt = evaluated.appliedRuleExpiresAt;
+        doc.discountExpiresFormatted = evaluated.appliedRuleExpiresFormatted;
       }
       return doc;
     });

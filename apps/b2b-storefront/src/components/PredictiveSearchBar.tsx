@@ -400,13 +400,18 @@ export default function PredictiveSearchBar({
                     {isAuthenticated && (
                       <div className="flex flex-col items-end shrink-0 pl-2">
                         {discountPct > 0 && (
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center justify-end gap-1">
                             <span className="text-[10px] text-gray-400 line-through">
                               € {originalPrice.toFixed(2).replace('.', ',')}
                             </span>
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
                               -{product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPct}%`}
                             </span>
+                            {product.discountExpiresFormatted && (
+                              <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">
+                                ⏳ Fino al {product.discountExpiresFormatted}
+                              </span>
+                            )}
                           </div>
                         )}
                         <span className="text-sm font-bold text-gray-900 whitespace-nowrap">

@@ -44,6 +44,8 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
       product.price_b2b = evaluated.netPrice;
       product.discountPct = evaluated.discountPct;
       product.discountLabel = evaluated.discountLabel;
+      product.discountExpiresAt = evaluated.appliedRuleExpiresAt;
+      product.discountExpiresFormatted = evaluated.appliedRuleExpiresFormatted;
     }
     
     return product;

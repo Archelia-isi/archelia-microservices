@@ -8,6 +8,7 @@ import {
   evaluateProductDiscountWithRules,
   getActiveDiscountRulesForClientUser,
   getAgentDiscountRulesFromDb,
+  isDiscountRuleExpired,
 } from '@/lib/discountRules';
 
 export async function getEffectiveDiscount() {
@@ -138,6 +139,7 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
       rules = allAgentRules.filter(
         r =>
           r.isActive &&
+          !isDiscountRuleExpired(r) &&
           doesRuleMatchClient(r, {
             clientId,
             clientCode,
@@ -149,7 +151,9 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
       clientId = null;
       clientCode = null;
       clientCategory = null;
-      rules = allAgentRules.filter(r => r.isActive && r.clientScope === 'ALL_CLIENTS');
+      rules = allAgentRules.filter(
+        r => r.isActive && !isDiscountRuleExpired(r) && r.clientScope === 'ALL_CLIENTS'
+      );
     }
   } else {
     rules = await getActiveDiscountRulesForClientUser({
@@ -250,7 +254,11 @@ export async function fetchRuleTargetedProductsForCarousel(
   }
 
   const activeSpecificRules = ctx.rules.filter(
-    r => r.isActive && r.discountValue > 0 && r.targetType !== 'ALL_CATALOG'
+    r =>
+      r.isActive &&
+      !isDiscountRuleExpired(r) &&
+      r.discountValue > 0 &&
+      r.targetType !== 'ALL_CATALOG'
   );
   if (activeSpecificRules.length === 0) {
     return [];

@@ -307,13 +307,18 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
                 {isAuthenticated && (
                   <div className="flex flex-col justify-end min-h-[34px]">
                     {product.originalPriceB2b && product.price_b2b < product.originalPriceB2b && (
-                      <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                         <span className="text-[10px] text-gray-400 line-through">
                           € {Number(product.originalPriceB2b).toFixed(2).replace('.', ',')}
                         </span>
                         <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
                           -{product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100)}%`}
                         </span>
+                        {product.discountExpiresFormatted && (
+                          <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded whitespace-nowrap">
+                            ⏳ Fino al {product.discountExpiresFormatted}
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="text-base font-bold text-gray-900 leading-none">

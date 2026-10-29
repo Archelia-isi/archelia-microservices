@@ -841,6 +841,7 @@ export default function CatalogBuilderClient({
           netPrice: pricing.netPrice,
           discountPct: pricing.discountPct,
           discountLabel: pricing.discountLabel,
+          discountExpiresFormatted: pricing.appliedRuleExpiresFormatted || undefined,
           stockMain: p.stockMain,
           stockEk: p.stockEk,
           stockTotal: p.stockTotal,
@@ -1391,6 +1392,11 @@ export default function CatalogBuilderClient({
                         <div className="text-[9px] text-slate-500">
                           IVA esclusa / per {product.unit || 'PZ'}
                         </div>
+                        {pricing.discountPct > 0 && pricing.appliedRuleExpiresFormatted && (
+                          <div className="text-[9px] font-extrabold text-amber-700 mt-0.5">
+                            ⏳ Valido fino al {pricing.appliedRuleExpiresFormatted}
+                          </div>
+                        )}
                       </div>
                       <div className="text-sm font-black text-emerald-800">
                         € {pricing.netPrice.toFixed(2).replace('.', ',')}
@@ -1415,6 +1421,11 @@ export default function CatalogBuilderClient({
                             {pricing.appliedRuleName && (
                               <div className="text-[9px] font-bold text-emerald-700 truncate max-w-[140px]">
                                 🏷️ {pricing.appliedRuleName}
+                              </div>
+                            )}
+                            {pricing.appliedRuleExpiresFormatted && (
+                              <div className="text-[9px] font-extrabold text-amber-700 mt-0.5">
+                                ⏳ Valido fino al {pricing.appliedRuleExpiresFormatted}
                               </div>
                             )}
                           </div>
@@ -1706,13 +1717,18 @@ export default function CatalogBuilderClient({
 
                           <div className="flex flex-col items-end shrink-0 pl-2">
                             {pricing.discountPct > 0 && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex flex-wrap items-center justify-end gap-1">
                                 <span className="text-[10px] text-gray-400 line-through">
                                   € {pricing.listPrice.toFixed(2).replace('.', ',')}
                                 </span>
                                 <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
                                   -{pricing.discountPct}%
                                 </span>
+                                {pricing.appliedRuleExpiresFormatted && (
+                                  <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">
+                                    ⏳ Fino al {pricing.appliedRuleExpiresFormatted}
+                                  </span>
+                                )}
                               </div>
                             )}
                             <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
@@ -2210,6 +2226,14 @@ export default function CatalogBuilderClient({
                               .replace('.', ',')}
                           </span>
                         )}
+                        {priceMode !== 'NO_PRICE' &&
+                          priceMode !== 'LIST_ONLY' &&
+                          pricing.discountPct > 0 &&
+                          pricing.appliedRuleExpiresFormatted && (
+                            <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded shrink-0">
+                              ⏳ {pricing.appliedRuleExpiresFormatted}
+                            </span>
+                          )}
                       </div>
                       <div className="text-[10px] text-gray-500 group-hover:text-gray-800 truncate">
                         {product.originalName || product.title}

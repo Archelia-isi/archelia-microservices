@@ -736,6 +736,7 @@ export interface GenerateCatalogPdfInput {
     netPrice: number;
     discountPct: number;
     discountLabel?: string;
+    discountExpiresFormatted?: string;
     stockMain: number;
     stockEk: number;
     stockTotal: number;
@@ -1803,16 +1804,34 @@ export async function generateAgentCatalogPdfAction(
               } Td (${toPdfSafeLatin1(listFmt)}) Tj ET`
             );
           } else if (input.priceMode === 'NET_ONLY') {
-            cmd.push(
-              `BT /F2 7.5 Tf 0.05 0.45 0.15 rg ${priceBoxX + 8} ${
-                priceBoxY + 22
-              } Td (PREZZO NETTO RISERVATO) Tj ET`
-            );
-            cmd.push(
-              `BT /F1 6.5 Tf 0.40 0.46 0.52 rg ${priceBoxX + 8} ${
-                priceBoxY + 10
-              } Td (IVA esclusa / per ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
-            );
+            if (item.discountPct > 0 && item.discountExpiresFormatted) {
+              cmd.push(
+                `BT /F2 7.2 Tf 0.05 0.45 0.15 rg ${priceBoxX + 8} ${
+                  priceBoxY + 24
+                } Td (PREZZO NETTO RISERVATO) Tj ET`
+              );
+              cmd.push(
+                `BT /F1 6.2 Tf 0.40 0.46 0.52 rg ${priceBoxX + 8} ${
+                  priceBoxY + 15
+                } Td (IVA esclusa / per ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+              );
+              cmd.push(
+                `BT /F2 6.5 Tf 0.72 0.33 0.04 rg ${priceBoxX + 8} ${
+                  priceBoxY + 5.5
+                } Td (Valido fino al ${toPdfSafeLatin1(item.discountExpiresFormatted)}) Tj ET`
+              );
+            } else {
+              cmd.push(
+                `BT /F2 7.5 Tf 0.05 0.45 0.15 rg ${priceBoxX + 8} ${
+                  priceBoxY + 22
+                } Td (PREZZO NETTO RISERVATO) Tj ET`
+              );
+              cmd.push(
+                `BT /F1 6.5 Tf 0.40 0.46 0.52 rg ${priceBoxX + 8} ${
+                  priceBoxY + 10
+                } Td (IVA esclusa / per ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+              );
+            }
             cmd.push(
               `BT /F2 12.5 Tf 0.04 0.45 0.14 rg ${priceBoxX + 140} ${
                 priceBoxY + 14
@@ -1820,26 +1839,47 @@ export async function generateAgentCatalogPdfAction(
             );
           } else {
             // LIST_AND_NET
-            cmd.push(
-              `BT /F1 7.5 Tf 0.40 0.44 0.50 rg ${priceBoxX + 8} ${
-                priceBoxY + 23
-              } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
-            );
-            if (item.discountPct > 0) {
+            if (item.discountPct > 0 && item.discountExpiresFormatted) {
+              cmd.push(
+                `BT /F1 7.2 Tf 0.40 0.44 0.50 rg ${priceBoxX + 8} ${
+                  priceBoxY + 25
+                } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
+              );
               const discText = item.discountLabel
                 ? `Sconto riservato: -${item.discountLabel}`
                 : `Sconto riservato: -${item.discountPct.toFixed(1).replace('.0', '')}%`;
               cmd.push(
-                `BT /F2 7.5 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
-                  priceBoxY + 10
+                `BT /F2 7.2 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
+                  priceBoxY + 15.5
                 } Td (${toPdfSafeLatin1(truncateText(discText, 32))}) Tj ET`
+              );
+              cmd.push(
+                `BT /F2 6.5 Tf 0.72 0.33 0.04 rg ${priceBoxX + 8} ${
+                  priceBoxY + 5.5
+                } Td (Valido fino al ${toPdfSafeLatin1(item.discountExpiresFormatted)}) Tj ET`
               );
             } else {
               cmd.push(
-                `BT /F1 6.5 Tf 0.45 0.50 0.56 rg ${priceBoxX + 8} ${
-                  priceBoxY + 10
-                } Td (IVA esclusa / ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+                `BT /F1 7.5 Tf 0.40 0.44 0.50 rg ${priceBoxX + 8} ${
+                  priceBoxY + 23
+                } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
               );
+              if (item.discountPct > 0) {
+                const discText = item.discountLabel
+                  ? `Sconto riservato: -${item.discountLabel}`
+                  : `Sconto riservato: -${item.discountPct.toFixed(1).replace('.0', '')}%`;
+                cmd.push(
+                  `BT /F2 7.5 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
+                    priceBoxY + 10
+                  } Td (${toPdfSafeLatin1(truncateText(discText, 32))}) Tj ET`
+                );
+              } else {
+                cmd.push(
+                  `BT /F1 6.5 Tf 0.45 0.50 0.56 rg ${priceBoxX + 8} ${
+                    priceBoxY + 10
+                  } Td (IVA esclusa / ${toPdfSafeLatin1(item.unit || 'PZ')}) Tj ET`
+                );
+              }
             }
 
             cmd.push(
