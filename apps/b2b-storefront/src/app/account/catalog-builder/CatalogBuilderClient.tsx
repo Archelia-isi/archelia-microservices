@@ -657,231 +657,7 @@ export default function CatalogBuilderClient({
     return copy;
   }, [catalogItems, sortBy]);
 
-  // Helper per rimuovere i codici tassonomici (es. "CA - CASA" -> "CASA", "AER - AREATORI E ROMIGETTO" -> "AREATORI E ROMIGETTO")
-  const stripTaxonomyCode = (raw: string): string => {
-    let s = (raw || '').trim();
-    while (/^[A-Z0-9_.]+\s*-\s+/i.test(s)) {
-      s = s.replace(/^[A-Z0-9_.]+\s*-\s+/i, '').trim();
-    }
-    return s;
-  };
-
-  // =========================================================================
-  // STRUTTURA IMPAGINAZIONE CATALOGO:
-  // 1) INDICE MERCEOLOGICO ALL'INIZIO (Pag. 1..numIndexPages) CLICCABILE:
-  //    - Fascia scura Gruppo (solo nome senza codice, es. "CASA")
-  //    - Righe bianche Categoria (solo nome Categoria senza codice e senza Famiglia, es. "AREATORI E ROMIGETTO")
-  // 2) PAGINE PRODOTTI RAGGRUPPATE PER FAMIGLIA (max 6 schede/pag):
-  //    - Ogni nuova Famiglia inizia su una nuova pagina
-  //    - All'interno della Famiglia i prodotti sono ordinati per Categoria e ogni voce dell'Indice punta alla pagina esatta in cui inizia quella Categoria
-  // =========================================================================
-  const catalogLayout = useMemo(() => {
-    type FamilySection = {
-      key: string;
-      groupLabel: string;
-      familyLabel: string;
-      items: CatalogProductItem[];
-    };
-
-    const familyMap = new Map<string, FamilySection>();
-    const familiesList: FamilySection[] = [];
-
-    for (const item of sortedCatalogProducts) {
-      const groupLabel =
-        stripTaxonomyCode(item.productGroupLabel || item.productGroup || '') || 'Catalogo Generale';
-      const familyLabel =
-        stripTaxonomyCode(item.familyLabel || item.family || '') ||
-        stripTaxonomyCode(item.categoryLabel || item.category || '') ||
-        groupLabel;
-
-      const famKey = `${groupLabel.toUpperCase()}|||${familyLabel.toUpperCase()}`;
-      let famSec = familyMap.get(famKey);
-      if (!famSec) {
-        famSec = {
-          key: famKey,
-          groupLabel,
-          familyLabel,
-          items: [],
-        };
-        familyMap.set(famKey, famSec);
-        familiesList.push(famSec);
-      }
-      famSec.items.push(item);
-    }
-
-    type ProductPageDef = {
-      groupLabel: string;
-      familyLabel: string;
-      items: CatalogProductItem[];
-      familyPageIdx: number;
-      familyTotalPages: number;
-    };
-
-    const productPages: ProductPageDef[] = [];
-
-    type GroupIndexBucket = {
-      groupLabel: string;
-      totalItemsInGroup: number;
-      firstProductPageOffset: number;
-      categories: {
-        categoryLabel: string;
-        itemsCount: number;
-        firstProductPageOffset: number;
-      }[];
-    };
-
-    const groupBucketsMap = new Map<string, GroupIndexBucket>();
-    const orderedGroupBuckets: GroupIndexBucket[] = [];
-    let totalCategoriesCount = 0;
-
-    for (const famSec of familiesList) {
-      // Raggruppiamo gli articoli della stessa Famiglia per Categoria così sono contigui nelle pagine della Famiglia
-      const catBucketsMap = new Map<string, { label: string; list: CatalogProductItem[] }>();
-      const catOrder: string[] = [];
-
-      for (const item of famSec.items) {
-        const cleanCat =
-          stripTaxonomyCode(item.categoryLabel || item.category || '') ||
-          famSec.familyLabel ||
-          famSec.groupLabel ||
-          'Articoli Selezionati';
-        const cKey = cleanCat.toUpperCase();
-        if (!catBucketsMap.has(cKey)) {
-          catBucketsMap.set(cKey, { label: cleanCat, list: [] });
-          catOrder.push(cKey);
-        }
-        catBucketsMap.get(cKey)!.list.push(item);
-      }
-
-      const orderedFamItems: CatalogProductItem[] = [];
-      const catStartInfo = new Map<string, { label: string; count: number; startIdx: number }>();
-
-      for (const cKey of catOrder) {
-        const bucket = catBucketsMap.get(cKey)!;
-        catStartInfo.set(cKey, {
-          label: bucket.label,
-          count: bucket.list.length,
-          startIdx: orderedFamItems.length,
-        });
-        orderedFamItems.push(...bucket.list);
-      }
-
-      const familyFirstPageOffset = productPages.length;
-      const famTotalPages = Math.max(1, Math.ceil(orderedFamItems.length / 6));
-
-      for (let i = 0; i < orderedFamItems.length; i += 6) {
-        productPages.push({
-          groupLabel: famSec.groupLabel,
-          familyLabel: famSec.familyLabel,
-          items: orderedFamItems.slice(i, i + 6),
-          familyPageIdx: Math.floor(i / 6) + 1,
-          familyTotalPages: famTotalPages,
-        });
-      }
-
-      const gUpper = famSec.groupLabel.toUpperCase();
-      let gBucket = groupBucketsMap.get(gUpper);
-      if (!gBucket) {
-        gBucket = {
-          groupLabel: famSec.groupLabel,
-          totalItemsInGroup: 0,
-          firstProductPageOffset: familyFirstPageOffset,
-          categories: [],
-        };
-        groupBucketsMap.set(gUpper, gBucket);
-        orderedGroupBuckets.push(gBucket);
-      }
-      gBucket.totalItemsInGroup += orderedFamItems.length;
-
-      for (const cKey of catOrder) {
-        const info = catStartInfo.get(cKey)!;
-        const catPageOffset = familyFirstPageOffset + Math.floor(info.startIdx / 6);
-        gBucket.categories.push({
-          categoryLabel: info.label,
-          itemsCount: info.count,
-          firstProductPageOffset: catPageOffset,
-        });
-        totalCategoriesCount++;
-      }
-    }
-
-    type IndexRowDef =
-      | {
-          kind: 'GROUP';
-          groupLabel: string;
-          totalItemsInGroup: number;
-          firstProductPageOffset: number;
-        }
-      | {
-          kind: 'CATEGORY';
-          categoryLabel: string;
-          itemsCount: number;
-          firstProductPageOffset: number;
-        };
-
-    const indexRows: IndexRowDef[] = [];
-    for (const gBucket of orderedGroupBuckets) {
-      indexRows.push({
-        kind: 'GROUP',
-        groupLabel: gBucket.groupLabel,
-        totalItemsInGroup: gBucket.totalItemsInGroup,
-        firstProductPageOffset: gBucket.firstProductPageOffset,
-      });
-      for (const cat of gBucket.categories) {
-        indexRows.push({
-          kind: 'CATEGORY',
-          categoryLabel: cat.categoryLabel,
-          itemsCount: cat.itemsCount,
-          firstProductPageOffset: cat.firstProductPageOffset,
-        });
-      }
-    }
-
-    const MAX_INDEX_ROWS_PER_PAGE = 16;
-    const indexPages: IndexRowDef[][] = [];
-    if (sortedCatalogProducts.length > 0) {
-      for (let i = 0; i < indexRows.length; i += MAX_INDEX_ROWS_PER_PAGE) {
-        indexPages.push(indexRows.slice(i, i + MAX_INDEX_ROWS_PER_PAGE));
-      }
-    }
-    const numIndexPages = indexPages.length;
-
-    type SheetDef =
-      | {
-          type: 'INDEX';
-          indexPageNumber: number;
-          totalIndexPages: number;
-          rows: IndexRowDef[];
-        }
-      | {
-          type: 'PRODUCTS';
-          pageDef: ProductPageDef;
-        };
-
-    const allSheets: SheetDef[] = [
-      ...indexPages.map((rows, idx) => ({
-        type: 'INDEX' as const,
-        indexPageNumber: idx + 1,
-        totalIndexPages: numIndexPages,
-        rows,
-      })),
-      ...productPages.map(pageDef => ({
-        type: 'PRODUCTS' as const,
-        pageDef,
-      })),
-    ];
-
-    return {
-      familiesList,
-      totalCategoriesCount,
-      productPages,
-      indexPages,
-      numIndexPages,
-      allSheets,
-    };
-  }, [sortedCatalogProducts]);
-
-  const totalSheets = Math.max(1, catalogLayout.allSheets.length);
+  const totalSheets = Math.max(1, Math.ceil(sortedCatalogProducts.length / 6));
   const safeCurrentSheet = Math.min(Math.max(0, currentSheet), totalSheets - 1);
 
   // In modalità 2 pagine (Libro Aperto), mostriamo le pagine accoppiate (0-1, 2-3, 4-5...)
@@ -983,14 +759,12 @@ export default function CatalogBuilderClient({
   // Quando l'agente aggiunge un singolo prodotto dalla barra predittiva,
   // sfoglia automaticamente al foglio A4 dove si trova quel prodotto appena inserito
   useEffect(() => {
-    if (!lastAddedSku || catalogLayout.allSheets.length === 0) return;
-    const sheetIdx = catalogLayout.allSheets.findIndex(
-      s => s.type === 'PRODUCTS' && s.pageDef.items.some(p => p.sku === lastAddedSku)
-    );
-    if (sheetIdx >= 0) {
-      setCurrentSheet(sheetIdx);
+    if (!lastAddedSku || sortedCatalogProducts.length === 0) return;
+    const idx = sortedCatalogProducts.findIndex(p => p.sku === lastAddedSku);
+    if (idx >= 0) {
+      setCurrentSheet(Math.floor(idx / 6));
     }
-  }, [lastAddedSku, catalogLayout]);
+  }, [lastAddedSku, sortedCatalogProducts]);
 
   // Stringa descrittiva dei filtri attivi (stampata anche nel PDF)
   const filterSummaryText = useMemo(() => {
@@ -1047,6 +821,11 @@ export default function CatalogBuilderClient({
     setPdfError('');
 
     try {
+      const siteOrigin =
+        typeof window !== 'undefined' && window.location?.origin
+          ? window.location.origin
+          : 'https://www.izzodistribuzione.it';
+
       const itemsPayload = sortedCatalogProducts.map(p => {
         const pricing = calculateProductPricing(p);
         const catParts = [p.productGroupLabel, p.familyLabel, p.categoryLabel].filter(Boolean);
@@ -1054,9 +833,7 @@ export default function CatalogBuilderClient({
           sku: p.sku,
           title: p.originalName || p.title,
           brand: p.brandLabel || p.brand,
-          productGroupLabel: p.productGroupLabel || p.productGroup || '',
-          familyLabel: p.familyLabel || p.family || '',
-          categoryLabel: p.categoryLabel || catParts[catParts.length - 1] || '',
+          categoryLabel: catParts[catParts.length - 1] || '',
           technicalDesc: p.technicalDesc || p.description || '',
           unit: p.unit || 'PZ',
           listPrice: pricing.listPrice,
@@ -1068,6 +845,8 @@ export default function CatalogBuilderClient({
           stockTotal: p.stockTotal,
           catalogSource: p.catalogSource,
           imageUrl: p.imageUrl,
+          productId: p.id,
+          productUrl: `${siteOrigin}/product/${encodeURIComponent(p.id || p.sku)}`,
         };
       });
 
@@ -1143,10 +922,10 @@ export default function CatalogBuilderClient({
     [catalogItems]
   );
 
-  // Renderizza un singolo Foglio A4 (Indice o Pagina Schede Prodotto 2x3) compatibile con HTMLFlipBook (StPageFlip)
+  // Renderizza un singolo Foglio A4 (6 schede 2x3) compatibile con HTMLFlipBook (StPageFlip)
   const renderA4Sheet = (sheetIdx: number) => {
-    const sheetDef = catalogLayout.allSheets[sheetIdx];
-    const isOutOfBounds = !sheetDef || sheetIdx >= totalSheets || sortedCatalogProducts.length === 0;
+    const sheetProducts = sortedCatalogProducts.slice(sheetIdx * 6, (sheetIdx + 1) * 6);
+    const isOutOfBounds = sheetIdx >= totalSheets || sheetProducts.length === 0;
 
     if (isOutOfBounds) {
       return (
@@ -1201,240 +980,47 @@ export default function CatalogBuilderClient({
       );
     }
 
-    // =====================================================================
-    // FOGLIO INDICE MERCEOLOGICO (ALL'INIZIO DEL CATALOGO, CLICCABILE)
-    // =====================================================================
-    if (sheetDef.type === 'INDEX') {
-      return (
-        <div
-          key={`index-sheet-${sheetIdx}`}
-          className="w-[740px] h-[1020px] bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between select-none"
-        >
-          {/* Intestazione Foglio A4 */}
-          <div className="px-5 py-3 bg-black text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <img
-                src="/logo-izzo.png"
-                alt="Izzo Distribuzione"
-                className="h-10 w-auto object-contain shrink-0"
-              />
-              <div className="h-8 w-px bg-gray-700 hidden sm:block shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] font-extrabold text-brand-main tracking-wider uppercase truncate">
-                  IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B
-                </div>
-                <div className="text-xs sm:text-sm font-black tracking-wide uppercase truncate">
-                  {catalogTitle || 'Catalogo Prodotti B2B'}
-                </div>
-                <div className="text-[10px] text-gray-300 truncate">
-                  {selectedClient
-                    ? `Cliente: ${selectedClient.companyName}  •  Agente: ${agentName}`
-                    : `Agente: ${agentName}`}
-                </div>
-              </div>
-            </div>
-            <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
-              <span className="px-2.5 py-0.5 text-[11px] font-black bg-brand-main text-black rounded">
-                FOGLIO {sheetIdx + 1} / {totalSheets}
-              </span>
-              <div className="text-[10px] text-gray-400">
-                Indice Merceologico ({catalogLayout.totalCategoriesCount}{' '}
-                {catalogLayout.totalCategoriesCount === 1 ? 'categoria' : 'categorie'})
-              </div>
-            </div>
-          </div>
-
-          {/* Fascia Titolo Indice */}
-          <div className="mx-5 mt-4 px-4 py-3 rounded-xl bg-gray-900 text-white border-l-4 border-brand-main flex items-center justify-between gap-3 shrink-0">
-            <div>
-              <div className="text-xs font-black tracking-wider uppercase text-brand-main">
-                📑 INDICE MERCEOLOGICO DEL CATALOGO
-                {sheetDef.totalIndexPages > 1
-                  ? ` (${sheetDef.indexPageNumber}/${sheetDef.totalIndexPages})`
-                  : ''}
-              </div>
-              <div className="text-[11px] text-gray-300 mt-0.5">
-                Clicca su una categoria o un reparto per andare subito alla pagina corrispondente
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-[11px] font-black text-white">
-                {sortedCatalogProducts.length} Articoli
-              </div>
-              <div className="text-[10px] text-gray-400">
-                {catalogLayout.familiesList.length}{' '}
-                {catalogLayout.familiesList.length === 1 ? 'Famiglia' : 'Famiglie'}
-              </div>
-            </div>
-          </div>
-
-          {/* Elenco Voci Indice Cliccabili */}
-          <div className="px-5 py-3 flex-1 overflow-y-auto space-y-1.5 content-start">
-            {sheetDef.rows.map((row, rIdx) => {
-              const targetSheetIdx = catalogLayout.numIndexPages + row.firstProductPageOffset;
-              const targetPageNumber = targetSheetIdx + 1;
-
-              if (row.kind === 'GROUP') {
-                return (
-                  <button
-                    key={`idx-group-${rIdx}-${row.groupLabel}`}
-                    type="button"
-                    onMouseDown={e => e.stopPropagation()}
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={e => {
-                      e.stopPropagation();
-                      goToSheet(targetSheetIdx);
-                    }}
-                    className="w-full mt-1.5 px-3.5 py-2 rounded-lg bg-gray-900 hover:bg-black text-white border-l-4 border-brand-main flex items-center justify-between gap-3 text-left transition-all group cursor-pointer shadow-sm"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-brand-main text-xs font-black">▸</span>
-                      <span className="text-xs font-black uppercase tracking-wide truncate group-hover:text-brand-main transition-colors">
-                        {row.groupLabel}
-                      </span>
-                      <span className="text-[10px] font-semibold text-gray-400 shrink-0">
-                        ({row.totalItemsInGroup}{' '}
-                        {row.totalItemsInGroup === 1 ? 'articolo' : 'articoli'})
-                      </span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-brand-main text-black text-[10px] font-black shrink-0">
-                      PAG. {targetPageNumber}
-                    </span>
-                  </button>
-                );
-              }
-
-              return (
-                <button
-                  key={`idx-cat-${rIdx}-${row.categoryLabel}`}
-                  type="button"
-                  onMouseDown={e => e.stopPropagation()}
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={e => {
-                    e.stopPropagation();
-                    goToSheet(targetSheetIdx);
-                  }}
-                  className="w-full pl-6 pr-3 py-2 rounded-lg bg-slate-50 hover:bg-amber-50/90 border border-slate-200 hover:border-brand-main flex items-center justify-between gap-2 text-left transition-all group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 group-hover:bg-brand-main shrink-0" />
-                    <span className="text-xs font-bold text-gray-800 group-hover:text-black truncate">
-                      {row.categoryLabel}
-                    </span>
-                  </div>
-                  <div className="flex-1 border-b border-dotted border-gray-300 mx-2 min-w-[20px]" />
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] font-semibold text-gray-500">
-                      {row.itemsCount} art.
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-50 group-hover:bg-brand-main text-emerald-800 group-hover:text-black border border-emerald-200 group-hover:border-brand-main text-[10px] font-black transition-colors">
-                      PAG. {targetPageNumber} →
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Piè di Pagina Foglio A4 */}
-          <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500 shrink-0">
-            <span>
-              Izzo Distribuzione S.r.l. • Agente:{' '}
-              <strong className="text-gray-700">{agentName}</strong>
-            </span>
-            <span className="font-bold text-gray-800">
-              Pagina {sheetIdx + 1} di {totalSheets} (Indice)
-            </span>
-          </div>
-        </div>
-      );
-    }
-
-    // =====================================================================
-    // FOGLIO SCHEDE PRODOTTO (OGNI FAMIGLIA INIZIA SU PAGINA NUOVA)
-    // =====================================================================
-    const { pageDef } = sheetDef;
-    const sheetProducts = pageDef.items;
-    const familyBreadcrumb = [
-      pageDef.groupLabel,
-      pageDef.familyLabel &&
-      pageDef.familyLabel.toUpperCase() !== pageDef.groupLabel.toUpperCase()
-        ? pageDef.familyLabel
-        : '',
-    ]
-      .filter(Boolean)
-      .join('  ›  ');
-
     return (
       <div
         key={`sheet-${sheetIdx}`}
         className="w-[740px] h-[1020px] bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col justify-between select-none"
       >
-        {/* Intestazione Foglio A4 + Fascia Famiglia Merceologica */}
-        <div className="shrink-0">
-          <div className="px-5 py-2.5 bg-black text-white border-b-2 border-brand-main flex flex-wrap items-center justify-between gap-2.5">
-            <div className="flex items-center gap-3 min-w-0">
-              <img
-                src="/logo-izzo.png"
-                alt="Izzo Distribuzione"
-                className="h-9 w-auto object-contain shrink-0"
-              />
-              <div className="h-7 w-px bg-gray-700 hidden sm:block shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[9px] font-extrabold text-brand-main tracking-wider uppercase truncate">
-                  IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B
-                </div>
-                <div className="text-xs font-black tracking-wide uppercase truncate">
-                  {catalogTitle || 'Catalogo Prodotti B2B'}
-                </div>
-                <div className="text-[10px] text-gray-300 truncate">
-                  {selectedClient
-                    ? `Cliente: ${selectedClient.companyName}  •  Agente: ${agentName}`
-                    : `Agente: ${agentName}`}
-                </div>
+        {/* Intestazione Foglio A4 (come nel PDF stampato) */}
+        <div className="px-5 py-3 bg-black text-white border-b-4 border-brand-main flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src="/logo-izzo.png"
+              alt="Izzo Distribuzione"
+              className="h-10 w-auto object-contain shrink-0"
+            />
+            <div className="h-8 w-px bg-gray-700 hidden sm:block shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[10px] font-extrabold text-brand-main tracking-wider uppercase truncate">
+                IZZO DISTRIBUZIONE - CATALOGO PRODOTTI B2B
+              </div>
+              <div className="text-xs sm:text-sm font-black tracking-wide uppercase truncate">
+                {catalogTitle || 'Catalogo Prodotti B2B'}
+              </div>
+              <div className="text-[10px] text-gray-300 truncate">
+                {selectedClient
+                  ? `Cliente: ${selectedClient.companyName}  •  Agente: ${agentName}`
+                  : `Agente: ${agentName}`}
               </div>
             </div>
-            <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
-              <span className="px-2.5 py-0.5 text-[11px] font-black bg-brand-main text-black rounded">
-                FOGLIO {sheetIdx + 1} / {totalSheets}
-              </span>
-              <button
-                type="button"
-                onMouseDown={e => e.stopPropagation()}
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => {
-                  e.stopPropagation();
-                  goToSheet(0);
-                }}
-                className="text-[10px] font-bold text-brand-main hover:underline cursor-pointer"
-                title="Torna all'Indice Merceologico (Pag. 1)"
-              >
-                📑 Torna all&apos;Indice
-              </button>
-            </div>
           </div>
-
-          {/* Fascia Famiglia della Pagina */}
-          <div className="px-5 py-1.5 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="px-1.5 py-0.5 rounded bg-brand-main/20 text-brand-main text-[9px] font-black uppercase shrink-0">
-                Famiglia
-              </span>
-              <span className="text-[11px] font-extrabold tracking-wide uppercase text-white truncate">
-                {familyBreadcrumb}
-              </span>
-            </div>
-            <span className="text-[10px] font-semibold text-gray-300 shrink-0">
-              {pageDef.familyTotalPages > 1
-                ? `Pag. ${pageDef.familyPageIdx}/${pageDef.familyTotalPages} della famiglia • `
-                : ''}
-              {sheetProducts.length} {sheetProducts.length === 1 ? 'scheda' : 'schede'}
+          <div className="text-right flex flex-col items-end gap-0.5 shrink-0">
+            <span className="px-2.5 py-0.5 text-[11px] font-black bg-brand-main text-black rounded">
+              FOGLIO {sheetIdx + 1} / {totalSheets}
             </span>
+            <div className="text-[10px] text-gray-400">
+              Schede {sheetIdx * 6 + 1}–{sheetIdx * 6 + sheetProducts.length} di{' '}
+              {sortedCatalogProducts.length}
+            </div>
           </div>
         </div>
 
         {/* Griglia 2 colonne x 3 righe = 6 Schede Prodotto del Foglio */}
-        <div className="px-4 py-3 grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
+        <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 content-start">
           {sheetProducts.map(product => {
             const pricing = calculateProductPricing(product);
 
@@ -1445,12 +1031,21 @@ export default function CatalogBuilderClient({
               >
                 {/* 1. Fascia Superiore Scheda: SKU + Marchio + Tasto Rimuovi */}
                 <div className="px-3 py-1.5 bg-gray-900 text-white border-b-2 border-emerald-500 flex items-center justify-between gap-2">
-                  <span className="font-mono text-[11px] font-black tracking-wide text-white truncate">
+                  <a
+                    href={`/product/${encodeURIComponent(product.id || product.sku)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    className="font-mono text-[11px] font-black tracking-wide text-white hover:text-brand-main hover:underline truncate"
+                    title="Apri scheda prodotto sul sito"
+                  >
                     COD. {product.sku}
-                  </span>
+                  </a>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded uppercase">
-                      {stripTaxonomyCode(product.brandLabel || product.brand || 'IZZO') || 'IZZO'}
+                      {product.brandLabel || product.brand || 'IZZO'}
                     </span>
                     <button
                       type="button"
@@ -1469,8 +1064,17 @@ export default function CatalogBuilderClient({
                 </div>
 
                 {/* 2. Corpo Superiore: Foto + Categoria, Titolo e Bollino Giacenza */}
-                <div className="p-2.5 flex gap-3 items-start">
-                  <div className="w-20 h-20 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden shrink-0 p-1">
+                <div className="p-3 flex gap-3 items-start">
+                  <a
+                    href={`/product/${encodeURIComponent(product.id || product.sku)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onMouseDown={e => e.stopPropagation()}
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    className="w-20 h-20 rounded-lg border border-gray-200 hover:border-brand-main bg-white flex items-center justify-center overflow-hidden shrink-0 p-1 transition-colors"
+                    title="Apri scheda prodotto sul sito"
+                  >
                     {product.imageUrl ? (
                       <img
                         src={product.imageUrl}
@@ -1483,25 +1087,34 @@ export default function CatalogBuilderClient({
                         IMMAGINE NON DISP.
                       </span>
                     )}
-                  </div>
+                  </a>
 
                   <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[80px]">
                     <div>
                       <div className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider truncate">
-                        {stripTaxonomyCode(
-                          product.categoryLabel ||
-                            product.familyLabel ||
-                            product.productGroupLabel ||
-                            'Articolo a Catalogo'
-                        )}
+                        {product.categoryLabel ||
+                          product.familyLabel ||
+                          product.productGroupLabel ||
+                          'Articolo a Catalogo'}
                       </div>
-                      <h3 className="text-xs font-extrabold text-gray-900 leading-snug mt-0.5 line-clamp-2">
-                        {product.originalName || product.title}
+                      <h3 className="text-xs font-extrabold text-gray-900 leading-snug mt-0.5">
+                        <a
+                          href={`/product/${encodeURIComponent(product.id || product.sku)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onMouseDown={e => e.stopPropagation()}
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={e => e.stopPropagation()}
+                          className="hover:text-emerald-700 hover:underline transition-colors"
+                          title="Apri scheda prodotto sul sito"
+                        >
+                          {product.originalName || product.title}
+                        </a>
                       </h3>
                     </div>
 
                     {/* Bollino Disponibilità */}
-                    <div className="mt-1">
+                    <div className="mt-1.5">
                       {stockMode === 'HIDE_STOCK' ? (
                         <span className="inline-block px-2 py-0.5 text-[9px] text-gray-400 bg-gray-100 rounded italic">
                           Giacenza nascosta nel PDF
@@ -1546,10 +1159,24 @@ export default function CatalogBuilderClient({
 
                 {/* 3. Fascia Centrale: Box Specifiche Tecniche */}
                 <div className="mx-3 mb-2 p-2 rounded-lg bg-slate-50 border border-slate-200/80">
-                  <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-wider mb-0.5">
-                    Specifiche e Descrizione Tecnica
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Specifiche e Descrizione Tecnica
+                    </div>
+                    <a
+                      href={`/product/${encodeURIComponent(product.id || product.sku)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onMouseDown={e => e.stopPropagation()}
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={e => e.stopPropagation()}
+                      className="text-[9px] font-extrabold text-emerald-700 hover:text-emerald-900 hover:underline shrink-0"
+                      title="Apri questo prodotto sul sito B2B"
+                    >
+                      Vedi sul sito ↗
+                    </a>
                   </div>
-                  <p className="text-[10px] text-slate-700 leading-relaxed break-words line-clamp-2">
+                  <p className="text-[10px] text-slate-700 leading-relaxed break-words line-clamp-3">
                     {(
                       product.technicalDesc ||
                       product.description ||
@@ -1561,7 +1188,7 @@ export default function CatalogBuilderClient({
                 </div>
 
                 {/* 4. Fascia Inferiore: Box Prezzi della Scheda */}
-                <div className="mx-3 mb-2.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
+                <div className="mx-3 mb-3 px-2.5 py-1.5 rounded-lg bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
                   {priceMode === 'NO_PRICE' ? (
                     <div className="w-full flex items-center justify-between text-[11px] text-slate-600">
                       <span className="font-bold">SCHEDA TECNICA PRODOTTO</span>
@@ -1640,7 +1267,7 @@ export default function CatalogBuilderClient({
         </div>
 
         {/* Piè di Pagina Foglio A4 */}
-        <div className="px-5 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500 shrink-0">
+        <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500">
           <span>
             Izzo Distribuzione S.r.l. • Agente: <strong className="text-gray-700">{agentName}</strong>
           </span>
@@ -1725,8 +1352,8 @@ export default function CatalogBuilderClient({
                         d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    Scarica PDF ({sortedCatalogProducts.length} • {totalSheets}{' '}
-                    {totalSheets === 1 ? 'foglio' : 'fogli'})
+                    Scarica PDF ({sortedCatalogProducts.length} • {Math.ceil(sortedCatalogProducts.length / 6)}{' '}
+                    {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
                   </>
                 )}
               </button>
@@ -2390,9 +2017,15 @@ export default function CatalogBuilderClient({
                         <span className="text-[8px] font-bold text-gray-300">N/D</span>
                       )}
                     </div>
-                    <div className="min-w-0">
+                    <a
+                      href={`/product/${encodeURIComponent(product.id || product.sku)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 group"
+                      title="Apri scheda prodotto sul sito"
+                    >
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[11px] font-black text-gray-900 truncate">
+                        <span className="font-mono text-[11px] font-black text-gray-900 group-hover:text-emerald-700 group-hover:underline truncate">
                           {product.sku}
                         </span>
                         {priceMode !== 'NO_PRICE' && (
@@ -2404,10 +2037,10 @@ export default function CatalogBuilderClient({
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-gray-500 truncate">
+                      <div className="text-[10px] text-gray-500 group-hover:text-gray-800 truncate">
                         {product.originalName || product.title}
                       </div>
-                    </div>
+                    </a>
                   </div>
                   <button
                     type="button"
@@ -2527,16 +2160,11 @@ export default function CatalogBuilderClient({
                 <button
                   type="button"
                   onClick={() => goToSheet(0)}
-                  className={`px-2.5 py-1.5 text-xs font-extrabold rounded-lg border transition-colors flex items-center gap-1 ${
-                    (previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet) <
-                    catalogLayout.numIndexPages
-                      ? 'bg-brand-main text-black border-brand-main'
-                      : 'bg-gray-900 border-gray-700 text-brand-main hover:bg-gray-800'
-                  }`}
-                  title="Vai all'Indice Merceologico (Pagina 1)"
+                  disabled={!canGoPrev}
+                  className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-gray-900 border border-gray-700 text-gray-200 hover:bg-gray-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+                  title="Prima pagina"
                 >
-                  <span>📑</span>
-                  <span>Indice</span>
+                  ⏮
                 </button>
                 <button
                   type="button"
@@ -2550,36 +2178,25 @@ export default function CatalogBuilderClient({
                 <select
                   value={previewViewMode === 'DOUBLE' ? leftSpreadSheet : safeCurrentSheet}
                   onChange={e => goToSheet(Number(e.target.value))}
-                  className="bg-gray-900 text-brand-main text-xs font-black px-3 py-1.5 rounded-lg border border-gray-700 focus:outline-none cursor-pointer max-w-[260px]"
+                  className="bg-gray-900 text-brand-main text-xs font-black px-3 py-1.5 rounded-lg border border-gray-700 focus:outline-none cursor-pointer"
                 >
                   {previewViewMode === 'DOUBLE'
                     ? Array.from({ length: Math.ceil(totalSheets / 2) }).map((_, spreadIdx) => {
                         const leftIdx = spreadIdx * 2;
                         const rightIdx = leftIdx + 1;
-                        const leftSheet = catalogLayout.allSheets[leftIdx];
-                        const leftTag =
-                          leftSheet?.type === 'INDEX'
-                            ? 'Indice'
-                            : leftSheet?.pageDef?.familyLabel || '';
                         return (
                           <option key={spreadIdx} value={leftIdx}>
                             {rightIdx < totalSheets
-                              ? `Pag. ${leftIdx + 1}–${rightIdx + 1} di ${totalSheets}${leftTag ? ` (${leftTag})` : ''}`
-                              : `Pag. ${leftIdx + 1} di ${totalSheets}${leftTag ? ` (${leftTag})` : ''}`}
+                              ? `Pagine ${leftIdx + 1}–${rightIdx + 1} di ${totalSheets}`
+                              : `Pagina ${leftIdx + 1} di ${totalSheets}`}
                           </option>
                         );
                       })
-                    : Array.from({ length: totalSheets }).map((_, idx) => {
-                        const sh = catalogLayout.allSheets[idx];
-                        const tag =
-                          sh?.type === 'INDEX' ? 'Indice' : sh?.pageDef?.familyLabel || '';
-                        return (
-                          <option key={idx} value={idx}>
-                            Pagina {idx + 1} di {totalSheets}
-                            {tag ? ` — ${tag}` : ''}
-                          </option>
-                        );
-                      })}
+                    : Array.from({ length: totalSheets }).map((_, idx) => (
+                        <option key={idx} value={idx}>
+                          Pagina {idx + 1} di {totalSheets}
+                        </option>
+                      ))}
                 </select>
 
                 <button

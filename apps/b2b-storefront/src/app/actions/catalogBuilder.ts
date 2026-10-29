@@ -191,21 +191,14 @@ async function getTaxonomyLookupMaps(): Promise<TaxonomyMaps> {
   return inflightTaxonomyMaps;
 }
 
-function stripTaxonomyCode(raw: string): string {
-  let s = (raw || '').trim();
-  while (/^[A-Z0-9_.]+\s*-\s+/i.test(s)) {
-    s = s.replace(/^[A-Z0-9_.]+\s*-\s+/i, '').trim();
-  }
-  return s;
-}
-
 function formatCodeWithLabel(code: string, map: Map<string, string>): string {
   const clean = (code || '').trim();
   if (!clean) return '';
   const upper = clean.toUpperCase();
   const label = map.get(upper);
-  if (!label) return stripTaxonomyCode(upper);
-  return stripTaxonomyCode(label) || upper;
+  if (!label) return upper;
+  if (label.toUpperCase() === upper) return upper;
+  return `${upper} - ${label}`;
 }
 
 function escapeTypesenseFilterValue(val: string): string {
@@ -736,8 +729,6 @@ export interface GenerateCatalogPdfInput {
     sku: string;
     title: string;
     brand: string;
-    productGroupLabel?: string;
-    familyLabel?: string;
     categoryLabel: string;
     technicalDesc: string;
     unit: string;
@@ -750,6 +741,8 @@ export interface GenerateCatalogPdfInput {
     stockTotal: number;
     catalogSource: 'zucchetti' | 'elmark';
     imageUrl?: string;
+    productId?: string;
+    productUrl?: string;
   }[];
 }
 
@@ -1082,191 +1075,20 @@ export async function generateAgentCatalogPdfAction(
     const ITEMS_PER_PAGE = 6;
     const COLS = 2;
     const CARD_W = 262;
-    const CARD_H = 220;
+    const CARD_H = 224;
     const GAP_X = 15;
-    const GAP_Y = 14;
+    const GAP_Y = 16;
     const MARGIN_X = 28;
-    const FIRST_ROW_TOP_Y = 738; // Y superiore della prima riga di schede (sotto la barra categoria)
+    const FIRST_ROW_TOP_Y = 750; // Y superiore della prima riga di schede
 
-    // 1. Raggruppamento delle PAGINE del catalogo per FAMIGLIA (senza codici)
-    //    Ogni nuova Famiglia inizia su una pagina nuova (max 6 schede per pagina).
-    //    All'interno della stessa Famiglia i prodotti sono ordinati per Categoria.
-    //    L'Indice mantiene la struttura Gruppo (fascia scura, solo nome) + Categoria (righe bianche, solo nome categoria senza codici).
-    interface IndexedItem {
-      item: GenerateCatalogPdfInput['items'][number];
-      globalIdx: number;
-      groupLabel: string;
-      familyLabel: string;
-      categoryLabel: string;
-    }
-
-    interface FamilySection {
-      key: string;
-      groupLabel: string;
-      familyLabel: string;
-      entries: IndexedItem[];
-    }
-
-    const familyMap = new Map<string, FamilySection>();
-    const orderedFamilies: FamilySection[] = [];
-
-    items.forEach((it, idx) => {
-      const groupLabel =
-        stripTaxonomyCode(it.productGroupLabel || '') || 'Catalogo Generale';
-      const familyLabel =
-        stripTaxonomyCode(it.familyLabel || '') ||
-        stripTaxonomyCode(it.categoryLabel || '') ||
-        groupLabel;
-      const categoryLabel =
-        stripTaxonomyCode(it.categoryLabel || '') ||
-        familyLabel ||
-        groupLabel ||
-        'Articoli a Catalogo';
-
-      const famKey = `${groupLabel.toUpperCase()}|||${familyLabel.toUpperCase()}`;
-      let famSec = familyMap.get(famKey);
-      if (!famSec) {
-        famSec = {
-          key: famKey,
-          groupLabel,
-          familyLabel,
-          entries: [],
-        };
-        familyMap.set(famKey, famSec);
-        orderedFamilies.push(famSec);
-      }
-      famSec.entries.push({
-        item: it,
-        globalIdx: idx,
-        groupLabel,
-        familyLabel,
-        categoryLabel,
-      });
-    });
-
-    interface ProductPageSlice {
-      groupLabel: string;
-      familyLabel: string;
-      entries: IndexedItem[];
-    }
-
-    const productPages: ProductPageSlice[] = [];
-
-    // Per ogni Gruppo manteniamo l'elenco delle Categorie con il numero di articoli e la pagina esatta in cui iniziano
-    interface GroupIndexBucket {
-      groupLabel: string;
-      totalItems: number;
-      firstProductPageOffset: number;
-      categories: {
-        categoryLabel: string;
-        itemsCount: number;
-        firstProductPageOffset: number;
-      }[];
-    }
-
-    const groupBucketsMap = new Map<string, GroupIndexBucket>();
-    const orderedGroupBuckets: GroupIndexBucket[] = [];
-
-    for (const famSec of orderedFamilies) {
-      // Ordiniamo/raggruppiamo gli articoli della stessa Famiglia per Categoria così sono contigui nelle pagine della Famiglia
-      const catBucketsMap = new Map<string, IndexedItem[]>();
-      const catOrder: string[] = [];
-      for (const entry of famSec.entries) {
-        const cKey = entry.categoryLabel.toUpperCase();
-        if (!catBucketsMap.has(cKey)) {
-          catBucketsMap.set(cKey, []);
-          catOrder.push(cKey);
-        }
-        catBucketsMap.get(cKey)!.push(entry);
-      }
-
-      const orderedFamEntries: IndexedItem[] = [];
-      const catStartIndexInFamily = new Map<string, { label: string; count: number; startIdx: number }>();
-      for (const cKey of catOrder) {
-        const list = catBucketsMap.get(cKey)!;
-        catStartIndexInFamily.set(cKey, {
-          label: list[0].categoryLabel,
-          count: list.length,
-          startIdx: orderedFamEntries.length,
-        });
-        orderedFamEntries.push(...list);
-      }
-
-      const familyFirstPageOffset = productPages.length;
-      for (let i = 0; i < orderedFamEntries.length; i += ITEMS_PER_PAGE) {
-        productPages.push({
-          groupLabel: famSec.groupLabel,
-          familyLabel: famSec.familyLabel,
-          entries: orderedFamEntries.slice(i, i + ITEMS_PER_PAGE),
-        });
-      }
-
-      const gKey = famSec.groupLabel.toUpperCase();
-      let gBucket = groupBucketsMap.get(gKey);
-      if (!gBucket) {
-        gBucket = {
-          groupLabel: famSec.groupLabel,
-          totalItems: 0,
-          firstProductPageOffset: familyFirstPageOffset,
-          categories: [],
-        };
-        groupBucketsMap.set(gKey, gBucket);
-        orderedGroupBuckets.push(gBucket);
-      }
-      gBucket.totalItems += orderedFamEntries.length;
-
-      for (const cKey of catOrder) {
-        const cInfo = catStartIndexInFamily.get(cKey)!;
-        const catPageOffset =
-          familyFirstPageOffset + Math.floor(cInfo.startIdx / ITEMS_PER_PAGE);
-        gBucket.categories.push({
-          categoryLabel: cInfo.label,
-          itemsCount: cInfo.count,
-          firstProductPageOffset: catPageOffset,
-        });
-      }
-    }
-
-    // 2. Costruzione righe dell'Indice: Gruppo (solo nome senza codice) + Categoria (solo nome categoria senza codice e senza famiglia)
-    interface PdfIndexRow {
-      kind: 'GROUP' | 'CATEGORY';
-      label: string;
-      itemsCount: number;
-      firstProductPageOffset: number;
-    }
-
-    const rawIndexRows: PdfIndexRow[] = [];
-    for (const gBucket of orderedGroupBuckets) {
-      rawIndexRows.push({
-        kind: 'GROUP',
-        label: gBucket.groupLabel,
-        itemsCount: gBucket.totalItems,
-        firstProductPageOffset: gBucket.firstProductPageOffset,
-      });
-      for (const cat of gBucket.categories) {
-        rawIndexRows.push({
-          kind: 'CATEGORY',
-          label: cat.categoryLabel,
-          itemsCount: cat.itemsCount,
-          firstProductPageOffset: cat.firstProductPageOffset,
-        });
-      }
-    }
-
-    const MAX_INDEX_ROWS_PER_PAGE = 16;
-    const numIndexPages = Math.max(
-      1,
-      Math.ceil(rawIndexRows.length / MAX_INDEX_ROWS_PER_PAGE)
-    );
-    const totalPages = numIndexPages + productPages.length;
-
+    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
     const dateStr = new Date().toLocaleDateString('it-IT', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
 
-    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG + Logo Header + Annotazioni Link Indice
+    // Costruzione oggetti PDF 1.4 multipagina con supporto XObject immagini JPEG + Logo Header
     // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Regular, Obj 4: Font Bold
     const headerLogo = getCatalogPdfHeaderLogo();
     const imageObjMap = new Map<number, number>(); // itemIdx -> objectNumber
@@ -1286,12 +1108,14 @@ export async function generateAgentCatalogPdfAction(
 
     const pageContents: Buffer[] = [];
     const pageImageRefs: Map<number, number>[] = []; // per pagina: itemIdx -> objNum
-    const pageLinkAnnots: {
-      rect: [number, number, number, number];
-      targetPageObjNum: number;
-    }[][] = Array.from({ length: totalPages }, () => []);
+    const pageUriAnnots: { rect: [number, number, number, number]; uri: string }[][] =
+      Array.from({ length: totalPages }, () => []);
 
-    const pushCommonPageHeaderAndFooter = (cmd: string[], pageIdx: number) => {
+    for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+      const pageSlice = items.slice(pageIdx * ITEMS_PER_PAGE, (pageIdx + 1) * ITEMS_PER_PAGE);
+      const cmd: string[] = [];
+      const imgRefsForPage = new Map<number, number>();
+
       // Header pagina A4 (sfondo nero come l'header del sito) con Logo Izzo Distribuzione in alto a sinistra
       cmd.push('0 0 0 rg');
       cmd.push('0 772 595 70 re f');
@@ -1337,163 +1161,10 @@ export async function generateAgentCatalogPdfAction(
       cmd.push(
         `BT /F1 8 Tf 0.75 0.80 0.85 rg 465 799 Td (Tot. ${items.length} schede) Tj ET`
       );
-    };
-
-    // 3A. Generazione Pagine INDICE (all'inizio del catalogo: Foglio 1 .. numIndexPages)
-    for (let idxPage = 0; idxPage < numIndexPages; idxPage++) {
-      const cmd: string[] = [];
-      const rowsSlice = rawIndexRows.slice(
-        idxPage * MAX_INDEX_ROWS_PER_PAGE,
-        (idxPage + 1) * MAX_INDEX_ROWS_PER_PAGE
-      );
-
-      pushCommonPageHeaderAndFooter(cmd, idxPage);
-
-      // Fascia Titolo Indice
-      cmd.push('0.07 0.09 0.14 rg');
-      cmd.push('28 724 539 34 re f');
-      cmd.push('0.00 0.78 0.00 rg');
-      cmd.push('28 724 5 34 re f');
-      cmd.push(
-        `BT /F2 11 Tf 1 1 1 rg 42 742 Td (INDICE MERCEOLOGICO DEL CATALOGO${
-          numIndexPages > 1 ? ` (PARTE ${idxPage + 1}/${numIndexPages})` : ''
-        }) Tj ET`
-      );
-      cmd.push(
-        `BT /F1 7.5 Tf 0.75 0.80 0.88 rg 42 730 Td (Clicca su una voce per andare direttamente alla pagina corrispondente) Tj ET`
-      );
-
-      let curY = 706;
-      for (const row of rowsSlice) {
-        const targetSheetIdx = numIndexPages + row.firstProductPageOffset;
-        const targetPageNumber = targetSheetIdx + 1;
-        const targetPageObj = pageObjNums[targetSheetIdx] || pageObjNums[0];
-
-        if (row.kind === 'GROUP') {
-          const boxH = 26;
-          const boxY = curY - boxH;
-
-          cmd.push('0.07 0.09 0.14 rg');
-          cmd.push(`28 ${boxY} 539 ${boxH} re f`);
-          cmd.push('0.00 0.78 0.00 rg');
-          cmd.push(`28 ${boxY} 4 ${boxH} re f`);
-
-          const grpText = truncateText(row.label.toUpperCase(), 62);
-          cmd.push(
-            `BT /F2 9.5 Tf 1 1 1 rg 40 ${boxY + 9} Td (${toPdfSafeLatin1(grpText)}) Tj ET`
-          );
-
-          const countText = `(${row.itemsCount} ${
-            row.itemsCount === 1 ? 'articolo' : 'articoli'
-          })`;
-          cmd.push(
-            `BT /F1 8 Tf 0.65 0.72 0.80 rg 418 ${boxY + 9} Td (${toPdfSafeLatin1(
-              countText
-            )}) Tj ET`
-          );
-
-          // Pill Pagina
-          cmd.push('0.00 0.78 0.00 rg');
-          cmd.push(`504 ${boxY + 4} 55 18 re f`);
-          cmd.push(
-            `BT /F2 8.5 Tf 0 0 0 rg 513 ${boxY + 9} Td (PAG. ${targetPageNumber}) Tj ET`
-          );
-
-          pageLinkAnnots[idxPage].push({
-            rect: [28, boxY, 567, boxY + boxH],
-            targetPageObjNum: targetPageObj,
-          });
-
-          curY -= boxH + 7;
-        } else {
-          const boxH = 24;
-          const boxY = curY - boxH;
-
-          cmd.push('0.98 0.98 0.99 rg');
-          cmd.push(`38 ${boxY} 529 ${boxH} re f`);
-          cmd.push('0.86 0.89 0.93 RG 0.6 w');
-          cmd.push(`38 ${boxY} 529 ${boxH} re S`);
-
-          const cleanCatTitle = truncateText(row.label.toUpperCase(), 58);
-
-          cmd.push(
-            `BT /F2 8.5 Tf 0.10 0.14 0.20 rg 48 ${boxY + 8} Td (${toPdfSafeLatin1(
-              cleanCatTitle
-            )}) Tj ET`
-          );
-
-          // Puntini di guida
-          const approxTextW = Math.min(310, cleanCatTitle.length * 4.6 + 14);
-          const dotsStartX = 48 + approxTextW;
-          if (dotsStartX < 410) {
-            cmd.push('0.75 0.79 0.85 RG 0.5 w [1.5 2.5] 0 d');
-            cmd.push(`${dotsStartX.toFixed(1)} ${boxY + 9} m 415 ${boxY + 9} l S`);
-            cmd.push('[] 0 d');
-          }
-
-          const countBadge = `${row.itemsCount} art.`;
-          cmd.push(
-            `BT /F1 7.5 Tf 0.40 0.45 0.54 rg 428 ${boxY + 8} Td (${toPdfSafeLatin1(
-              countBadge
-            )}) Tj ET`
-          );
-
-          cmd.push('0.91 0.98 0.93 rg');
-          cmd.push('0.00 0.68 0.20 RG 0.6 w');
-          cmd.push(`504 ${boxY + 3.5} 55 17 re B`);
-          cmd.push(
-            `BT /F2 8 Tf 0.04 0.42 0.14 rg 513 ${boxY + 8} Td (PAG. ${targetPageNumber}) Tj ET`
-          );
-
-          pageLinkAnnots[idxPage].push({
-            rect: [38, boxY, 567, boxY + boxH],
-            targetPageObjNum: targetPageObj,
-          });
-
-          curY -= boxH + 6;
-        }
-      }
-
-      // Footer pagina indice
-      cmd.push('0.85 0.87 0.90 RG 0.5 w');
-      cmd.push('28 28 567 28 m l S');
-      cmd.push(
-        'BT /F1 7.5 Tf 0.45 0.48 0.53 rg 28 16 Td (Izzo Distribuzione S.r.l. - Portale B2B www.izzodistribuzione.it - Prezzi IVA esclusa salvo errori e/o omissioni.) Tj ET'
-      );
-
-      pageContents.push(Buffer.from(cmd.join('\n'), 'latin1'));
-      pageImageRefs.push(new Map<number, number>());
-    }
-
-    // 3B. Generazione Pagine PRODOTTI (raggruppate per Famiglia: ogni nuova Famiglia inizia su una pagina nuova)
-    for (let prodPageIdx = 0; prodPageIdx < productPages.length; prodPageIdx++) {
-      const pageIdx = numIndexPages + prodPageIdx;
-      const pageData = productPages[prodPageIdx];
-      const pageSlice = pageData.entries;
-      const cmd: string[] = [];
-      const imgRefsForPage = new Map<number, number>();
-
-      pushCommonPageHeaderAndFooter(cmd, pageIdx);
-
-      // Barra Famiglia della Pagina (senza codici)
-      const familyHeaderText =
-        pageData.groupLabel.toUpperCase() !== pageData.familyLabel.toUpperCase()
-          ? `${pageData.groupLabel}  >  ${pageData.familyLabel}`
-          : pageData.familyLabel;
-      cmd.push('0.94 0.96 0.99 rg');
-      cmd.push('28 744 539 18 re f');
-      cmd.push('0.00 0.78 0.00 rg');
-      cmd.push('28 744 4 18 re f');
-      cmd.push(
-        `BT /F2 8 Tf 0.10 0.15 0.24 rg 38 750 Td (${toPdfSafeLatin1(
-          truncateText(familyHeaderText.toUpperCase(), 92)
-        )}) Tj ET`
-      );
 
       // Griglia 6 Schede per foglio (2 colonne x 3 righe)
-      pageSlice.forEach((entry, localIdx) => {
-        const item = entry.item;
-        const globalIdx = entry.globalIdx;
+      pageSlice.forEach((item, localIdx) => {
+        const globalIdx = pageIdx * ITEMS_PER_PAGE + localIdx;
         const col = localIdx % COLS; // 0 o 1
         const row = Math.floor(localIdx / COLS); // 0, 1 o 2
 
@@ -1521,10 +1192,7 @@ export async function generateAgentCatalogPdfAction(
           )}) Tj ET`
         );
 
-        const brandTag = truncateText(
-          (stripTaxonomyCode(item.brand || 'IZZO') || 'IZZO').toUpperCase(),
-          18
-        );
+        const brandTag = truncateText((item.brand || 'IZZO').toUpperCase(), 18);
         const brandX = cardX + CARD_W - Math.min(brandTag.length * 4.7 + 12, 115);
         cmd.push(
           `BT /F2 7.5 Tf 0.25 0.95 0.40 rg ${brandX.toFixed(1)} ${headerY + 7} Td (${toPdfSafeLatin1(
@@ -1562,9 +1230,9 @@ export async function generateAgentCatalogPdfAction(
         const infoX = cardX + 92;
         const infoW = CARD_W - 100; // 162pt
 
-        // Categoria (solo nome senza codici)
+        // Categoria
         const catText = truncateText(
-          (entry.categoryLabel || 'ARTICOLO A CATALOGO').toUpperCase(),
+          (item.categoryLabel || 'ARTICOLO A CATALOGO').toUpperCase(),
           34
         );
         cmd.push(
@@ -1663,6 +1331,21 @@ export async function generateAgentCatalogPdfAction(
             specBoxY + 57
           } Td (SPECIFICHE E DESCRIZIONE TECNICA) Tj ET`
         );
+        cmd.push(
+          `BT /F2 6.5 Tf 0.04 0.45 0.14 rg ${specBoxX + 178} ${
+            specBoxY + 57
+          } Td (Vedi sul sito ->) Tj ET`
+        );
+
+        const targetProductUrl =
+          (item.productUrl || '').trim() ||
+          `https://www.izzodistribuzione.it/product/${encodeURIComponent(
+            item.productId || item.sku
+          )}`;
+        pageUriAnnots[pageIdx].push({
+          rect: [cardX, cardY, cardX + CARD_W, cardY + CARD_H],
+          uri: targetProductUrl,
+        });
 
         const rawSpecs = (item.technicalDesc || item.title || '')
           .replace(/;/g, '  |  ')
@@ -1888,15 +1571,17 @@ export async function generateAgentCatalogPdfAction(
       const xObjectEntries = xObjectParts.join(' ');
       const xObjectDict = xObjectEntries ? ` /XObject << ${xObjectEntries} >>` : '';
 
-      const links = pageLinkAnnots[p] || [];
+      const uriLinks = pageUriAnnots[p] || [];
       let annotsDict = '';
-      if (links.length > 0) {
-        const inlineAnnots = links
+      if (uriLinks.length > 0) {
+        const inlineAnnots = uriLinks
           .map(
             l =>
               `<< /Type /Annot /Subtype /Link /Rect [${l.rect
                 .map(n => n.toFixed(1))
-                .join(' ')}] /Border [0 0 0] /Dest [${l.targetPageObjNum} 0 R /Fit] >>`
+                .join(' ')}] /Border [0 0 0] /A << /Type /Action /S /URI /URI (${toPdfSafeLatin1(
+                l.uri
+              )}) >> >>`
           )
           .join(' ');
         annotsDict = ` /Annots [${inlineAnnots}]`;
