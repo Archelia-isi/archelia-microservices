@@ -1805,6 +1805,9 @@ export async function generateAgentCatalogPdfAction(
             );
           } else if (input.priceMode === 'NET_ONLY') {
             if (item.discountPct > 0 && item.discountExpiresFormatted) {
+              const expTail =
+                item.discountExpiresFormatted.charAt(0).toLowerCase() +
+                item.discountExpiresFormatted.slice(1);
               cmd.push(
                 `BT /F2 7.2 Tf 0.05 0.45 0.15 rg ${priceBoxX + 8} ${
                   priceBoxY + 24
@@ -1818,7 +1821,7 @@ export async function generateAgentCatalogPdfAction(
               cmd.push(
                 `BT /F2 6.5 Tf 0.72 0.33 0.04 rg ${priceBoxX + 8} ${
                   priceBoxY + 5.5
-                } Td (Valido fino al ${toPdfSafeLatin1(item.discountExpiresFormatted)}) Tj ET`
+                } Td (Valido ${toPdfSafeLatin1(expTail)}) Tj ET`
               );
             } else {
               cmd.push(
@@ -1840,6 +1843,9 @@ export async function generateAgentCatalogPdfAction(
           } else {
             // LIST_AND_NET
             if (item.discountPct > 0 && item.discountExpiresFormatted) {
+              const expTail =
+                item.discountExpiresFormatted.charAt(0).toLowerCase() +
+                item.discountExpiresFormatted.slice(1);
               cmd.push(
                 `BT /F1 7.2 Tf 0.40 0.44 0.50 rg ${priceBoxX + 8} ${
                   priceBoxY + 25
@@ -1856,7 +1862,7 @@ export async function generateAgentCatalogPdfAction(
               cmd.push(
                 `BT /F2 6.5 Tf 0.72 0.33 0.04 rg ${priceBoxX + 8} ${
                   priceBoxY + 5.5
-                } Td (Valido fino al ${toPdfSafeLatin1(item.discountExpiresFormatted)}) Tj ET`
+                } Td (Valido ${toPdfSafeLatin1(expTail)}) Tj ET`
               );
             } else {
               cmd.push(

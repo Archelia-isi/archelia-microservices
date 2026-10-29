@@ -159,7 +159,9 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
                 </span>
                 {product.discountExpiresFormatted && (
                   <span className="text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded whitespace-nowrap">
-                    ⏳ Promo valida fino al {product.discountExpiresFormatted}
+                    ⏳ Promo valida{' '}
+                    {String(product.discountExpiresFormatted).charAt(0).toLowerCase() +
+                      String(product.discountExpiresFormatted).slice(1)}
                   </span>
                 )}
               </div>

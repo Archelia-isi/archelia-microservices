@@ -316,7 +316,7 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
                         </span>
                         {product.discountExpiresFormatted && (
                           <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded whitespace-nowrap">
-                            ⏳ Fino al {product.discountExpiresFormatted}
+                            ⏳ {product.discountExpiresFormatted}
                           </span>
                         )}
                       </div>

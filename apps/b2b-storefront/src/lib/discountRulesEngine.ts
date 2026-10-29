@@ -14,6 +14,8 @@ export type DiscountTargetType =
 
 export type DiscountCalculationMode = 'EXTRA_CASCADE' | 'FIXED_OVERRIDE';
 
+export type DiscountExpiryType = 'NONE' | 'DATE' | 'FIRST_PURCHASE' | 'NEXT_PURCHASE';
+
 export interface DiscountTargetProductMeta {
   sku: string;
   title: string;
@@ -54,7 +56,9 @@ export interface AgentDiscountRule {
   calculationMode: DiscountCalculationMode;
   discountValue: number;
   isActive: boolean;
+  expiryType?: DiscountExpiryType;
   expiresAt?: string | null;
+  consumedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +91,7 @@ export interface EvaluatedProductPricing {
   discountLabel: string;
   appliedRuleId: string | null;
   appliedRuleName: string | null;
+  appliedRuleExpiryType: DiscountExpiryType;
   appliedRuleExpiresAt: string | null;
   appliedRuleExpiresFormatted: string | null;
 }
@@ -185,16 +190,24 @@ export function doesRuleMatchClient(
 }
 
 /**
- * Verifica se una regola di sconto è scaduta rispetto alla data/ora corrente.
- * Se `expiresAt` è nullo o vuoto ("Senza scadenza"), ritorna `false`.
+ * Verifica se una regola di sconto è scaduta rispetto alla data/ora corrente o perché già consumata su un acquisto.
+ * Se `expiresAt` è nullo o vuoto ("Senza scadenza") e non è consumata, ritorna `false`.
  */
 export function isDiscountRuleExpired(
-  rule: { expiresAt?: string | null },
+  rule: {
+    expiryType?: DiscountExpiryType | null;
+    expiresAt?: string | null;
+    consumedAt?: string | null;
+  },
   now: Date = new Date()
 ): boolean {
+  if (rule.consumedAt) return true;
+  if (rule.expiryType === 'FIRST_PURCHASE' || rule.expiryType === 'NEXT_PURCHASE') {
+    return false;
+  }
   if (!rule.expiresAt) return false;
   const raw = String(rule.expiresAt).trim();
-  if (!raw) return false;
+  if (!raw || raw === 'FIRST_PURCHASE' || raw === 'NEXT_PURCHASE') return false;
 
   // Se è nel formato YYYY-MM-DD, considera valido fino alle 23:59:59.999 di quel giorno
   const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
@@ -215,17 +228,26 @@ export function isDiscountRuleExpired(
 }
 
 /**
- * Formatta la data di scadenza di una regola di sconto in formato italiano GG/MM/AAAA.
- * Ritorna `null` se la regola non ha scadenza o la data non è valida.
+ * Formatta la scadenza di una regola di sconto ("Fino al GG/MM/AAAA", "Sul primo acquisto", "Sul prossimo acquisto").
+ * Ritorna `null` se la regola è senza scadenza.
  */
-export function formatDiscountRuleExpiryDate(expiresAt?: string | null): string | null {
+export function formatDiscountRuleExpiryDate(
+  expiresAt?: string | null,
+  expiryType?: DiscountExpiryType | null
+): string | null {
+  if (expiryType === 'FIRST_PURCHASE' || expiresAt === 'FIRST_PURCHASE') {
+    return 'Sul primo acquisto';
+  }
+  if (expiryType === 'NEXT_PURCHASE' || expiresAt === 'NEXT_PURCHASE') {
+    return 'Sul prossimo acquisto';
+  }
   if (!expiresAt) return null;
   const raw = String(expiresAt).trim();
   if (!raw) return null;
 
   const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(raw);
   if (dateOnlyMatch) {
-    return `${dateOnlyMatch[3]}/${dateOnlyMatch[2]}/${dateOnlyMatch[1]}`;
+    return `Fino al ${dateOnlyMatch[3]}/${dateOnlyMatch[2]}/${dateOnlyMatch[1]}`;
   }
 
   const parsed = new Date(raw);
@@ -234,7 +256,7 @@ export function formatDiscountRuleExpiryDate(expiresAt?: string | null): string 
   const day = String(parsed.getDate()).padStart(2, '0');
   const month = String(parsed.getMonth() + 1).padStart(2, '0');
   const year = String(parsed.getFullYear());
-  return `${day}/${month}/${year}`;
+  return `Fino al ${day}/${month}/${year}`;
 }
 
 /**
@@ -380,6 +402,7 @@ export function evaluateProductDiscountWithRules(
         discountLabel: label,
         appliedRuleId: null,
         appliedRuleName: null,
+        appliedRuleExpiryType: 'NONE',
         appliedRuleExpiresAt: null,
         appliedRuleExpiresFormatted: null,
       };
@@ -398,14 +421,25 @@ export function evaluateProductDiscountWithRules(
       discountLabel: safeBase > 0 ? `${safeBase}%` : '0%',
       appliedRuleId: null,
       appliedRuleName: null,
+      appliedRuleExpiryType: 'NONE',
       appliedRuleExpiresAt: null,
       appliedRuleExpiresFormatted: null,
     };
   }
 
   const ruleVal = Math.max(0, Math.min(95, Number(winningRule.discountValue || 0)));
-  const appliedRuleExpiresAt = winningRule.expiresAt ? String(winningRule.expiresAt).trim() : null;
-  const appliedRuleExpiresFormatted = formatDiscountRuleExpiryDate(appliedRuleExpiresAt);
+  const appliedRuleExpiryType: DiscountExpiryType =
+    winningRule.expiryType || (winningRule.expiresAt ? 'DATE' : 'NONE');
+  const appliedRuleExpiresAt =
+    appliedRuleExpiryType === 'FIRST_PURCHASE' || appliedRuleExpiryType === 'NEXT_PURCHASE'
+      ? appliedRuleExpiryType
+      : winningRule.expiresAt
+        ? String(winningRule.expiresAt).trim()
+        : null;
+  const appliedRuleExpiresFormatted = formatDiscountRuleExpiryDate(
+    winningRule.expiresAt,
+    appliedRuleExpiryType
+  );
 
   if (winningRule.calculationMode === 'FIXED_OVERRIDE') {
     const netPrice = Number((listPrice * (1 - ruleVal / 100)).toFixed(4));
@@ -421,6 +455,7 @@ export function evaluateProductDiscountWithRules(
       discountLabel: `${ruleVal}%`,
       appliedRuleId: winningRule.id,
       appliedRuleName: winningRule.name,
+      appliedRuleExpiryType,
       appliedRuleExpiresAt,
       appliedRuleExpiresFormatted,
     };
@@ -444,6 +479,7 @@ export function evaluateProductDiscountWithRules(
     discountLabel: label,
     appliedRuleId: winningRule.id,
     appliedRuleName: winningRule.name,
+    appliedRuleExpiryType,
     appliedRuleExpiresAt,
     appliedRuleExpiresFormatted,
   };

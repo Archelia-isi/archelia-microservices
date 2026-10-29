@@ -22,6 +22,7 @@ import {
   AgentDiscountRule,
   DiscountCalculationMode,
   DiscountClientScope,
+  DiscountExpiryType,
   DiscountTargetClientMeta,
   DiscountTargetProductMeta,
   DiscountTargetType,
@@ -213,7 +214,8 @@ export default function DiscountsManagerClient({
   const [calculationMode, setCalculationMode] =
     useState<DiscountCalculationMode>('EXTRA_CASCADE');
   const [discountValue, setDiscountValue] = useState<number>(10);
-  // Data di scadenza opzionale (YYYY-MM-DD); stringa vuota = Senza scadenza
+  // Tipo di scadenza ('NONE' | 'DATE' | 'FIRST_PURCHASE' | 'NEXT_PURCHASE') e data opzionale (YYYY-MM-DD)
+  const [expiryType, setExpiryType] = useState<DiscountExpiryType>('NONE');
   const [expiresAtDate, setExpiresAtDate] = useState<string>('');
 
   const getDatePlusDaysStr = (days: number): string => {
@@ -544,8 +546,25 @@ export default function DiscountsManagerClient({
     setSelectedCategories([]);
     setCalculationMode('EXTRA_CASCADE');
     setDiscountValue(10);
+    setExpiryType('NONE');
     setExpiresAtDate('');
     setFormError('');
+  };
+
+  const applyRuleExpiryToForm = (rule: AgentDiscountRule) => {
+    if (rule.expiryType === 'FIRST_PURCHASE') {
+      setExpiryType('FIRST_PURCHASE');
+      setExpiresAtDate('');
+    } else if (rule.expiryType === 'NEXT_PURCHASE') {
+      setExpiryType('NEXT_PURCHASE');
+      setExpiresAtDate('');
+    } else if (rule.expiresAt) {
+      setExpiryType('DATE');
+      setExpiresAtDate(String(rule.expiresAt).slice(0, 10));
+    } else {
+      setExpiryType('NONE');
+      setExpiresAtDate('');
+    }
   };
 
   const handleEditRule = (rule: AgentDiscountRule) => {
@@ -595,7 +614,7 @@ export default function DiscountsManagerClient({
     setSelectedCategories(rule.targetCategories || []);
     setCalculationMode(rule.calculationMode);
     setDiscountValue(rule.discountValue);
-    setExpiresAtDate(rule.expiresAt ? String(rule.expiresAt).slice(0, 10) : '');
+    applyRuleExpiryToForm(rule);
     setFormError('');
     setFormSuccess('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -666,7 +685,14 @@ export default function DiscountsManagerClient({
         calculationMode,
         discountValue,
         isActive: true,
-        expiresAt: expiresAtDate ? expiresAtDate : null,
+        expiryType:
+          expiryType === 'FIRST_PURCHASE' || expiryType === 'NEXT_PURCHASE'
+            ? expiryType
+            : expiresAtDate
+              ? 'DATE'
+              : 'NONE',
+        expiresAt:
+          expiryType === 'DATE' && expiresAtDate ? expiresAtDate : null,
       });
 
       if (!res.success) {
@@ -743,7 +769,7 @@ export default function DiscountsManagerClient({
     setSelectedCategories(rule.targetCategories || []);
     setCalculationMode(rule.calculationMode);
     setDiscountValue(rule.discountValue);
-    setExpiresAtDate(rule.expiresAt ? String(rule.expiresAt).slice(0, 10) : '');
+    applyRuleExpiryToForm(rule);
     setFormError('');
     setFormSuccess('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1679,28 +1705,61 @@ export default function DiscountsManagerClient({
             </div>
           </div>
 
-          {/* STEP 4: SCADENZA DELLO SCONTO (DATA + PREIMPOSTATI 15GG, 30GG + SENZA SCADENZA) */}
+          {/* STEP 4: SCADENZA DELLO SCONTO (DATA + PREIMPOSTATI + SUL PRIMO ACQUISTO + SUL PROSSIMO ACQUISTO + SENZA SCADENZA) */}
           <div className="p-4 rounded-xl bg-gray-50/80 border border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-0.5">
               <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
                 4. Scadenza dello sconto
               </label>
               <p className="text-[11px] text-gray-500">
-                Scegli una durata preimpostata (15gg, 30gg...), imposta una data precisa dal calendario oppure lascia <strong>Senza scadenza</strong>.
+                Scegli <strong>Sul primo acquisto</strong>, <strong>Sul prossimo acquisto</strong>, una durata in giorni, una data dal calendario oppure <strong>Senza scadenza</strong>.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setExpiresAtDate('')}
+                onClick={() => {
+                  setExpiryType('NONE');
+                  setExpiresAtDate('');
+                }}
                 className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
-                  !expiresAtDate
+                  expiryType === 'NONE' && !expiresAtDate
                     ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
                 }`}
               >
                 ∞ Senza scadenza
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setExpiryType('FIRST_PURCHASE');
+                  setExpiresAtDate('');
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
+                  expiryType === 'FIRST_PURCHASE'
+                    ? 'bg-brand-main text-black border-brand-main shadow-sm'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                }`}
+              >
+                🎁 Sul primo acquisto
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setExpiryType('NEXT_PURCHASE');
+                  setExpiresAtDate('');
+                }}
+                className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
+                  expiryType === 'NEXT_PURCHASE'
+                    ? 'bg-brand-main text-black border-brand-main shadow-sm'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
+                }`}
+              >
+                🛒 Sul prossimo acquisto
               </button>
 
               {[
@@ -1710,12 +1769,16 @@ export default function DiscountsManagerClient({
                 { label: '90 gg', days: 90 },
               ].map(preset => {
                 const targetDate = getDatePlusDaysStr(preset.days);
-                const isActivePreset = expiresAtDate === targetDate;
+                const isActivePreset =
+                  expiryType === 'DATE' && expiresAtDate === targetDate;
                 return (
                   <button
                     key={preset.days}
                     type="button"
-                    onClick={() => setExpiresAtDate(targetDate)}
+                    onClick={() => {
+                      setExpiryType('DATE');
+                      setExpiresAtDate(targetDate);
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
                       isActivePreset
                         ? 'bg-brand-main text-black border-brand-main shadow-sm'
@@ -1731,15 +1794,27 @@ export default function DiscountsManagerClient({
                 <span className="text-[11px] font-bold text-gray-500">Data:</span>
                 <input
                   type="date"
-                  value={expiresAtDate}
+                  value={expiryType === 'DATE' ? expiresAtDate : ''}
                   min={getDatePlusDaysStr(0)}
-                  onChange={e => setExpiresAtDate(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val) {
+                      setExpiryType('DATE');
+                      setExpiresAtDate(val);
+                    } else {
+                      setExpiryType('NONE');
+                      setExpiresAtDate('');
+                    }
+                  }}
                   className="text-xs font-extrabold text-gray-900 bg-transparent focus:outline-none cursor-pointer"
                 />
-                {expiresAtDate && (
+                {expiryType === 'DATE' && expiresAtDate && (
                   <button
                     type="button"
-                    onClick={() => setExpiresAtDate('')}
+                    onClick={() => {
+                      setExpiryType('NONE');
+                      setExpiresAtDate('');
+                    }}
                     title="Torna a Senza scadenza"
                     className="text-gray-400 hover:text-red-600 text-xs font-black ml-1"
                   >
@@ -1897,7 +1972,27 @@ export default function DiscountsManagerClient({
                             </span>
                           )}
 
-                          {rule.expiresAt ? (
+                          {rule.expiryType === 'FIRST_PURCHASE' ? (
+                            isDiscountRuleExpired(rule) ? (
+                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
+                                ⛔ Scaduto (1° acquisto effettuato)
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-purple-50 text-purple-900 border border-purple-200">
+                                🎁 Sul primo acquisto
+                              </span>
+                            )
+                          ) : rule.expiryType === 'NEXT_PURCHASE' ? (
+                            isDiscountRuleExpired(rule) ? (
+                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
+                                ⛔ Scaduto (Prossimo acquisto effettuato)
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-blue-50 text-blue-900 border border-blue-200">
+                                🛒 Sul prossimo acquisto
+                              </span>
+                            )
+                          ) : rule.expiresAt ? (
                             isDiscountRuleExpired(rule) ? (
                               <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
                                 ⛔ Scaduto il {formatExpiryDisplay(rule.expiresAt)}

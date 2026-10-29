@@ -16,6 +16,7 @@ import {
   AgentDiscountRule,
   DiscountCalculationMode,
   DiscountClientScope,
+  DiscountExpiryType,
   DiscountTargetClientMeta,
   DiscountTargetProductMeta,
   DiscountTargetType,
@@ -46,6 +47,7 @@ export interface SaveDiscountRuleInput {
   calculationMode: DiscountCalculationMode;
   discountValue: number;
   isActive?: boolean;
+  expiryType?: DiscountExpiryType;
   expiresAt?: string | null;
 }
 
@@ -316,16 +318,27 @@ export async function saveAgentDiscountRuleAction(
 
   const isActive = input.isActive !== undefined ? Boolean(input.isActive) : true;
 
-  // Risoluzione data di scadenza opzionale (fine giornata 23:59:59.999 se passata come YYYY-MM-DD, oppure null per "Senza scadenza")
+  // Risoluzione tipo di scadenza e data opzionale
+  let resolvedExpiryType: DiscountExpiryType = 'NONE';
   let parsedExpiresAt: Date | null = null;
-  if (input.expiresAt && String(input.expiresAt).trim()) {
+
+  if (input.expiryType === 'FIRST_PURCHASE' || input.expiryType === 'NEXT_PURCHASE') {
+    resolvedExpiryType = input.expiryType;
+    parsedExpiresAt = null;
+  } else if (input.expiresAt && String(input.expiresAt).trim()) {
     const rawExp = String(input.expiresAt).trim();
-    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawExp);
-    const dt = dateOnly
-      ? new Date(`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T23:59:59.999Z`)
-      : new Date(rawExp);
-    if (!isNaN(dt.getTime())) {
-      parsedExpiresAt = dt;
+    if (rawExp === 'FIRST_PURCHASE' || rawExp === 'NEXT_PURCHASE') {
+      resolvedExpiryType = rawExp;
+      parsedExpiresAt = null;
+    } else {
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawExp);
+      const dt = dateOnly
+        ? new Date(`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T23:59:59.999Z`)
+        : new Date(rawExp);
+      if (!isNaN(dt.getTime())) {
+        resolvedExpiryType = 'DATE';
+        parsedExpiresAt = dt;
+      }
     }
   }
 
@@ -447,14 +460,16 @@ export async function saveAgentDiscountRuleAction(
         "calculationMode",
         "discountValue",
         "isActive",
+        "expiryType",
         "expiresAt",
+        "consumedAt",
         "createdAt",
         "updatedAt"
       ) VALUES (
         $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
         $8::jsonb, $9::jsonb, $10::jsonb, '[]'::jsonb, $11,
         $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb,
-        $18, $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $18, $19, $20, $21, $22, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
@@ -476,7 +491,9 @@ export async function saveAgentDiscountRuleAction(
         "calculationMode" = EXCLUDED."calculationMode",
         "discountValue" = EXCLUDED."discountValue",
         "isActive" = EXCLUDED."isActive",
+        "expiryType" = EXCLUDED."expiryType",
         "expiresAt" = EXCLUDED."expiresAt",
+        "consumedAt" = NULL,
         "updatedAt" = CURRENT_TIMESTAMP`,
       targetRuleId,
       session.user.id,
@@ -498,6 +515,7 @@ export async function saveAgentDiscountRuleAction(
       calculationMode,
       discountVal,
       isActive,
+      resolvedExpiryType,
       parsedExpiresAt
     );
   };
@@ -740,6 +758,7 @@ export async function removeDiscountFromClientAction(
           "calculationMode",
           "discountValue",
           "isActive",
+          "expiryType",
           "expiresAt",
           "createdAt",
           "updatedAt"
@@ -747,7 +766,7 @@ export async function removeDiscountFromClientAction(
           $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
           $8::jsonb, $9::jsonb, $10::jsonb, '[]'::jsonb, $11,
           $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, $16::jsonb, $17::jsonb,
-          $18, $19, $20, $21, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          $18, $19, $20, $21, $22, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )`,
         newRuleId,
         session.user.id,
@@ -769,6 +788,7 @@ export async function removeDiscountFromClientAction(
         targetRule.calculationMode,
         targetRule.discountValue,
         targetRule.isActive,
+        targetRule.expiryType || (targetRule.expiresAt ? 'DATE' : 'NONE'),
         targetRule.expiresAt ? new Date(targetRule.expiresAt) : null
       );
     }

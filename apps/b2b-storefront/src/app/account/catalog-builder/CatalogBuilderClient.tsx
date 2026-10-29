@@ -1394,7 +1394,9 @@ export default function CatalogBuilderClient({
                         </div>
                         {pricing.discountPct > 0 && pricing.appliedRuleExpiresFormatted && (
                           <div className="text-[9px] font-extrabold text-amber-700 mt-0.5">
-                            ⏳ Valido fino al {pricing.appliedRuleExpiresFormatted}
+                            ⏳ Valido{' '}
+                            {pricing.appliedRuleExpiresFormatted.charAt(0).toLowerCase() +
+                              pricing.appliedRuleExpiresFormatted.slice(1)}
                           </div>
                         )}
                       </div>
@@ -1425,7 +1427,9 @@ export default function CatalogBuilderClient({
                             )}
                             {pricing.appliedRuleExpiresFormatted && (
                               <div className="text-[9px] font-extrabold text-amber-700 mt-0.5">
-                                ⏳ Valido fino al {pricing.appliedRuleExpiresFormatted}
+                                ⏳ Valido{' '}
+                                {pricing.appliedRuleExpiresFormatted.charAt(0).toLowerCase() +
+                                  pricing.appliedRuleExpiresFormatted.slice(1)}
                               </div>
                             )}
                           </div>
@@ -1726,7 +1730,7 @@ export default function CatalogBuilderClient({
                                 </span>
                                 {pricing.appliedRuleExpiresFormatted && (
                                   <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">
-                                    ⏳ Fino al {pricing.appliedRuleExpiresFormatted}
+                                    ⏳ {pricing.appliedRuleExpiresFormatted}
                                   </span>
                                 )}
                               </div>

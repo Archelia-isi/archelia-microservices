@@ -113,9 +113,13 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
     extraAgentDiscount = extraStr ? parseFloat(extraStr) || 0 : 0;
 
     const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
+    const reviewingOrderId = cookieStore.get('reviewingOrderId')?.value || null;
 
     const [allAgentRules, impUser] = await Promise.all([
-      getAgentDiscountRulesFromDb(session.user.id, session.user.zucchettiCode || ''),
+      getAgentDiscountRulesFromDb(session.user.id, session.user.zucchettiCode || '', {
+        excludeOrderId: reviewingOrderId,
+        fallbackClientCode: impersonatedClientCode || null,
+      }),
       impersonatedClientCode
         ? prisma.b2BUser.findUnique({
             where: { zucchettiCode: impersonatedClientCode },

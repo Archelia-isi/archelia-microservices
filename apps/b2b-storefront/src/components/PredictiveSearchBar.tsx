@@ -409,7 +409,7 @@ export default function PredictiveSearchBar({
                             </span>
                             {product.discountExpiresFormatted && (
                               <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">
-                                ⏳ Fino al {product.discountExpiresFormatted}
+                                ⏳ {product.discountExpiresFormatted}
                               </span>
                             )}
                           </div>
