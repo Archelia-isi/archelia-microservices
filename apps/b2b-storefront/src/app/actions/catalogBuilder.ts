@@ -1337,11 +1337,14 @@ export async function generateAgentCatalogPdfAction(
           } Td (Vedi sul sito ->) Tj ET`
         );
 
-        const targetProductUrl =
+        const rawTargetProductUrl =
           (item.productUrl || '').trim() ||
           `https://www.izzodistribuzione.it/product/${encodeURIComponent(
             item.productId || item.sku
           )}`;
+        const targetProductUrl = rawTargetProductUrl.includes('from_pdf=')
+          ? rawTargetProductUrl
+          : `${rawTargetProductUrl}${rawTargetProductUrl.includes('?') ? '&' : '?'}from_pdf=1`;
         pageUriAnnots[pageIdx].push({
           rect: [cardX, cardY, cardX + CARD_W, cardY + CARD_H],
           uri: targetProductUrl,
@@ -1579,9 +1582,9 @@ export async function generateAgentCatalogPdfAction(
             l =>
               `<< /Type /Annot /Subtype /Link /Rect [${l.rect
                 .map(n => n.toFixed(1))
-                .join(' ')}] /Border [0 0 0] /A << /Type /Action /S /URI /URI (${toPdfSafeLatin1(
+                .join(' ')}] /Border [0 0 0] /NewWindow true /A << /Type /Action /S /URI /URI (${toPdfSafeLatin1(
                 l.uri
-              )}) >> >>`
+              )}) /NewWindow true >> >>`
           )
           .join(' ');
         annotsDict = ` /Annots [${inlineAnnots}]`;

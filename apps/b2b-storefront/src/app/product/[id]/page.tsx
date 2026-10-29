@@ -7,6 +7,7 @@ import FastShippingBanner from '../../../components/FastShippingBanner';
 import ReturnToElmarkBanner from '../../../components/ReturnToElmarkBanner';
 import StoreModeEnforcer from '../../../components/StoreModeEnforcer';
 import ProductGallery from '../../../components/ProductGallery';
+import PdfCatalogLinkHandler from '../../../components/PdfCatalogLinkHandler';
 import { Pool } from 'pg';
 
 import { verifySession } from '@/lib/session';
@@ -240,8 +241,20 @@ export default async function ProductPage({ params, searchParams }: { params: { 
       return { key: key.trim(), value: rest.join(':').trim() };
     });
 
+  const isFromPdfCatalog = searchParams.from_pdf === '1';
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-8 md:py-12">
+      {isFromPdfCatalog && (
+        <>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var u=window.location.pathname;if(window.history.length<=1){window.history.replaceState(null,'',u);return;}var w=window.open(u,'_blank');if(w){window.__pdfSplitDone=true;window.history.back();}}catch(e){}})();`,
+            }}
+          />
+          <PdfCatalogLinkHandler />
+        </>
+      )}
       {/* BREADCRUMB */}
       <nav className="text-xs text-gray-500 mb-8 flex items-center gap-2 font-medium">
         <Link prefetch={true} href="/" className="hover:text-brand-main transition-colors">Home</Link>
