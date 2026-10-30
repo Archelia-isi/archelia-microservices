@@ -92,18 +92,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <nav className="flex space-x-3 md:space-x-6 items-center font-medium shrink-0">
               {showElmark && <StoreSwitcher currentMode={storeMode} />}
               
-              <Link prefetch={true} href="/catalog" className="hover:text-brand-hover transition-colors">Catalogo</Link>
+              <Link prefetch={false} href="/catalog" className="hover:text-brand-hover transition-colors">Catalogo</Link>
               
               {isAuthenticated ? (
                 <>
-                  <Link prefetch={true} href="/account" className="hover:text-brand-hover transition-colors">Area Privata</Link>
+                  <Link prefetch={false} href="/account" className="hover:text-brand-hover transition-colors">Area Privata</Link>
                   <CartBadge initialCount={cartItemCount} />
                   <form action={logout}>
                     <button type="submit" className="hover:text-brand-hover transition-colors">Esci</button>
                   </form>
                 </>
               ) : (
-                <Link prefetch={true} href="/login" className="hover:text-brand-hover transition-colors">Area Clienti</Link>
+                <Link prefetch={false} href="/login" className="hover:text-brand-hover transition-colors">Area Clienti</Link>
               )}
             </nav>
           </div>

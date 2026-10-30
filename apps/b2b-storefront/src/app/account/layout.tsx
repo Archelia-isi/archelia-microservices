@@ -36,40 +36,40 @@ export default async function AccountLayout({ children }: { children: React.Reac
             <nav className="flex flex-col p-2 divide-y divide-gray-100">
               {session.user.role === 'AGENT' ? (
                 <>
-                  <Link prefetch={true} href="/account" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href="/account" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Dashboard Agente
                   </Link>
-                  <Link prefetch={true} href="/account/prospects" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
+                  <Link prefetch={false} href="/account/prospects" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
                     <span>Clienti in Attivazione</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 rounded">
                       LEAD
                     </span>
                   </Link>
-                  <Link prefetch={true} href="/account/clients" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href="/account/clients" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Clienti
                   </Link>
-                  <Link prefetch={true} href="/account/discounts" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
+                  <Link prefetch={false} href="/account/discounts" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
                     <span>Gestione Sconti</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-900 rounded">
                       %
                     </span>
                   </Link>
-                  <Link prefetch={true} href="/account/catalog-builder" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
+                  <Link prefetch={false} href="/account/catalog-builder" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
                     <span>Sviluppa Catalogo</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-bold bg-brand-main text-black rounded">
                       PDF
                     </span>
                   </Link>
-                  <Link prefetch={true} href={`/account/agent-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href={`/account/agent-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Vaglio Ordini
                   </Link>
-                  <Link prefetch={true} href={`/account/saved-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href={`/account/saved-orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Salvati dai Clienti
                   </Link>
-                  <Link prefetch={true} href={`/account/quotes${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href={`/account/quotes${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Preventivi Inviati
                   </Link>
-                  <Link prefetch={true} href={`/account/agent-completed${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
+                  <Link prefetch={false} href={`/account/agent-completed${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Conclusi
                   </Link>
                 </>

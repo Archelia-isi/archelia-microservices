@@ -90,28 +90,28 @@ export default async function AgentDashboard({ user }: { user: any }) {
         <h1 className="text-3xl font-bold">Dashboard Agente</h1>
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            prefetch={true}
+            prefetch={false}
             href="/account/prospects"
             className="px-4 py-2 text-sm font-bold rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 transition-colors flex items-center gap-1.5"
           >
             <span>🚀 Clienti in Attivazione</span>
           </Link>
           <Link
-            prefetch={true}
+            prefetch={false}
             href="/account/clients"
             className="px-4 py-2 text-sm font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 transition-colors"
           >
             Gestione Clienti
           </Link>
           <Link
-            prefetch={true}
+            prefetch={false}
             href="/account/discounts"
             className="px-4 py-2 text-sm font-bold rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 transition-colors flex items-center gap-1.5"
           >
             <span>🏷️ Gestione Sconti</span>
           </Link>
           <Link
-            prefetch={true}
+            prefetch={false}
             href="/account/catalog-builder"
             className="px-4 py-2 text-sm font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-colors flex items-center gap-2"
           >
