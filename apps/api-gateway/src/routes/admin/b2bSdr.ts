@@ -396,18 +396,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           enableFirstPurchaseRule: Boolean(body.enableFirstPurchaseRule ?? true),
           istExtraDiscountPct: Number(body.istExtraDiscountPct ?? 10),
           rivExtraDiscountPct: Number(body.rivExtraDiscountPct ?? 10),
-          discountCalculationMode: String(body.discountCalculationMode || 'EXTRA_CASCADE'),
-          discountTargetType: String(body.discountTargetType || 'ALL_CATALOG'),
-          discountTargetFiltersJson: body.discountTargetFiltersJson || {},
+          discountCalculationMode: 'EXTRA_CASCADE',
+          discountTargetType: 'ALL_2GG',
+          discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: String(
-            body.offerTitle || 'Offerta Riservata Nuovi Partner B2B — Extra Sconto sul 1° Acquisto'
+            body.offerTitle || 'Offerta esclusiva valida per il primo acquisto'
           ),
           minOrderAmountText: String(
             body.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto"
           ),
           freeShippingText: String(
             body.freeShippingText ||
-              'Spedizione rapida 24/48h in tutta Italia da Deposito Principale'
+              'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)'
           ),
           paymentTermsText: String(
             body.paymentTermsText ||
@@ -417,12 +417,14 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             ? String(body.customCommercialNotes)
             : null,
           attachCatalogPdf: Boolean(body.attachCatalogPdf ?? true),
-          catalogSelectionMode: String(body.catalogSelectionMode || 'BY_CLUSTER'),
-          globalCatalogFiltersJson: body.globalCatalogFiltersJson || {},
-          clusterCatalogPresetsJson: body.clusterCatalogPresetsJson || {},
-          catalogWarehouse: String(body.catalogWarehouse || 'ALL_WAREHOUSES'),
-          catalogMaxProducts: Number(body.catalogMaxProducts ?? 60),
-          catalogPriceMode: String(body.catalogPriceMode || 'LIST_AND_NET'),
+          catalogSelectionMode: 'ALL_2GG',
+          globalCatalogFiltersJson: { warehouseFilter: 'MAIN_2GG', stockDisplayMode: 'BADGE_ONLY' },
+          clusterCatalogPresetsJson: {},
+          catalogWarehouse: 'MAIN_2GG',
+          catalogStockMode: 'BADGE_ONLY',
+          catalogIncludeZeroStock: false,
+          catalogMaxProducts: Number(body.catalogMaxProducts ?? 250),
+          catalogPriceMode: 'LIST_AND_NET',
           timeFencingEnabled: Boolean(body.timeFencingEnabled ?? true),
           morningWindow: String(body.morningWindow || '08:30-12:30'),
           afternoonWindow: String(body.afternoonWindow || '14:00-17:30'),
@@ -437,9 +439,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             body.istExtraDiscountPct !== undefined ? Number(body.istExtraDiscountPct) : undefined,
           rivExtraDiscountPct:
             body.rivExtraDiscountPct !== undefined ? Number(body.rivExtraDiscountPct) : undefined,
-          discountCalculationMode: body.discountCalculationMode,
-          discountTargetType: body.discountTargetType,
-          discountTargetFiltersJson: body.discountTargetFiltersJson,
+          discountCalculationMode: 'EXTRA_CASCADE',
+          discountTargetType: 'ALL_2GG',
+          discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: body.offerTitle,
           minOrderAmountText: body.minOrderAmountText,
           freeShippingText: body.freeShippingText,
@@ -447,13 +449,13 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           customCommercialNotes: body.customCommercialNotes,
           attachCatalogPdf:
             body.attachCatalogPdf !== undefined ? Boolean(body.attachCatalogPdf) : undefined,
-          catalogSelectionMode: body.catalogSelectionMode,
-          globalCatalogFiltersJson: body.globalCatalogFiltersJson,
-          clusterCatalogPresetsJson: body.clusterCatalogPresetsJson,
-          catalogWarehouse: body.catalogWarehouse,
+          catalogSelectionMode: 'ALL_2GG',
+          catalogWarehouse: 'MAIN_2GG',
+          catalogStockMode: 'BADGE_ONLY',
+          catalogIncludeZeroStock: false,
           catalogMaxProducts:
-            body.catalogMaxProducts !== undefined ? Number(body.catalogMaxProducts) : undefined,
-          catalogPriceMode: body.catalogPriceMode,
+            body.catalogMaxProducts !== undefined ? Number(body.catalogMaxProducts) : 250,
+          catalogPriceMode: 'LIST_AND_NET',
           timeFencingEnabled:
             body.timeFencingEnabled !== undefined ? Boolean(body.timeFencingEnabled) : undefined,
           morningWindow: body.morningWindow,
@@ -581,61 +583,95 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Auto-generate FIRST_PURCHASE discount rule
+        const discountFormulaLabel = `${baseDiscountNum}% + ${extraFirstPurchasePct}%`;
+        const effectiveNetPct = Number(
+          (100 - (100 - baseDiscountNum) * (1 - extraFirstPurchasePct / 100)).toFixed(2)
+        );
+        const catalistinoTitle = `Catalistino Riservato a ${prospect.companyName}`;
+        const catalistinoSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
+
+        // Auto-generate FIRST_PURCHASE discount rule (X% + Y%, Solo 2gg, Scadenza: Sul 1° Acquisto)
+        // collegata sia a b2b_discount_rules (OS) sia a b2b_agent_discount_rules (Storefront B2B)
         let firstPurchaseRuleId: string | null = promoProspect.firstPurchaseRuleId || null;
         if (config.enableFirstPurchaseRule && extraFirstPurchasePct > 0) {
-          const existingRule = await b2bPrisma.b2BDiscountRule.findFirst({
-            where: {
+          const ruleId = `sdr_fp_${promoProspect.id}`;
+          const ruleName = `Primo Acquisto (${discountFormulaLabel} Solo 2gg) — ${prospect.companyName}`;
+
+          const newRule = await b2bPrisma.b2BDiscountRule.upsert({
+            where: { id: ruleId },
+            create: {
+              id: ruleId,
+              name: ruleName,
+              agentId: DANIELE_SAVOIA_AGENT_ID,
+              agentCode: DANIELE_SAVOIA_AGENT_CODE,
               clientScope: 'SINGLE_CLIENT',
               clientId: promoProspect.id,
+              clientName: prospect.companyName,
+              clientIds: [promoProspect.id],
+              clientCategories: [isRIV ? 'RIV' : 'IST'],
+              targetType: 'ALL_CATALOG',
+              calculationMode: 'EXTRA_CASCADE',
+              discountValue: extraFirstPurchasePct,
+              expiryType: 'FIRST_PURCHASE',
+              isActive: true,
+            },
+            update: {
+              name: ruleName,
+              discountValue: extraFirstPurchasePct,
+              calculationMode: 'EXTRA_CASCADE',
               expiryType: 'FIRST_PURCHASE',
               isActive: true,
             },
           });
+          firstPurchaseRuleId = newRule.id;
 
-          if (existingRule) {
-            firstPurchaseRuleId = existingRule.id;
-          } else {
-            const ruleId = `sdr_fp_${promoProspect.id}`;
-            const newRule = await b2bPrisma.b2BDiscountRule.upsert({
-              where: { id: ruleId },
-              create: {
-                id: ruleId,
-                name: `${config.offerTitle} — ${prospect.companyName}`,
-                agentId: DANIELE_SAVOIA_AGENT_ID,
-                agentCode: DANIELE_SAVOIA_AGENT_CODE,
-                clientScope: 'SINGLE_CLIENT',
-                clientId: promoProspect.id,
-                clientName: prospect.companyName,
-                clientIds: [promoProspect.id],
-                clientCategories: [isRIV ? 'RIV' : 'IST'],
-                targetType: config.discountTargetType || 'ALL_CATALOG',
-                calculationMode: config.discountCalculationMode || 'EXTRA_CASCADE',
-                discountValue: extraFirstPurchasePct,
-                expiryType: 'FIRST_PURCHASE',
-                isActive: true,
-              },
-              update: {
-                discountValue: extraFirstPurchasePct,
-                calculationMode: config.discountCalculationMode || 'EXTRA_CASCADE',
-                isActive: true,
-              },
-            });
-            firstPurchaseRuleId = newRule.id;
+          try {
+            await b2bPrisma.$executeRawUnsafe(
+              `INSERT INTO b2b_agent_discount_rules (
+                "id", "agentId", "agentCode", "name", "clientScope", "clientId", "clientCode", "clientName",
+                "clientIds", "clientCodes", "clientsMeta", "clientCategories",
+                "targetType", "targetSkus", "targetProductsMeta", "targetBrands", "targetProductGroups", "targetFamilies", "targetCategories",
+                "calculationMode", "discountValue", "isActive", "expiryType", "createdAt", "updatedAt"
+              ) VALUES (
+                $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
+                $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
+                'ALL_CATALOG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                'EXTRA_COMPOUND', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
+              )
+              ON CONFLICT ("id") DO UPDATE SET
+                "name" = EXCLUDED."name",
+                "discountValue" = EXCLUDED."discountValue",
+                "calculationMode" = 'EXTRA_COMPOUND',
+                "expiryType" = 'FIRST_PURCHASE',
+                "isActive" = TRUE,
+                "updatedAt" = NOW()`,
+              ruleId,
+              DANIELE_SAVOIA_AGENT_ID,
+              DANIELE_SAVOIA_AGENT_CODE,
+              ruleName,
+              promoProspect.id,
+              promoProspect.username.toUpperCase(),
+              prospect.companyName,
+              JSON.stringify([promoProspect.id]),
+              JSON.stringify([promoProspect.username.toUpperCase()]),
+              JSON.stringify([
+                {
+                  id: promoProspect.id,
+                  code: promoProspect.username.toUpperCase(),
+                  companyName: prospect.companyName,
+                  category: isRIV ? 'RIV' : 'IST',
+                  baseDiscount: baseDiscountNum,
+                },
+              ]),
+              JSON.stringify([isRIV ? 'RIV' : 'IST']),
+              extraFirstPurchasePct
+            );
+          } catch (syncErr: any) {
+            log.warn(`Avviso sync b2b_agent_discount_rules: ${syncErr.message}`);
           }
         }
 
-        const effectiveNetPct =
-          config.discountCalculationMode === 'EXTRA_ADDITIVE'
-            ? baseDiscountNum + extraFirstPurchasePct
-            : Number(
-                (
-                  100 -
-                  (100 - baseDiscountNum) * (1 - extraFirstPurchasePct / 100)
-                ).toFixed(2)
-              );
-
-        const catalogFilename = `Catalogo_Izzo_Distribuzione_${prospect.companyName
+        const catalogFilename = `Catalistino_Riservato_${prospect.companyName
           .replace(/[^a-zA-Z0-9]+/g, '_')
           .slice(0, 28)}.pdf`;
 
@@ -644,45 +680,52 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           data: {
             firstPurchaseRuleId,
             orderDetailsSnapshot: {
-              offerTitle: config.offerTitle,
+              offerTitle: catalistinoSubtitle,
               minOrderAmountText: config.minOrderAmountText,
               freeShippingText: config.freeShippingText,
               paymentTermsText: config.paymentTermsText,
+              baseDiscountNum,
               extraFirstPurchasePct,
+              discountFormula: discountFormulaLabel,
               effectiveNetPct,
             },
             attachedCatalogMeta: {
               filename: catalogFilename,
-              warehouse: config.catalogWarehouse,
-              maxProducts: config.catalogMaxProducts,
+              catalogTitle: catalistinoTitle,
+              catalogSubtitle: catalistinoSubtitle,
+              warehouse: 'MAIN_2GG',
+              stockDisplayMode: 'BADGE_ONLY',
+              priceDisplayMode: 'LIST_AND_NET',
+              discountFormula: discountFormulaLabel,
+              baseDiscount: baseDiscountNum,
+              extraDiscountPct: extraFirstPurchasePct,
+              maxProducts: 250,
             },
           },
         });
 
-        const subject = `Listino Riservato B2B ${
-          isRIV ? 'Rivenditori & Ferramenta' : 'Installatori & Professionisti'
-        } — Credenziali + Extra Sconto 1° Acquisto per ${prospect.companyName}`;
+        const subject = `${catalistinoTitle} — Offerta valida per il primo acquisto (Sconto ${discountFormulaLabel})`;
 
         const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 640px;">
   <p>Gentile Team di <strong>${prospect.companyName}</strong>,</p>
   <p>Siamo <strong>Izzo Distribuzione</strong> (<em>I.S.I. S.r.l.</em>), distributore B2B specializzato in materiale elettrico, illuminazione professionale e ferramenta tecnica.</p>
-  <p>Abbiamo attivato per la Vostra azienda un accesso riservato al nostro portale B2B con <strong>Listino ${
-    isRIV ? 'Rivenditori (RIV — Sconto Base 50%)' : 'Installatori (IST — Sconto Base 40%)'
-  }</strong> e un <strong>Extra Sconto del +${extraFirstPurchasePct}% valido sul Vostro Primo Acquisto</strong> (Sconto Netto Totale: <strong>${effectiveNetPct}%</strong>).</p>
+  <p>Abbiamo predisposto il <strong>${catalistinoTitle}</strong> e attivato il Vostro accesso riservato al portale B2B con <strong>Sconto Riservato ${discountFormulaLabel}</strong> valido sul Vostro primo acquisto su tutti i prodotti in <strong>Pronta Consegna 2gg</strong>.</p>
   <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin: 20px 0;">
-    <div style="font-weight: 700; color: #15803d; margin-bottom: 8px;">🔐 CREDENZIALI DI ACCESSO PORTALE B2B</div>
-    <div><strong>Portale:</strong> <a href="https://b2b.izzodistribuzione.it/login">https://b2b.izzodistribuzione.it/login</a></div>
+    <div style="font-weight: 800; color: #15803d; margin-bottom: 4px;">${catalistinoTitle}</div>
+    <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${catalistinoSubtitle}</div>
+    <div><strong>Portale B2B:</strong> <a href="https://www.izzodistribuzione.it/login">https://www.izzodistribuzione.it/login</a></div>
     <div><strong>Username (definitiva):</strong> <code>${promoProspect.username}</code></div>
     <div><strong>Password Provvisoria (da personalizzare al 1° accesso):</strong> <code>${tempPasswordPlain}</code></div>
-    <div style="margin-top: 8px; font-size: 13px; color: #475569;">
-      🎁 <strong>Promo Attiva:</strong> ${config.offerTitle} (+${extraFirstPurchasePct}% automatico a carrello sul 1° ordine)<br/>
-      🚚 <strong>Spedizione:</strong> ${config.freeShippingText}<br/>
-      👤 <strong>Referente Commerciale Assegnato:</strong> Daniele Savoia (Cod. 003)
+    <div style="margin-top: 10px; font-size: 13px; color: #475569;">
+      🏷️ <strong>Sconto Attivo 1° Acquisto:</strong> <strong>${discountFormulaLabel}</strong> automatico a carrello su tutti i prodotti 2gg<br/>
+      📦 <strong>Condizione Ordine:</strong> ${config.minOrderAmountText}<br/>
+      🚚 <strong>Consegna:</strong> ${config.freeShippingText}<br/>
+      👤 <strong>Referente Commerciale:</strong> ${config.paymentTermsText}
     </div>
   </div>
   ${
     config.attachCatalogPdf
-      ? `<p>📎 In allegato trovate il <strong>Catalogo PDF Personalizzato (${catalogFilename})</strong> con i prezzi netti già calcolati per la Vostra azienda.</p>`
+      ? `<p>📎 In allegato trovate il <strong>${catalistinoTitle} (${catalogFilename})</strong> con tutti i prodotti in pronta consegna 2gg e lo sconto <strong>${discountFormulaLabel}</strong> già calcolato.</p>`
       : ''
   }
   <p>Cordiali saluti,<br/><strong>Daniele Savoia</strong> — Divisione B2B Izzo Distribuzione (I.S.I. S.r.l.)</p>
@@ -1035,6 +1078,60 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         update: data,
       });
 
+      try {
+        const calcMode =
+          data.calculationMode === 'EXTRA_CASCADE' ? 'EXTRA_COMPOUND' : data.calculationMode;
+        await b2bPrisma.$executeRawUnsafe(
+          `INSERT INTO b2b_agent_discount_rules (
+            "id", "agentId", "agentCode", "name", "clientScope", "clientId", "clientName",
+            "clientIds", "clientCodes", "clientsMeta", "clientCategories",
+            "targetType", "targetSkus", "targetProductsMeta", "targetBrands", "targetProductGroups", "targetFamilies", "targetCategories",
+            "calculationMode", "discountValue", "isActive", "expiryType", "expiresAt", "createdAt", "updatedAt"
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7,
+            $8::jsonb, '[]'::jsonb, '[]'::jsonb, $9::jsonb,
+            $10, $11::jsonb, '[]'::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb,
+            $16, $17, $18, $19, $20, NOW(), NOW()
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "name" = EXCLUDED."name",
+            "clientScope" = EXCLUDED."clientScope",
+            "clientId" = EXCLUDED."clientId",
+            "clientName" = EXCLUDED."clientName",
+            "clientIds" = EXCLUDED."clientIds",
+            "clientCategories" = EXCLUDED."clientCategories",
+            "targetType" = EXCLUDED."targetType",
+            "calculationMode" = EXCLUDED."calculationMode",
+            "discountValue" = EXCLUDED."discountValue",
+            "isActive" = EXCLUDED."isActive",
+            "expiryType" = EXCLUDED."expiryType",
+            "expiresAt" = EXCLUDED."expiresAt",
+            "updatedAt" = NOW()`,
+          ruleId,
+          data.agentId,
+          data.agentCode,
+          data.name,
+          data.clientScope,
+          data.clientId,
+          data.clientName,
+          JSON.stringify(data.clientIds),
+          JSON.stringify(data.clientCategories),
+          data.targetType,
+          JSON.stringify(data.targetSkus),
+          JSON.stringify(data.targetBrands),
+          JSON.stringify(data.targetProductGroups),
+          JSON.stringify(data.targetFamilies),
+          JSON.stringify(data.targetCategories),
+          calcMode,
+          data.discountValue,
+          data.isActive,
+          data.expiryType,
+          data.expiresAt
+        );
+      } catch (syncErr: any) {
+        log.warn(`Sync b2b_agent_discount_rules su POST rule: ${syncErr.message}`);
+      }
+
       return reply.send({ success: true, rule });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1048,10 +1145,23 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       if (!existing) {
         return reply.status(404).send({ success: false, error: 'Regola non trovata' });
       }
+      const nextActive = !existing.isActive;
       const updated = await b2bPrisma.b2BDiscountRule.update({
         where: { id },
-        data: { isActive: !existing.isActive },
+        data: { isActive: nextActive },
       });
+      try {
+        await b2bPrisma.$executeRawUnsafe(
+          `UPDATE b2b_agent_discount_rules
+           SET "isActive" = $2,
+               "updatedAt" = NOW()
+           WHERE "id" = $1`,
+          id,
+          nextActive
+        );
+      } catch (_e) {
+        // ignore if not present in storefront table
+      }
       return reply.send({ success: true, rule: updated });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1062,6 +1172,14 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       await b2bPrisma.b2BDiscountRule.delete({ where: { id } });
+      try {
+        await b2bPrisma.$executeRawUnsafe(
+          `DELETE FROM b2b_agent_discount_rules WHERE "id" = $1`,
+          id
+        );
+      } catch (_e) {
+        // ignore
+      }
       return reply.send({ success: true });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1086,10 +1204,11 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         calculationMode?: 'EXTRA_CASCADE' | 'EXTRA_ADDITIVE' | 'FIXED_TOTAL';
       };
 
+      const warehouseFilter = body.warehouseFilter || 'MAIN_2GG';
       const filterParts: string[] = ['catalog_source:=zucchetti', 'price:>0'];
-      if (body.warehouseFilter === 'MAIN_2GG') {
+      if (warehouseFilter === 'MAIN_2GG') {
         filterParts.push('stock_main:>0');
-      } else if (body.warehouseFilter === 'EXTERNAL_7GG') {
+      } else if (warehouseFilter === 'EXTERNAL_7GG') {
         filterParts.push('stock_ek:>0');
       } else {
         filterParts.push('stock:>0');
@@ -1110,7 +1229,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         filterParts.push(`category:=[${body.categories.map((c) => `\`${c}\``).join(',')}]`);
       }
 
-      const perPage = Math.min(250, Math.max(10, Number(body.limit || 60)));
+      const perPage = Math.min(250, Math.max(10, Number(body.limit || 250)));
       const searchRes = await typesenseClient
         .collections(PRODUCTS_COLLECTION_NAME)
         .documents()
@@ -1125,6 +1244,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const baseDiscount = body.commercialCategory === 'RIV' ? 50 : 40;
       const extraPct = Number(body.extraDiscountPct || 0);
       const mode = body.calculationMode || 'EXTRA_CASCADE';
+      const discountFormula =
+        extraPct > 0 ? `${baseDiscount}% + ${extraPct}%` : `${baseDiscount}%`;
 
       let effectiveDiscountPct = baseDiscount;
       if (extraPct > 0) {
@@ -1158,6 +1279,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           listPrice,
           baseDiscount,
           extraDiscountPct: extraPct,
+          discountFormula,
           effectiveDiscountPct,
           netPrice,
         };
@@ -1166,6 +1288,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         found: searchRes.found || products.length,
+        discountFormula,
         effectiveDiscountPct,
         products,
       });

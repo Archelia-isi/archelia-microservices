@@ -28,6 +28,7 @@ import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 import Select from '../components/ui/Select';
 import Modal from '../components/ui/Modal';
+import { useWindowStore } from '../store/useWindowStore';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -86,22 +87,57 @@ export default function AiSdrB2BApp() {
     istExtraDiscountPct: 10,
     rivExtraDiscountPct: 10,
     discountCalculationMode: 'EXTRA_CASCADE',
-    discountTargetType: 'ALL_CATALOG',
-    offerTitle: 'Offerta Riservata Nuovi Partner B2B — Extra Sconto sul 1° Acquisto',
+    discountTargetType: 'ALL_2GG',
+    offerTitle: 'Offerta esclusiva valida per il primo acquisto',
     minOrderAmountText: "Nessun minimo d'ordine sul tuo 1° acquisto",
-    freeShippingText: 'Spedizione rapida 24/48h in tutta Italia da Deposito Principale',
+    freeShippingText: 'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
     paymentTermsText: 'Condizioni B2B riservate con referente dedicato Daniele Savoia',
     customCommercialNotes: '',
     attachCatalogPdf: true,
-    catalogSelectionMode: 'BY_CLUSTER',
-    catalogWarehouse: 'ALL_WAREHOUSES',
-    catalogMaxProducts: 60,
+    catalogSelectionMode: 'ALL_2GG',
+    catalogWarehouse: 'MAIN_2GG',
+    catalogStockMode: 'BADGE_ONLY',
+    catalogMaxProducts: 250,
     catalogPriceMode: 'LIST_AND_NET',
     timeFencingEnabled: true,
     morningWindow: '08:30-12:30',
     afternoonWindow: '14:00-17:30',
     sentinelEnabled: true,
   });
+
+  const openDiscountsApp = () => {
+    useWindowStore.getState().openWindow('b2b_discounts');
+  };
+
+  const openCatalogBuilderForClient = (
+    companyName: string,
+    category: 'IST' | 'RIV' = 'IST',
+    extraPctOverride?: number
+  ) => {
+    const baseDiscount = category === 'RIV' ? 50 : 40;
+    const extraPct =
+      extraPctOverride !== undefined
+        ? Number(extraPctOverride)
+        : category === 'RIV'
+        ? Number(config.rivExtraDiscountPct || 10)
+        : Number(config.istExtraDiscountPct || 10);
+    const discountFormula = `${baseDiscount}% + ${extraPct}%`;
+    useWindowStore.getState().openAppWithContext('b2b_catalog_builder', {
+      targetCompanyName: companyName,
+      commercialCategory: category,
+      extraDiscountPct: extraPct,
+      calculationMode: 'EXTRA_CASCADE',
+      warehouseFilter: 'MAIN_2GG',
+      stockDisplayMode: 'BADGE_ONLY',
+      catalogTitle: `Catalistino Riservato a ${companyName}`,
+      catalogSubtitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormula}`,
+      minOrderText: config.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
+      shippingText:
+        config.freeShippingText ||
+        'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
+      openPreview: true,
+    });
+  };
 
   // New Inbox Modal
   const [isInboxModalOpen, setIsInboxModalOpen] = useState(false);
@@ -906,10 +942,10 @@ export default function AiSdrB2BApp() {
                     >
                       <th style={{ padding: '10px 8px' }}>Ragione Sociale & Contatti</th>
                       <th style={{ padding: '10px 8px' }}>Username Definitiva & Password</th>
-                      <th style={{ padding: '10px 8px' }}>Listino & Sconto 1° Acquisto</th>
+                      <th style={{ padding: '10px 8px' }}>Sconto 1° Acquisto (X% + Y% • Solo 2gg)</th>
                       <th style={{ padding: '10px 8px' }}>Telemetria Accessi & GDPR</th>
                       <th style={{ padding: '10px 8px' }}>Carrello / 1° Ordine</th>
-                      <th style={{ padding: '10px 8px' }}>Agente</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Catalistino & Sconti</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -918,90 +954,118 @@ export default function AiSdrB2BApp() {
                       : promoSubTab === 'contacted'
                       ? promoContacted
                       : promoConverted
-                    ).map((item) => (
-                      <tr
-                        key={item.id}
-                        style={{ borderBottom: '1px solid var(--color-border)' }}
-                      >
-                        <td style={{ padding: '10px 8px' }}>
-                          <div style={{ fontWeight: 700 }}>{item.companyName}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                            {item.email} • {item.city || ''} ({item.province || ''})
-                          </div>
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <div>
-                            User: <code>{item.username}</code>
-                          </div>
-                          {item.tempPassword ? (
+                    ).map((item) => {
+                      const basePct = item.commercialCategory === 'RIV' ? 50 : 40;
+                      const extraPct = Number(
+                        item.firstPurchaseRule?.discountValue ??
+                          (item.commercialCategory === 'RIV'
+                            ? config.rivExtraDiscountPct || 10
+                            : config.istExtraDiscountPct || 10)
+                      );
+                      return (
+                        <tr
+                          key={item.id}
+                          style={{ borderBottom: '1px solid var(--color-border)' }}
+                        >
+                          <td style={{ padding: '10px 8px' }}>
+                            <div style={{ fontWeight: 700 }}>{item.companyName}</div>
                             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                              Temp Pass: <code>{item.tempPassword}</code>
+                              {item.email} • {item.city || ''} ({item.province || ''})
                             </div>
-                          ) : (
-                            <Badge variant="success" size="sm">
-                              Password personale impostata (GDPR OK)
-                            </Badge>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            <Badge
-                              variant={item.commercialCategory === 'RIV' ? 'success' : 'primary'}
-                              size="sm"
-                            >
-                              {item.commercialCategory} (Base {item.discount}%)
-                            </Badge>
-                            {item.firstPurchaseRule && (
-                              <Badge variant="warning" size="sm">
-                                +{item.firstPurchaseRule.discountValue}% Sul 1° Acquisto
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <div>
+                              User: <code>{item.username}</code>
+                            </div>
+                            {item.tempPassword ? (
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                Temp Pass: <code>{item.tempPassword}</code>
+                              </div>
+                            ) : (
+                              <Badge variant="success" size="sm">
+                                Password personale impostata (GDPR OK)
                               </Badge>
                             )}
-                          </div>
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {item.loginCount > 0 ? (
-                            <div>
-                              <Badge variant="success" size="sm">
-                                {item.loginCount} accessi effettuati
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <Badge
+                                variant={item.commercialCategory === 'RIV' ? 'success' : 'primary'}
+                                size="sm"
+                              >
+                                {item.commercialCategory} ({basePct}% + {extraPct}%)
                               </Badge>
-                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                1° login:{' '}
-                                {item.firstLoginAt
-                                  ? new Date(item.firstLoginAt).toLocaleString('it-IT')
-                                  : '-'}
-                              </div>
+                              <Badge variant="warning" size="sm">
+                                🎁 Sul 1° Acquisto • Solo 2gg
+                              </Badge>
                             </div>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                              Inviata il{' '}
-                              {item.emailSentAt
-                                ? new Date(item.emailSentAt).toLocaleDateString('it-IT')
-                                : '-'}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          {item.status === 'ORDER_PENDING_APPROVAL' ? (
-                            <Badge variant="warning" size="sm">
-                              1° Ordine in attesa di approvazione Agente
-                            </Badge>
-                          ) : item.cartItemsCount > 0 ? (
-                            <Badge variant="primary" size="sm">
-                              🛒 {item.cartItemsCount} art. nel carrello ({item.cartTotalUnits} pz)
-                            </Badge>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                              Nessun carrello attivo
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '10px 8px' }}>
-                          <Badge variant="neutral" size="sm">
-                            Daniele Savoia ({item.agentCode})
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            {item.loginCount > 0 ? (
+                              <div>
+                                <Badge variant="success" size="sm">
+                                  {item.loginCount} accessi effettuati
+                                </Badge>
+                                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                  1° login:{' '}
+                                  {item.firstLoginAt
+                                    ? new Date(item.firstLoginAt).toLocaleString('it-IT')
+                                    : '-'}
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                Inviata il{' '}
+                                {item.emailSentAt
+                                  ? new Date(item.emailSentAt).toLocaleDateString('it-IT')
+                                  : '-'}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            {item.status === 'ORDER_PENDING_APPROVAL' ? (
+                              <Badge variant="warning" size="sm">
+                                1° Ordine in attesa di approvazione Agente
+                              </Badge>
+                            ) : item.cartItemsCount > 0 ? (
+                              <Badge variant="primary" size="sm">
+                                🛒 {item.cartItemsCount} art. nel carrello ({item.cartTotalUnits} pz)
+                              </Badge>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                Nessun carrello attivo
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={<FileText size={13} />}
+                                onClick={() =>
+                                  openCatalogBuilderForClient(
+                                    item.companyName,
+                                    item.commercialCategory === 'RIV' ? 'RIV' : 'IST',
+                                    extraPct
+                                  )
+                                }
+                              >
+                                Catalistino PDF
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={<Percent size={13} />}
+                                onClick={openDiscountsApp}
+                              >
+                                Regola Sconto
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </GlassPanel>
@@ -1021,10 +1085,10 @@ export default function AiSdrB2BApp() {
                 >
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '14px' }}>
-                      Coda Bozze Outreach con Credenziali, Sconto 1° Acquisto e Catalogo PDF
+                      Coda Bozze Outreach con Credenziali, Sconto 1° Acquisto (X% + Y% • Solo 2gg) e Catalistino PDF
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      Verifica le bozze prima dell&apos;invio automatico tramite il pool SMTP.
+                      Verifica le bozze e apri il Catalistino Riservato in Catalog Builder B2B prima dell&apos;invio.
                     </div>
                   </div>
                   <Button
@@ -1051,7 +1115,7 @@ export default function AiSdrB2BApp() {
                     >
                       <th style={{ padding: '10px 8px' }}>Destinatario</th>
                       <th style={{ padding: '10px 8px' }}>Oggetto Email</th>
-                      <th style={{ padding: '10px 8px' }}>Catalogo Allegato</th>
+                      <th style={{ padding: '10px 8px' }}>Catalistino Riservato Allegato</th>
                       <th style={{ padding: '10px 8px' }}>Stato</th>
                       <th style={{ padding: '10px 8px', textAlign: 'right' }}>Azioni</th>
                     </tr>
@@ -1096,9 +1160,22 @@ export default function AiSdrB2BApp() {
                             <Button
                               variant="secondary"
                               size="sm"
+                              icon={<FileText size={13} />}
+                              onClick={() =>
+                                openCatalogBuilderForClient(
+                                  d.prospect?.companyName || 'Cliente B2B',
+                                  d.prospect?.commercialCategory === 'RIV' ? 'RIV' : 'IST'
+                                )
+                              }
+                            >
+                              Catalistino PDF
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={() => setPreviewDraft(d)}
                             >
-                              Anteprima
+                              Anteprima Mail
                             </Button>
                             <Button
                               variant="primary"
@@ -1118,21 +1195,55 @@ export default function AiSdrB2BApp() {
             </div>
           )}
 
-          {/* TAB 5: CONFIGURAZIONE OFFERTA, SCONTO 1° ACQUISTO & CATALOGO ALLEGATO */}
+          {/* TAB 5: GENERATORE AUTOMATICO PER LE APP SCONTI B2B & CATALOG BUILDER B2B */}
           {activeTab === 'config' && (
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: 'var(--spacing-lg)',
+                alignItems: 'start',
               }}
             >
+              {/* COLONNA SINISTRA: GENERATORE AUTOMATICO SCONTI B2B + CONDIZIONI ORDINE */}
               <GlassPanel padding="lg" radius="lg">
-                <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '12px' }}>
-                  1. Sconto Primo Acquisto Autogenerato (Scadenza: Sul 1° Acquisto)
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '15px' }}>
+                      1. Generatore Automatico Regola Sconto (App Sconti B2B)
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      Crea in automatico la regola sconto individuale per ogni lead contattato.
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Percent size={14} />}
+                    onClick={openDiscountsApp}
+                  >
+                    Apri App Sconti B2B
+                  </Button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={Boolean(config.enableFirstPurchaseRule)}
@@ -1140,97 +1251,178 @@ export default function AiSdrB2BApp() {
                         setConfig({ ...config, enableFirstPurchaseRule: e.target.checked })
                       }
                     />
-                    Genera automaticamente regola sconto individuale &quot;Sul primo acquisto&quot;
-                    per ogni prospect contattato
+                    Attiva generazione automatica regola in Sconti B2B e sul Sito E-Commerce
                   </label>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <TextInput
-                      label="Extra Sconto 1° Acquisto IST (su base 40%) %"
-                      type="number"
-                      value={String(config.istExtraDiscountPct)}
-                      onChange={(e) =>
-                        setConfig({ ...config, istExtraDiscountPct: Number(e.target.value) })
-                      }
-                    />
-                    <TextInput
-                      label="Extra Sconto 1° Acquisto RIV (su base 50%) %"
-                      type="number"
-                      value={String(config.rivExtraDiscountPct)}
-                      onChange={(e) =>
-                        setConfig({ ...config, rivExtraDiscountPct: Number(e.target.value) })
-                      }
-                    />
+                  {/* Riepilogo Preset Fissi Sconto */}
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(22, 163, 74, 0.08)',
+                      border: '1px solid rgba(22, 163, 74, 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      fontSize: '12.5px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        Scadenza Regola Sconto:
+                      </span>
+                      <Badge variant="warning" size="sm">
+                        🎁 Sempre &quot;Sul 1° Acquisto&quot; (Auto-consumo al checkout)
+                      </Badge>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        Formula Sconto:
+                      </span>
+                      <Badge variant="primary" size="sm">
+                        📐 Sempre X% + Y% in Cascata Composta
+                      </Badge>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        Prodotti Validità Sconto:
+                      </span>
+                      <Badge variant="success" size="sm">
+                        🟢 Sempre Tutti e Solo i Prodotti 2gg (Deposito Principale)
+                      </Badge>
+                    </div>
                   </div>
 
-                  <div>
-                    <label
+                  {/* Configurazione Y% per IST (40% + Y%) e RIV (50% + Y%) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div
                       style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        marginBottom: '4px',
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
                       }}
                     >
-                      Modalità Calcolo Sconto 1° Acquisto
-                    </label>
-                    <Select
-                      value={config.discountCalculationMode}
-                      onChange={(e) =>
-                        setConfig({ ...config, discountCalculationMode: e.target.value })
-                      }
-                      options={[
-                        {
-                          value: 'EXTRA_CASCADE',
-                          label: 'Extra in Cascata Composta (es. 40% + 10% = 46% netto)',
-                        },
-                        {
-                          value: 'EXTRA_ADDITIVE',
-                          label: 'Somma Diretta Percentuale (es. 40% + 10% = 50% netto)',
-                        },
-                      ]}
-                    />
+                      <TextInput
+                        fullWidth
+                        label="Extra Y% Installatori (IST — Base 40%)"
+                        type="number"
+                        value={String(config.istExtraDiscountPct)}
+                        onChange={(e) =>
+                          setConfig({ ...config, istExtraDiscountPct: Number(e.target.value) })
+                        }
+                      />
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-primary)' }}>
+                        Formula applicata: 40% + {Number(config.istExtraDiscountPct || 0)}% (Netto{' '}
+                        {(
+                          100 -
+                          60 * (1 - Number(config.istExtraDiscountPct || 0) / 100)
+                        ).toFixed(1)}
+                        %)
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: '12px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <TextInput
+                        fullWidth
+                        label="Extra Y% Rivenditori (RIV — Base 50%)"
+                        type="number"
+                        value={String(config.rivExtraDiscountPct)}
+                        onChange={(e) =>
+                          setConfig({ ...config, rivExtraDiscountPct: Number(e.target.value) })
+                        }
+                      />
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: '#15803d' }}>
+                        Formula applicata: 50% + {Number(config.rivExtraDiscountPct || 0)}% (Netto{' '}
+                        {(
+                          100 -
+                          50 * (1 - Number(config.rivExtraDiscountPct || 0) / 100)
+                        ).toFixed(1)}
+                        %)
+                      </div>
+                    </div>
                   </div>
 
                   <div
                     style={{
                       fontWeight: 700,
                       fontSize: '15px',
-                      marginTop: '12px',
-                      marginBottom: '4px',
+                      marginTop: '8px',
                     }}
                   >
-                    2. Zona Dettagli Ordine (Inseriti nella Mail e nella Pagina 2 del Catalogo PDF)
+                    2. Condizioni Commerciali 1° Acquisto (Mail &amp; Pagina 2 Catalistino PDF)
                   </div>
                   <TextInput
-                    label="Titolo Offerta Benvenuto"
-                    value={config.offerTitle || ''}
-                    onChange={(e) => setConfig({ ...config, offerTitle: e.target.value })}
-                  />
-                  <TextInput
+                    fullWidth
                     label="Condizione Minimo d'Ordine"
                     value={config.minOrderAmountText || ''}
                     onChange={(e) => setConfig({ ...config, minOrderAmountText: e.target.value })}
                   />
                   <TextInput
-                    label="Condizioni Spedizione e Tempi di Consegna"
+                    fullWidth
+                    label="Condizioni Spedizione e Tempi di Consegna (2gg)"
                     value={config.freeShippingText || ''}
                     onChange={(e) => setConfig({ ...config, freeShippingText: e.target.value })}
                   />
                   <TextInput
-                    label="Modalità di Pagamento & Referente"
+                    fullWidth
+                    label="Modalità di Pagamento & Referente B2B"
                     value={config.paymentTermsText || ''}
                     onChange={(e) => setConfig({ ...config, paymentTermsText: e.target.value })}
                   />
                 </div>
               </GlassPanel>
 
+              {/* COLONNA DESTRA: GENERATORE AUTOMATICO CATALISTINO PDF (CATALOG BUILDER B2B) */}
               <GlassPanel padding="lg" radius="lg">
-                <div style={{ fontWeight: 700, fontSize: '15px', marginBottom: '12px' }}>
-                  3. Parametri Catalogo PDF Allegato Automaticamente alla Mail
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '15px' }}>
+                      3. Generatore Automatico Catalistino PDF (App Catalog Builder B2B)
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      Pilota in automatico Catalog Builder B2B con le impostazioni predefinite per ogni cliente.
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<FileText size={14} />}
+                    onClick={() => openCatalogBuilderForClient('Esempio Cliente B2B S.r.l.', 'IST')}
+                  >
+                    Apri in Catalog Builder B2B
+                  </Button>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={Boolean(config.attachCatalogPdf)}
@@ -1238,102 +1430,91 @@ export default function AiSdrB2BApp() {
                         setConfig({ ...config, attachCatalogPdf: e.target.checked })
                       }
                     />
-                    Allega automaticamente il Catalogo PDF personalizzato con i prezzi netti 1°
-                    acquisto
+                    Genera e allega automaticamente il Catalistino PDF personalizzato ad ogni email
                   </label>
 
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        marginBottom: '4px',
-                      }}
-                    >
-                      Filtro Disponibilità Magazzino nel Catalogo Allegato
-                    </label>
-                    <Select
-                      value={config.catalogWarehouse || 'ALL_WAREHOUSES'}
-                      onChange={(e) =>
-                        setConfig({ ...config, catalogWarehouse: e.target.value })
-                      }
-                      options={[
-                        {
-                          value: 'ALL_WAREHOUSES',
-                          label: 'Tutti i Depositi (Principale 2gg + Esterno 7gg)',
-                        },
-                        {
-                          value: 'MAIN_2GG',
-                          label: 'Solo Deposito Principale (Pronta Consegna 24/48h)',
-                        },
-                        {
-                          value: 'EXTERNAL_7GG',
-                          label: 'Solo Deposito Esterno (Consegna 5/7gg)',
-                        },
-                      ]}
-                    />
-                  </div>
+                  {/* Riepilogo Preset Fissi Catalistino PDF */}
+                  <div
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(15, 23, 42, 0.04)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                        Titolo Copertina &amp; Intestazione (Dinamico sul Cliente)
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-text)', marginTop: '2px' }}>
+                        Catalistino Riservato a [Ragione Sociale Cliente]
+                      </div>
+                    </div>
 
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        marginBottom: '4px',
-                      }}
-                    >
-                      Strategia Selezione Articoli
-                    </label>
-                    <Select
-                      value={config.catalogSelectionMode || 'BY_CLUSTER'}
-                      onChange={(e) =>
-                        setConfig({ ...config, catalogSelectionMode: e.target.value })
-                      }
-                      options={[
-                        {
-                          value: 'BY_CLUSTER',
-                          label: 'Adattivo per Cluster (Installatori vs Ferramenta/Rivenditori)',
-                        },
-                        {
-                          value: 'GLOBAL',
-                          label: 'Selezione Globale Personalizzata (Top Rotazione B2B)',
-                        },
-                      ]}
-                    />
-                  </div>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                        Sottotitolo Offerta (Dinamico su Situazione 1° Acquisto &amp; Categoria)
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: '#15803d', marginTop: '2px' }}>
+                        Offerta esclusiva valida per il primo acquisto — Sconto Riservato [40% o 50%] + [Y]%
+                      </div>
+                    </div>
 
-                  <TextInput
-                    label="Numero Massimo Articoli nel PDF Allegato"
-                    type="number"
-                    value={String(config.catalogMaxProducts || 60)}
-                    onChange={(e) =>
-                      setConfig({ ...config, catalogMaxProducts: Number(e.target.value) })
-                    }
-                  />
+                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          Prodotti Inclusi nel Catalistino:
+                        </span>
+                        <Badge variant="success" size="sm">
+                          🟢 Sempre Tutti e Solo i Prodotti 2gg
+                        </Badge>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          Visualizzazione Giacenza:
+                        </span>
+                        <Badge variant="success" size="sm">
+                          🟢 Solo Bollino di Giacenza (Disponibile 2gg)
+                        </Badge>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          Sconto Visualizzato sulle Schede:
+                        </span>
+                        <Badge variant="primary" size="sm">
+                          🏷️ Sempre X% + Y% (es. 40% + {Number(config.istExtraDiscountPct || 10)}%)
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
 
                   <div
                     style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
                       gap: '12px',
-                      marginTop: '8px',
+                      marginTop: '4px',
                     }}
                   >
                     <TextInput
+                      fullWidth
                       label="Finestra Invio Mattina (Time-Fencing)"
                       value={config.morningWindow || '08:30-12:30'}
                       onChange={(e) => setConfig({ ...config, morningWindow: e.target.value })}
                     />
                     <TextInput
+                      fullWidth
                       label="Finestra Invio Pomeriggio"
                       value={config.afternoonWindow || '14:00-17:30'}
                       onChange={(e) => setConfig({ ...config, afternoonWindow: e.target.value })}
                     />
                   </div>
 
-                  <div style={{ marginTop: '16px' }}>
+                  <div style={{ marginTop: '8px' }}>
                     <Button
                       variant="primary"
                       size="md"
@@ -1341,7 +1522,7 @@ export default function AiSdrB2BApp() {
                       onClick={handleSaveConfig}
                       disabled={loading}
                     >
-                      Salva Configurazione Offerta, Sconto 1° Acquisto & Catalogo
+                      Salva Impostazioni Generatore Automatico (Sconto 1° Acquisto &amp; Catalistino 2gg)
                     </Button>
                   </div>
                 </div>

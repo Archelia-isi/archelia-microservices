@@ -18,6 +18,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import TextInput from '../components/ui/TextInput';
 import Select from '../components/ui/Select';
+import { useWindowStore } from '../store/useWindowStore';
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -26,6 +27,8 @@ const API_URL =
     : 'http://localhost:3000');
 
 export default function B2BCatalogBuilderApp() {
+  const appContext = useWindowStore((state) => state.windows['b2b_catalog_builder']?.appContext);
+
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('builder');
   const [loading, setLoading] = useState(false);
@@ -37,68 +40,98 @@ export default function B2BCatalogBuilderApp() {
     categories: [],
   });
 
-  // Catalog Filters
+  // Catalog Filters — Default fisso: Tutti e solo i prodotti 2gg (MAIN_2GG)
   const [query, setQuery] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState<
     'ALL_WAREHOUSES' | 'MAIN_2GG' | 'EXTERNAL_7GG'
-  >('ALL_WAREHOUSES');
+  >('MAIN_2GG');
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedFamily, setSelectedFamily] = useState('');
-  const [maxProducts, setMaxProducts] = useState(60);
+  const [maxProducts, setMaxProducts] = useState(250);
 
-  // Pricing Simulation & Cover Info
+  // Pricing Simulation & Cover Info — Default: X% + Y% e Catalistino Riservato a [Cliente]
   const [commercialCategory, setCommercialCategory] = useState<'IST' | 'RIV'>('IST');
   const [extraDiscountPct, setExtraDiscountPct] = useState(10);
   const [calculationMode, setCalculationMode] = useState<
     'EXTRA_CASCADE' | 'EXTRA_ADDITIVE' | 'FIXED_TOTAL'
   >('EXTRA_CASCADE');
-  const [expiryBadgeText, setExpiryBadgeText] = useState('Valido sul 1° Acquisto');
-  const [targetCompanyName, setTargetCompanyName] = useState('Partner B2B Selezionato');
-  const [offerTitle, setOfferTitle] = useState(
-    'Catalogo Personalizzato Materiale Elettrico, Illuminazione & Ferramenta'
-  );
-  const [minOrderText, setMinOrderText] = useState("Nessun minimo d'ordine sul 1° acquisto");
+  const [targetCompanyName, setTargetCompanyName] = useState('Cliente Partner B2B');
+  const [minOrderText, setMinOrderText] = useState("Nessun minimo d'ordine sul tuo 1° acquisto");
   const [shippingText, setShippingText] = useState(
-    'Spedizione 24/48h da Deposito Principale (5/7gg da Deposito Esterno)'
+    'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)'
   );
 
   // Results
   const [products, setProducts] = useState<any[]>([]);
-  const [effectiveDiscountPct, setEffectiveDiscountPct] = useState(46);
+
+  const baseDiscountPct = commercialCategory === 'RIV' ? 50 : 40;
+  const discountFormulaLabel =
+    extraDiscountPct > 0
+      ? `${baseDiscountPct}% + ${extraDiscountPct}%`
+      : `${baseDiscountPct}%`;
+  const dynamicCatalogTitle = `Catalistino Riservato a ${targetCompanyName}`;
+  const dynamicCatalogSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
 
   const authHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
     'Content-Type': 'application/json',
   });
 
+  const executeCatalogSearch = async (params: {
+    q?: string;
+    wh?: 'ALL_WAREHOUSES' | 'MAIN_2GG' | 'EXTERNAL_7GG';
+    brand?: string;
+    group?: string;
+    family?: string;
+    limit?: number;
+    cat?: 'IST' | 'RIV';
+    extraPct?: number;
+    mode?: 'EXTRA_CASCADE' | 'EXTRA_ADDITIVE' | 'FIXED_TOTAL';
+  }) => {
+    const res = await fetch(`${API_URL}/api/admin/b2b-catalog/search`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        query: params.q ?? query,
+        warehouseFilter: params.wh ?? warehouseFilter,
+        brands: (params.brand ?? selectedBrand) ? [params.brand ?? selectedBrand] : [],
+        productGroups: (params.group ?? selectedGroup) ? [params.group ?? selectedGroup] : [],
+        families: (params.family ?? selectedFamily) ? [params.family ?? selectedFamily] : [],
+        limit: params.limit ?? maxProducts,
+        commercialCategory: params.cat ?? commercialCategory,
+        extraDiscountPct: params.extraPct ?? extraDiscountPct,
+        calculationMode: params.mode ?? calculationMode,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setProducts(data.products || []);
+    }
+  };
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [initRes, searchRes] = await Promise.all([
+      const initCat = appContext?.commercialCategory === 'RIV' ? 'RIV' : 'IST';
+      const initExtra =
+        appContext?.extraDiscountPct !== undefined ? Number(appContext.extraDiscountPct) : 10;
+      const initWh = appContext?.warehouseFilter || 'MAIN_2GG';
+
+      const [initRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/b2b-discounts/init`, { headers: authHeaders() }),
-        fetch(`${API_URL}/api/admin/b2b-catalog/search`, {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({
-            warehouseFilter: 'ALL_WAREHOUSES',
-            limit: 60,
-            commercialCategory: 'IST',
-            extraDiscountPct: 10,
-            calculationMode: 'EXTRA_CASCADE',
-          }),
+        executeCatalogSearch({
+          wh: initWh,
+          limit: 250,
+          cat: initCat,
+          extraPct: initExtra,
+          mode: 'EXTRA_CASCADE',
         }),
       ]);
 
       const initData = await initRes.json();
       if (initData.success && initData.facets) {
         setFacets(initData.facets);
-      }
-
-      const searchData = await searchRes.json();
-      if (searchData.success) {
-        setProducts(searchData.products || []);
-        setEffectiveDiscountPct(searchData.effectiveDiscountPct || 46);
       }
     } catch (e) {
       toast.error('Errore caricamento Catalog Builder B2B');
@@ -112,29 +145,37 @@ export default function B2BCatalogBuilderApp() {
     loadInitialData();
   }, []);
 
+  // Sync when opened via AI SDR with specific client context
+  useEffect(() => {
+    if (!appContext) return;
+    const nextCompany = appContext.targetCompanyName || 'Cliente Partner B2B';
+    const nextCat: 'IST' | 'RIV' = appContext.commercialCategory === 'RIV' ? 'RIV' : 'IST';
+    const nextExtra =
+      appContext.extraDiscountPct !== undefined ? Number(appContext.extraDiscountPct) : 10;
+    const nextWh = appContext.warehouseFilter || 'MAIN_2GG';
+
+    setTargetCompanyName(nextCompany);
+    setCommercialCategory(nextCat);
+    setExtraDiscountPct(nextExtra);
+    setWarehouseFilter(nextWh);
+    setCalculationMode('EXTRA_CASCADE');
+    if (appContext.minOrderText) setMinOrderText(appContext.minOrderText);
+    if (appContext.shippingText) setShippingText(appContext.shippingText);
+    if (appContext.openPreview) setActiveTab('preview');
+
+    executeCatalogSearch({
+      wh: nextWh,
+      limit: 250,
+      cat: nextCat,
+      extraPct: nextExtra,
+      mode: 'EXTRA_CASCADE',
+    });
+  }, [appContext]);
+
   const handleSearchCatalog = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/api/admin/b2b-catalog/search`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({
-          query,
-          warehouseFilter,
-          brands: selectedBrand ? [selectedBrand] : [],
-          productGroups: selectedGroup ? [selectedGroup] : [],
-          families: selectedFamily ? [selectedFamily] : [],
-          limit: maxProducts,
-          commercialCategory,
-          extraDiscountPct,
-          calculationMode,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProducts(data.products || []);
-        setEffectiveDiscountPct(data.effectiveDiscountPct || 40);
-      }
+      await executeCatalogSearch({});
     } catch (e) {
       toast.error('Errore ricerca articoli catalogo');
     } finally {
@@ -150,25 +191,21 @@ export default function B2BCatalogBuilderApp() {
         headers: authHeaders(),
         body: JSON.stringify({
           attachCatalogPdf: true,
-          catalogWarehouse: warehouseFilter,
+          catalogWarehouse: 'MAIN_2GG',
+          catalogStockMode: 'BADGE_ONLY',
           catalogMaxProducts: maxProducts,
-          offerTitle,
+          offerTitle: 'Offerta esclusiva valida per il primo acquisto',
           minOrderAmountText: minOrderText,
           freeShippingText: shippingText,
           istExtraDiscountPct: commercialCategory === 'IST' ? extraDiscountPct : undefined,
           rivExtraDiscountPct: commercialCategory === 'RIV' ? extraDiscountPct : undefined,
-          discountCalculationMode: calculationMode,
-          globalCatalogFiltersJson: {
-            brand: selectedBrand,
-            productGroup: selectedGroup,
-            family: selectedFamily,
-          },
+          discountCalculationMode: 'EXTRA_CASCADE',
         }),
       });
       const data = await res.json();
       if (data.success) {
         toast.success(
-          'Preset Catalogo PDF salvato! Verrà allegato automaticamente alle prossime email AI SDR.'
+          'Preset Catalistino 2gg (X% + Y%) salvato nel generatore automatico AI SDR!'
         );
       }
     } catch (e) {
@@ -212,12 +249,12 @@ export default function B2BCatalogBuilderApp() {
               tabs={[
                 {
                   id: 'builder',
-                  label: `Configura & Filtra Articoli (${products.length})`,
+                  label: `Configura & Filtra Articoli 2gg (${products.length})`,
                   icon: <Package size={14} />,
                 },
                 {
                   id: 'preview',
-                  label: 'Anteprima Copertina Integrata & Pagina 2 Riepilogo',
+                  label: `Anteprima Catalistino Riservato (${dynamicCatalogTitle})`,
                   icon: <Eye size={14} />,
                 },
               ]}
@@ -230,7 +267,7 @@ export default function B2BCatalogBuilderApp() {
                 onClick={handleSaveAsSdrPreset}
                 disabled={loading}
               >
-                Usa come Catalogo Allegato AI SDR
+                Allinea Preset con AI SDR
               </Button>
               <Button
                 variant="primary"
@@ -241,7 +278,7 @@ export default function B2BCatalogBuilderApp() {
                   setTimeout(() => window.print(), 300);
                 }}
               >
-                Stampa / Esporta PDF
+                Stampa / Esporta Catalistino PDF
               </Button>
             </div>
           </div>
@@ -252,7 +289,7 @@ export default function B2BCatalogBuilderApp() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '340px 1fr',
+                gridTemplateColumns: '360px 1fr',
                 gap: 'var(--spacing-lg)',
                 alignItems: 'start',
               }}
@@ -260,10 +297,11 @@ export default function B2BCatalogBuilderApp() {
               <GlassPanel padding="lg" radius="lg">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ fontWeight: 700, fontSize: '14px' }}>
-                    1. Disponibilità & Tassonomia Zucchetti
+                    1. Disponibilità (2gg) &amp; Tassonomia Zucchetti
                   </div>
 
                   <TextInput
+                    fullWidth
                     label="Cerca SKU o Descrizione"
                     placeholder="Es. interruttore, led, cacciavite..."
                     value={query}
@@ -280,19 +318,19 @@ export default function B2BCatalogBuilderApp() {
                         marginBottom: '4px',
                       }}
                     >
-                      Filtro Magazzino
+                      Filtro Magazzino (AI SDR usa sempre Solo 2gg)
                     </label>
                     <Select
                       value={warehouseFilter}
                       onChange={(e) => setWarehouseFilter(e.target.value as any)}
                       options={[
                         {
-                          value: 'ALL_WAREHOUSES',
-                          label: 'Tutti i Depositi (Principale 2gg + Esterno 7gg)',
+                          value: 'MAIN_2GG',
+                          label: '🟢 Solo Deposito Principale (Tutti e solo i prodotti 2gg)',
                         },
                         {
-                          value: 'MAIN_2GG',
-                          label: 'Solo Deposito Principale (Consegna 2gg)',
+                          value: 'ALL_WAREHOUSES',
+                          label: 'Tutti i Depositi (Principale 2gg + Esterno 7gg)',
                         },
                         {
                           value: 'EXTERNAL_7GG',
@@ -381,8 +419,15 @@ export default function B2BCatalogBuilderApp() {
                       marginTop: '8px',
                     }}
                   >
-                    2. Simulazione Listino & Sconto Primo Acquisto
+                    2. Destinatario &amp; Formula Sconto X% + Y%
                   </div>
+
+                  <TextInput
+                    fullWidth
+                    label="Ragione Sociale Cliente Destinatario"
+                    value={targetCompanyName}
+                    onChange={(e) => setTargetCompanyName(e.target.value)}
+                  />
 
                   <div>
                     <label
@@ -393,7 +438,7 @@ export default function B2BCatalogBuilderApp() {
                         marginBottom: '4px',
                       }}
                     >
-                      Listino Base Categoria
+                      Categoria Listino Base (X%)
                     </label>
                     <Select
                       value={commercialCategory}
@@ -401,11 +446,11 @@ export default function B2BCatalogBuilderApp() {
                       options={[
                         {
                           value: 'IST',
-                          label: 'Installatori & Professionisti (IST — Base 40%)',
+                          label: 'Installatori & Professionisti (IST — X = 40%)',
                         },
                         {
                           value: 'RIV',
-                          label: 'Rivenditori & Ferramenta (RIV — Base 50%)',
+                          label: 'Rivenditori & Ferramenta (RIV — X = 50%)',
                         },
                       ]}
                     />
@@ -413,66 +458,48 @@ export default function B2BCatalogBuilderApp() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     <TextInput
-                      label="Extra Sconto (%)"
+                      fullWidth
+                      label="Extra 1° Acquisto Y%"
                       type="number"
                       value={String(extraDiscountPct)}
                       onChange={(e) => setExtraDiscountPct(Number(e.target.value))}
                     />
                     <TextInput
-                      label="Max Articoli"
+                      fullWidth
+                      label="Max Articoli 2gg"
                       type="number"
                       value={String(maxProducts)}
                       onChange={(e) => setMaxProducts(Number(e.target.value))}
                     />
                   </div>
 
-                  <TextInput
-                    label="Azienda Destinataria (senza codici interni)"
-                    value={targetCompanyName}
-                    onChange={(e) => setTargetCompanyName(e.target.value)}
-                  />
-
-                  <TextInput
-                    label="Badge Scadenza Sconto sulle Schede"
-                    value={expiryBadgeText}
-                    onChange={(e) => setExpiryBadgeText(e.target.value)}
-                  />
-
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        marginBottom: '4px',
-                      }}
-                    >
-                      Modalità Calcolo Extra Sconto
-                    </label>
-                    <Select
-                      value={calculationMode}
-                      onChange={(e) => setCalculationMode(e.target.value as any)}
-                      options={[
-                        { value: 'EXTRA_CASCADE', label: 'Extra in Cascata' },
-                        { value: 'EXTRA_ADDITIVE', label: 'Somma Diretta' },
-                        { value: 'FIXED_TOTAL', label: 'Sconto Totale Fisso' },
-                      ]}
-                    />
+                  {/* Preview automatica Titolo e Sottotitolo */}
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'rgba(22, 163, 74, 0.08)',
+                      border: '1px solid rgba(22, 163, 74, 0.25)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: 'var(--color-text)' }}>
+                      {dynamicCatalogTitle}
+                    </div>
+                    <div style={{ fontWeight: 700, color: '#15803d', marginTop: '2px' }}>
+                      {dynamicCatalogSubtitle}
+                    </div>
                   </div>
 
                   <TextInput
-                    label="Titolo Copertina Catalogo"
-                    value={offerTitle}
-                    onChange={(e) => setOfferTitle(e.target.value)}
-                  />
-
-                  <TextInput
+                    fullWidth
                     label="Condizione Minimo d'Ordine (Pagina 2)"
                     value={minOrderText}
                     onChange={(e) => setMinOrderText(e.target.value)}
                   />
 
                   <TextInput
+                    fullWidth
                     label="Logistica & Consegna (Pagina 2)"
                     value={shippingText}
                     onChange={(e) => setShippingText(e.target.value)}
@@ -485,7 +512,7 @@ export default function B2BCatalogBuilderApp() {
                     onClick={handleSearchCatalog}
                     disabled={loading}
                   >
-                    Aggiorna Selezione & Prezzi Netti
+                    Aggiorna Prodotti 2gg &amp; Sconto {discountFormulaLabel}
                   </Button>
                 </div>
               </GlassPanel>
@@ -497,25 +524,26 @@ export default function B2BCatalogBuilderApp() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: 'var(--spacing-md)',
+                    flexWrap: 'wrap',
+                    gap: '10px',
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '15px' }}>
-                      Articoli nel Catalogo ({products.length}) — Sconto Netto Applicato:{' '}
-                      <span style={{ color: 'var(--color-primary)' }}>
-                        -{effectiveDiscountPct}%
-                      </span>
+                    <div style={{ fontWeight: 800, fontSize: '16px' }}>
+                      {dynamicCatalogTitle} ({products.length} prodotti 2gg)
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      Ogni scheda segnala automaticamente la scadenza dello sconto attivo (
-                      {expiryBadgeText}).
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>
+                      {dynamicCatalogSubtitle}
                     </div>
                   </div>
-                  <Badge variant="success" size="md">
-                    {commercialCategory === 'RIV'
-                      ? 'Listino Rivenditori & Ferramenta (50%)'
-                      : 'Listino Installatori & Professionisti (40%)'}
-                  </Badge>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Badge variant="success" size="md">
+                      🟢 Solo Bollino di Giacenza (2gg)
+                    </Badge>
+                    <Badge variant="primary" size="md">
+                      Sconto Visualizzato: {discountFormulaLabel}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div
@@ -558,11 +586,14 @@ export default function B2BCatalogBuilderApp() {
                           >
                             {prod.sku}
                           </span>
+                          {/* SOLO BOLLINO DI GIACENZA — MAI QUANTITÀ NUMERICHE */}
                           <Badge
                             variant={prod.stockMain > 0 ? 'success' : 'warning'}
                             size="sm"
                           >
-                            {prod.stockMain > 0 ? 'Consegna 2gg' : 'Consegna 7gg'}
+                            {prod.stockMain > 0
+                              ? '🟢 Disponibile 2gg'
+                              : '🟡 Disponibile 7gg'}
                           </Badge>
                         </div>
 
@@ -571,19 +602,18 @@ export default function B2BCatalogBuilderApp() {
                             fontWeight: 600,
                             fontSize: '13px',
                             lineHeight: 1.35,
-                            marginBottom: '6px',
+                            marginBottom: '8px',
                           }}
                         >
                           {prod.title}
                         </div>
 
-                        {extraDiscountPct > 0 && (
-                          <div style={{ marginBottom: '6px' }}>
-                            <Badge variant="warning" size="sm">
-                              ⏳ {expiryBadgeText} (-{effectiveDiscountPct}%)
-                            </Badge>
-                          </div>
-                        )}
+                        {/* SCONTO VISUALIZZATO SEMPRE X% + Y% */}
+                        <div style={{ marginBottom: '6px' }}>
+                          <Badge variant="warning" size="sm">
+                            🏷️ Sconto 1° Acquisto: {discountFormulaLabel}
+                          </Badge>
+                        </div>
                       </div>
 
                       <div
@@ -602,7 +632,7 @@ export default function B2BCatalogBuilderApp() {
                             color: 'var(--color-text-muted)',
                           }}
                         >
-                          € {Number(prod.listPrice).toFixed(2)}
+                          Listino € {Number(prod.listPrice).toFixed(2)}
                         </span>
                         <span
                           style={{
@@ -621,7 +651,7 @@ export default function B2BCatalogBuilderApp() {
             </div>
           )}
 
-          {/* TAB 2: ANTEPRIMA COPERTINA INTEGRATA (STRISCE VERDI IN ALTO E IN FONDO) + PAGINA 2 DATI */}
+          {/* TAB 2: ANTEPRIMA COPERTINA INTEGRATA + PAGINA 2 CONDIZIONI + GRIGLIA PRODOTTI 2GG */}
           {activeTab === 'preview' && (
             <div
               style={{
@@ -711,28 +741,43 @@ export default function B2BCatalogBuilderApp() {
                     </div>
                   </div>
 
+                  {/* TITOLO DINAMICO SUL CLIENTE */}
                   <div
                     style={{
-                      fontSize: '26px',
+                      fontSize: '28px',
                       fontWeight: 800,
-                      maxWidth: '580px',
+                      maxWidth: '620px',
                       lineHeight: 1.3,
+                      color: '#ffffff',
                     }}
                   >
-                    {offerTitle}
+                    {dynamicCatalogTitle}
+                  </div>
+
+                  {/* SOTTOTITOLO DINAMICO SULL'OFFERTA 1° ACQUISTO E FORMULA X% + Y% */}
+                  <div
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      color: '#4ade80',
+                      maxWidth: '580px',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {dynamicCatalogSubtitle}
                   </div>
 
                   <div
                     style={{
-                      fontSize: '15px',
+                      fontSize: '14px',
                       color: '#cbd5e1',
                       maxWidth: '540px',
                       lineHeight: 1.6,
                     }}
                   >
-                    Soluzioni professionali ad alta rotazione selezionate per installatori,
-                    imprese, tecnici specializzati, rivendite edili e ferramenta, con condizioni
-                    commerciali B2B dedicate.
+                    Selezione integrale dei prodotti disponibili nel Deposito Principale (Consegna
+                    rapida 2gg) con listino riservato e agevolazione sul primo acquisto già
+                    calcolata.
                   </div>
 
                   <div
@@ -747,7 +792,7 @@ export default function B2BCatalogBuilderApp() {
                       color: '#bbf7d0',
                     }}
                   >
-                    Riservato a: {targetCompanyName}
+                    Sconto Riservato 1° Acquisto: {discountFormulaLabel} • Pronta Consegna 2gg
                   </div>
                 </div>
 
@@ -761,7 +806,7 @@ export default function B2BCatalogBuilderApp() {
                 />
               </div>
 
-              {/* PAGINA 2: RIEPILOGO DATI AZIENDA & CONDIZIONI COMMERCIALI (SENZA CODICI INTERNI E SENZA CONTEGGIO PAGINE/ARTICOLI) */}
+              {/* PAGINA 2: RIEPILOGO DATI AZIENDA & CONDIZIONI COMMERCIALI */}
               <div
                 style={{
                   width: '794px',
@@ -785,11 +830,10 @@ export default function B2BCatalogBuilderApp() {
                 >
                   <div>
                     <div style={{ fontSize: '20px', fontWeight: 800 }}>
-                      Riepilogo Condizioni Riservate &amp; Dettagli Offerta
+                      {dynamicCatalogTitle}
                     </div>
-                    <div style={{ fontSize: '13px', color: '#475569' }}>
-                      Izzo Distribuzione — Forniture B2B Materiale Elettrico, Illuminazione e
-                      Ferramenta
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#15803d' }}>
+                      {dynamicCatalogSubtitle}
                     </div>
                   </div>
                   <CheckCircle2 size={28} color="#16a34a" />
@@ -800,6 +844,7 @@ export default function B2BCatalogBuilderApp() {
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: '16px',
+                    marginBottom: '28px',
                   }}
                 >
                   <div
@@ -827,7 +872,7 @@ export default function B2BCatalogBuilderApp() {
                     }}
                   >
                     <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
-                      AGEVOLAZIONE PRIMO ACQUISTO ATTIVA
+                      OFFERTA VALIDA PER IL PRIMO ACQUISTO
                     </div>
                     <div
                       style={{
@@ -837,7 +882,7 @@ export default function B2BCatalogBuilderApp() {
                         marginTop: '4px',
                       }}
                     >
-                      Sconto Netto Totale -{effectiveDiscountPct}% ({expiryBadgeText})
+                      Sconto Riservato {discountFormulaLabel} (Solo Prodotti 2gg)
                     </div>
                   </div>
 
@@ -866,12 +911,128 @@ export default function B2BCatalogBuilderApp() {
                     }}
                   >
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
-                      LOGISTICA &amp; TEMPI DI CONSEGNA
+                      DISPONIBILITÀ &amp; TEMPI DI CONSEGNA
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '4px' }}>
                       {shippingText}
                     </div>
                   </div>
+                </div>
+
+                {/* SCHEDE PRODOTTI 2GG CON BOLLINO DI GIACENZA E SCONTO X% + Y% */}
+                <div
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 800,
+                    marginBottom: '12px',
+                    color: '#0f172a',
+                  }}
+                >
+                  Articoli Disponibili in Pronta Consegna 2gg — Sconto {discountFormulaLabel}
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '12px',
+                  }}
+                >
+                  {products.map((prod) => (
+                    <div
+                      key={prod.id}
+                      style={{
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              color: '#64748b',
+                            }}
+                          >
+                            {prod.sku}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '999px',
+                              background: '#dcfce7',
+                              color: '#15803d',
+                            }}
+                          >
+                            🟢 Disponibile 2gg
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            lineHeight: 1.3,
+                            marginBottom: '4px',
+                          }}
+                        >
+                          {prod.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            color: '#b45309',
+                          }}
+                        >
+                          Sconto 1° Acquisto: {discountFormulaLabel}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'baseline',
+                          borderTop: '1px solid #f1f5f9',
+                          paddingTop: '6px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            textDecoration: 'line-through',
+                            color: '#94a3b8',
+                          }}
+                        >
+                          € {Number(prod.listPrice).toFixed(2)}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            color: '#15803d',
+                          }}
+                        >
+                          € {Number(prod.netPrice).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

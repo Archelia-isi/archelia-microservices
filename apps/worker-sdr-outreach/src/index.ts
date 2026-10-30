@@ -104,13 +104,14 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
     commercialCategory === 'RIV'
       ? Number(configRow?.rivExtraDiscountPct ?? 10)
       : Number(configRow?.istExtraDiscountPct ?? 10);
-  const calculationMode = configRow?.discountCalculationMode || 'EXTRA_CASCADE';
-  const offerTitle =
-    configRow?.offerTitle || 'Offerta Riservata Nuovi Partner B2B — Extra Sconto sul 1° Acquisto';
+  const discountFormulaLabel = `${baseDiscount}% + ${extraDiscountPct}%`;
+  const catalistinoTitle = `Catalistino Riservato a ${prospect.companyName}`;
+  const catalistinoSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
   const minOrderAmountText =
     configRow?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto";
   const freeShippingText =
-    configRow?.freeShippingText || 'Spedizione rapida 24/48h in tutta Italia da Deposito Principale';
+    configRow?.freeShippingText ||
+    'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)';
   const paymentTermsText =
     configRow?.paymentTermsText || 'Condizioni B2B riservate con referente dedicato Daniele Savoia';
   const attachCatalogPdf = configRow?.attachCatalogPdf ?? true;
@@ -165,19 +166,28 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
         agentId: configRow?.defaultAgentId || DANIELE_SAVOIA_ID,
         agentCode: configRow?.defaultAgentCode || DANIELE_SAVOIA_CODE,
         orderDetailsSnapshot: {
-          offerTitle,
+          offerTitle: catalistinoSubtitle,
           minOrderAmountText,
           freeShippingText,
           paymentTermsText,
+          baseDiscount,
           extraDiscountPct: enableFirstPurchaseRule ? extraDiscountPct : 0,
+          discountFormula: discountFormulaLabel,
         },
         attachedCatalogMeta: attachCatalogPdf
           ? {
-              fileName: `Catalogo_Izzo_Distribuzione_${prospect.companyName
+              fileName: `Catalistino_Riservato_${prospect.companyName
                 .replace(/[^a-zA-Z0-9]/g, '_')
                 .slice(0, 28)}.pdf`,
-              selectionMode: configRow?.catalogSelectionMode || 'BY_CLUSTER',
-              maxProducts: configRow?.catalogMaxProducts || 60,
+              catalogTitle: catalistinoTitle,
+              catalogSubtitle: catalistinoSubtitle,
+              warehouse: 'MAIN_2GG',
+              stockDisplayMode: 'BADGE_ONLY',
+              priceDisplayMode: 'LIST_AND_NET',
+              discountFormula: discountFormulaLabel,
+              baseDiscount,
+              extraDiscountPct,
+              maxProducts: 250,
             }
           : undefined,
         status: 'CONTACTED',
@@ -185,23 +195,69 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
     });
   }
 
-  // 2. Auto-genera la regola di sconto "Sul primo acquisto" (FIRST_PURCHASE) in b2b_agent_discount_rules
+  // 2. Auto-genera la regola di sconto "Sul primo acquisto" (FIRST_PURCHASE, X% + Y%, Solo 2gg)
+  // sia in b2b_discount_rules (OS) sia in b2b_agent_discount_rules (Storefront B2B)
   let firstPurchaseRuleId: string | null = null;
   if (enableFirstPurchaseRule && extraDiscountPct > 0) {
-    firstPurchaseRuleId = `sdr_first_purchase_${promo.id}`;
-    const nowIso = new Date().toISOString();
-    const rulePayload = {
-      id: firstPurchaseRuleId,
-      agentId: promo.agentId,
-      agentCode: promo.agentCode,
-      name: `Benvenuto 1° Acquisto - ${promo.companyName} (-${extraDiscountPct}%)`,
-      clientScope: 'SINGLE_CLIENT',
-      clientId: promo.id,
-      clientCode: promo.username.toUpperCase(),
-      clientName: promo.companyName,
-      clientIds: [promo.id],
-      clientCodes: [promo.username.toUpperCase()],
-      clientsMeta: [
+    firstPurchaseRuleId = `sdr_fp_${promo.id}`;
+    const ruleName = `Primo Acquisto (${discountFormulaLabel} Solo 2gg) — ${promo.companyName}`;
+
+    await b2bPrisma.b2BDiscountRule.upsert({
+      where: { id: firstPurchaseRuleId },
+      create: {
+        id: firstPurchaseRuleId,
+        name: ruleName,
+        agentId: promo.agentId,
+        agentCode: promo.agentCode,
+        clientScope: 'SINGLE_CLIENT',
+        clientId: promo.id,
+        clientName: promo.companyName,
+        clientIds: [promo.id],
+        clientCategories: [commercialCategory],
+        targetType: 'ALL_CATALOG',
+        calculationMode: 'EXTRA_CASCADE',
+        discountValue: extraDiscountPct,
+        expiryType: 'FIRST_PURCHASE',
+        isActive: true,
+      },
+      update: {
+        name: ruleName,
+        discountValue: extraDiscountPct,
+        calculationMode: 'EXTRA_CASCADE',
+        expiryType: 'FIRST_PURCHASE',
+        isActive: true,
+      },
+    });
+
+    await b2bPrisma.$executeRawUnsafe(
+      `INSERT INTO b2b_agent_discount_rules (
+        "id", "agentId", "agentCode", "name", "clientScope", "clientId", "clientCode", "clientName",
+        "clientIds", "clientCodes", "clientsMeta", "clientCategories",
+        "targetType", "targetSkus", "targetProductsMeta", "targetBrands", "targetProductGroups", "targetFamilies", "targetCategories",
+        "calculationMode", "discountValue", "isActive", "expiryType", "createdAt", "updatedAt"
+      ) VALUES (
+        $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
+        $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
+        'ALL_CATALOG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
+        'EXTRA_COMPOUND', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
+      )
+      ON CONFLICT ("id") DO UPDATE SET
+        "name" = EXCLUDED."name",
+        "discountValue" = EXCLUDED."discountValue",
+        "calculationMode" = 'EXTRA_COMPOUND',
+        "expiryType" = 'FIRST_PURCHASE',
+        "isActive" = TRUE,
+        "updatedAt" = NOW()`,
+      firstPurchaseRuleId,
+      promo.agentId,
+      promo.agentCode,
+      ruleName,
+      promo.id,
+      promo.username.toUpperCase(),
+      promo.companyName,
+      JSON.stringify([promo.id]),
+      JSON.stringify([promo.username.toUpperCase()]),
+      JSON.stringify([
         {
           id: promo.id,
           code: promo.username.toUpperCase(),
@@ -209,39 +265,9 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
           category: commercialCategory,
           baseDiscount,
         },
-      ],
-      clientCategories: [],
-      targetType: configRow?.discountTargetType || 'ALL_CATALOG',
-      targetSkus: [],
-      targetProductsMeta: [],
-      targetBrands: [],
-      targetProductGroups: [],
-      targetFamilies: [],
-      targetCategories: [],
-      calculationMode:
-        calculationMode === 'EXTRA_SUM' || calculationMode === 'FIXED_OVERRIDE'
-          ? calculationMode
-          : 'EXTRA_CASCADE',
-      discountValue: extraDiscountPct,
-      isActive: true,
-      expiryType: 'FIRST_PURCHASE',
-      expiresAt: null,
-      consumedAt: null,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-
-    await b2bPrisma.$executeRawUnsafe(
-      `INSERT INTO b2b_agent_discount_rules (id, agent_id, agent_code, is_active, payload, created_at, updated_at)
-       VALUES ($1, $2, $3, TRUE, $4::jsonb, NOW(), NOW())
-       ON CONFLICT (id) DO UPDATE SET
-         is_active = TRUE,
-         payload = EXCLUDED.payload,
-         updated_at = NOW()`,
-      firstPurchaseRuleId,
-      promo.agentId,
-      promo.agentCode,
-      JSON.stringify(rulePayload)
+      ]),
+      JSON.stringify([commercialCategory]),
+      extraDiscountPct
     );
 
     await b2bPrisma.b2BPromoProspect.update({
@@ -250,35 +276,28 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
     });
   }
 
-  // 3. Compila il testo e l'HTML dell'email B2B personalizzata + metadati catalogo PDF allegato
+  // 3. Compila il testo e l'HTML dell'email B2B personalizzata + metadati Catalistino PDF allegato
   const catalogFileName = attachCatalogPdf
-    ? `Catalogo_Izzo_Distribuzione_${prospect.companyName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 28)}.pdf`
+    ? `Catalistino_Riservato_${prospect.companyName.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 28)}.pdf`
     : null;
 
-  const netEffectivePct =
-    calculationMode === 'EXTRA_SUM'
-      ? Math.min(95, baseDiscount + (enableFirstPurchaseRule ? extraDiscountPct : 0))
-      : Number(
-          (
-            100 -
-            (100 - baseDiscount) * (1 - (enableFirstPurchaseRule ? extraDiscountPct : 0) / 100)
-          ).toFixed(1)
-        );
+  const netEffectivePct = Number(
+    (
+      100 -
+      (100 - baseDiscount) * (1 - (enableFirstPurchaseRule ? extraDiscountPct : 0) / 100)
+    ).toFixed(1)
+  );
 
-  const subject = `Listino B2B Riservato ${prospect.companyName} — Sconto ${baseDiscount}%${
-    enableFirstPurchaseRule ? ` + Extra -${extraDiscountPct}% sul 1° Ordine` : ''
-  }`;
+  const subject = `${catalistinoTitle} — Offerta valida per il primo acquisto (Sconto ${discountFormulaLabel})`;
 
   const bodyText = [
     `Gentile ${prospect.companyName},`,
     ``,
-    `Izzo Distribuzione S.r.l. (fornitura all'ingrosso di materiale elettrico, illuminazione tecnica e ferramenta per professionisti e rivenditori) ha attivato il vostro profilo riservato sul portale B2B www.izzodistribuzione.it.`,
+    `Izzo Distribuzione S.r.l. (fornitura all'ingrosso di materiale elettrico, illuminazione tecnica e ferramenta per professionisti e rivenditori) ha predisposto il ${catalistinoTitle} e attivato il vostro profilo riservato sul portale B2B www.izzodistribuzione.it.`,
     ``,
-    `=== LE VOSTRE CONDIZIONI COMMERCIALI RISERVATE ===`,
-    `• Categoria assegnata: ${commercialCategory} (Sconto Base Fisso Listino: -${baseDiscount}%)`,
-    enableFirstPurchaseRule
-      ? `• PROMO BENVENUTO 1° ACQUISTO: Extra -${extraDiscountPct}% automatico nel carrello sul vostro primo ordine (Sconto netto complessivo fino al -${netEffectivePct}%)`
-      : null,
+    `=== ${catalistinoTitle.toUpperCase()} ===`,
+    `${catalistinoSubtitle}`,
+    `• Categoria assegnata: ${commercialCategory} (Sconto Riservato 1° Acquisto: ${discountFormulaLabel} su tutti i prodotti in pronta consegna 2gg, netto -${netEffectivePct}%)`,
     `• ${minOrderAmountText}`,
     `• ${freeShippingText}`,
     `• ${paymentTermsText}`,
@@ -290,7 +309,7 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
     `(Al primo accesso il sistema vi chiederà di scegliere la vostra password personale in conformità GDPR).`,
     ``,
     attachCatalogPdf
-      ? `In allegato trovate il Catalogo PDF personalizzato (${catalogFileName}) con la selezione di articoli per il vostro settore.`
+      ? `In allegato trovate il ${catalistinoTitle} (${catalogFileName}) con tutti i prodotti disponibili in pronta consegna 2gg e lo sconto ${discountFormulaLabel}.`
       : null,
     ``,
     `Un cordiale saluto,`,
@@ -302,16 +321,12 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
 
   const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #111827; max-width: 640px; margin: 0 auto; line-height: 1.55;">
     <p>Gentile <strong>${prospect.companyName}</strong>,</p>
-    <p><strong>Izzo Distribuzione S.r.l.</strong> ha attivato il vostro profilo riservato sul portale B2B dedicato a installatori, professionisti e rivenditori di materiale elettrico, illuminazione e ferramenta.</p>
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 18px 0;">
-      <div style="font-weight: 800; font-size: 14px; text-transform: uppercase; color: #92400e; margin-bottom: 8px;">${offerTitle}</div>
+    <p><strong>Izzo Distribuzione S.r.l.</strong> ha predisposto il <strong>${catalistinoTitle}</strong> e attivato il vostro profilo riservato sul portale B2B dedicato a installatori, professionisti e rivenditori di materiale elettrico, illuminazione e ferramenta.</p>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin: 18px 0;">
+      <div style="font-weight: 800; font-size: 15px; color: #15803d; margin-bottom: 4px;">${catalistinoTitle}</div>
+      <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${catalistinoSubtitle}</div>
       <ul style="margin: 0; padding-left: 18px; font-size: 14px;">
-        <li>Categoria Commerciale: <strong>${commercialCategory} — Sconto Base Listino -${baseDiscount}%</strong></li>
-        ${
-          enableFirstPurchaseRule
-            ? `<li><strong>Extra Sconto -${extraDiscountPct}% automatico sul 1° Acquisto</strong> (sconto netto complessivo fino al <strong>-${netEffectivePct}%</strong>)</li>`
-            : ''
-        }
+        <li>Sconto Riservato 1° Acquisto: <strong>${discountFormulaLabel}</strong> su tutti i prodotti in Pronta Consegna 2gg (netto <strong>-${netEffectivePct}%</strong>)</li>
         <li>${minOrderAmountText}</li>
         <li>${freeShippingText}</li>
         <li>${paymentTermsText}</li>
@@ -328,7 +343,7 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
     </div>
     ${
       attachCatalogPdf
-        ? `<p style="font-size: 13px; color: #374151;">📎 <strong>Allegato:</strong> <code>${catalogFileName}</code> (Catalogo PDF personalizzato con prezzi riservati).</p>`
+        ? `<p style="font-size: 13px; color: #374151;">📎 <strong>Allegato:</strong> <code>${catalogFileName}</code> (${catalistinoTitle} — ${catalistinoSubtitle}).</p>`
         : ''
     }
     <p style="margin-top: 20px;">Un cordiale saluto,<br/><strong>Daniele Savoia</strong> — Referente Commerciale B2B<br/>Izzo Distribuzione S.r.l.</p>

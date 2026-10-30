@@ -357,16 +357,24 @@ export default function B2BDiscountsApp() {
                       )}
                     </td>
                     <td style={{ padding: '10px 8px' }}>
-                      <Badge variant="neutral" size="sm">
-                        {r.targetType}
-                      </Badge>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Badge variant="success" size="sm">
+                          {r.targetType === 'ALL_CATALOG'
+                            ? '🟢 Tutti e solo i 2gg'
+                            : r.targetType}
+                        </Badge>
+                      </div>
                     </td>
                     <td style={{ padding: '10px 8px' }}>
                       <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                        +{r.discountValue}%
+                        {(r.clientCategories || []).includes('RIV')
+                          ? `50% + ${r.discountValue}%`
+                          : (r.clientCategories || []).includes('IST')
+                          ? `40% + ${r.discountValue}%`
+                          : `X% + ${r.discountValue}%`}
                       </span>{' '}
                       <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        ({r.calculationMode})
+                        (Cascata X% + Y%)
                       </span>
                     </td>
                     <td style={{ padding: '10px 8px' }}>
@@ -429,8 +437,9 @@ export default function B2BDiscountsApp() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <TextInput
+            fullWidth
             label="Nome Regola Commerciale"
-            placeholder="Es. Promo Benvenuto +10% Sul Primo Acquisto"
+            placeholder="Es. Primo Acquisto (40% + 10% Solo 2gg) — Azienda S.r.l."
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
