@@ -73,7 +73,7 @@ export async function checkoutCart(
     // Se è un prospect in attivazione e sta inviando l'ordine (o l'agente lo sta approvando),
     // tutti i campi obbligatori Zucchetti DEVONO essere compilati
     if (promoProspect && action === 'SEND_TO_ZUCCHETTI') {
-      if (!isPromoProspectBillingComplete(promoProspect)) {
+      if (!(await isPromoProspectBillingComplete(promoProspect))) {
         return {
           success: false,
           requiresBillingData: true,

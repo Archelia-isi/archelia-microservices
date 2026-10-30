@@ -331,7 +331,7 @@ async function sendZucchettiAdhocContiRespectingDryRun(xmlPayload: string): Prom
   }
 }
 
-export function isPromoProspectBillingComplete(promo: {
+function checkPromoProspectBillingComplete(promo: {
   vatNumber?: string | null;
   companyName?: string | null;
   formaGiuridica?: string | null;
@@ -365,6 +365,25 @@ export function isPromoProspectBillingComplete(promo: {
   if (!(promo.phone || '').trim()) return false;
   if (!(promo.email || '').trim()) return false;
   return true;
+}
+
+export async function isPromoProspectBillingComplete(promo: {
+  vatNumber?: string | null;
+  companyName?: string | null;
+  formaGiuridica?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  address?: string | null;
+  streetNumber?: string | null;
+  zip?: string | null;
+  city?: string | null;
+  province?: string | null;
+  codiceDestinatario?: string | null;
+  pecEmail?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}): Promise<boolean> {
+  return checkPromoProspectBillingComplete(promo);
 }
 
 /**
@@ -872,7 +891,7 @@ export async function getPromoProspectCheckoutData(targetId: string): Promise<{
 
   return {
     isPromoProspect: true,
-    hasCompletedBillingData: isPromoProspectBillingComplete(promo),
+    hasCompletedBillingData: checkPromoProspectBillingComplete(promo),
     prospect: {
       id: promo.id,
       companyName: promo.companyName || '',
@@ -1049,7 +1068,7 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
       firstLoginAt: p.firstLoginAt ? p.firstLoginAt.toISOString() : null,
       lastLoginAt: p.lastLoginAt ? p.lastLoginAt.toISOString() : null,
       loginCount: p.loginCount,
-      hasCompletedBillingData: isPromoProspectBillingComplete(p),
+      hasCompletedBillingData: checkPromoProspectBillingComplete(p),
       activeCartItemsCount,
       activeCartTotal,
       activeCartPreview,

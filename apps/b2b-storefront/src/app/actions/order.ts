@@ -361,7 +361,7 @@ export async function sendSavedOrder(orderId: string) {
     }
     if (order.promoProspect && !order.userId) {
       const { isPromoProspectBillingComplete } = await import('./promoProspects');
-      if (!isPromoProspectBillingComplete(order.promoProspect)) {
+      if (!(await isPromoProspectBillingComplete(order.promoProspect))) {
         return {
           success: false,
           error: 'Per inviare il tuo primo ordine completa prima i dati di fatturazione obbligatori dal Carrello.'
