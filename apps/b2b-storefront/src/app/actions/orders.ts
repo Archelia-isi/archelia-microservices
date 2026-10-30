@@ -124,9 +124,14 @@ export async function getPopulatedOrderDetails(orderId: string) {
   if (!order) return { success: false };
   
   const storeMode = (order.storeMode as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
-  const targetUser = await prisma.b2BUser.findUnique({ where: { id: order.userId } });
+  const targetUser = order.userId
+    ? await prisma.b2BUser.findUnique({ where: { id: order.userId } })
+    : null;
+  const targetPromo = !targetUser && order.promoProspectId
+    ? await prisma.b2BPromoProspect.findUnique({ where: { id: order.promoProspectId } })
+    : null;
   let elmarkDiscounts: Record<string, number> = targetUser ? (targetUser.elmarkDiscounts as Record<string, number> || {}) : {};
-  let genericDiscount = targetUser ? (targetUser.discount || 0) : 0;
+  let genericDiscount = targetUser ? (targetUser.discount || 0) : targetPromo ? (targetPromo.discount || 0) : 0;
 
   const populatedItems = await Promise.all(order.items.map(async (item) => {
     const prod = await getProductById(item.sku) as any;

@@ -89,9 +89,11 @@ export default async function AccountSavedOrdersPage({ searchParams }: { searchP
                     <div>
                       <div className="text-sm text-gray-500">Ordine #{order.id.slice(-6).toUpperCase()}</div>
                       <div className="font-bold text-gray-900 text-lg">
-                        {order.user?.companyName || `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim() || 'Cliente'}
+                        {(order.user || order.promoProspect)?.companyName || `${(order.user || order.promoProspect)?.firstName || ''} ${(order.user || order.promoProspect)?.lastName || ''}`.trim() || 'Cliente'}
                       </div>
-                      <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user?.zucchettiCode || 'N/A'}</div>
+                      <div className="text-xs text-gray-500">
+                        {order.user?.zucchettiCode ? `Cod. Zucchetti: ${order.user.zucchettiCode}` : `In attivazione (${order.promoProspect?.username || 'N/A'})`}
+                      </div>
                     </div>
                     <div className="flex flex-col sm:items-end gap-2">
                       <div className="flex items-center gap-2 flex-wrap">

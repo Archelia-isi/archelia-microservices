@@ -26,10 +26,12 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
         OR: [
           { createdById: session.userId },
           { user: { agentId: session.userId } },
+          { promoProspect: { agentId: session.userId } },
         ],
       },
       include: {
         user: true,
+        promoProspect: true,
         items: true,
       },
       orderBy: {
@@ -37,8 +39,10 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
       },
     });
 
-    // Escludiamo gli ordini salvati privatamente dal cliente (dove createdById === userId)
-    const agentQuotes = rawQuotes.filter((q) => q.createdById !== q.userId);
+    // Escludiamo gli ordini salvati privatamente dal cliente (dove createdById === userId o promoProspectId)
+    const agentQuotes = rawQuotes.filter(
+      (q) => q.createdById !== q.userId && q.createdById !== q.promoProspectId
+    );
 
     return (
       <div>
@@ -88,9 +92,11 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
                   <div>
                     <div className="text-sm text-gray-500">Preventivo #{quote.id.slice(-6).toUpperCase()}</div>
                     <div className="font-bold text-gray-900 text-lg">
-                      {quote.user?.companyName || `${quote.user?.firstName || ''} ${quote.user?.lastName || ''}`.trim() || 'Cliente'}
+                      {(quote.user || quote.promoProspect)?.companyName || `${(quote.user || quote.promoProspect)?.firstName || ''} ${(quote.user || quote.promoProspect)?.lastName || ''}`.trim() || 'Cliente'}
                     </div>
-                    <div className="text-xs text-gray-500">Cod. Zucchetti: {quote.user?.zucchettiCode || 'N/A'}</div>
+                    <div className="text-xs text-gray-500">
+                      {quote.user?.zucchettiCode ? `Cod. Zucchetti: ${quote.user.zucchettiCode}` : `In attivazione (${quote.promoProspect?.username || 'N/A'})`}
+                    </div>
                   </div>
                   <div className="flex flex-col sm:items-end gap-2">
                     <div className="bg-purple-100 text-purple-800 border-purple-200 text-xs font-bold px-3 py-1 rounded-full border">
@@ -159,7 +165,7 @@ export default async function AccountQuotesPage({ searchParams }: { searchParams
 
   const quotes = await prisma.b2BOrder.findMany({
     where: { 
-      userId: session.userId,
+      OR: [{ userId: session.userId }, { promoProspectId: session.userId }],
       status: 'DRAFT',
       createdById: { not: session.userId },
       storeMode: currentTab

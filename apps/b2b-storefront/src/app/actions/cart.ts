@@ -15,6 +15,15 @@ export async function getTargetUserId(session: any) {
     if (impersonatedCode) {
       const client = await prisma.b2BUser.findUnique({ where: { zucchettiCode: impersonatedCode } });
       if (client) return client.id;
+      const promo = await prisma.b2BPromoProspect.findFirst({
+        where: {
+          OR: [
+            { id: impersonatedCode },
+            { username: { equals: impersonatedCode, mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (promo) return promo.convertedToUserId || promo.id;
     }
   }
   return session.userId;
@@ -220,20 +229,41 @@ export async function acceptDraftOrder(orderId: string) {
 
   try {
     const order = await prisma.b2BOrder.findUnique({
-      where: { id: orderId }
+      where: { id: orderId },
+      include: { promoProspect: true }
     });
 
     if (!order) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'DRAFT') return { success: false, error: 'L\'ordine non è un preventivo' };
-    if (order.userId !== session.userId) return { success: false, error: 'Non autorizzato' };
+    const orderOwnerId = order.userId || order.promoProspectId;
+    if (orderOwnerId !== session.userId) return { success: false, error: 'Non autorizzato' };
 
-    await prisma.b2BOrder.update({
-      where: { id: orderId },
-      data: { status: 'APPROVED' }
-    });
+    if (order.promoProspect && !order.userId) {
+      const { isPromoProspectBillingComplete } = await import('./promoProspects');
+      if (!isPromoProspectBillingComplete(order.promoProspect)) {
+        return {
+          success: false,
+          error: 'Per confermare il primo ordine completa prima i dati di fatturazione obbligatori dal Carrello.'
+        };
+      }
+      await prisma.b2BOrder.update({
+        where: { id: orderId },
+        data: { status: 'PENDING_AGENT_REVIEW' }
+      });
+      await prisma.b2BPromoProspect.update({
+        where: { id: order.promoProspect.id },
+        data: { status: 'ORDER_PENDING_APPROVAL' }
+      });
+    } else {
+      await prisma.b2BOrder.update({
+        where: { id: orderId },
+        data: { status: 'APPROVED' }
+      });
+    }
 
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/account/quotes');
+    revalidatePath('/account/sent-orders');
     revalidatePath('/account/orders');
     revalidatePath(`/account/orders/${orderId}`);
 

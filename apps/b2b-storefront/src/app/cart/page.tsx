@@ -80,11 +80,13 @@ export default async function CartPage() {
     getEffectiveClientDiscountContext,
     evaluateTypesenseProductWithContext,
   } = await import('@/lib/discount');
-  const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx] = await Promise.all([
+  const { getPromoProspectCheckoutData } = await import('@/app/actions/promoProspects');
+  const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx, promoCheckoutData] = await Promise.all([
     getEffectiveDiscount(),
     getExtraAgentDiscount(),
     getEffectiveElmarkDiscounts(),
     getEffectiveClientDiscountContext(),
+    getPromoProspectCheckoutData(targetUserId),
   ]);
   
   const finalItems = populatedItems.map(item => {
@@ -208,6 +210,7 @@ export default async function CartPage() {
             <CheckoutButtons 
               isAgent={session.user.role === 'AGENT'} 
               isImpersonating={!!impersonatedClientCode} 
+              promoCheckoutData={promoCheckoutData}
             />
           </div>
         </div>

@@ -22,7 +22,7 @@ export async function syncSavedOrdersStockForUser(userId: string) {
   try {
     const savedOrders = await prisma.b2BOrder.findMany({
       where: {
-        userId,
+        OR: [{ userId }, { promoProspectId: userId }],
         status: 'DRAFT',
         createdById: userId
       },
@@ -158,22 +158,24 @@ export async function syncSavedOrdersStockForAgent(agentId: string) {
     const rawDrafts = await prisma.b2BOrder.findMany({
       where: {
         status: 'DRAFT',
-        user: {
-          agentId
-        }
+        OR: [
+          { user: { agentId } },
+          { promoProspect: { agentId } }
+        ]
       },
       orderBy: { createdAt: 'desc' },
       include: {
         user: true,
+        promoProspect: true,
         items: {
           orderBy: { id: 'asc' }
         }
       }
     });
 
-    // Solo gli ordini salvati dal cliente (createdById === userId o non impostato)
+    // Solo gli ordini salvati dal cliente (createdById === userId/promoProspectId o non impostato)
     const savedOrders = rawDrafts.filter(
-      (o) => !o.createdById || o.createdById === o.userId
+      (o) => !o.createdById || o.createdById === o.userId || o.createdById === o.promoProspectId
     );
 
     let adjustedOrdersCount = 0;

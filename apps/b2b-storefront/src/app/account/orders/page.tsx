@@ -13,7 +13,7 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
 
   const orders = await prisma.b2BOrder.findMany({
     where: { 
-      userId: session.userId,
+      OR: [{ userId: session.userId }, { promoProspectId: session.userId }],
       status: { notIn: ['DRAFT', 'PENDING_AGENT_REVIEW'] },
       storeMode: currentTab
     },

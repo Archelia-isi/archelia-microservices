@@ -242,17 +242,23 @@ export async function hydrateRulesWithPurchaseConsumption(
     const orderRows: any[] = await prisma.$queryRawUnsafe(
       `SELECT
          o."id" AS "orderId",
-         o."userId" AS "userId",
-         UPPER(COALESCE(u."zucchettiCode", '')) AS "clientCode",
+         COALESCE(o."userId", o."promoProspectId") AS "userId",
+         UPPER(COALESCE(u."zucchettiCode", pp."username", '')) AS "clientCode",
          o."createdAt" AS "createdAt",
          o."updatedAt" AS "updatedAt"
        FROM "b2b_orders" o
        LEFT JOIN "b2b_users" u ON u."id" = o."userId"
-       WHERE o."status" IN ('PENDING_AGENT_REVIEW', 'APPROVED', 'SENT_TO_ZUCCHETTI')
+       LEFT JOIN "b2b_promo_prospects" pp ON pp."id" = o."promoProspectId"
+       WHERE (
+         (o."promoProspectId" IS NOT NULL AND o."status" IN ('APPROVED', 'SENT_TO_ZUCCHETTI'))
+         OR (o."promoProspectId" IS NULL AND o."status" IN ('PENDING_AGENT_REVIEW', 'APPROVED', 'SENT_TO_ZUCCHETTI'))
+       )
          AND ($1::text IS NULL OR o."id" != $1)
          AND (
            o."userId" = ANY($2::text[])
+           OR o."promoProspectId" = ANY($2::text[])
            OR UPPER(COALESCE(u."zucchettiCode", '')) = ANY($3::text[])
+           OR UPPER(COALESCE(pp."username", '')) = ANY($3::text[])
          )`,
       options?.excludeOrderId || null,
       clientIdsArr,
@@ -361,12 +367,12 @@ export async function getAgentDiscountRulesFromDb(
     const cleanCode = (agentCode || '').trim();
     const rows: any[] = cleanCode
       ? await prisma.$queryRawUnsafe(
-          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" = $1 OR ("agentCode" != '' AND "agentCode" = $2) ORDER BY "createdAt" DESC`,
+          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" IN ($1, 'GLOBAL', 'ADMIN') OR ("agentCode" != '' AND "agentCode" = $2) ORDER BY "createdAt" DESC`,
           agentId,
           cleanCode
         )
       : await prisma.$queryRawUnsafe(
-          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" = $1 ORDER BY "createdAt" DESC`,
+          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" IN ($1, 'GLOBAL', 'ADMIN') ORDER BY "createdAt" DESC`,
           agentId
         );
     const mapped = (rows || []).map(mapRowToAgentDiscountRule);
@@ -408,7 +414,7 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
       ? await prisma.$queryRawUnsafe(
           `SELECT * FROM "b2b_agent_discount_rules"
            WHERE "isActive" = true
-             AND ("agentId" = $1 OR "clientScope" != 'ALL_CLIENTS')
+             AND ("agentId" IN ($1, 'GLOBAL', 'ADMIN') OR "clientScope" != 'ALL_CLIENTS')
            ORDER BY "updatedAt" DESC`,
           agentId
         )
@@ -427,11 +433,12 @@ export async function getActiveDiscountRulesForClientUser(clientUser: {
     );
     return mapped.filter(rule => {
       if (isDiscountRuleExpired(rule)) return false;
+      const isGlobalRule = rule.agentId === 'GLOBAL' || rule.agentId === 'ADMIN';
       if (rule.clientScope === 'ALL_CLIENTS') {
-        return !agentId || rule.agentId === agentId;
+        return !agentId || isGlobalRule || rule.agentId === agentId;
       }
       if (rule.clientScope === 'CLIENT_CATEGORY') {
-        if (agentId && rule.agentId && rule.agentId !== agentId) return false;
+        if (agentId && rule.agentId && !isGlobalRule && rule.agentId !== agentId) return false;
       }
       return doesRuleMatchClient(rule, {
         clientId,

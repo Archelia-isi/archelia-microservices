@@ -15,11 +15,20 @@ export default async function AccountDashboard() {
   
   // if agent, render agent dashboard below
 
-  const user = await prisma.b2BUser.findUnique({
+  const dbUser = await prisma.b2BUser.findUnique({
     where: { id: session.userId },
     include: { agent: true }
   });
+  const dbPromo = !dbUser
+    ? await prisma.b2BPromoProspect.findUnique({
+        where: { id: session.userId }
+      })
+    : null;
+  const promoAgent = dbPromo?.agentId
+    ? await prisma.b2BUser.findUnique({ where: { id: dbPromo.agentId } })
+    : null;
 
+  const user: any = dbUser || (dbPromo ? { ...dbPromo, agent: promoAgent } : null);
   if (!user) redirect('/login');
 
   if (session.user.role === 'AGENT') {
@@ -28,7 +37,9 @@ export default async function AccountDashboard() {
   }
 
   const recentOrders = await prisma.b2BOrder.findMany({
-    where: { userId: session.userId },
+    where: {
+      OR: [{ userId: session.userId }, { promoProspectId: session.userId }]
+    },
     orderBy: { createdAt: 'desc' },
     take: 3,
   });

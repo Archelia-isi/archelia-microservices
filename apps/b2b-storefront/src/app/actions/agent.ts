@@ -60,12 +60,24 @@ export async function setImpersonatedClient(zucchettiCode: string | null, compan
         role: 'USER',
       },
     });
-    if (!assignedClient) {
-      return { success: false, error: 'Cliente non assegnato al tuo profilo agente.' };
+    if (assignedClient) {
+      cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
+      cookies().set('impersonatedClientName', assignedClient.companyName || companyName || '', cookieOpts);
+      cookies().set('impersonatedClientDiscount', String(assignedClient.discount ?? discount ?? 0), cookieOpts);
+    } else {
+      const assignedPromo = await prisma.b2BPromoProspect.findFirst({
+        where: {
+          OR: [{ id: zucchettiCode }, { username: { equals: zucchettiCode, mode: 'insensitive' } }],
+          agentId: session.userId,
+        },
+      });
+      if (!assignedPromo) {
+        return { success: false, error: 'Cliente non assegnato al tuo profilo agente.' };
+      }
+      cookies().set('impersonatedClientCode', assignedPromo.id, cookieOpts);
+      cookies().set('impersonatedClientName', `[IN ATTIVAZIONE] ${assignedPromo.companyName || companyName || ''}`, cookieOpts);
+      cookies().set('impersonatedClientDiscount', String(assignedPromo.discount ?? discount ?? 0), cookieOpts);
     }
-    cookies().set('impersonatedClientCode', zucchettiCode, cookieOpts);
-    cookies().set('impersonatedClientName', assignedClient.companyName || companyName || '', cookieOpts);
-    cookies().set('impersonatedClientDiscount', String(assignedClient.discount ?? discount ?? 0), cookieOpts);
   } else {
     cookies().delete({ name: 'impersonatedClientCode', ...cookieOpts, maxAge: 0 });
     cookies().delete({ name: 'impersonatedClientName', ...cookieOpts, maxAge: 0 });
@@ -84,12 +96,15 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
   try {
     const order = await prisma.b2BOrder.findUnique({
       where: { id: orderId },
-      include: { items: true, user: true }
+      include: { items: true, user: true, promoProspect: true }
     });
 
     if (!order) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'PENDING_AGENT_REVIEW' && order.status !== 'DRAFT') return { success: false, error: 'Ordine non in revisione' };
-    if (order.user.agentId !== session.userId) return { success: false, error: 'Cliente non assegnato' };
+    const orderOwner = order.user || order.promoProspect;
+    if (!orderOwner || orderOwner.agentId !== session.userId) return { success: false, error: 'Cliente non assegnato' };
+
+    const targetOwnerId = order.userId || order.promoProspectId!;
 
     // Check lock
     const { redis } = await import('@/lib/redis');
@@ -105,9 +120,9 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
     const cookieOpts: any = { path: '/', maxAge: 86400 };
     if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
     
-    cookies().set('impersonatedClientCode', order.user.zucchettiCode || '', cookieOpts);
-    cookies().set('impersonatedClientName', order.user.companyName || '', cookieOpts);
-    cookies().set('impersonatedClientDiscount', String(order.user.discount || 0), cookieOpts);
+    cookies().set('impersonatedClientCode', order.user?.zucchettiCode || order.promoProspect?.id || '', cookieOpts);
+    cookies().set('impersonatedClientName', order.promoProspect && !order.user ? `[IN ATTIVAZIONE] ${orderOwner.companyName || ''}` : (orderOwner.companyName || ''), cookieOpts);
+    cookies().set('impersonatedClientDiscount', String(orderOwner.discount || 0), cookieOpts);
     
     // FORZA il cookie del negozio in modo che l'agente veda il carrello corretto (Izzo vs Elmark)
     const storeCookieOpts: any = { path: '/', maxAge: 86400, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' };
@@ -115,8 +130,11 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
     cookies().set('b2b_store_mode', order.storeMode, storeCookieOpts);
 
     // Clean up any old REVIEW cart for this user
+    const ownerCartFilter = order.userId
+      ? { userId: order.userId, status: 'REVIEW' as const }
+      : { promoProspectId: order.promoProspectId, status: 'REVIEW' as const };
     const oldReviewCarts = await prisma.b2BCart.findMany({
-      where: { userId: order.userId, status: 'REVIEW' },
+      where: ownerCartFilter,
       select: { linkedOrderId: true }
     });
     for (const oldCart of oldReviewCarts) {
@@ -127,13 +145,14 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
       }
     }
     await prisma.b2BCart.deleteMany({
-      where: { userId: order.userId, status: 'REVIEW' }
+      where: ownerCartFilter
     });
 
     // Create the REVIEW cart
     await prisma.b2BCart.create({
       data: {
-        userId: order.userId,
+        userId: order.userId || null,
+        promoProspectId: order.promoProspectId || null,
         status: 'REVIEW',
         cartType: order.storeMode, // <-- Fondamentale: preserva se era Elmark o Zucchetti
         linkedOrderId: order.id,
@@ -148,7 +167,7 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
       }
     });
 
-    const isCustomerSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === order.userId);
+    const isCustomerSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === targetOwnerId);
     const defaultReturnUrl = order.status === 'DRAFT'
       ? `${isCustomerSavedOrder ? '/account/saved-orders' : '/account/quotes'}${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`
       : `/account/agent-orders${order.storeMode === 'ELMARK' ? '?tab=elmark' : ''}`;
@@ -159,8 +178,8 @@ export async function startOrderReview(orderId: string, returnUrl?: string) {
 
     // Clear stale Redis keys for review carts
     try {
-      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ELMARK`);
-      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${order.id}:ZUCCHETTI`);
+      await redis.del(`b2b_cart_v2:${targetOwnerId}:REVIEW:${order.id}:ELMARK`);
+      await redis.del(`b2b_cart_v2:${targetOwnerId}:REVIEW:${order.id}:ZUCCHETTI`);
     } catch (e) {
       console.error('Failed to clear redis review cart', e);
     }

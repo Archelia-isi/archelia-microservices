@@ -11,24 +11,30 @@ export default async function AgentDashboard({ user }: { user: any }) {
   
   const clientIds = clients.map(c => c.id);
 
-  // Preventivi in Pausa
+  // Preventivi in Pausa (inclusi 1° ordini di clienti in attivazione)
   const pausedOrders = await prisma.b2BOrder.findMany({
     where: { 
-      userId: { in: clientIds },
+      OR: [
+        { userId: { in: clientIds } },
+        { promoProspect: { agentId: user.id } }
+      ],
       status: { in: ['DRAFT', 'PENDING_AGENT_REVIEW'] }
     },
     orderBy: { createdAt: 'desc' },
-    include: { user: true }
+    include: { user: true, promoProspect: true }
   });
 
   // Feed Ordini (all recent orders, sent or otherwise)
   const recentOrders = await prisma.b2BOrder.findMany({
     where: { 
-      userId: { in: clientIds }
+      OR: [
+        { userId: { in: clientIds } },
+        { promoProspect: { agentId: user.id } }
+      ]
     },
     orderBy: { createdAt: 'desc' },
     take: 15,
-    include: { user: true }
+    include: { user: true, promoProspect: true }
   });
 
   // Radar Dormienti
@@ -42,7 +48,7 @@ export default async function AgentDashboard({ user }: { user: any }) {
     },
     select: { userId: true },
     distinct: ['userId']
-  }).then(res => res.map(r => r.userId));
+  }).then(res => res.map(r => r.userId).filter((id): id is string => Boolean(id)));
 
   const dormantClients = clients.filter(c => !activeClientIds.includes(c.id));
 
@@ -65,7 +71,9 @@ export default async function AgentDashboard({ user }: { user: any }) {
   
   const spendByClient: Record<string, number> = {};
   currentMonthOrders.forEach(o => {
-    spendByClient[o.userId] = (spendByClient[o.userId] || 0) + o.totalAmount;
+    if (o.userId) {
+      spendByClient[o.userId] = (spendByClient[o.userId] || 0) + o.totalAmount;
+    }
   });
   
   const topSpenders = Object.entries(spendByClient)
@@ -81,6 +89,13 @@ export default async function AgentDashboard({ user }: { user: any }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <h1 className="text-3xl font-bold">Dashboard Agente</h1>
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            prefetch={true}
+            href="/account/prospects"
+            className="px-4 py-2 text-sm font-bold rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 transition-colors flex items-center gap-1.5"
+          >
+            <span>🚀 Clienti in Attivazione</span>
+          </Link>
           <Link
             prefetch={true}
             href="/account/clients"
@@ -118,11 +133,23 @@ export default async function AgentDashboard({ user }: { user: any }) {
             </h2>
             {pausedOrders.length > 0 ? (
               <div className="divide-y divide-gray-100">
-                {pausedOrders.map((order) => (
+                {pausedOrders.map((order) => {
+                  const owner = order.user || order.promoProspect;
+                  const isPromoOrder = Boolean(order.promoProspect && !order.user);
+                  return (
                   <div key={order.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <div className="font-bold text-gray-900">{order.user.companyName}</div>
-                      <div className="text-sm text-gray-500">Codice Cliente: {order.user.zucchettiCode}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-gray-900">{owner?.companyName || 'Cliente'}</span>
+                        {isPromoOrder && (
+                          <span className="px-2 py-0.5 text-[10px] font-black bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-full">
+                            🆕 1° ORDINE NUOVO CLIENTE
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {order.user?.zucchettiCode ? `Codice Cliente: ${order.user.zucchettiCode}` : `Username: ${order.promoProspect?.username || 'In attivazione'}`}
+                      </div>
                       <div className="text-xs text-gray-400 mt-1">Carrello del {new Date(order.createdAt).toLocaleDateString('it-IT')}</div>
                     </div>
                     <div className="flex flex-col sm:items-end">
@@ -136,7 +163,8 @@ export default async function AgentDashboard({ user }: { user: any }) {
                       </Link>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-gray-500 text-sm">Nessun preventivo in pausa al momento.</p>
@@ -216,7 +244,7 @@ export default async function AgentDashboard({ user }: { user: any }) {
                 <div key={order.id} className="relative pl-6">
                   <div className="absolute -left-1.5 top-1.5 w-3 h-3 bg-gray-300 rounded-full border-2 border-white"></div>
                   <div className="flex justify-between items-start mb-1">
-                    <div className="font-bold text-gray-900">{order.user.companyName}</div>
+                    <div className="font-bold text-gray-900">{(order.user || order.promoProspect)?.companyName || 'Cliente'}</div>
                     <div className="text-xs text-gray-500 whitespace-nowrap ml-2">{timeStr}</div>
                   </div>
                   <div className="text-xs text-gray-500 mb-2">#{order.id.slice(-6).toUpperCase()}</div>

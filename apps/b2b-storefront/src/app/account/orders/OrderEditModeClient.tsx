@@ -31,7 +31,8 @@ export default function OrderEditModeClient({
   const [lockError, setLockError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const isSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === order.userId);
+  const orderOwnerId = order.userId || order.promoProspectId;
+  const isSavedOrder = order.status === 'DRAFT' && (!order.createdById || order.createdById === orderOwnerId);
   const stockMetaInfo = isSavedOrder ? parseSavedOrderStockMeta(order.notes) : null;
   const hasStockAdjustments = Boolean(stockMetaInfo?.hasAdjustments);
   const isElmark = order.storeMode === 'ELMARK';
@@ -121,9 +122,9 @@ export default function OrderEditModeClient({
           <p className="text-gray-500 mt-1">
             Data: {new Date(order.createdAt).toLocaleDateString('it-IT')} {new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
           </p>
-          {order.user && isAgent && (
+          {(order.user || order.promoProspect) && isAgent && (
             <p className="text-sm font-semibold text-gray-800 mt-1">
-              Cliente: {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`} (Cod. {order.user.zucchettiCode || 'N/A'})
+              Cliente: {(order.user || order.promoProspect)?.companyName || 'Cliente'} ({order.user?.zucchettiCode ? `Cod. ${order.user.zucchettiCode}` : `In attivazione - ${order.promoProspect?.username || 'N/A'}`})
             </p>
           )}
           {hasStockAdjustments && (

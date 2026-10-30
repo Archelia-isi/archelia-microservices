@@ -115,7 +115,7 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
     const impersonatedClientCode = cookieStore.get('impersonatedClientCode')?.value;
     const reviewingOrderId = cookieStore.get('reviewingOrderId')?.value || null;
 
-    const [allAgentRules, impUser] = await Promise.all([
+    const [allAgentRules, impUser, impPromo] = await Promise.all([
       getAgentDiscountRulesFromDb(session.user.id, session.user.zucchettiCode || '', {
         excludeOrderId: reviewingOrderId,
         fallbackClientCode: impersonatedClientCode || null,
@@ -131,15 +131,42 @@ export async function getEffectiveClientDiscountContext(): Promise<EffectiveClie
             },
           })
         : Promise.resolve(null),
+      impersonatedClientCode
+        ? prisma.b2BPromoProspect.findFirst({
+            where: {
+              OR: [
+                { id: impersonatedClientCode },
+                { username: { equals: impersonatedClientCode, mode: 'insensitive' } },
+              ],
+            },
+            select: {
+              id: true,
+              username: true,
+              commercialCategory: true,
+              discount: true,
+            },
+          })
+        : Promise.resolve(null),
     ]);
 
     if (impersonatedClientCode) {
       if (impUser) {
         elmarkDiscounts = (impUser.elmarkDiscounts as Record<string, number>) || {};
+        clientId = impUser.id;
+        clientCode = impUser.zucchettiCode || impersonatedClientCode;
+        clientCategory = impUser.customerType || null;
+      } else if (impPromo) {
+        clientId = impPromo.id;
+        clientCode = impPromo.username.toUpperCase();
+        clientCategory = impPromo.commercialCategory || null;
+        if (!impersonatedDiscountStr && impPromo.discount) {
+          baseDiscount = impPromo.discount;
+        }
+      } else {
+        clientId = null;
+        clientCode = impersonatedClientCode;
+        clientCategory = null;
       }
-      clientId = impUser?.id || null;
-      clientCode = impUser?.zucchettiCode || impersonatedClientCode;
-      clientCategory = impUser?.customerType || null;
       rules = allAgentRules.filter(
         r =>
           r.isActive &&

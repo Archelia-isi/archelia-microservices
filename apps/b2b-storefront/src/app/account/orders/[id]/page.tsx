@@ -24,27 +24,31 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       items: {
         orderBy: { id: 'asc' }
       },
-      user: true
+      user: true,
+      promoProspect: true
     }
   });
 
   const isAgent = session.user.role === 'AGENT';
-  const isOrderOwner = order?.userId === session.userId;
-  const isAssignedAgent = isAgent && order?.user?.agentId === session.userId;
+  const orderOwnerId = order?.userId || order?.promoProspectId;
+  const orderAgentId = order?.user?.agentId || order?.promoProspect?.agentId;
+  const isOrderOwner = orderOwnerId === session.userId;
+  const isAssignedAgent = isAgent && orderAgentId === session.userId;
 
   if (!order || (!isOrderOwner && !isAssignedAgent)) {
     redirect(isAgent ? '/account/agent-orders' : '/account/orders');
   }
 
-  if (order.status === 'DRAFT' && order.createdById === order.userId) {
-    await syncSavedOrdersStockForUser(order.userId);
+  if (order.status === 'DRAFT' && orderOwnerId && order.createdById === orderOwnerId) {
+    await syncSavedOrdersStockForUser(orderOwnerId);
     const refreshed = await prisma.b2BOrder.findUnique({
       where: { id: params.id },
       include: {
         items: {
           orderBy: { id: 'asc' }
         },
-        user: true
+        user: true,
+        promoProspect: true
       }
     });
     if (refreshed) {
@@ -55,7 +59,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   const isDraft = order.status === 'DRAFT';
   const isPending = order.status === 'PENDING_AGENT_REVIEW';
   const isApproved = order.status === 'APPROVED';
-  const isSavedOrder = isDraft && (!order.createdById || order.createdById === order.userId);
+  const isSavedOrder = isDraft && (!order.createdById || order.createdById === orderOwnerId);
   const isElmark = order.storeMode === 'ELMARK';
   const tabParam = isElmark ? '?tab=elmark' : '';
 
@@ -106,9 +110,10 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   let genericDiscount = 0;
   let elmarkDiscounts: Record<string, number> = {};
 
-  if (isAgent && order.user) {
-    genericDiscount = order.user.discount || 0;
-    elmarkDiscounts = (order.user.elmarkDiscounts as Record<string, number>) || {};
+  if (isAgent && (order.user || order.promoProspect)) {
+    const owner: any = order.user || order.promoProspect;
+    genericDiscount = owner.discount || 0;
+    elmarkDiscounts = (owner.elmarkDiscounts as Record<string, number>) || {};
   } else {
     const { getEffectiveDiscount, getEffectiveElmarkDiscounts } = await import('@/lib/discount');
     genericDiscount = await getEffectiveDiscount();
@@ -172,9 +177,9 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             <p className="text-gray-500 mt-1">
               Data: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
             </p>
-            {isAgent && order.user && (
+            {isAgent && (order.user || order.promoProspect) && (
               <p className="text-sm font-semibold text-gray-800 mt-1">
-                Cliente: {order.user.companyName || `${order.user.firstName} ${order.user.lastName}`} (Cod. {order.user.zucchettiCode || 'N/A'})
+                Cliente: {(order.user || order.promoProspect)?.companyName || 'Cliente'} ({order.user?.zucchettiCode ? `Cod. ${order.user.zucchettiCode}` : `In attivazione - ${order.promoProspect?.username}`})
               </p>
             )}
           </div>

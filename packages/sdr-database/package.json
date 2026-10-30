@@ -1,0 +1,21 @@
+{
+  "name": "@archelia/sdr-database",
+  "version": "1.0.0",
+  "description": "AI-SDR B2B Isolated Database definitions",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "generate": "SDR_DATABASE_URL=${SDR_DATABASE_URL:-postgresql://neondb_owner:npg@localhost:5432/neondb} sh -c 'if [ ! -d ./node_modules ] && [ -d ../b2b-database/node_modules ]; then ln -s ../b2b-database/node_modules ./node_modules; fi; ./node_modules/.bin/prisma generate'",
+    "db:push": "npx dotenv -e ../../.env -- ./node_modules/.bin/prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "dotenv-cli": "^7.4.2",
+    "prisma": "^5.14.0",
+    "typescript": "^5.0.0"
+  }
+}

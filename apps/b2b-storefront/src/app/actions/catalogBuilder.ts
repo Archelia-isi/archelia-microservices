@@ -265,8 +265,16 @@ export async function getAgentCatalogInitData(): Promise<{
 
   const sessionAgentCode = session.user.zucchettiCode || '';
 
-  const [clientsRes, initialSearch, discountRules] = await Promise.all([
+  const { prisma: b2bPrisma } = await import('@archelia/b2b-database');
+  const [clientsRes, promoProspects, initialSearch, discountRules] = await Promise.all([
     getAgentClientsList(),
+    b2bPrisma.b2BPromoProspect.findMany({
+      where: {
+        agentId: session.user.id,
+        status: { in: ['CONTACTED', 'LOGGED_IN', 'ORDER_PENDING_APPROVAL'] },
+      },
+      orderBy: { emailSentAt: 'desc' },
+    }),
     searchAgentCatalogProducts({
       catalogSource: 'ZUCCHETTI',
       query: '',
@@ -282,6 +290,40 @@ export async function getAgentCatalogInitData(): Promise<{
     getAgentDiscountRulesFromDb(session.user.id, sessionAgentCode),
   ]);
 
+  const mappedPromoClients: AgentManagedClient[] = promoProspects.map(p => ({
+    id: p.id,
+    hasB2BAccount: true,
+    zucchettiCode: p.username,
+    companyName: `[IN ATTIVAZIONE] ${p.companyName}`,
+    vatNumber: p.vatNumber || '',
+    codiceFiscale: p.fiscalCode || p.vatNumber || '',
+    formaGiuridica: p.formaGiuridica || 'SRL',
+    firstName: p.firstName || '',
+    lastName: p.lastName || '',
+    address: p.address || '',
+    zip: p.zip || '',
+    city: p.city || '',
+    province: p.province || '',
+    phone: p.phone || '',
+    telefonoFisso: '',
+    email: p.email || '',
+    pec: p.pecEmail || '',
+    codiceDestinatario: p.codiceDestinatario || '0000000',
+    username: p.username,
+    tempPassword: p.tempPassword || '',
+    mustChangePassword: p.mustChangePassword,
+    customerType: p.commercialCategory === 'RIV' ? 'Rivenditore' : 'Installatore',
+    categoriaCode: (p.commercialCategory || 'IST').toLowerCase(),
+    discount: p.discount ?? 40,
+    fido: 0,
+    codicePagamento: '',
+    isElmarkCustomer: false,
+    elmarkDiscounts: {},
+    isActive: true,
+    ordersCount: 0,
+    createdAt: p.createdAt.toISOString(),
+  }));
+
   const agentName =
     clientsRes.agentName ||
     session.user.companyName ||
@@ -294,7 +336,7 @@ export async function getAgentCatalogInitData(): Promise<{
     success: true,
     agentName,
     agentCode,
-    clients: clientsRes.clients || [],
+    clients: [...(clientsRes.clients || []), ...mappedPromoClients],
     initialSearch,
     discountRules,
   };

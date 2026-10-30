@@ -35,7 +35,7 @@ export async function deleteSentOrder(orderId: string) {
 
     const order = await prisma.b2BOrder.findUnique({
       where: { id: orderId },
-      include: { user: true }
+      include: { user: true, promoProspect: true }
     });
 
     if (!order) {
@@ -46,15 +46,18 @@ export async function deleteSentOrder(orderId: string) {
       return { success: false, error: 'Gli ordini conclusi non possono essere eliminati' };
     }
 
+    const orderOwnerId = order.userId || order.promoProspectId;
+    const orderAgentId = order.user?.agentId || order.promoProspect?.agentId;
+
     if (isAgent) {
-      const isAssignedCustomer = order.user?.agentId === session.userId;
+      const isAssignedCustomer = orderAgentId === session.userId;
       const isCreatedByAgent = order.createdById === session.userId;
       if (!isAssignedCustomer && !isCreatedByAgent) {
         return { success: false, error: 'Non autorizzato ad eliminare questo ordine' };
       }
     } else {
       const targetUserId = await getTargetUserId(session);
-      if (order.userId !== targetUserId) {
+      if (orderOwnerId !== targetUserId) {
         return { success: false, error: 'Ordine non trovato' };
       }
       if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
@@ -71,8 +74,8 @@ export async function deleteSentOrder(orderId: string) {
 
     try {
       await redis.del(`b2b_order_lock:${orderId}`);
-      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${orderId}:ELMARK`);
-      await redis.del(`b2b_cart_v2:${order.userId}:REVIEW:${orderId}:ZUCCHETTI`);
+      await redis.del(`b2b_cart_v2:${orderOwnerId}:REVIEW:${orderId}:ELMARK`);
+      await redis.del(`b2b_cart_v2:${orderOwnerId}:REVIEW:${orderId}:ZUCCHETTI`);
     } catch (e) {}
 
     if (isAgent) {
@@ -125,8 +128,9 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
       where: { id: orderId },
       include: { items: true } 
     });
+    const orderOwnerId = order?.userId || order?.promoProspectId;
     
-    if (!order || order.userId !== targetUserId) {
+    if (!order || orderOwnerId !== targetUserId) {
       return { success: false, error: 'Ordine non trovato' };
     }
     
@@ -236,7 +240,8 @@ export async function removeOrderItem(orderId: string, itemId: string) {
 
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
-    if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
+    const orderOwnerId = order?.userId || order?.promoProspectId;
+    if (!order || orderOwnerId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
 
     const removedItem = order.items.find(i => i.id === itemId);
@@ -283,7 +288,8 @@ export async function updateOrderItemQuantity(orderId: string, itemId: string, q
 
     const targetUserId = await getTargetUserId(session);
     const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
-    if (!order || order.userId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
+    const orderOwnerId = order?.userId || order?.promoProspectId;
+    if (!order || orderOwnerId !== targetUserId) return { success: false, error: 'Ordine non trovato' };
     if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) return { success: false, error: 'Ordine non modificabile' };
 
     const targetItem = order.items.find(i => i.id === itemId);
@@ -348,9 +354,19 @@ export async function sendSavedOrder(orderId: string) {
     // Sync stock before sending
     await syncSavedOrdersStockForUser(targetUserId);
 
-    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true } });
-    if (!order || order.userId !== targetUserId) {
+    const order = await prisma.b2BOrder.findUnique({ where: { id: orderId }, include: { items: true, promoProspect: true } });
+    const orderOwnerId = order?.userId || order?.promoProspectId;
+    if (!order || orderOwnerId !== targetUserId) {
       return { success: false, error: 'Ordine non trovato' };
+    }
+    if (order.promoProspect && !order.userId) {
+      const { isPromoProspectBillingComplete } = await import('./promoProspects');
+      if (!isPromoProspectBillingComplete(order.promoProspect)) {
+        return {
+          success: false,
+          error: 'Per inviare il tuo primo ordine completa prima i dati di fatturazione obbligatori dal Carrello.'
+        };
+      }
     }
 
     if (order.status !== 'DRAFT') {

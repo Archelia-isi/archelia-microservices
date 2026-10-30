@@ -69,8 +69,8 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Ordine #{order.id.slice(-6).toUpperCase()}</div>
-                  <div className="font-bold text-gray-900 text-lg">{order.user.companyName || `${order.user.firstName} ${order.user.lastName}`}</div>
-                  <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user.zucchettiCode || 'N/A'}</div>
+                  <div className="font-bold text-gray-900 text-lg">{order.user?.companyName || `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim() || 'Cliente'}</div>
+                  <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user?.zucchettiCode || 'N/A'}</div>
                 </div>
                 <div className="flex flex-col sm:items-end gap-2">
                   <div className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">

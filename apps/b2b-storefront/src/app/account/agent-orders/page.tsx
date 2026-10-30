@@ -16,17 +16,19 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
 
   const currentTab = searchParams.tab === 'elmark' ? 'ELMARK' : 'ZUCCHETTI';
 
-  // Trova gli ordini PENDING_AGENT_REVIEW dei clienti assegnati all'agente
+  // Trova gli ordini PENDING_AGENT_REVIEW dei clienti (attivi o in attivazione) assegnati all'agente
   const pendingOrders = await prisma.b2BOrder.findMany({
     where: {
       status: 'PENDING_AGENT_REVIEW',
       storeMode: currentTab,
-      user: {
-        agentId: session.userId,
-      },
+      OR: [
+        { user: { agentId: session.userId } },
+        { promoProspect: { agentId: session.userId } },
+      ],
     },
     include: {
       user: true,
+      promoProspect: true,
       items: true,
     },
     orderBy: {
@@ -66,13 +68,29 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
         </div>
       ) : (
         <div className="grid gap-4">
-          {pendingOrders.map(order => (
+          {pendingOrders.map(order => {
+            const owner = order.user || order.promoProspect;
+            const isPromoOrder = Boolean(order.promoProspect && !order.user);
+            return (
             <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Ordine #{order.id.slice(-6).toUpperCase()}</div>
-                  <div className="font-bold text-gray-900 text-lg">{order.user.companyName || `${order.user.firstName} ${order.user.lastName}`}</div>
-                  <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user.zucchettiCode || 'N/A'}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-gray-900 text-lg">
+                      {owner?.companyName || `${owner?.firstName || ''} ${owner?.lastName || ''}`.trim() || 'Cliente'}
+                    </span>
+                    {isPromoOrder && (
+                      <span className="px-2.5 py-0.5 text-[11px] font-black bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-full">
+                        🆕 1° ORDINE CLIENTE IN ATTIVAZIONE
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {order.user?.zucchettiCode
+                      ? `Cod. Zucchetti: ${order.user.zucchettiCode}`
+                      : `Username: ${order.promoProspect?.username || 'N/A'} · P.IVA: ${order.promoProspect?.vatNumber || 'N/A'}`}
+                  </div>
                 </div>
                 <div className="flex flex-col sm:items-end gap-2">
                   <div className={`${order.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 border-gray-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200'} text-xs font-bold px-3 py-1 rounded-full border`}>
@@ -126,7 +144,8 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

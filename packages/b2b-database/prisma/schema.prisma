@@ -20,7 +20,12 @@ model B2BUser {
   lastName           String?
   companyName        String?
   vatNumber          String?
+  fiscalCode         String?
+  formaGiuridica     String?
+  pecEmail           String?
+  codiceDestinatario String?
   zucchettiCode      String?      @unique
+  sdrProspectId      Int?         @unique
 
   role               B2BRole      @default(USER)
   agentId            String?
@@ -58,46 +63,161 @@ enum B2BRole {
   ADMIN
 }
 
-model B2BSession {
-  id        String   @id @default(cuid())
-  userId    String
-  user      B2BUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
-  expiresAt DateTime
+enum PromoProspectStatus {
+  CONTACTED
+  LOGGED_IN
+  ORDER_PENDING_APPROVAL
+  CONVERTED
+  EXPIRED
+}
 
-  createdAt DateTime @default(now())
+model B2BPromoProspect {
+  id                   String              @id @default(cuid())
+  sdrProspectId        Int                 @unique
+  
+  username             String              @unique
+  email                String              @unique
+  passwordHash         String
+  tempPassword         String?
+  mustChangePassword   Boolean             @default(true)
+  passwordChangedAt    DateTime?
+  
+  companyName          String
+  formaGiuridica       String?
+  vatNumber            String?
+  fiscalCode           String?
+  firstName            String?
+  lastName             String?
+  sesso                String?
+  pecEmail             String?
+  codiceDestinatario   String?
+  
+  categoryCluster      String
+  commercialCategory   String              @default("IST") // "IST" (40%) o "RIV" (50%)
+  discount             Float               @default(40)
+  
+  address              String?
+  streetNumber         String?
+  city                 String?
+  zip                  String?
+  province             String?
+  region               String?
+  phone                String?
+  whatsappPhone        String?
+  website              String?
+  shippingAddressJson  Json?
+  
+  agentId              String              @default("cmtu64h1c0000jk0sb1ho1o49") // Daniele Savoia
+  agentCode            String              @default("003")                      // Daniele Savoia
+  
+  firstPurchaseRuleId  String?
+  orderDetailsSnapshot Json?
+  attachedCatalogMeta  Json?
+  
+  status               PromoProspectStatus @default(CONTACTED)
+  emailSentAt          DateTime            @default(now())
+  firstLoginAt         DateTime?
+  lastLoginAt          DateTime?
+  loginCount           Int                 @default(0)
+  
+  convertedToUserId    String?             @unique
+  convertedAt          DateTime?
+  firstOrderId         String?
+  
+  isActive             Boolean             @default(true)
+  expiresAt            DateTime?
+
+  sessions             B2BSession[]
+  carts                B2BCart[]
+  orders               B2BOrder[]
+
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([agentId, status])
+  @@index([agentCode, status])
+  @@index([status, lastLoginAt])
+  @@index([commercialCategory])
+  @@map("b2b_promo_prospects")
+}
+
+model B2BDiscountRule {
+  id                  String    @id
+  agentId             String
+  agentCode           String    @default("")
+  name                String    @default("")
+  clientScope         String    @default("ALL_CLIENTS")
+  clientId            String?
+  clientCode          String?
+  clientName          String?
+  clientIds           Json      @default("[]")
+  clientCodes         Json      @default("[]")
+  clientsMeta         Json      @default("[]")
+  clientCategories    Json      @default("[]")
+  targetType          String    @default("PRODUCTS")
+  targetSkus          Json      @default("[]")
+  targetProductsMeta  Json      @default("[]")
+  targetBrands        Json      @default("[]")
+  targetProductGroups Json      @default("[]")
+  targetFamilies      Json      @default("[]")
+  targetCategories    Json      @default("[]")
+  calculationMode     String    @default("EXTRA_CASCADE")
+  discountValue       Float     @default(0)
+  isActive            Boolean   @default(true)
+  expiryType          String    @default("NONE")
+  expiresAt           DateTime?
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([agentId, isActive], map: "idx_b2b_agent_discount_rules_agent")
+  @@map("b2b_agent_discount_rules")
+}
+
+model B2BSession {
+  id              String            @id @default(cuid())
+  userId          String?
+  user            B2BUser?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promoProspectId String?
+  promoProspect   B2BPromoProspect? @relation(fields: [promoProspectId], references: [id], onDelete: Cascade)
+  token           String            @unique
+  expiresAt       DateTime
+
+  createdAt       DateTime          @default(now())
 
   @@map("b2b_sessions")
 }
 
 model B2BCart {
-  id        String        @id @default(cuid())
-  userId    String?
-  user      B2BUser?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status    CartStatus    @default(ACTIVE)
-  linkedOrderId String?
-  cartType  String        @default("ZUCCHETTI")
+  id              String            @id @default(cuid())
+  userId          String?
+  user            B2BUser?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  promoProspectId String?
+  promoProspect   B2BPromoProspect? @relation(fields: [promoProspectId], references: [id], onDelete: SetNull)
+  status          CartStatus        @default(ACTIVE)
+  linkedOrderId   String?
+  cartType        String            @default("ZUCCHETTI")
 
-  items     B2BCartItem[]
+  items           B2BCartItem[]
 
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@map("b2b_carts")
 }
 
 model B2BCartItem {
-  id              String   @id @default(cuid())
-  cartId          String
-  cart            B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(cuid())
+  cartId              String
+  cart                B2BCart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
   
-  sku             String
-  quantity        Int      @default(1)
-  extraDiscount   Float?   @default(0)
+  sku                 String
+  quantity            Int      @default(1)
+  extraDiscount       Float?   @default(0)
   extraDiscountMinQty Int?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@unique([cartId, sku])
   @@map("b2b_cart_items")
@@ -112,23 +232,25 @@ enum CartStatus {
 }
 
 model B2BOrder {
-  id                    String          @id @default(cuid())
-  userId                String          // Il cliente finale
-  user                  B2BUser         @relation(fields: [userId], references: [id])
-  createdById           String          // Può essere il cliente stesso o l'agente
-  status                OrderStatus     @default(DRAFT)
-  storeMode             String          @default("ZUCCHETTI")
+  id                String            @id @default(cuid())
+  userId            String?           // Il cliente finale (valorizzato per clienti attivi o dopo approvazione 1° ordine)
+  user              B2BUser?          @relation(fields: [userId], references: [id])
+  promoProspectId   String?           // Valorizzato per il 1° ordine di un prospect in attesa di approvazione
+  promoProspect     B2BPromoProspect? @relation(fields: [promoProspectId], references: [id])
+  createdById       String            // Può essere il cliente stesso, il prospect o l'agente
+  status            OrderStatus       @default(DRAFT)
+  storeMode         String            @default("ZUCCHETTI")
   
-  zucchettiOrderRef     String?         // Riferimento o numero ordine in Zucchetti
-  totalAmount           Float           @default(0)
-  totalIva              Float           @default(0)
+  zucchettiOrderRef String?           // Riferimento o numero ordine in Zucchetti
+  totalAmount       Float             @default(0)
+  totalIva          Float             @default(0)
   
-  notes                 String?
+  notes             String?
 
-  items                 B2BOrderItem[]
+  items             B2BOrderItem[]
 
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@map("b2b_orders")
 }
