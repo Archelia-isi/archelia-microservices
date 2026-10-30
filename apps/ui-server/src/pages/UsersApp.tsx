@@ -47,7 +47,11 @@ const APPS_LIST = [
   { id: 'analytics', name: 'Centro Analisi', processes: [{id: 'view', label: 'Visualizza'}, {id: 'export_pdf', label: 'Esporta PDF'}, {id: 'manage_tracking', label: 'Gestisci Tracking'}] },
   { id: 'logs', name: 'System Logs', processes: [{id: 'view', label: 'Visualizza'}, {id: 'download_logs', label: 'Scarica Log'}] },
   { id: 'os-settings', name: 'Impostazioni di Sistema', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_system_config', label: 'Modifica Sistema'}] },
-  { id: 'users_management', name: 'Gestione Utenti', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_user', label: 'Crea Utente'}, {id: 'edit_user', label: 'Modifica Utente'}, {id: 'delete_user', label: 'Elimina Utente'}] }
+  { id: 'users_management', name: 'Gestione Utenti', processes: [{id: 'view', label: 'Visualizza'}, {id: 'create_user', label: 'Crea Utente'}, {id: 'edit_user', label: 'Modifica Utente'}, {id: 'delete_user', label: 'Elimina Utente'}] },
+  { id: 'b2b_users', name: 'Clienti B2B', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit', label: 'Modifica'}] },
+  { id: 'ai_sdr_b2b', name: 'AI SDR & Lead B2B', processes: [{id: 'view', label: 'Visualizza'}, {id: 'manage_campaigns', label: 'Gestisci Campagne'}, {id: 'edit_config', label: 'Configura Offerta'}] },
+  { id: 'b2b_discounts', name: 'Sconti B2B', processes: [{id: 'view', label: 'Visualizza'}, {id: 'edit_rules', label: 'Gestisci Regole'}] },
+  { id: 'b2b_catalog_builder', name: 'Catalog Builder B2B', processes: [{id: 'view', label: 'Visualizza'}, {id: 'export_pdf', label: 'Esporta PDF'}] }
 ];
 
 export default function UsersApp() {

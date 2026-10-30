@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "generate": "npx dotenv -e ../../.env -- npx prisma generate",
+    "generate": "B2B_DATABASE_URL=${B2B_DATABASE_URL:-postgresql://neondb_owner:npg@localhost:5432/neondb} sh -c './node_modules/.bin/prisma generate || npx prisma generate'",
     "db:push": "npx dotenv -e ../../.env -- npx prisma db push"
   },
   "dependencies": {

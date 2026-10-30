@@ -29,3 +29,10 @@ export const shopifyPromoQueue = new Queue('shopify-promo', queueOptions);
 // Marketing Queues
 export const marketingQueue = new Queue('marketing-queue', queueOptions);
 export const marketingJobsQueue = new Queue('marketing-jobs', queueOptions);
+
+// AI SDR B2B Queues
+export const sdrScraperQueue = new Queue('sdr-scraper-queue', queueOptions);
+export const sdrSentinelQueue = new Queue('sdr-sentinel-queue', queueOptions);
+export const sdrCopywriterQueue = new Queue('sdr-copywriter-queue', queueOptions);
+export const sdrOutreachQueue = new Queue('sdr-outreach-queue', queueOptions);
+

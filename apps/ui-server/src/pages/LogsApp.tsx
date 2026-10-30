@@ -21,7 +21,9 @@ const APPS_LIST = [
   { id: 'worker-promo', label: 'Promo Brain' },
   { id: 'worker-analytics', label: 'Analytics' },
   { id: 'ui-server', label: 'UI Server' },
-  { id: 'worker-suppliers-pull', label: 'Fornitori Pull' }
+  { id: 'worker-suppliers-pull', label: 'Fornitori Pull' },
+  { id: 'worker-sdr-scraper', label: 'SDR Scraper & Sentinella' },
+  { id: 'worker-sdr-outreach', label: 'SDR Outreach & Mail' }
 ];
 
 export default function LogsApp() {

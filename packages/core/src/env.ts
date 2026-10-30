@@ -34,6 +34,8 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().default(''),
   DATABASE_WORKER_URL: z.string().default(''),
+  B2B_DATABASE_URL: z.string().default(''),
+  SDR_DATABASE_URL: z.string().default(''),
 
   REDIS_URL: z.string().default(''),
   REDIS_PUBLIC_URL: z.string().optional(),

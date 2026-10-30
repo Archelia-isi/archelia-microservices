@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/client-sdr"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SDR_DATABASE_URL")
+}
+
+model SdrProspect {
+  id                  Int               @id @default(autoincrement())
+  companyName         String            @map("company_name")
+  vatNumber           String?           @map("vat_number")
+  fiscalCode          String?           @map("fiscal_code")
+  atecoCode           String?           @map("ateco_code")
+  categoryCluster     String            @map("category_cluster")
+  commercialCategory  String            @default("IST") @map("commercial_category") // "IST" (40%) o "RIV" (50%)
+  baseDiscount        Float             @default(40) @map("base_discount")
+  
+  address             String?
+  city                String
+  province            String
+  region              String
+  cap                 String?
+  
+  phone               String?
+  whatsappPhone       String?           @map("whatsapp_phone")
+  website             String?
+  
+  ordinaryEmail       String?           @map("ordinary_email")
+  isPecVerified       Boolean           @default(false) @map("is_pec_verified")
+  pecRejectedLog      String?           @map("pec_rejected_log")
+  pecCamerale         String?           @map("pec_camerale")
+  
+  section             String            @default("Senza_Email") // Email_Pronta, Senza_Email, PEC_Scartata
+  leadScore           Int               @default(0) @map("lead_score")
+  confidenceScore     Float             @default(1.0) @map("confidence_score")
+  auditPassed         Boolean           @default(true) @map("audit_passed")
+  auditNotes          String?           @map("audit_notes")
+  sourceEngine        String?           @map("source_engine")
+  sourceUrl           String?           @map("source_url")
+  
+  aiProfileSummary    String?           @map("ai_profile_summary")
+  brandsDetected      String?           @map("brands_detected")
+  recommendedFamily   String?           @map("recommended_family")
+  
+  pipelineStatus      String            @default("Da_Contattare") @map("pipeline_status")
+  promoProspectId     String?           @unique @map("promo_prospect_id") // ID in b2b_promo_prospects quando contattato
+  promotedB2bUserId   String?           @unique @map("promoted_b2b_user_id") // ID in b2b_users dopo approvazione 1° ordine
+  promotedUsername    String?           @map("promoted_username")
+  promotedAt          DateTime?         @map("promoted_at")
+  assignedAgentId     String?           @default("cmtu64h1c0000jk0sb1ho1o49") @map("assigned_agent_id")
+  assignedAgentCode   String?           @default("003") @map("assigned_agent_code")
+  
+  sentinelAttempts    Int               @default(0) @map("sentinel_attempts")
+  lastSentinelCheckAt DateTime?         @map("last_sentinel_check_at")
+
+  drafts              SdrOutreachDraft[]
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@unique([companyName, city])
+  @@index([section])
+  @@index([categoryCluster])
+  @@index([commercialCategory])
+  @@index([region, province, city])
+  @@index([pipelineStatus])
+  @@index([section, lastSentinelCheckAt])
+  @@map("sdr_prospects")
+}
+
+model SdrOutreachDraft {
+  id                  Int         @id @default(autoincrement())
+  prospectId          Int         @map("prospect_id")
+  prospect            SdrProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  sequenceStep        Int         @default(1) @map("sequence_step")
+  subject             String
+  bodyText            String      @map("body_text")
+  bodyHtml            String?     @map("body_html")
+  attachedCatalogUrl  String?     @map("attached_catalog_url")
+  status              String      @default("Bozza_Pronta")
+  senderInboxId       Int?        @map("sender_inbox_id")
+  scheduledFor        DateTime?   @map("scheduled_for")
+  sentAt              DateTime?   @map("sent_at")
+  replyReceivedAt     DateTime?   @map("reply_received_at")
+  replySnippet        String?     @map("reply_snippet")
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  @@index([prospectId, sequenceStep])
+  @@index([status, scheduledFor])
+  @@map("sdr_outreach_drafts")
+}
+
+model SdrOutreachConfig {
+  id                        String   @id @default("default")
+  name                      String   @default("Configurazione Offerta B2B Izzo Distribuzione")
+  
+  // 1. Parametri Sconto 1° Acquisto Autogenerato (FIRST_PURCHASE)
+  enableFirstPurchaseRule   Boolean  @default(true) @map("enable_first_purchase_rule")
+  istExtraDiscountPct       Float    @default(10) @map("ist_extra_discount_pct")
+  rivExtraDiscountPct       Float    @default(10) @map("riv_extra_discount_pct")
+  discountCalculationMode   String   @default("EXTRA_CASCADE") @map("discount_calculation_mode")
+  discountTargetType        String   @default("ALL_CATALOG") @map("discount_target_type")
+  discountTargetFiltersJson Json     @default("{}") @map("discount_target_filters_json")
+  
+  // 2. Dettagli e Condizioni del 1° Ordine (Stampati in Mail + Pagina 2 Catalogo PDF)
+  offerTitle                String   @default("Offerta Riservata Nuovi Partner B2B — Extra Sconto sul 1° Acquisto") @map("offer_title")
+  minOrderAmountText        String   @default("Nessun minimo d'ordine sul tuo 1° acquisto") @map("min_order_amount_text")
+  freeShippingText          String   @default("Spedizione rapida 24/48h in tutta Italia da Deposito Principale") @map("free_shipping_text")
+  paymentTermsText          String   @default("Condizioni B2B riservate con referente dedicato Daniele Savoia") @map("payment_terms_text")
+  customCommercialNotes     String?  @map("custom_commercial_notes")
+  defaultAgentId            String   @default("cmtu64h1c0000jk0sb1ho1o49") @map("default_agent_id")
+  defaultAgentCode          String   @default("003") @map("default_agent_code")
+  defaultAgentName          String   @default("Daniele Savoia") @map("default_agent_name")
+  
+  // 3. Parametri Catalogo PDF Autogenerato e Allegato alla Mail
+  attachCatalogPdf          Boolean  @default(true) @map("attach_catalog_pdf")
+  catalogSelectionMode      String   @default("BY_CLUSTER") @map("catalog_selection_mode") // GLOBAL | BY_CLUSTER
+  globalCatalogFiltersJson  Json     @default("{}") @map("global_catalog_filters_json")
+  clusterCatalogPresetsJson Json     @default("{}") @map("cluster_catalog_presets_json")
+  catalogPriceMode          String   @default("LIST_AND_NET") @map("catalog_price_mode")
+  catalogStockMode          String   @default("BADGE_ONLY") @map("catalog_stock_mode")
+  catalogWarehouse          String   @default("ALL_WAREHOUSES") @map("catalog_warehouse")
+  catalogIncludeZeroStock   Boolean  @default(false) @map("catalog_include_zero_stock")
+  catalogSortBy             String   @default("STOCK_DESC") @map("catalog_sort_by")
+  catalogMaxProducts        Int      @default(60) @map("catalog_max_products")
+  
+  // 4. Parametri Time-Fencing & Jitter SMTP
+  timeFencingEnabled        Boolean  @default(true) @map("time_fencing_enabled")
+  morningWindow             String   @default("08:30-12:30") @map("morning_window")
+  afternoonWindow           String   @default("14:00-17:30") @map("afternoon_window")
+  jitterMinSeconds          Int      @default(180) @map("jitter_min_seconds")
+  jitterMaxSeconds          Int      @default(420) @map("jitter_max_seconds")
+  sentinelEnabled           Boolean  @default(true) @map("sentinel_enabled")
+
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  @@map("sdr_outreach_configs")
+}
+
+model SdrInboxAccount {
+  id                  Int      @id @default(autoincrement())
+  email               String   @unique
+  displayName         String   @map("display_name")
+  smtpHost            String   @map("smtp_host")
+  smtpPort            Int      @default(465) @map("smtp_port")
+  smtpUser            String   @map("smtp_user")
+  smtpPasswordEnc     String   @map("smtp_password_enc")
+  imapHost            String   @map("imap_host")
+  imapPort            Int      @default(993) @map("imap_port")
+  dailyLimit          Int      @default(45) @map("daily_limit")
+  sentToday           Int      @default(0) @map("sent_today")
+  isActive            Boolean  @default(true) @map("is_active")
+  lastSentAt          DateTime? @map("last_sent_at")
+  lastImapSyncAt      DateTime? @map("last_imap_sync_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("sdr_inbox_accounts")
+}
+
+model SdrSentinelRun {
+  id                  Int      @id @default(autoincrement())
+  cycleNumber         Int      @map("cycle_number")
+  processedCount      Int      @default(0) @map("processed_count")
+  upgradedEmailCount  Int      @default(0) @map("upgraded_email_count")
+  pecFilteredCount    Int      @default(0) @map("pec_filtered_count")
+  websitesFoundCount  Int      @default(0) @map("websites_found_count")
+  durationMs          Int      @default(0) @map("duration_ms")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("sdr_sentinel_runs")
+}
+
+model SdrBlacklist {
+  id                  Int      @id @default(autoincrement())
+  emailOrDomain       String   @unique @map("email_or_domain")
+  reason              String
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("sdr_blacklist")
+}

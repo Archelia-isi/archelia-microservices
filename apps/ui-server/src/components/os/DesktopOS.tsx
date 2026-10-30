@@ -37,6 +37,9 @@ import NotesApp from '../../pages/NotesApp';
 import OSSettingsApp from '../../pages/OSSettingsApp';
 import UsersApp from '../../pages/UsersApp';
 import B2BUsersApp from '../../pages/B2BUsersApp';
+import AiSdrB2BApp from '../../pages/AiSdrB2BApp';
+import B2BDiscountsApp from '../../pages/B2BDiscountsApp';
+import B2BCatalogBuilderApp from '../../pages/B2BCatalogBuilderApp';
 import * as FcIcons from 'react-icons/fc';
 
 
@@ -441,6 +444,9 @@ export default function DesktopOS() {
     if (!windows['notes_app']) registerApp({ id: 'notes_app', title: 'Note', icon: <DynamicFcIcon name="FcDocument" />, color: 'transparent', component: <NotesApp />, x: 200, y: 150, width: 1000, height: 700 });
     if (!windows['users_management']) registerApp({ id: 'users_management', title: 'Utenti OS', icon: <DynamicFcIcon name="FcBusinessman" />, color: 'transparent', component: <UsersApp />, x: 250, y: 150, width: 1000, height: 700 });
     if (!windows['b2b_users']) registerApp({ id: 'b2b_users', title: 'Clienti B2B', icon: <DynamicFcIcon name="FcConferenceCall" />, color: 'transparent', component: <B2BUsersApp />, x: 300, y: 180, width: 1000, height: 700 });
+    if (!windows['ai_sdr_b2b']) registerApp({ id: 'ai_sdr_b2b', title: 'AI SDR & Lead B2B', icon: <DynamicFcIcon name="FcRadarPlot" />, color: 'transparent', component: <AiSdrB2BApp />, x: 100, y: 80, width: 1250, height: 820 });
+    if (!windows['b2b_discounts']) registerApp({ id: 'b2b_discounts', title: 'Sconti B2B', icon: <DynamicFcIcon name="FcSalesPerformance" />, color: 'transparent', component: <B2BDiscountsApp />, x: 140, y: 110, width: 1150, height: 760 });
+    if (!windows['b2b_catalog_builder']) registerApp({ id: 'b2b_catalog_builder', title: 'Catalog Builder B2B', icon: <DynamicFcIcon name="FcPrint" />, color: 'transparent', component: <B2BCatalogBuilderApp />, x: 180, y: 130, width: 1200, height: 800 });
   }, []);
 
   if (!isLoggedIn) {
@@ -500,7 +506,7 @@ export default function DesktopOS() {
         {/* Shortcuts Desktop */}
         <div className="desktop-shortcuts" style={{ zIndex: 10, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
           {(() => {
-            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
+            const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users', 'ai_sdr_b2b', 'b2b_discounts', 'b2b_catalog_builder'];
             
             // 1. Filtra le app effettivamente visibili
             let visibleApps = Object.values(windows).filter(app => {
