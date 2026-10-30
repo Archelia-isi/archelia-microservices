@@ -85,6 +85,27 @@ export default function DesktopOS() {
   const [prevStore, setPrevStore] = useState(currentStore);
 
   useEffect(() => {
+    const checkBundleVersion = async () => {
+      try {
+        const res = await fetch(`/?_v=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const html = await res.text();
+        const match = html.match(/assets\/index-[^"']+\.js/);
+        if (match) {
+          const loadedScripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.getAttribute('src') || '');
+          const hasCurrent = loadedScripts.some(src => src.includes(match[0]));
+          if (loadedScripts.some(src => src.includes('assets/index-')) && !hasCurrent) {
+            window.location.reload();
+          }
+        }
+      } catch {
+        // ignore network check errors
+      }
+    };
+    checkBundleVersion();
+  }, [isLoggedIn, currentStore]);
+
+  useEffect(() => {
     if (currentStore !== prevStore) {
       useWindowStore.getState().closeAllWindows();
       setShowSwitchIntro(true);
@@ -654,7 +675,7 @@ export default function DesktopOS() {
         )}
 
         {Object.values(windows).map(win => {
-          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users'];
+          const b2bAllowedApps = ['orders', 'products', 'settings', 'equalizzatore', 'infinity', 'images', 'typesense', 'analytics', 'logs', 'calendar_app', 'notes_app', 'os-settings', 'users_management', 'b2b_users', 'ai_sdr_b2b', 'b2b_discounts', 'b2b_catalog_builder'];
           if (currentStore === 'B2B' && !b2bAllowedApps.includes(win.id)) return null;
           if (!canViewApp(win.id, currentStore)) return null;
           return <WindowComponent key={win.id} id={win.id} />;

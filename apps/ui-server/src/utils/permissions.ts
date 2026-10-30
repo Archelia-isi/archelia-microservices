@@ -26,30 +26,24 @@ export const canViewApp = (appId: string, store: string = 'RETAIL'): boolean => 
   const user = getUser();
   if (!user) return false;
 
-  // Root/Master vede tutto
-  if (user.role === 'MASTER' || user.isRoot) {
+  // Root/Master/Admin vede tutto di default
+  if (user.role === 'MASTER' || user.role === 'ADMIN' || user.isRoot) {
+    const explicitPerm = user.permissions?.apps?.[appId];
+    if (explicitPerm && explicitPerm.view === false) return false;
     return true;
   }
 
-  // Verifica permessi store se non è Master
+  // Verifica permessi store se non è Master/Admin
   if (user.permissions?.allowedStores && !user.permissions.allowedStores.includes(store)) {
     return false;
   }
 
-  // Se i permessi app non sono specificati e l'utente è un ADMIN, può vedere tutto
-  if (user.role === 'ADMIN' && (!user.permissions?.apps || Object.keys(user.permissions.apps).length === 0)) {
-    return true;
-  }
-
-  // Permessi limitati (Operatori, Visitatori, o Admin limitati)
+  // Permessi limitati (Operatori, Visitatori)
   const appPerms = user.permissions?.apps?.[appId];
-  
-  // Eccezione: os-settings potrebbe essere sempre visibile per fargli cambiare store? 
-  // O magari nascondiamo os-settings agli operatori che non ne hanno accesso.
-  if (appId === 'os-settings' && user.role !== 'VIEWER') {
-     // magari diamo accesso base alle impostazioni OS per tutti tranne i viewer?
-     // o seguiamo rigorosamente il json?
-     // Seguiamo rigorosamente il json.
+
+  // Nuove app B2B: se l'utente ha già accesso a b2b_users e il permesso non è ancora stato salvato nel JSON, eredita la visibilità
+  if (appPerms === undefined && ['ai_sdr_b2b', 'b2b_discounts', 'b2b_catalog_builder'].includes(appId)) {
+    return !!user.permissions?.apps?.['b2b_users']?.view;
   }
 
   return !!appPerms?.view;
@@ -59,14 +53,15 @@ export const canWriteApp = (appId: string): boolean => {
   const user = getUser();
   if (!user) return false;
 
-  if (user.role === 'MASTER' || user.isRoot) {
-    return true;
-  }
-
-  if (user.role === 'ADMIN' && (!user.permissions?.apps || Object.keys(user.permissions.apps).length === 0)) {
+  if (user.role === 'MASTER' || user.role === 'ADMIN' || user.isRoot) {
+    const explicitPerm = user.permissions?.apps?.[appId];
+    if (explicitPerm && explicitPerm.write === false) return false;
     return true;
   }
 
   const appPerms = user.permissions?.apps?.[appId];
+  if (appPerms === undefined && ['ai_sdr_b2b', 'b2b_discounts', 'b2b_catalog_builder'].includes(appId)) {
+    return user.role !== 'VIEWER' && !!user.permissions?.apps?.['b2b_users']?.write;
+  }
   return !!appPerms?.write;
 };
