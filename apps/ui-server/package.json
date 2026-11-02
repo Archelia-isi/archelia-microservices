@@ -54,6 +54,8 @@
     "camera-controls": "^2.9.0",
     "hls.js": "^1.5.0",
     "maath": "^0.10.8",
+    "page-flip": "^2.0.7",
+    "react-pageflip": "^2.0.3",
     "troika-three-text": "^0.50.0",
     "react-use-measure": "^2.1.1",
     "recharts": "^3.10.0",

@@ -229,6 +229,7 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
       },
     });
 
+    const promoClientCode = `PROSPECT_${promo.id}`;
     await b2bPrisma.$executeRawUnsafe(
       `INSERT INTO b2b_agent_discount_rules (
         "id", "agentId", "agentCode", "name", "clientScope", "clientId", "clientCode", "clientName",
@@ -239,12 +240,12 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
         $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
         $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
         'ALL_CATALOG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
-        'EXTRA_COMPOUND', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
+        'EXTRA_CASCADE', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
         "discountValue" = EXCLUDED."discountValue",
-        "calculationMode" = 'EXTRA_COMPOUND',
+        "calculationMode" = 'EXTRA_CASCADE',
         "expiryType" = 'FIRST_PURCHASE',
         "isActive" = TRUE,
         "updatedAt" = NOW()`,
@@ -253,17 +254,16 @@ export async function prepareOutreachPackageForProspect(prospectId: number) {
       promo.agentCode,
       ruleName,
       promo.id,
-      promo.username.toUpperCase(),
+      promoClientCode,
       promo.companyName,
       JSON.stringify([promo.id]),
-      JSON.stringify([promo.username.toUpperCase()]),
+      JSON.stringify([promoClientCode]),
       JSON.stringify([
         {
           id: promo.id,
-          code: promo.username.toUpperCase(),
-          companyName: promo.companyName,
+          code: promoClientCode,
+          name: promo.companyName,
           category: commercialCategory,
-          baseDiscount,
         },
       ]),
       JSON.stringify([commercialCategory]),

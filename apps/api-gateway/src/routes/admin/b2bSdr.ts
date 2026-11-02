@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
 import { sdrPrisma } from '@archelia/sdr-database';
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense';
 import {
   env,
   log,
@@ -11,6 +10,19 @@ import {
 } from '@archelia/core';
 import * as bcrypt from 'bcryptjs';
 import { authenticate } from '../auth.js';
+import {
+  getAgentDiscountManagementInitData,
+  saveAgentDiscountRuleAction,
+  toggleAgentDiscountRuleAction,
+  deleteAgentDiscountRuleAction,
+  removeDiscountFromClientAction,
+} from '../../lib/b2bAgentSuite/discountRulesService.js';
+import {
+  getAgentCatalogInitData,
+  searchAgentCatalogProducts,
+  searchCatalogPredictiveAction,
+  generateAgentCatalogPdfAction,
+} from '../../lib/b2bAgentSuite/catalogBuilder.js';
 
 const DANIELE_SAVOIA_AGENT_ID = 'cmtu64h1c0000jk0sb1ho1o49';
 const DANIELE_SAVOIA_AGENT_CODE = '003';
@@ -636,12 +648,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
                 $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
                 $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
                 'ALL_CATALOG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
-                'EXTRA_COMPOUND', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
+                'EXTRA_CASCADE', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
               )
               ON CONFLICT ("id") DO UPDATE SET
                 "name" = EXCLUDED."name",
                 "discountValue" = EXCLUDED."discountValue",
-                "calculationMode" = 'EXTRA_COMPOUND',
+                "calculationMode" = 'EXTRA_CASCADE',
                 "expiryType" = 'FIRST_PURCHASE',
                 "isActive" = TRUE,
                 "updatedAt" = NOW()`,
@@ -651,16 +663,17 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               ruleName,
               promoProspect.id,
               promoProspect.username.toUpperCase(),
-              prospect.companyName,
+              `[IN ATTIVAZIONE] ${prospect.companyName}`,
               JSON.stringify([promoProspect.id]),
               JSON.stringify([promoProspect.username.toUpperCase()]),
               JSON.stringify([
                 {
                   id: promoProspect.id,
                   code: promoProspect.username.toUpperCase(),
-                  companyName: prospect.companyName,
-                  category: isRIV ? 'RIV' : 'IST',
+                  name: `[IN ATTIVAZIONE] ${prospect.companyName}`,
                   baseDiscount: baseDiscountNum,
+                  categoryCode: isRIV ? 'RIV' : 'IST',
+                  categoryLabel: isRIV ? 'Rivenditore' : 'Installatore',
                 },
               ]),
               JSON.stringify([isRIV ? 'RIV' : 'IST']),
@@ -930,373 +943,104 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   });
 
   // ============================================================================
-  // 8. B2B DISCOUNTS ENGINE (REPLICA BACKEND IN ARCHELIA OS)
+  // 8. B2B DISCOUNTS ENGINE (1:1 BACKEND DELL'AGENTE B2B)
   // ============================================================================
   fastify.get('/api/admin/b2b-discounts/init', async (_request, reply) => {
     try {
-      const [rules, clients, promoProspects, agents] = await Promise.all([
-        b2bPrisma.b2BDiscountRule.findMany({
-          orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
-        }),
-        b2bPrisma.b2BUser.findMany({
-          where: { role: 'USER' },
-          select: {
-            id: true,
-            companyName: true,
-            username: true,
-            email: true,
-            customerType: true,
-            discount: true,
-            zucchettiCode: true,
-          },
-          orderBy: { companyName: 'asc' },
-          take: 500,
-        }),
-        b2bPrisma.b2BPromoProspect.findMany({
-          where: { status: { not: 'CONVERTED' } },
-          select: {
-            id: true,
-            companyName: true,
-            username: true,
-            email: true,
-            commercialCategory: true,
-            discount: true,
-            status: true,
-            loginCount: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          take: 300,
-        }),
-        b2bPrisma.b2BUser.findMany({
-          where: { role: { in: ['AGENT', 'ADMIN'] } },
-          select: {
-            id: true,
-            companyName: true,
-            username: true,
-            zucchettiCode: true,
-            role: true,
-          },
-        }),
-      ]);
+      const data = await getAgentDiscountManagementInitData();
+      return reply.send(data);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
 
-      // Fetch Typesense facets for brand, product_group, family, category
-      let facets = {
-        brands: [] as { value: string; count: number }[],
-        productGroups: [] as { value: string; count: number }[],
-        families: [] as { value: string; count: number }[],
-        categories: [] as { value: string; count: number }[],
+  fastify.post('/api/admin/b2b-discounts/save', async (request, reply) => {
+    try {
+      const res = await saveAgentDiscountRuleAction(request.body as any);
+      return reply.send(res);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/b2b-discounts/toggle', async (request, reply) => {
+    try {
+      const { ruleId, isActive } = request.body as { ruleId: string; isActive: boolean };
+      const res = await toggleAgentDiscountRuleAction(ruleId, isActive);
+      return reply.send(res);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/b2b-discounts/delete', async (request, reply) => {
+    try {
+      const { ruleId } = request.body as { ruleId: string };
+      const res = await deleteAgentDiscountRuleAction(ruleId);
+      return reply.send(res);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/b2b-discounts/remove-from-client', async (request, reply) => {
+    try {
+      const { ruleId, clientId, clientCode } = request.body as {
+        ruleId: string;
+        clientId?: string | null;
+        clientCode?: string | null;
       };
-
-      try {
-        const tsRes = await typesenseClient
-          .collections(PRODUCTS_COLLECTION_NAME)
-          .documents()
-          .search({
-            q: '*',
-            query_by: 'title,sku',
-            filter_by: 'catalog_source:=zucchetti',
-            facet_by: 'brand,product_group,family,category',
-            max_facet_values: 250,
-            per_page: 0,
-          });
-
-        const getFacetList = (fieldName: string) => {
-          const f = (tsRes.facet_counts || []).find((fc: any) => fc.field_name === fieldName);
-          return (f?.counts || []).map((c: any) => ({
-            value: String(c.value),
-            count: Number(c.count),
-          }));
-        };
-
-        facets = {
-          brands: getFacetList('brand'),
-          productGroups: getFacetList('product_group'),
-          families: getFacetList('family'),
-          categories: getFacetList('category'),
-        };
-      } catch (e: any) {
-        log.warn(`Impossibile caricare facet Typesense per b2b-discounts: ${e.message}`);
-      }
-
-      return reply.send({
-        success: true,
-        rules,
-        clients,
-        promoProspects,
-        agents,
-        facets,
-        commercialCategories: [
-          { code: 'IST', label: 'Installatori & Professionisti (Base 40%)', baseDiscount: 40 },
-          { code: 'RIV', label: 'Rivenditori & Ferramenta (Base 50%)', baseDiscount: 50 },
-        ],
-      });
+      const res = await removeDiscountFromClientAction(ruleId, String(clientId || ''), clientCode || undefined);
+      return reply.send(res);
     } catch (error: any) {
-      return reply.status(500).send({ success: false, error: error.message });
-    }
-  });
-
-  fastify.post('/api/admin/b2b-discounts/rules', async (request, reply) => {
-    try {
-      const body = request.body as Record<string, any>;
-      const ruleId = body.id ? String(body.id) : `rule_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-      const data = {
-        name: String(body.name || 'Regola Sconto B2B').trim(),
-        agentId: String(body.agentId || DANIELE_SAVOIA_AGENT_ID),
-        agentCode: String(body.agentCode || DANIELE_SAVOIA_AGENT_CODE),
-        clientScope: String(body.clientScope || body.clientScopeType || 'ALL_CLIENTS'),
-        clientId: body.clientId || body.targetClientId ? String(body.clientId || body.targetClientId) : null,
-        clientName: body.clientName ? String(body.clientName) : null,
-        clientIds: Array.isArray(body.clientIds)
-          ? body.clientIds
-          : body.clientId || body.targetClientId
-          ? [String(body.clientId || body.targetClientId)]
-          : [],
-        clientCategories: Array.isArray(body.clientCategories)
-          ? body.clientCategories
-          : body.targetCategory
-          ? [String(body.targetCategory)]
-          : [],
-        targetType: String(body.targetType || 'ALL_CATALOG'),
-        targetSkus: Array.isArray(body.targetSkus) ? body.targetSkus : [],
-        targetBrands: Array.isArray(body.targetBrands) ? body.targetBrands : [],
-        targetProductGroups: Array.isArray(body.targetProductGroups)
-          ? body.targetProductGroups
-          : [],
-        targetFamilies: Array.isArray(body.targetFamilies) ? body.targetFamilies : [],
-        targetCategories: Array.isArray(body.targetCategories) ? body.targetCategories : [],
-        calculationMode: String(body.calculationMode || 'EXTRA_CASCADE'),
-        discountValue: Number(body.discountValue ?? body.discountPercent ?? 5),
-        expiryType: String(body.expiryType || body.expiryMode || 'NONE'),
-        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
-        isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
-      };
-
-      const rule = await b2bPrisma.b2BDiscountRule.upsert({
-        where: { id: ruleId },
-        create: { id: ruleId, ...data },
-        update: data,
-      });
-
-      try {
-        const calcMode =
-          data.calculationMode === 'EXTRA_CASCADE' ? 'EXTRA_COMPOUND' : data.calculationMode;
-        await b2bPrisma.$executeRawUnsafe(
-          `INSERT INTO b2b_agent_discount_rules (
-            "id", "agentId", "agentCode", "name", "clientScope", "clientId", "clientName",
-            "clientIds", "clientCodes", "clientsMeta", "clientCategories",
-            "targetType", "targetSkus", "targetProductsMeta", "targetBrands", "targetProductGroups", "targetFamilies", "targetCategories",
-            "calculationMode", "discountValue", "isActive", "expiryType", "expiresAt", "createdAt", "updatedAt"
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7,
-            $8::jsonb, '[]'::jsonb, '[]'::jsonb, $9::jsonb,
-            $10, $11::jsonb, '[]'::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb,
-            $16, $17, $18, $19, $20, NOW(), NOW()
-          )
-          ON CONFLICT ("id") DO UPDATE SET
-            "name" = EXCLUDED."name",
-            "clientScope" = EXCLUDED."clientScope",
-            "clientId" = EXCLUDED."clientId",
-            "clientName" = EXCLUDED."clientName",
-            "clientIds" = EXCLUDED."clientIds",
-            "clientCategories" = EXCLUDED."clientCategories",
-            "targetType" = EXCLUDED."targetType",
-            "calculationMode" = EXCLUDED."calculationMode",
-            "discountValue" = EXCLUDED."discountValue",
-            "isActive" = EXCLUDED."isActive",
-            "expiryType" = EXCLUDED."expiryType",
-            "expiresAt" = EXCLUDED."expiresAt",
-            "updatedAt" = NOW()`,
-          ruleId,
-          data.agentId,
-          data.agentCode,
-          data.name,
-          data.clientScope,
-          data.clientId,
-          data.clientName,
-          JSON.stringify(data.clientIds),
-          JSON.stringify(data.clientCategories),
-          data.targetType,
-          JSON.stringify(data.targetSkus),
-          JSON.stringify(data.targetBrands),
-          JSON.stringify(data.targetProductGroups),
-          JSON.stringify(data.targetFamilies),
-          JSON.stringify(data.targetCategories),
-          calcMode,
-          data.discountValue,
-          data.isActive,
-          data.expiryType,
-          data.expiresAt
-        );
-      } catch (syncErr: any) {
-        log.warn(`Sync b2b_agent_discount_rules su POST rule: ${syncErr.message}`);
-      }
-
-      return reply.send({ success: true, rule });
-    } catch (error: any) {
-      return reply.status(500).send({ success: false, error: error.message });
-    }
-  });
-
-  fastify.patch('/api/admin/b2b-discounts/rules/:id/toggle', async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      const existing = await b2bPrisma.b2BDiscountRule.findUnique({ where: { id } });
-      if (!existing) {
-        return reply.status(404).send({ success: false, error: 'Regola non trovata' });
-      }
-      const nextActive = !existing.isActive;
-      const updated = await b2bPrisma.b2BDiscountRule.update({
-        where: { id },
-        data: { isActive: nextActive },
-      });
-      try {
-        await b2bPrisma.$executeRawUnsafe(
-          `UPDATE b2b_agent_discount_rules
-           SET "isActive" = $2,
-               "updatedAt" = NOW()
-           WHERE "id" = $1`,
-          id,
-          nextActive
-        );
-      } catch (_e) {
-        // ignore if not present in storefront table
-      }
-      return reply.send({ success: true, rule: updated });
-    } catch (error: any) {
-      return reply.status(500).send({ success: false, error: error.message });
-    }
-  });
-
-  fastify.delete('/api/admin/b2b-discounts/rules/:id', async (request, reply) => {
-    try {
-      const { id } = request.params as { id: string };
-      await b2bPrisma.b2BDiscountRule.delete({ where: { id } });
-      try {
-        await b2bPrisma.$executeRawUnsafe(
-          `DELETE FROM b2b_agent_discount_rules WHERE "id" = $1`,
-          id
-        );
-      } catch (_e) {
-        // ignore
-      }
-      return reply.send({ success: true });
-    } catch (error: any) {
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({ ok: false, error: error.message });
     }
   });
 
   // ============================================================================
-  // 9. B2B CATALOG PDF BUILDER (REPLICA BACKEND IN ARCHELIA OS)
+  // 9. B2B CATALOG PDF BUILDER (1:1 BACKEND DELL'AGENTE B2B)
   // ============================================================================
+  fastify.get('/api/admin/b2b-catalog/init', async (_request, reply) => {
+    try {
+      const data = await getAgentCatalogInitData();
+      return reply.send(data);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
+
   fastify.post('/api/admin/b2b-catalog/search', async (request, reply) => {
     try {
-      const body = (request.body || {}) as {
-        query?: string;
-        warehouseFilter?: 'ALL_WAREHOUSES' | 'MAIN_2GG' | 'EXTERNAL_7GG';
-        brands?: string[];
-        productGroups?: string[];
-        families?: string[];
-        categories?: string[];
-        limit?: number;
-        commercialCategory?: 'IST' | 'RIV';
-        extraDiscountPct?: number;
-        calculationMode?: 'EXTRA_CASCADE' | 'EXTRA_ADDITIVE' | 'FIXED_TOTAL';
-      };
-
-      const warehouseFilter = body.warehouseFilter || 'MAIN_2GG';
-      const filterParts: string[] = ['catalog_source:=zucchetti', 'price:>0'];
-      if (warehouseFilter === 'MAIN_2GG') {
-        filterParts.push('stock_main:>0');
-      } else if (warehouseFilter === 'EXTERNAL_7GG') {
-        filterParts.push('stock_ek:>0');
-      } else {
-        filterParts.push('stock:>0');
-      }
-
-      if (Array.isArray(body.brands) && body.brands.length > 0) {
-        filterParts.push(`brand:=[${body.brands.map((b) => `\`${b}\``).join(',')}]`);
-      }
-      if (Array.isArray(body.productGroups) && body.productGroups.length > 0) {
-        filterParts.push(
-          `product_group:=[${body.productGroups.map((g) => `\`${g}\``).join(',')}]`
-        );
-      }
-      if (Array.isArray(body.families) && body.families.length > 0) {
-        filterParts.push(`family:=[${body.families.map((f) => `\`${f}\``).join(',')}]`);
-      }
-      if (Array.isArray(body.categories) && body.categories.length > 0) {
-        filterParts.push(`category:=[${body.categories.map((c) => `\`${c}\``).join(',')}]`);
-      }
-
-      const perPage = Math.min(250, Math.max(10, Number(body.limit || 250)));
-      const searchRes = await typesenseClient
-        .collections(PRODUCTS_COLLECTION_NAME)
-        .documents()
-        .search({
-          q: body.query && body.query.trim() ? body.query.trim() : '*',
-          query_by: 'title,sku,brand,product_group,family,category',
-          filter_by: filterParts.join(' && '),
-          sort_by: 'stock_main:desc,stock:desc',
-          per_page: perPage,
-        });
-
-      const baseDiscount = body.commercialCategory === 'RIV' ? 50 : 40;
-      const extraPct = Number(body.extraDiscountPct || 0);
-      const mode = body.calculationMode || 'EXTRA_CASCADE';
-      const discountFormula =
-        extraPct > 0 ? `${baseDiscount}% + ${extraPct}%` : `${baseDiscount}%`;
-
-      let effectiveDiscountPct = baseDiscount;
-      if (extraPct > 0) {
-        if (mode === 'FIXED_TOTAL') {
-          effectiveDiscountPct = extraPct;
-        } else if (mode === 'EXTRA_ADDITIVE') {
-          effectiveDiscountPct = Math.min(90, baseDiscount + extraPct);
-        } else {
-          effectiveDiscountPct = Number(
-            (100 - (100 - baseDiscount) * (1 - extraPct / 100)).toFixed(2)
-          );
-        }
-      }
-
-      const products = (searchRes.hits || []).map((h: any) => {
-        const doc = h.document;
-        const listPrice = Number(doc.price_b2b || doc.price || 0);
-        const netPrice = Number((listPrice * (1 - effectiveDiscountPct / 100)).toFixed(2));
-        return {
-          id: doc.id,
-          sku: doc.sku,
-          title: doc.title || doc.original_name,
-          brand: doc.brand || 'Izzo',
-          productGroup: doc.product_group || '',
-          family: doc.family || '',
-          category: doc.category || '',
-          imageUrl: doc.image_url || '',
-          stockMain: Number(doc.stock_main || 0),
-          stockEk: Number(doc.stock_ek || 0),
-          stockTotal: Number(doc.stock || 0),
-          listPrice,
-          baseDiscount,
-          extraDiscountPct: extraPct,
-          discountFormula,
-          effectiveDiscountPct,
-          netPrice,
-        };
-      });
-
-      return reply.send({
-        success: true,
-        found: searchRes.found || products.length,
-        discountFormula,
-        effectiveDiscountPct,
-        products,
-      });
+      const res = await searchAgentCatalogProducts(request.body as any);
+      return reply.send(res);
     } catch (error: any) {
-      log.error(`Errore POST /api/admin/b2b-catalog/search: ${error.message}`, {
+      return reply.status(500).send({ ok: false, error: error.message, items: [], totalFound: 0 });
+    }
+  });
+
+  fastify.post('/api/admin/b2b-catalog/predictive', async (request, reply) => {
+    try {
+      const { query, warehouse, includeZeroStock } = (request.body || {}) as {
+        query: string;
+        warehouse?: any;
+        includeZeroStock?: boolean;
+      };
+      const res = await searchCatalogPredictiveAction(query, warehouse, includeZeroStock);
+      return reply.send(res);
+    } catch (error: any) {
+      return reply.status(500).send({ ok: false, error: error.message, items: [] });
+    }
+  });
+
+  fastify.post('/api/admin/b2b-catalog/generate-pdf', async (request, reply) => {
+    try {
+      const res = await generateAgentCatalogPdfAction(request.body as any);
+      return reply.send(res);
+    } catch (error: any) {
+      log.error(`Errore POST /api/admin/b2b-catalog/generate-pdf: ${error.message}`, {
         module: 'api-gateway:b2bSdr',
       });
-      return reply.status(500).send({ success: false, error: error.message });
+      return reply.status(500).send({ ok: false, error: error.message });
     }
   });
 }

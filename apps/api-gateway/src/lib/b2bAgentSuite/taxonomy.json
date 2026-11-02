@@ -1,0 +1,4239 @@
+[
+  {
+    "id": "CA",
+    "name": "CASA",
+    "iconName": "box",
+    "children": [
+      {
+        "id": "ARM",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "ARR",
+        "name": "ARREDO E COMPLEMENTI",
+        "children": [
+          {
+            "id": "ARRED",
+            "name": "ARREDO ESTERNO"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          }
+        ]
+      },
+      {
+        "id": "BAG",
+        "name": "BAGNO",
+        "children": [
+          {
+            "id": "AER",
+            "name": "AREATORI E ROMIGETTO"
+          },
+          {
+            "id": "CON",
+            "name": "CONTENITORI"
+          },
+          {
+            "id": "FEA",
+            "name": "FLESSIBILI ED ACCESSORI BAGNO"
+          },
+          {
+            "id": "SOF",
+            "name": "SOFFIONI DOCCIA"
+          }
+        ]
+      },
+      {
+        "id": "DPI",
+        "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+        "children": [
+          {
+            "id": "DPI",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE"
+          }
+        ]
+      },
+      {
+        "id": "EDIL",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "PPR",
+            "name": "PROTEZIONI PARETI"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          }
+        ]
+      },
+      {
+        "id": "EFI",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          }
+        ]
+      },
+      {
+        "id": "FPM",
+        "name": "FERRAMENTA PER MOBILI",
+        "children": [
+          {
+            "id": "ACID",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO"
+          },
+          {
+            "id": "FEL",
+            "name": "FELTRINI"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          }
+        ]
+      },
+      {
+        "id": "LDE",
+        "name": "LUCI DECORATIVE E NATALIZIE",
+        "children": [
+          {
+            "id": "ARRED",
+            "name": "ARREDO ESTERNO"
+          }
+        ]
+      },
+      {
+        "id": "TDC",
+        "name": "TELI DI COPERTURA",
+        "children": [
+          {
+            "id": "TAM",
+            "name": "TELI COPERTURA AUTO/MOTO"
+          },
+          {
+            "id": "TDCO",
+            "name": "TELI DI COPERTURA OMBRELLONI"
+          },
+          {
+            "id": "TDCT",
+            "name": "TELI DI COPERTURA TAVOLI"
+          }
+        ]
+      },
+      {
+        "id": "UTM",
+        "name": "UTENSILI MANUALI",
+        "children": [
+          {
+            "id": "CPA",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ"
+          }
+        ]
+      },
+      {
+        "id": "VNT",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "VENT",
+            "name": "VENTILATORI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ED",
+    "name": "ELETTRODOMESTICI",
+    "iconName": "tool",
+    "children": [
+      {
+        "id": "BAG",
+        "name": "BAGNO",
+        "children": [
+          {
+            "id": "SCAL",
+            "name": "SCALDASALVIETTE ELETTRICI"
+          },
+          {
+            "id": "TERV",
+            "name": "TERMOVENTILATORI"
+          }
+        ]
+      },
+      {
+        "id": "EAI",
+        "name": "ELETTRODOMESTICI AD INCASSO",
+        "children": [
+          {
+            "id": "CVIN",
+            "name": "CANTINETTE VINO"
+          }
+        ]
+      },
+      {
+        "id": "ELE",
+        "name": "ELETTRODOMESTICI LIBERA ISTALLAZION",
+        "children": [
+          {
+            "id": "ASP",
+            "name": "ASPIRAPOLVERE E ASPIRALIQUIDI"
+          },
+          {
+            "id": "ASS",
+            "name": "ASPIRACENERE SOFFIATORE"
+          },
+          {
+            "id": "FRI",
+            "name": "FRIGORIFERI"
+          }
+        ]
+      },
+      {
+        "id": "GE",
+        "name": "GRANDI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "PCI",
+            "name": "PIANI AD INDUZIONE"
+          },
+          {
+            "id": "SCAL",
+            "name": "SCALDASALVIETTE ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "STAS",
+        "name": "STIRO E ASCIUGATURA",
+        "children": [
+          {
+            "id": "ASCIU",
+            "name": "ASCIUGASCARPE ELETTRICI"
+          },
+          {
+            "id": "SCAL",
+            "name": "SCALDASALVIETTE ELETTRICI"
+          },
+          {
+            "id": "STEB",
+            "name": "STENDIBIANCHERIA"
+          }
+        ]
+      },
+      {
+        "id": "VNT",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "RAFF",
+            "name": "RAFFRESCATORI EVAPORATIVI"
+          },
+          {
+            "id": "SCAL",
+            "name": "SCALDASALVIETTE ELETTRICI"
+          },
+          {
+            "id": "TERV",
+            "name": "TERMOVENTILATORI"
+          },
+          {
+            "id": "VENT",
+            "name": "VENTILATORI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "EL",
+    "name": "ELETTRICITA'",
+    "iconName": "sun",
+    "children": [
+      {
+        "id": "ACC-I",
+        "name": "ACCESSORI PER ILLUMINAZIONE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "REAT",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STRIP",
+            "name": "STRIP LED E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "ACCE",
+        "name": "ACCESSORI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "AI",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "CAB",
+            "name": "CARICA BATTERIE"
+          },
+          {
+            "id": "CF",
+            "name": "CERCAFASE"
+          },
+          {
+            "id": "INTV",
+            "name": "INTERRUTTORI VINTAGE"
+          },
+          {
+            "id": "MU",
+            "name": "MULTIMETRO"
+          },
+          {
+            "id": "PU",
+            "name": "PUNTALINI"
+          }
+        ]
+      },
+      {
+        "id": "ALID",
+        "name": "ALIMENTATORI E DRIVER LED",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACPV",
+            "name": "ACCESSORI FOTOVOLTAICI"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "STRIP",
+            "name": "STRIP LED E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "ARM",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "STRF",
+            "name": "STRUTTURE FOTOVOLTAICHE"
+          },
+          {
+            "id": "VENT",
+            "name": "VENTILATORI"
+          }
+        ]
+      },
+      {
+        "id": "AU",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          },
+          {
+            "id": "AVM",
+            "name": "AVVIATORI MOTORE"
+          },
+          {
+            "id": "COL",
+            "name": "COLONNE DI SEGNALAZIONE"
+          },
+          {
+            "id": "COMMU",
+            "name": "COMMUTATORI E SEZIONATORI"
+          },
+          {
+            "id": "CON",
+            "name": "CONTENITORI"
+          },
+          {
+            "id": "COND",
+            "name": "CONDENSATORI"
+          },
+          {
+            "id": "CONT",
+            "name": "CONTROLLER ACCESSI"
+          },
+          {
+            "id": "CONTA",
+            "name": "CONTATTORI"
+          },
+          {
+            "id": "CRE",
+            "name": "CREPUSCOLARE"
+          },
+          {
+            "id": "DI",
+            "name": "DIFFERENZIALE"
+          },
+          {
+            "id": "DM",
+            "name": "DIFFERENZIALE MAGNETOTERMICO"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "FINC",
+            "name": "FINECORSA"
+          },
+          {
+            "id": "FU",
+            "name": "FUSIBILI"
+          },
+          {
+            "id": "IGRO",
+            "name": "IGROSTATI"
+          },
+          {
+            "id": "INVE",
+            "name": "INVERTER DI FREQUENZA"
+          },
+          {
+            "id": "LUM-A",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE"
+          },
+          {
+            "id": "MA",
+            "name": "MAGNETOTERMICO"
+          },
+          {
+            "id": "MCCB",
+            "name": "INTERRUTTORI MAGNETOTERMICI SCATOLATI"
+          },
+          {
+            "id": "PFU",
+            "name": "PORTA FUSIBILE"
+          },
+          {
+            "id": "PUL",
+            "name": "PULSANTI"
+          },
+          {
+            "id": "PULS",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME"
+          },
+          {
+            "id": "RELE",
+            "name": "RELE A STATO SOLIDO"
+          },
+          {
+            "id": "RISQ",
+            "name": "RISCALDATORI PER QUADRI ELETTRICI"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "SCAR",
+            "name": "SCARICATORI DI SOVRATENSIONE"
+          },
+          {
+            "id": "SE",
+            "name": "SEZIONATORI"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SENI",
+            "name": "SENSORI DI PROSSIMITA"
+          },
+          {
+            "id": "TEM",
+            "name": "TEMPORIZZATORI"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          },
+          {
+            "id": "ZOC",
+            "name": "ZOCCOLI PER RELÈ"
+          }
+        ]
+      },
+      {
+        "id": "BAT",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "POES",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI"
+          }
+        ]
+      },
+      {
+        "id": "CAR",
+        "name": "CARICABATTERIE E AVVIATORI",
+        "children": [
+          {
+            "id": "CAB",
+            "name": "CARICA BATTERIE"
+          }
+        ]
+      },
+      {
+        "id": "CAV",
+        "name": "CAVI",
+        "children": [
+          {
+            "id": "CAVM",
+            "name": "CAVI MULTIPOLARI"
+          },
+          {
+            "id": "CAVU",
+            "name": "CAVI UNIPOLARI"
+          },
+          {
+            "id": "CTRI",
+            "name": "CAVI TRIPOLARI"
+          }
+        ]
+      },
+      {
+        "id": "CD",
+        "name": "CENTRALINI E SCATOLE DI DISTRIBUZ.",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          },
+          {
+            "id": "CAD",
+            "name": "CASSETTE DI DERIVAZIONE"
+          },
+          {
+            "id": "CE",
+            "name": "CENTRALINI"
+          },
+          {
+            "id": "COMP",
+            "name": "COMPONENTI IN POLISTIRENE"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "LUM-A",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE"
+          },
+          {
+            "id": "MOR",
+            "name": "MORSE"
+          },
+          {
+            "id": "MORSE",
+            "name": "MORSETTIERE DI DISTRIBUZIONE"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "PR",
+            "name": "PRESSACAVI"
+          },
+          {
+            "id": "QU",
+            "name": "QUADRETTI"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "SCA",
+            "name": "SCATOLE DI GIUNZIONE"
+          },
+          {
+            "id": "SPIS",
+            "name": "SPORTELLI DI ISPEZIONE"
+          }
+        ]
+      },
+      {
+        "id": "CGP",
+        "name": "CORRUGATI, GUAINE E POZZETTI",
+        "children": [
+          {
+            "id": "ACID",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO"
+          },
+          {
+            "id": "COR",
+            "name": "CORRUGATI"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "GTER",
+            "name": "GUAINE TERMORESTRINGENTI"
+          },
+          {
+            "id": "GU",
+            "name": "GUAINA SPIRALATA"
+          },
+          {
+            "id": "MRKS",
+            "name": "MANICOTTO RK IP65"
+          },
+          {
+            "id": "PE",
+            "name": "POZZETTI ELETTRICI"
+          },
+          {
+            "id": "PR",
+            "name": "PRESSACAVI"
+          },
+          {
+            "id": "RK",
+            "name": "TUBO RK"
+          },
+          {
+            "id": "RSI",
+            "name": "RACCORDO RK SCATOLA IP65"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "CPR",
+        "name": "CAVI E PROLUNGHE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "AVVC",
+            "name": "AVVOLGICAVO"
+          },
+          {
+            "id": "AVVO",
+            "name": "AVVOLGITUBO"
+          },
+          {
+            "id": "CTRI",
+            "name": "CAVI TRIPOLARI"
+          }
+        ]
+      },
+      {
+        "id": "CT",
+        "name": "CANALINE E TUBI RK",
+        "children": [
+          {
+            "id": "CA",
+            "name": "CANALINE"
+          },
+          {
+            "id": "CL9",
+            "name": "CURVA LARGA RK 90"
+          },
+          {
+            "id": "CL9S",
+            "name": "CURVA LARGA Rk 90° IP65"
+          },
+          {
+            "id": "CLI",
+            "name": "CLIP RK"
+          },
+          {
+            "id": "COR",
+            "name": "CORRUGATI"
+          },
+          {
+            "id": "CP9",
+            "name": "CURVA PICCOLA RK 90"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "GRS",
+            "name": "GUAINA ON RACCORDO RK IP65"
+          },
+          {
+            "id": "MRK",
+            "name": "MANICOTTO RK"
+          },
+          {
+            "id": "MRKS",
+            "name": "MANICOTTO RK IP65"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          },
+          {
+            "id": "PR",
+            "name": "PRESSACAVI"
+          },
+          {
+            "id": "RK",
+            "name": "TUBO RK"
+          },
+          {
+            "id": "RSI",
+            "name": "RACCORDO RK SCATOLA IP65"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "TR",
+            "name": "TRIVIA RK"
+          }
+        ]
+      },
+      {
+        "id": "EDIL",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "COMP",
+            "name": "COMPONENTI IN POLISTIRENE"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "SPIS",
+            "name": "SPORTELLI DI ISPEZIONE"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STRF",
+            "name": "STRUTTURE FOTOVOLTAICHE"
+          },
+          {
+            "id": "VITI",
+            "name": "VITI E FISSAGGI"
+          }
+        ]
+      },
+      {
+        "id": "EFI",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "FAE",
+            "name": "FASCETTE"
+          },
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "GTER",
+            "name": "GUAINE TERMORESTRINGENTI"
+          },
+          {
+            "id": "ISOL",
+            "name": "ISOLATORI ELETTRICI"
+          },
+          {
+            "id": "MANI",
+            "name": "MANICOTTI DI GIUNZIONE"
+          },
+          {
+            "id": "MARC",
+            "name": "MARCATURA E IDENTIFICAZIONE"
+          },
+          {
+            "id": "MORSE",
+            "name": "MORSETTIERE DI DISTRIBUZIONE"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "NASTR",
+            "name": "NASTRI ADESIVI"
+          },
+          {
+            "id": "NI",
+            "name": "NASTRI ISOLANTI"
+          },
+          {
+            "id": "PR",
+            "name": "PRESSACAVI"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "TAS",
+            "name": "TASSELLI E ANCORAGGI"
+          },
+          {
+            "id": "VITI",
+            "name": "VITI E FISSAGGI"
+          }
+        ]
+      },
+      {
+        "id": "EM",
+        "name": "EMERGENZA",
+        "children": [
+          {
+            "id": "PUL",
+            "name": "PULSANTI"
+          },
+          {
+            "id": "PULS",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME"
+          }
+        ]
+      },
+      {
+        "id": "EVR",
+        "name": "STAZIONI DI RICARICA VEICOLI ELETTRICI",
+        "children": [
+          {
+            "id": "CAVI_",
+            "name": "Nuova Categoria CAVI RICARICA VEICOLI ELETTRICI"
+          },
+          {
+            "id": "STAZI",
+            "name": "Nuova Categoria STAZIONI DI RICARICA VEICOLI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "FAS",
+        "name": "FASCETTE E STRINGITUBO",
+        "children": [
+          {
+            "id": "FAE",
+            "name": "FASCETTE"
+          },
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "MARC",
+            "name": "MARCATURA E IDENTIFICAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "FOT",
+        "name": "FOTOVOLTAICO",
+        "children": [
+          {
+            "id": "ACPV",
+            "name": "ACCESSORI FOTOVOLTAICI"
+          },
+          {
+            "id": "BATT",
+            "name": "BATTERIE UTENSILI"
+          },
+          {
+            "id": "CAVU",
+            "name": "CAVI UNIPOLARI"
+          },
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "INV",
+            "name": "INVERTER FOTOVOLTAICI"
+          },
+          {
+            "id": "INVE",
+            "name": "INVERTER DI FREQUENZA"
+          },
+          {
+            "id": "KPV",
+            "name": "KIT FOTOVOLTAICI"
+          },
+          {
+            "id": "MA",
+            "name": "MAGNETOTERMICO"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "PANO",
+            "name": "PANNELLI FOTOVOLTAICI"
+          },
+          {
+            "id": "POES",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI"
+          },
+          {
+            "id": "SE",
+            "name": "SEZIONATORI"
+          },
+          {
+            "id": "STRF",
+            "name": "STRUTTURE FOTOVOLTAICHE"
+          }
+        ]
+      },
+      {
+        "id": "FPM",
+        "name": "FERRAMENTA PER MOBILI",
+        "children": [
+          {
+            "id": "FEP",
+            "name": "FERMA PORTA"
+          }
+        ]
+      },
+      {
+        "id": "FUS",
+        "name": "FUSIBILI E ACCESSORI",
+        "children": [
+          {
+            "id": "FU",
+            "name": "FUSIBILI"
+          },
+          {
+            "id": "PFU",
+            "name": "PORTA FUSIBILE"
+          },
+          {
+            "id": "SE",
+            "name": "SEZIONATORI"
+          }
+        ]
+      },
+      {
+        "id": "GEC",
+        "name": "GENERATORI DI CORRENTE",
+        "children": [
+          {
+            "id": "GELE",
+            "name": "GRUPPI ELETTROGENI"
+          }
+        ]
+      },
+      {
+        "id": "ILE",
+        "name": "ILLUMINAZIONE ESTERNA",
+        "children": [
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "ILI",
+        "name": "ILLUMINAZIONE INDUSTIALE",
+        "children": [
+          {
+            "id": "REAT",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE"
+          }
+        ]
+      },
+      {
+        "id": "ILLU",
+        "name": "ILLUMINAZIONE D'INTERNO",
+        "children": [
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          }
+        ]
+      },
+      {
+        "id": "LVP",
+        "name": "LINEA VITA E PROTEZIONE FULMINI",
+        "children": [
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          }
+        ]
+      },
+      {
+        "id": "MGT",
+        "name": "INTERRUTTORI MAGNETOTERMICI E DIFFERENZIALI",
+        "children": [
+          {
+            "id": "ACB",
+            "name": "INTERRUTTORI APERTI"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ACPV",
+            "name": "ACCESSORI FOTOVOLTAICI"
+          },
+          {
+            "id": "AFDD",
+            "name": "INTERRUTTORI MAGNETOTERMICI DIFFERENZIALI CON PROTEZIONE ARCO"
+          },
+          {
+            "id": "AVM",
+            "name": "AVVIATORI MOTORE"
+          },
+          {
+            "id": "COMMU",
+            "name": "COMMUTATORI E SEZIONATORI"
+          },
+          {
+            "id": "DI",
+            "name": "DIFFERENZIALE"
+          },
+          {
+            "id": "DM",
+            "name": "DIFFERENZIALE MAGNETOTERMICO"
+          },
+          {
+            "id": "FU",
+            "name": "FUSIBILI"
+          },
+          {
+            "id": "MA",
+            "name": "MAGNETOTERMICO"
+          },
+          {
+            "id": "MCCB",
+            "name": "INTERRUTTORI MAGNETOTERMICI SCATOLATI"
+          },
+          {
+            "id": "MORSE",
+            "name": "MORSETTIERE DI DISTRIBUZIONE"
+          },
+          {
+            "id": "SE",
+            "name": "SEZIONATORI"
+          }
+        ]
+      },
+      {
+        "id": "MOR",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "MANI",
+            "name": "MANICOTTI DI GIUNZIONE"
+          },
+          {
+            "id": "MARC",
+            "name": "MARCATURA E IDENTIFICAZIONE"
+          },
+          {
+            "id": "MODL",
+            "name": "MODULI LED"
+          },
+          {
+            "id": "MORSE",
+            "name": "MORSETTIERE DI DISTRIBUZIONE"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "PR",
+            "name": "PRESSACAVI"
+          },
+          {
+            "id": "PU",
+            "name": "PUNTALINI"
+          },
+          {
+            "id": "SCA",
+            "name": "SCATOLE DI GIUNZIONE"
+          }
+        ]
+      },
+      {
+        "id": "PA",
+        "name": "PRESE INDUSTRIALI E ADATTATORI",
+        "children": [
+          {
+            "id": "ACI",
+            "name": "ADATTATORI CIVILE-INDUSTRIALE"
+          },
+          {
+            "id": "PI2",
+            "name": "PRESA INDUSTRIALE 230V"
+          },
+          {
+            "id": "PI4",
+            "name": "PRESA INDUSTRIALE 400V"
+          },
+          {
+            "id": "QU",
+            "name": "QUADRETTI"
+          },
+          {
+            "id": "SI2",
+            "name": "SPINA INDUSTRIALE 230V"
+          },
+          {
+            "id": "SI4",
+            "name": "SPINA INDUSTRIALE 400V"
+          }
+        ]
+      },
+      {
+        "id": "PAS",
+        "name": "PASSERELLE E ACCESSORI",
+        "children": [
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "MTER",
+            "name": "MATERIALE DI MESSA A TERRA"
+          },
+          {
+            "id": "PAS",
+            "name": "PASSERELLE PORTACAVI"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          }
+        ]
+      },
+      {
+        "id": "PS",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ADC",
+            "name": "ADATTATORI CIVILI"
+          },
+          {
+            "id": "MPR",
+            "name": "MULTIPRESA"
+          },
+          {
+            "id": "PRE",
+            "name": "PRESA CIVILE"
+          },
+          {
+            "id": "SPI",
+            "name": "SPINE CIVILI"
+          },
+          {
+            "id": "TWP",
+            "name": "TOWER MULTIPRESE"
+          }
+        ]
+      },
+      {
+        "id": "RIF",
+        "name": "RIFASAMENTO E CONDENSATORI",
+        "children": [
+          {
+            "id": "COND",
+            "name": "CONDENSATORI"
+          },
+          {
+            "id": "CONTA",
+            "name": "CONTATTORI"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          }
+        ]
+      },
+      {
+        "id": "RIT",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "RI",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO"
+          }
+        ]
+      },
+      {
+        "id": "SEC",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "BAPA",
+            "name": "BARRIERE PARCHEGGIO"
+          },
+          {
+            "id": "CAMP",
+            "name": "CAMPANELLI"
+          },
+          {
+            "id": "CIL",
+            "name": "CILINDRI DI SICUREZZA"
+          },
+          {
+            "id": "CONT",
+            "name": "CONTROLLER ACCESSI"
+          },
+          {
+            "id": "ELETT",
+            "name": "ELETTROSERRATURE E INCONTRI ELETTRICI"
+          },
+          {
+            "id": "PULS",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME"
+          },
+          {
+            "id": "RILEV",
+            "name": "RILEVATORI DI FUMO E GAS"
+          },
+          {
+            "id": "SENI",
+            "name": "SENSORI DI PROSSIMITA"
+          },
+          {
+            "id": "SERR",
+            "name": "SERRATURE SMART"
+          }
+        ]
+      },
+      {
+        "id": "SIR",
+        "name": "SIRENE E SEGNALATORI ACUSTICI",
+        "children": [
+          {
+            "id": "CAMP",
+            "name": "CAMPANELLI"
+          },
+          {
+            "id": "COL",
+            "name": "COLONNE DI SEGNALAZIONE"
+          },
+          {
+            "id": "PULS",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SIRE",
+            "name": "SIRENE"
+          },
+          {
+            "id": "SIREN",
+            "name": "Nuova Categoria SIRENE"
+          }
+        ]
+      },
+      {
+        "id": "SM",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "INT-S",
+            "name": "INTERRUTTORI SMART"
+          },
+          {
+            "id": "RES",
+            "name": "RELE SMART"
+          },
+          {
+            "id": "SCAR",
+            "name": "SCARICATORI DI SOVRATENSIONE"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "STAB",
+            "name": "STABILIZZATORI DI TENSIONE"
+          }
+        ]
+      },
+      {
+        "id": "SPD",
+        "name": "SCARICATORI DI SOVRATENSIONE",
+        "children": [
+          {
+            "id": "SCAR",
+            "name": "SCARICATORI DI SOVRATENSIONE"
+          }
+        ]
+      },
+      {
+        "id": "STAB",
+        "name": "STABILIZZATORI DI TENSIONE",
+        "children": [
+          {
+            "id": "STAB",
+            "name": "STABILIZZATORI DI TENSIONE"
+          }
+        ]
+      },
+      {
+        "id": "STRM",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "CF",
+            "name": "CERCAFASE"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          },
+          {
+            "id": "TESTE",
+            "name": "TESTER E STRUMENTI DI MISURA"
+          },
+          {
+            "id": "TRAC",
+            "name": "TRASFORMATORI DI CORRENTE"
+          },
+          {
+            "id": "UTEL",
+            "name": "UTENSILI ELETTRICISTA"
+          }
+        ]
+      },
+      {
+        "id": "TRF",
+        "name": "TRASFORMATORI",
+        "children": [
+          {
+            "id": "TRAC",
+            "name": "TRASFORMATORI DI CORRENTE"
+          }
+        ]
+      },
+      {
+        "id": "VNT",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "ACID",
+            "name": "ACCESSORI IDRAULICI E SCARICO CONDIZIONAMENTO"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "INVE",
+            "name": "INVERTER DI FREQUENZA"
+          },
+          {
+            "id": "RISQ",
+            "name": "RISCALDATORI PER QUADRI ELETTRICI"
+          },
+          {
+            "id": "TEM",
+            "name": "TEMPORIZZATORI"
+          },
+          {
+            "id": "VENT",
+            "name": "VENTILATORI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "ET",
+    "name": "ELETTRONICA",
+    "iconName": "home",
+    "children": [
+      {
+        "id": "ACI",
+        "name": "ACCESSORI INFORMATICI",
+        "children": [
+          {
+            "id": "AUSB",
+            "name": "ADATTATORI USB"
+          },
+          {
+            "id": "SWP",
+            "name": "SWITCH POE"
+          },
+          {
+            "id": "TAGN",
+            "name": "TAG E DISPOSITIVI NFC"
+          }
+        ]
+      },
+      {
+        "id": "AI",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          }
+        ]
+      },
+      {
+        "id": "ARM",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "ARR",
+        "name": "ARREDO E COMPLEMENTI",
+        "children": [
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          }
+        ]
+      },
+      {
+        "id": "ATV",
+        "name": "ACCESSORI TELEVISORI",
+        "children": [
+          {
+            "id": "STF",
+            "name": "STAFFE TELEVISORI"
+          },
+          {
+            "id": "TLC",
+            "name": "TELECOMANDO PANASONIC"
+          },
+          {
+            "id": "TLH",
+            "name": "TELECOMANDO HISENSE"
+          },
+          {
+            "id": "TLL",
+            "name": "TELECOMANDO LG"
+          },
+          {
+            "id": "TLP",
+            "name": "TELECOMANDO SAMSUNG"
+          },
+          {
+            "id": "TLS",
+            "name": "TELECOMANDO SAMSUNG"
+          },
+          {
+            "id": "TLU",
+            "name": "TELECOMANDO UNIVERSALE"
+          },
+          {
+            "id": "TLY",
+            "name": "TELECOMANDO SONY"
+          }
+        ]
+      },
+      {
+        "id": "AU",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "SENI",
+            "name": "SENSORI DI PROSSIMITA"
+          }
+        ]
+      },
+      {
+        "id": "BAT",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "6LR61",
+            "name": "BATTERIA 9V 6LR61"
+          },
+          {
+            "id": "AA",
+            "name": "BATTERIE AA"
+          },
+          {
+            "id": "AAA",
+            "name": "BATTERIE AAA"
+          },
+          {
+            "id": "CR16",
+            "name": "BATTERIE CR2016"
+          },
+          {
+            "id": "CR25",
+            "name": "BATTERIE CR2025"
+          },
+          {
+            "id": "CR32",
+            "name": "BATTERIE CR2032"
+          },
+          {
+            "id": "LR14",
+            "name": "BATTERIE LR14C"
+          },
+          {
+            "id": "LR20",
+            "name": "BATTERIE LR20D"
+          },
+          {
+            "id": "POES",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI"
+          }
+        ]
+      },
+      {
+        "id": "CAR",
+        "name": "CARICABATTERIE E AVVIATORI",
+        "children": [
+          {
+            "id": "CAB",
+            "name": "CARICA BATTERIE"
+          }
+        ]
+      },
+      {
+        "id": "CAV",
+        "name": "CAVI",
+        "children": [
+          {
+            "id": "CAVM",
+            "name": "CAVI MULTIPOLARI"
+          }
+        ]
+      },
+      {
+        "id": "GEC",
+        "name": "GENERATORI DI CORRENTE",
+        "children": [
+          {
+            "id": "POES",
+            "name": "POWER STATION E CENTRALI ELETTRICHE PORTATILI"
+          }
+        ]
+      },
+      {
+        "id": "MOR",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "PS",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "TWP",
+            "name": "TOWER MULTIPRESE"
+          }
+        ]
+      },
+      {
+        "id": "SEC",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "CONT",
+            "name": "CONTROLLER ACCESSI"
+          },
+          {
+            "id": "KSA",
+            "name": "KIT SISTEMI DI ALLARME"
+          },
+          {
+            "id": "KTP",
+            "name": "KIT TELECAMERE POE"
+          },
+          {
+            "id": "NVR",
+            "name": "NVR"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SENI",
+            "name": "SENSORI DI PROSSIMITA"
+          },
+          {
+            "id": "SERR",
+            "name": "SERRATURE SMART"
+          },
+          {
+            "id": "TAGN",
+            "name": "TAG E DISPOSITIVI NFC"
+          },
+          {
+            "id": "TRP",
+            "name": "TERMINALI RILEVAZIONE PRESENZE"
+          },
+          {
+            "id": "VIDEO",
+            "name": "VIDEOCITOFONI"
+          }
+        ]
+      },
+      {
+        "id": "SM",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "CRS",
+            "name": "CRONOTERMOSTATI SMART"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "ELS",
+            "name": "ELETTROVALVOLE SMART"
+          },
+          {
+            "id": "HUB",
+            "name": "HUB SMART"
+          },
+          {
+            "id": "IGRO",
+            "name": "IGROSTATI"
+          },
+          {
+            "id": "RES",
+            "name": "RELE SMART"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SENI",
+            "name": "SENSORI DI PROSSIMITA"
+          },
+          {
+            "id": "SERR",
+            "name": "SERRATURE SMART"
+          },
+          {
+            "id": "VTS",
+            "name": "VALVOLE TERMOSTATICHE SMART"
+          }
+        ]
+      },
+      {
+        "id": "STRM",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "MU",
+            "name": "MULTIMETRO"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          },
+          {
+            "id": "TESTE",
+            "name": "TESTER E STRUMENTI DI MISURA"
+          }
+        ]
+      },
+      {
+        "id": "TE",
+        "name": "TELECAMERE",
+        "children": [
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "KTP",
+            "name": "KIT TELECAMERE POE"
+          },
+          {
+            "id": "NVR",
+            "name": "NVR"
+          },
+          {
+            "id": "SCA",
+            "name": "SCATOLE DI GIUNZIONE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "TEP",
+            "name": "TELECAMERE POE"
+          }
+        ]
+      },
+      {
+        "id": "TL",
+        "name": "TELECOMANDI",
+        "children": [
+          {
+            "id": "TLCA",
+            "name": "TELECOMANDO CANCELLO UNIVVERSALE"
+          },
+          {
+            "id": "TLCO",
+            "name": "TELECOMANDO CONDIZIONATORI"
+          }
+        ]
+      },
+      {
+        "id": "TOR",
+        "name": "TORCE",
+        "children": [
+          {
+            "id": "MTB",
+            "name": "MINI TORCIA PER BATTERIA"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "EU",
+    "name": "ELETTROUTENSILI",
+    "iconName": "radio",
+    "children": [
+      {
+        "id": "AI",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "CBR",
+            "name": "CARTA ABRASIVA"
+          },
+          {
+            "id": "DIF",
+            "name": "DISCHI FLEX"
+          },
+          {
+            "id": "FRE",
+            "name": "FRESA"
+          },
+          {
+            "id": "KPU",
+            "name": "KIT PUNTE TRAPANO"
+          },
+          {
+            "id": "PUT",
+            "name": "PUNTE TRAPANO"
+          },
+          {
+            "id": "SEA",
+            "name": "SEGHETTO ALTERNATIVO"
+          },
+          {
+            "id": "SEG",
+            "name": "SEGACCIO"
+          },
+          {
+            "id": "TPO",
+            "name": "TAGLIA POLISTEROLO"
+          }
+        ]
+      },
+      {
+        "id": "BAT",
+        "name": "BATTERIE",
+        "children": [
+          {
+            "id": "BATT",
+            "name": "BATTERIE UTENSILI"
+          }
+        ]
+      },
+      {
+        "id": "CMP",
+        "name": "COMPRESSORI",
+        "children": [
+          {
+            "id": "COM",
+            "name": "COMPRESSORE"
+          }
+        ]
+      },
+      {
+        "id": "LB",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "ASP",
+            "name": "ASPIRAPOLVERE E ASPIRALIQUIDI"
+          },
+          {
+            "id": "IDP",
+            "name": "IDROPULITRICE"
+          },
+          {
+            "id": "KAV",
+            "name": "KIT AVVITATORE"
+          },
+          {
+            "id": "SEA",
+            "name": "SEGHETTO ALTERNATIVO"
+          },
+          {
+            "id": "SEC",
+            "name": "SEGA CIRCOLARE"
+          },
+          {
+            "id": "SM",
+            "name": "SMERIGLIATRICE ANGOLARE"
+          }
+        ]
+      },
+      {
+        "id": "LBR",
+        "name": "ELETTROUTENSILI BRUSHELESS",
+        "children": [
+          {
+            "id": "AVI",
+            "name": "AVVITATORE AD IMPULSI"
+          },
+          {
+            "id": "BA2",
+            "name": "BATTERIA 2AH"
+          },
+          {
+            "id": "BA4",
+            "name": "BATTERIA 4AH"
+          },
+          {
+            "id": "CAB",
+            "name": "CARICA BATTERIE"
+          },
+          {
+            "id": "LRO",
+            "name": "LEVIGATRICE ROTO-ORBITALE"
+          },
+          {
+            "id": "SEC",
+            "name": "SEGA CIRCOLARE"
+          },
+          {
+            "id": "SEG",
+            "name": "SEGACCIO"
+          },
+          {
+            "id": "SME",
+            "name": "SMERIGLIATRICE ANGOLARE"
+          },
+          {
+            "id": "TAP",
+            "name": "TASSELLATORE A PERCUSSIONE"
+          },
+          {
+            "id": "TPB",
+            "name": "TRAPANO AVVITATORE A PERCUSSIONE BR"
+          }
+        ]
+      },
+      {
+        "id": "LIF",
+        "name": "ELETTROUTENSILI A FILO",
+        "children": [
+          {
+            "id": "ASS",
+            "name": "ASPIRACENERE SOFFIATORE"
+          },
+          {
+            "id": "COM",
+            "name": "COMPRESSORE"
+          },
+          {
+            "id": "IDP",
+            "name": "IDROPULITRICE"
+          },
+          {
+            "id": "LEVIG",
+            "name": "LEVIGATRICI"
+          },
+          {
+            "id": "LRO",
+            "name": "LEVIGATRICE ROTO-ORBITALE"
+          },
+          {
+            "id": "LUC",
+            "name": "LUCIDATRICI"
+          },
+          {
+            "id": "MAT",
+            "name": "MARTELLO TASSELLATORE"
+          },
+          {
+            "id": "MIS",
+            "name": "MISCELATORE"
+          },
+          {
+            "id": "MUL",
+            "name": "MULTIFUNZIONE"
+          },
+          {
+            "id": "PTC",
+            "name": "PISTOLE TERMICHE"
+          },
+          {
+            "id": "SAL",
+            "name": "SALDATRICI"
+          },
+          {
+            "id": "SEA",
+            "name": "SEGHETTO ALTERNATIVO"
+          },
+          {
+            "id": "SM",
+            "name": "SMERIGLIATRICE ANGOLARE"
+          },
+          {
+            "id": "SMDB",
+            "name": "SMERIGLIATRICI DA BANCO"
+          },
+          {
+            "id": "TAGLI",
+            "name": "TAGLIAPIASTRELLE ELETTRICI"
+          },
+          {
+            "id": "TPR",
+            "name": "TRAPANI A PERCUSSIONE"
+          },
+          {
+            "id": "VER",
+            "name": "VERNICIATORE"
+          }
+        ]
+      },
+      {
+        "id": "LP",
+        "name": "ELETTROUTENSILI PRO",
+        "children": [
+          {
+            "id": "AMA",
+            "name": "ASPIRAPOLVERE MANUALE"
+          },
+          {
+            "id": "BA2",
+            "name": "BATTERIA 2AH"
+          },
+          {
+            "id": "BA4",
+            "name": "BATTERIA 4AH"
+          },
+          {
+            "id": "BA5",
+            "name": "BATTERIA 5AH"
+          },
+          {
+            "id": "CAB",
+            "name": "CARICA BATTERIE"
+          },
+          {
+            "id": "CB2",
+            "name": "KIT CARICABATTERIE/BATTERIA 2AH"
+          },
+          {
+            "id": "CB4",
+            "name": "KIT CARICABATTERIE/BATTERIA 4AH"
+          },
+          {
+            "id": "KIP",
+            "name": "KIT IDROPULITRICE"
+          },
+          {
+            "id": "MUL",
+            "name": "MULTIFUNZIONE"
+          },
+          {
+            "id": "SAL",
+            "name": "SALDATRICI"
+          },
+          {
+            "id": "SEC",
+            "name": "SEGA CIRCOLARE"
+          },
+          {
+            "id": "SME",
+            "name": "SMERIGLIATRICE ANGOLARE"
+          },
+          {
+            "id": "SPC",
+            "name": "SPARA CHIODI E PUNTI"
+          },
+          {
+            "id": "TPB",
+            "name": "TRAPANO AVVITATORE A PERCUSSIONE BR"
+          },
+          {
+            "id": "TPR",
+            "name": "TRAPANI A PERCUSSIONE"
+          },
+          {
+            "id": "VER",
+            "name": "VERNICIATORE"
+          }
+        ]
+      },
+      {
+        "id": "MAC",
+        "name": "MARTELLI E ATTREZZATURA DA CANTIERE",
+        "children": [
+          {
+            "id": "COM",
+            "name": "COMPRESSORE"
+          }
+        ]
+      },
+      {
+        "id": "SAL",
+        "name": "SALDATRICI E ACCESSORI",
+        "children": [
+          {
+            "id": "SAL",
+            "name": "SALDATRICI"
+          }
+        ]
+      },
+      {
+        "id": "UG",
+        "name": "UTENSILI DA GIARDINO",
+        "children": [
+          {
+            "id": "IDP",
+            "name": "IDROPULITRICE"
+          },
+          {
+            "id": "MS",
+            "name": "MOTOSEGA"
+          }
+        ]
+      },
+      {
+        "id": "VNT",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "COM",
+            "name": "COMPRESSORE"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "GI",
+    "name": "GIARDINAGGIO",
+    "iconName": "battery",
+    "children": [
+      {
+        "id": "EDIL",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "TAS",
+            "name": "TASSELLI E ANCORAGGI"
+          }
+        ]
+      },
+      {
+        "id": "FUT",
+        "name": "FORBICI E UTENSILI DA TAGLIO",
+        "children": [
+          {
+            "id": "UGM",
+            "name": "UTENSILI DA GIARDINO A MANO"
+          }
+        ]
+      },
+      {
+        "id": "LB",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "MS",
+            "name": "MOTOSEGA"
+          }
+        ]
+      },
+      {
+        "id": "LP",
+        "name": "ELETTROUTENSILI PRO",
+        "children": [
+          {
+            "id": "MS",
+            "name": "MOTOSEGA"
+          }
+        ]
+      },
+      {
+        "id": "POM",
+        "name": "POMPE E AUTOCLAVI",
+        "children": [
+          {
+            "id": "POMA",
+            "name": "POMPE AUTOCLAVE"
+          },
+          {
+            "id": "POMS",
+            "name": "POMPE SOMMERSE"
+          }
+        ]
+      },
+      {
+        "id": "RIT",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "AVVO",
+            "name": "AVVOLGITUBO"
+          },
+          {
+            "id": "IR",
+            "name": "IRRIGATORI"
+          },
+          {
+            "id": "NM",
+            "name": "NASTRO MICROFORATO"
+          },
+          {
+            "id": "RI",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO"
+          },
+          {
+            "id": "TEM",
+            "name": "TEMPORIZZATORI"
+          },
+          {
+            "id": "TI",
+            "name": "TUBO IRRIGAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "TDC",
+        "name": "TELI DI COPERTURA",
+        "children": [
+          {
+            "id": "TDCO",
+            "name": "TELI DI COPERTURA OMBRELLONI"
+          },
+          {
+            "id": "TDCT",
+            "name": "TELI DI COPERTURA TAVOLI"
+          }
+        ]
+      },
+      {
+        "id": "UG",
+        "name": "UTENSILI DA GIARDINO",
+        "children": [
+          {
+            "id": "ASS",
+            "name": "ASPIRACENERE SOFFIATORE"
+          },
+          {
+            "id": "POM",
+            "name": "POMPA MANUALE"
+          },
+          {
+            "id": "PVZ",
+            "name": "PALE VANGHE E ZAPPE"
+          },
+          {
+            "id": "RST",
+            "name": "RASTRELLI"
+          },
+          {
+            "id": "TAGL",
+            "name": "TAGLIABORDI ELETTRICI"
+          },
+          {
+            "id": "TOSA",
+            "name": "TOSAERBA E ATTREZZI GIARDINAGGIO"
+          },
+          {
+            "id": "UGM",
+            "name": "UTENSILI DA GIARDINO A MANO"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "GRE",
+    "name": "GRANDI ELETTRODOMESTICI",
+    "iconName": "feather",
+    "children": [
+      {
+        "id": "ACCE",
+        "name": "ACCESSORI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "CAP",
+            "name": "CAPPE"
+          }
+        ]
+      },
+      {
+        "id": "EAI",
+        "name": "ELETTRODOMESTICI AD INCASSO",
+        "children": [
+          {
+            "id": "CAP",
+            "name": "CAPPE"
+          },
+          {
+            "id": "CON",
+            "name": "CONTENITORI"
+          },
+          {
+            "id": "CVIN",
+            "name": "CANTINETTE VINO"
+          },
+          {
+            "id": "FOR",
+            "name": "FORNI"
+          },
+          {
+            "id": "FRI",
+            "name": "FRIGORIFERI"
+          },
+          {
+            "id": "LA",
+            "name": "LAVASTOVIGLIE"
+          },
+          {
+            "id": "PIG",
+            "name": "PIANI COTTURA A GAS"
+          },
+          {
+            "id": "PIN",
+            "name": "PIANI COTTURA AD INDUZIONE"
+          }
+        ]
+      },
+      {
+        "id": "ELE",
+        "name": "ELETTRODOMESTICI LIBERA ISTALLAZION",
+        "children": [
+          {
+            "id": "ASC",
+            "name": "ASCIUGATRICI"
+          },
+          {
+            "id": "CAP",
+            "name": "CAPPE"
+          },
+          {
+            "id": "CON",
+            "name": "CONTENITORI"
+          },
+          {
+            "id": "CONG",
+            "name": "CONGELATORI"
+          },
+          {
+            "id": "CVIN",
+            "name": "CANTINETTE VINO"
+          },
+          {
+            "id": "FRI",
+            "name": "FRIGORIFERI"
+          },
+          {
+            "id": "LA",
+            "name": "LAVASTOVIGLIE"
+          },
+          {
+            "id": "LAA",
+            "name": "LAVASCIUGA"
+          },
+          {
+            "id": "LAV",
+            "name": "LAVATRICI"
+          }
+        ]
+      },
+      {
+        "id": "GE",
+        "name": "GRANDI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "CONG",
+            "name": "CONGELATORI"
+          },
+          {
+            "id": "SCAL",
+            "name": "SCALDASALVIETTE ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "STAS",
+        "name": "STIRO E ASCIUGATURA",
+        "children": [
+          {
+            "id": "ASC",
+            "name": "ASCIUGATRICI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "IL",
+    "name": "ILLUMINAZIONE",
+    "iconName": "droplet",
+    "children": [
+      {
+        "id": "ACC-I",
+        "name": "ACCESSORI PER ILLUMINAZIONE",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ACPL",
+            "name": "ACCESSORI PER PROFILI LED"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "LT",
+            "name": "LUCE TRACK"
+          },
+          {
+            "id": "MODL",
+            "name": "MODULI LED"
+          },
+          {
+            "id": "PALI",
+            "name": "PALI PER ILLUMINAZIONE"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          },
+          {
+            "id": "PL",
+            "name": "PANNELLI LED"
+          },
+          {
+            "id": "PTL",
+            "name": "PORTALAMPADA"
+          },
+          {
+            "id": "REAT",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE"
+          },
+          {
+            "id": "RES",
+            "name": "RELE SMART"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STP",
+            "name": "STRIP LED"
+          },
+          {
+            "id": "STRIP",
+            "name": "STRIP LED E ACCESSORI"
+          },
+          {
+            "id": "TAS",
+            "name": "TASSELLI E ANCORAGGI"
+          }
+        ]
+      },
+      {
+        "id": "AI",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "CRE",
+            "name": "CREPUSCOLARE"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          },
+          {
+            "id": "LT",
+            "name": "LUCE TRACK"
+          },
+          {
+            "id": "PTL",
+            "name": "PORTALAMPADA"
+          },
+          {
+            "id": "PUL",
+            "name": "PULSANTI"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "ALID",
+        "name": "ALIMENTATORI E DRIVER LED",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ACPL",
+            "name": "ACCESSORI PER PROFILI LED"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "ALD",
+            "name": "ALIMENTATORI DALI"
+          },
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "FA12",
+            "name": "FARETTI 12V"
+          },
+          {
+            "id": "FL",
+            "name": "FARETTI"
+          },
+          {
+            "id": "REAT",
+            "name": "REATTORI E ALIMENTATORI PER LAMPADE"
+          },
+          {
+            "id": "STRIP",
+            "name": "STRIP LED E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "AU",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "CD",
+        "name": "CENTRALINI E SCATOLE DI DISTRIBUZ.",
+        "children": [
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "EFI",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          }
+        ]
+      },
+      {
+        "id": "EM",
+        "name": "EMERGENZA",
+        "children": [
+          {
+            "id": "BA",
+            "name": "BANDIERE"
+          },
+          {
+            "id": "EMA",
+            "name": "EMERGENZA  AWEX"
+          },
+          {
+            "id": "LUM-A",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE"
+          },
+          {
+            "id": "PLA",
+            "name": "PLAFONIERA"
+          }
+        ]
+      },
+      {
+        "id": "FA",
+        "name": "FARETTI",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "FA12",
+            "name": "FARETTI 12V"
+          },
+          {
+            "id": "FL",
+            "name": "FARETTI"
+          },
+          {
+            "id": "LT",
+            "name": "LUCE TRACK"
+          },
+          {
+            "id": "PL",
+            "name": "PANNELLI LED"
+          },
+          {
+            "id": "POF",
+            "name": "PORTAFARETTI"
+          },
+          {
+            "id": "PRO",
+            "name": "FARO PROIETTORE"
+          },
+          {
+            "id": "SOL",
+            "name": "Illuminazione Solare"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STR",
+            "name": "FARO STRADALE"
+          }
+        ]
+      },
+      {
+        "id": "HE",
+        "name": "HENERGIA",
+        "children": [
+          {
+            "id": "AST",
+            "name": "ASTE TELESCOPICHE"
+          }
+        ]
+      },
+      {
+        "id": "ILC",
+        "name": "ILLUMINAZIONE DA CARTONGESSO",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACPL",
+            "name": "ACCESSORI PER PROFILI LED"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "FL",
+            "name": "FARETTI"
+          },
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          },
+          {
+            "id": "PL",
+            "name": "PANNELLI LED"
+          },
+          {
+            "id": "PLA",
+            "name": "PLAFONIERA"
+          },
+          {
+            "id": "POF",
+            "name": "PORTAFARETTI"
+          },
+          {
+            "id": "PROFI",
+            "name": "PROFILI LED"
+          },
+          {
+            "id": "SEGNA",
+            "name": "APPARECCHI SEGNAPASSO"
+          }
+        ]
+      },
+      {
+        "id": "ILE",
+        "name": "ILLUMINAZIONE ESTERNA",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ARRED",
+            "name": "ARREDO ESTERNO"
+          },
+          {
+            "id": "COL",
+            "name": "COLONNE DI SEGNALAZIONE"
+          },
+          {
+            "id": "FA12",
+            "name": "FARETTI 12V"
+          },
+          {
+            "id": "FL",
+            "name": "FARETTI"
+          },
+          {
+            "id": "FPI",
+            "name": "FARETTI E FARI PER PISCINA"
+          },
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          },
+          {
+            "id": "LUN",
+            "name": "LUCI NATALIZIE E DECORATIVE"
+          },
+          {
+            "id": "PALI",
+            "name": "PALI PER ILLUMINAZIONE"
+          },
+          {
+            "id": "PLA",
+            "name": "PLAFONIERA"
+          },
+          {
+            "id": "PRO",
+            "name": "FARO PROIETTORE"
+          },
+          {
+            "id": "SEGNA",
+            "name": "APPARECCHI SEGNAPASSO"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SOL",
+            "name": "Illuminazione Solare"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STR",
+            "name": "FARO STRADALE"
+          }
+        ]
+      },
+      {
+        "id": "ILI",
+        "name": "ILLUMINAZIONE INDUSTIALE",
+        "children": [
+          {
+            "id": "AST",
+            "name": "ASTE TELESCOPICHE"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "CAM",
+            "name": "CAMPANA LED"
+          },
+          {
+            "id": "COL",
+            "name": "COLONNE DI SEGNALAZIONE"
+          },
+          {
+            "id": "LT",
+            "name": "LUCE TRACK"
+          },
+          {
+            "id": "LUM-A",
+            "name": "ILLUMINAZIONE ANTIDEFLAGRANTE"
+          },
+          {
+            "id": "PLA",
+            "name": "PLAFONIERA"
+          },
+          {
+            "id": "PRO",
+            "name": "FARO PROIETTORE"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STR",
+            "name": "FARO STRADALE"
+          },
+          {
+            "id": "TL",
+            "name": "TUBO LED"
+          }
+        ]
+      },
+      {
+        "id": "ILLU",
+        "name": "ILLUMINAZIONE D'INTERNO",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ACPL",
+            "name": "ACCESSORI PER PROFILI LED"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "BI",
+            "name": "BINARIO ELETTRICO"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "FL",
+            "name": "FARETTI"
+          },
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          },
+          {
+            "id": "LT",
+            "name": "LUCE TRACK"
+          },
+          {
+            "id": "LUN",
+            "name": "LUCI NATALIZIE E DECORATIVE"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          },
+          {
+            "id": "PL",
+            "name": "PANNELLI LED"
+          },
+          {
+            "id": "PLA",
+            "name": "PLAFONIERA"
+          },
+          {
+            "id": "PLM",
+            "name": "PLACCHE MATIX"
+          },
+          {
+            "id": "POF",
+            "name": "PORTAFARETTI"
+          },
+          {
+            "id": "PROFI",
+            "name": "PROFILI LED"
+          },
+          {
+            "id": "SEGNA",
+            "name": "APPARECCHI SEGNAPASSO"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "SOL",
+            "name": "Illuminazione Solare"
+          },
+          {
+            "id": "SPE",
+            "name": "SPECCHI LED"
+          },
+          {
+            "id": "STP",
+            "name": "STRIP LED"
+          },
+          {
+            "id": "TL",
+            "name": "TUBO LED"
+          },
+          {
+            "id": "VENT",
+            "name": "VENTILATORI"
+          }
+        ]
+      },
+      {
+        "id": "LA",
+        "name": "LAMPADINE",
+        "children": [
+          {
+            "id": "E14",
+            "name": "LAMPADINE E14"
+          },
+          {
+            "id": "E27",
+            "name": "LAMPADINE E27"
+          },
+          {
+            "id": "FA12",
+            "name": "FARETTI 12V"
+          },
+          {
+            "id": "G9",
+            "name": "LAMPADINE G9"
+          },
+          {
+            "id": "GU10",
+            "name": "LAMPADINE GU10"
+          },
+          {
+            "id": "LAMP",
+            "name": "LAMPADINE"
+          },
+          {
+            "id": "TL",
+            "name": "TUBO LED"
+          }
+        ]
+      },
+      {
+        "id": "LAF",
+        "name": "LAMPADINE A FILAMENTO",
+        "children": [
+          {
+            "id": "E14",
+            "name": "LAMPADINE E14"
+          },
+          {
+            "id": "E27",
+            "name": "LAMPADINE E27"
+          }
+        ]
+      },
+      {
+        "id": "LAP",
+        "name": "Lampade portatili",
+        "children": [
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          },
+          {
+            "id": "SOL",
+            "name": "Illuminazione Solare"
+          },
+          {
+            "id": "TORC",
+            "name": "TORCE E LAMPADE DA LAVORO"
+          },
+          {
+            "id": "to",
+            "name": "Torce"
+          }
+        ]
+      },
+      {
+        "id": "LDE",
+        "name": "LUCI DECORATIVE E NATALIZIE",
+        "children": [
+          {
+            "id": "ARRED",
+            "name": "ARREDO ESTERNO"
+          },
+          {
+            "id": "LAD",
+            "name": "LAMPADE D'ARREDO"
+          },
+          {
+            "id": "LUN",
+            "name": "LUCI NATALIZIE E DECORATIVE"
+          },
+          {
+            "id": "PRO",
+            "name": "FARO PROIETTORE"
+          }
+        ]
+      },
+      {
+        "id": "MOR",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          },
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "PL",
+        "name": "PLACCHE",
+        "children": [
+          {
+            "id": "PLM",
+            "name": "PLACCHE MATIX"
+          }
+        ]
+      },
+      {
+        "id": "PS",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "SIR",
+        "name": "SIRENE E SEGNALATORI ACUSTICI",
+        "children": [
+          {
+            "id": "COL",
+            "name": "COLONNE DI SEGNALAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "SM",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "LAMP",
+            "name": "LAMPADINE"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "STP",
+        "name": "STRIP LED",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "AL",
+            "name": "ALIMENTATORI"
+          },
+          {
+            "id": "ALD",
+            "name": "ALIMENTATORI DALI"
+          },
+          {
+            "id": "MODL",
+            "name": "MODULI LED"
+          },
+          {
+            "id": "PF",
+            "name": "PROFILI"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          },
+          {
+            "id": "STP",
+            "name": "STRIP LED"
+          },
+          {
+            "id": "STRIP",
+            "name": "STRIP LED E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "TL",
+        "name": "TELECOMANDI",
+        "children": [
+          {
+            "id": "INT-S",
+            "name": "INTERRUTTORI SMART"
+          }
+        ]
+      },
+      {
+        "id": "TOR",
+        "name": "TORCE",
+        "children": [
+          {
+            "id": "TORC",
+            "name": "TORCE E LAMPADE DA LAVORO"
+          }
+        ]
+      },
+      {
+        "id": "VNT",
+        "name": "VENTILAZIONE E TRATTAMENTO ARIA",
+        "children": [
+          {
+            "id": "GRTE",
+            "name": "GRIGLIE E TERMINALI DI VENTILAZIONE"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "PTS",
+    "name": "PITTURE E SOLVENTI",
+    "iconName": "box",
+    "children": [
+      {
+        "id": "ADP",
+        "name": "ATTREZZATURE DA PITTORE",
+        "children": [
+          {
+            "id": "PEP",
+            "name": "PENNELLI E PLAFONI"
+          },
+          {
+            "id": "RUP",
+            "name": "RULLI DA PITTURA"
+          },
+          {
+            "id": "TPP",
+            "name": "TELI E PROTEZIONI PER LAVORI DI PIT"
+          }
+        ]
+      },
+      {
+        "id": "EDIL",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "SIGI",
+            "name": "SIGILLANTI"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SC",
+    "name": "SERIE CIVILE",
+    "iconName": "tool",
+    "children": [
+      {
+        "id": "ACC-I",
+        "name": "ACCESSORI PER ILLUMINAZIONE",
+        "children": [
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "ARM",
+        "name": "ARMADI RACK E ACCESSORI",
+        "children": [
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          }
+        ]
+      },
+      {
+        "id": "AU",
+        "name": "AUTOMAZIONE",
+        "children": [
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "CD",
+        "name": "CENTRALINI E SCATOLE DI DISTRIBUZ.",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ARAC",
+            "name": "ARMADI E ACCESSORI"
+          },
+          {
+            "id": "CAD",
+            "name": "CASSETTE DI DERIVAZIONE"
+          },
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          },
+          {
+            "id": "POF",
+            "name": "PORTAFARETTI"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "CPR",
+        "name": "CAVI E PROLUNGHE",
+        "children": [
+          {
+            "id": "PHD",
+            "name": "PROLUNGHE HDMI"
+          },
+          {
+            "id": "PTV",
+            "name": "PROLUNGA TV"
+          }
+        ]
+      },
+      {
+        "id": "CT",
+        "name": "CANALINE E TUBI RK",
+        "children": [
+          {
+            "id": "CTAC",
+            "name": "ACCESSORI CANALIZZAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "FR",
+        "name": "FRUTTI",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "CAMP",
+            "name": "CAMPANELLI"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "FRL",
+            "name": "FRUTTI LIVING"
+          },
+          {
+            "id": "FRM",
+            "name": "FRUTTI MATIX"
+          },
+          {
+            "id": "INT-P",
+            "name": "INTERRUTTORI A PARETE"
+          },
+          {
+            "id": "INT-S",
+            "name": "INTERRUTTORI SMART"
+          },
+          {
+            "id": "INTV",
+            "name": "INTERRUTTORI VINTAGE"
+          },
+          {
+            "id": "PAU",
+            "name": "PRESE AUDIO"
+          },
+          {
+            "id": "PHD",
+            "name": "PROLUNGHE HDMI"
+          },
+          {
+            "id": "PRE",
+            "name": "PRESA CIVILE"
+          },
+          {
+            "id": "PSAT",
+            "name": "PRESE, SPINE E ADATTATORI TV"
+          },
+          {
+            "id": "PUL",
+            "name": "PULSANTI"
+          },
+          {
+            "id": "PULS",
+            "name": "PULSANTI E DISPOSITIVI DI ALLARME"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          },
+          {
+            "id": "SEN",
+            "name": "SENSORI MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "ILLU",
+        "name": "ILLUMINAZIONE D'INTERNO",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          }
+        ]
+      },
+      {
+        "id": "LAP",
+        "name": "Lampade portatili",
+        "children": [
+          {
+            "id": "TORC",
+            "name": "TORCE E LAMPADE DA LAVORO"
+          }
+        ]
+      },
+      {
+        "id": "MOR",
+        "name": "MORSETTI E CONNETTORI",
+        "children": [
+          {
+            "id": "ABM",
+            "name": "ACCESSORI BINARIO MAGNETICO"
+          }
+        ]
+      },
+      {
+        "id": "PL",
+        "name": "PLACCHE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "PL",
+            "name": "PANNELLI LED"
+          },
+          {
+            "id": "PLL",
+            "name": "PLACCHE LIVING"
+          },
+          {
+            "id": "PLM",
+            "name": "PLACCHE MATIX"
+          },
+          {
+            "id": "PRE",
+            "name": "PRESA CIVILE"
+          },
+          {
+            "id": "SC",
+            "name": "SCATOLE DI DERIVAZIONE"
+          }
+        ]
+      },
+      {
+        "id": "PS",
+        "name": "PRESE E SPINE ADATTATORI MULTIPRESE",
+        "children": [
+          {
+            "id": "ACE",
+            "name": "ACCESSORI ELETTRICI"
+          },
+          {
+            "id": "ADC",
+            "name": "ADATTATORI CIVILI"
+          },
+          {
+            "id": "MPR",
+            "name": "MULTIPRESA"
+          },
+          {
+            "id": "PRE",
+            "name": "PRESA CIVILE"
+          },
+          {
+            "id": "PSAT",
+            "name": "PRESE, SPINE E ADATTATORI TV"
+          },
+          {
+            "id": "SPI",
+            "name": "SPINE CIVILI"
+          },
+          {
+            "id": "TWP",
+            "name": "TOWER MULTIPRESE"
+          }
+        ]
+      },
+      {
+        "id": "SEC",
+        "name": "SICUREZZA E CONTROLLO ACCESSI",
+        "children": [
+          {
+            "id": "INT-P",
+            "name": "INTERRUTTORI A PARETE"
+          }
+        ]
+      },
+      {
+        "id": "SM",
+        "name": "SMART",
+        "children": [
+          {
+            "id": "COS",
+            "name": "CONTROLLER SMART"
+          },
+          {
+            "id": "DMS",
+            "name": "DIMMER SMART"
+          },
+          {
+            "id": "INT-S",
+            "name": "INTERRUTTORI SMART"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          }
+        ]
+      },
+      {
+        "id": "TL",
+        "name": "TELECOMANDI",
+        "children": [
+          {
+            "id": "INT-S",
+            "name": "INTERRUTTORI SMART"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "UT",
+    "name": "UTENSILI",
+    "iconName": "sun",
+    "children": [
+      {
+        "id": "ACCE",
+        "name": "ACCESSORI ELETTRODOMESTICI",
+        "children": [
+          {
+            "id": "AID",
+            "name": "ACCESSORI IDROPULITRICE"
+          }
+        ]
+      },
+      {
+        "id": "ADL",
+        "name": "ABBIGLIAMENTO DA LAVORO",
+        "children": [
+          {
+            "id": "DPI",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE"
+          },
+          {
+            "id": "TMU",
+            "name": "TUTA MONOUSO"
+          }
+        ]
+      },
+      {
+        "id": "ADP",
+        "name": "ATTREZZATURE DA PITTORE",
+        "children": [
+          {
+            "id": "NASTR",
+            "name": "NASTRI ADESIVI"
+          }
+        ]
+      },
+      {
+        "id": "AI",
+        "name": "ACCESSORI",
+        "children": [
+          {
+            "id": "CPA",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ"
+          },
+          {
+            "id": "DIF",
+            "name": "DISCHI FLEX"
+          },
+          {
+            "id": "FLE",
+            "name": "FLESSOMETRI"
+          },
+          {
+            "id": "LIA",
+            "name": "LIME IN ACCIAIO"
+          },
+          {
+            "id": "LIV",
+            "name": "LIVELLE"
+          },
+          {
+            "id": "MET",
+            "name": "METRI IN PLASTICA PIEGHEVOLI"
+          },
+          {
+            "id": "MLA",
+            "name": "MISURATORE LASER"
+          },
+          {
+            "id": "MOR",
+            "name": "MORSE"
+          },
+          {
+            "id": "ODL",
+            "name": "OLI DI LUBRIFICAZIONE"
+          },
+          {
+            "id": "PIS",
+            "name": "PISTOLE PER SILICONE"
+          },
+          {
+            "id": "POL",
+            "name": "POMPA A OLIO"
+          },
+          {
+            "id": "PTC",
+            "name": "PISTOLE TERMICHE"
+          },
+          {
+            "id": "SMC",
+            "name": "SET MATITE DA CANTIERE"
+          },
+          {
+            "id": "SOR",
+            "name": "SET ORING"
+          },
+          {
+            "id": "SPA",
+            "name": "SPAZZOLE IN ACCIAIO"
+          },
+          {
+            "id": "SPU",
+            "name": "SPUGNE ABRASIVE"
+          },
+          {
+            "id": "SQU",
+            "name": "SQUADRE PER CANTIERI"
+          }
+        ]
+      },
+      {
+        "id": "CBC",
+        "name": "CHIAVI INGLESI A BRUCOLA E A CRICCH",
+        "children": [
+          {
+            "id": "BUS",
+            "name": "BUSSOLE E INSERTI"
+          },
+          {
+            "id": "CB",
+            "name": "CHIAVI BOMBOLE"
+          },
+          {
+            "id": "CI",
+            "name": "CHIAVI INGLESI"
+          },
+          {
+            "id": "CRI",
+            "name": "CHIAVI A CRICCHETTO"
+          },
+          {
+            "id": "SCE",
+            "name": "SET CHIAVI ESAGONALI"
+          },
+          {
+            "id": "SCI",
+            "name": "SET CHIAVI INGLESI"
+          },
+          {
+            "id": "SCRI",
+            "name": "SET CHIAVI A CRICCHETTO"
+          }
+        ]
+      },
+      {
+        "id": "CMP",
+        "name": "COMPRESSORI",
+        "children": [
+          {
+            "id": "GRUPP",
+            "name": "GRUPPI FILTRO REGOLATORE LUBRIFICATORE"
+          },
+          {
+            "id": "PIGON",
+            "name": "PISTOLE DI GONFIAGGIO"
+          },
+          {
+            "id": "VER",
+            "name": "VERNICIATORE"
+          }
+        ]
+      },
+      {
+        "id": "CPI",
+        "name": "CACCIAVITI PINZE E INSERTI",
+        "children": [
+          {
+            "id": "BUS",
+            "name": "BUSSOLE E INSERTI"
+          },
+          {
+            "id": "CAC",
+            "name": "CACCIAVITI"
+          },
+          {
+            "id": "PI",
+            "name": "PINZE"
+          },
+          {
+            "id": "SCAC",
+            "name": "SET CACCIAVITI"
+          },
+          {
+            "id": "SIN",
+            "name": "SET INSERTI"
+          },
+          {
+            "id": "UTEL",
+            "name": "UTENSILI ELETTRICISTA"
+          }
+        ]
+      },
+      {
+        "id": "DPI",
+        "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE",
+        "children": [
+          {
+            "id": "DPI",
+            "name": "DISPOSITIVI DI PROTEZIONE INDIVIDUALE"
+          },
+          {
+            "id": "TMU",
+            "name": "TUTA MONOUSO"
+          }
+        ]
+      },
+      {
+        "id": "EDIL",
+        "name": "EDILIZIA E ACCESSORI",
+        "children": [
+          {
+            "id": "DIF",
+            "name": "DISCHI FLEX"
+          },
+          {
+            "id": "KPU",
+            "name": "KIT PUNTE TRAPANO"
+          },
+          {
+            "id": "PUT",
+            "name": "PUNTE TRAPANO"
+          },
+          {
+            "id": "SPA",
+            "name": "SPAZZOLE IN ACCIAIO"
+          },
+          {
+            "id": "SPC",
+            "name": "SPARA CHIODI E PUNTI"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "TAS",
+            "name": "TASSELLI E ANCORAGGI"
+          },
+          {
+            "id": "VITI",
+            "name": "VITI E FISSAGGI"
+          }
+        ]
+      },
+      {
+        "id": "EFI",
+        "name": "ELEMENTI DI FISSAGGIO E ISOLANTI",
+        "children": [
+          {
+            "id": "FE",
+            "name": "FERMACAVO"
+          },
+          {
+            "id": "FEP",
+            "name": "FERMA PORTA"
+          },
+          {
+            "id": "NASTR",
+            "name": "NASTRI ADESIVI"
+          },
+          {
+            "id": "NI",
+            "name": "NASTRI ISOLANTI"
+          },
+          {
+            "id": "PCOL",
+            "name": "PISTOLE PER COLLA A CALDO"
+          },
+          {
+            "id": "SPC",
+            "name": "SPARA CHIODI E PUNTI"
+          },
+          {
+            "id": "ST",
+            "name": "STAFFE"
+          },
+          {
+            "id": "STA",
+            "name": "STAFFE"
+          },
+          {
+            "id": "TAS",
+            "name": "TASSELLI E ANCORAGGI"
+          },
+          {
+            "id": "VITI",
+            "name": "VITI E FISSAGGI"
+          }
+        ]
+      },
+      {
+        "id": "FAS",
+        "name": "FASCETTE E STRINGITUBO",
+        "children": [
+          {
+            "id": "FAE",
+            "name": "FASCETTE"
+          }
+        ]
+      },
+      {
+        "id": "FUT",
+        "name": "FORBICI E UTENSILI DA TAGLIO",
+        "children": [
+          {
+            "id": "ACC",
+            "name": "ACCETTA"
+          },
+          {
+            "id": "CLD",
+            "name": "CESOIA A LEVA DEMOLTIPLICATA"
+          },
+          {
+            "id": "FO",
+            "name": "FORBICI"
+          },
+          {
+            "id": "FOE",
+            "name": "FORBICI ELETTRICISTA"
+          },
+          {
+            "id": "FUS",
+            "name": "FUSTELLATRICI"
+          },
+          {
+            "id": "LAME",
+            "name": "LAME E ACCESSORI DA TAGLIO"
+          },
+          {
+            "id": "SE",
+            "name": "SEZIONATORI"
+          },
+          {
+            "id": "SEG",
+            "name": "SEGACCIO"
+          },
+          {
+            "id": "SGA",
+            "name": "SEGA"
+          },
+          {
+            "id": "TAB",
+            "name": "TAGLIABULLONI"
+          },
+          {
+            "id": "TAG",
+            "name": "TAGLIERINI"
+          },
+          {
+            "id": "TPO",
+            "name": "TAGLIA POLISTEROLO"
+          },
+          {
+            "id": "UTEL",
+            "name": "UTENSILI ELETTRICISTA"
+          }
+        ]
+      },
+      {
+        "id": "LB",
+        "name": "ELETTROUTENSILI BASIC",
+        "children": [
+          {
+            "id": "PCOL",
+            "name": "PISTOLE PER COLLA A CALDO"
+          }
+        ]
+      },
+      {
+        "id": "LIF",
+        "name": "ELETTROUTENSILI A FILO",
+        "children": [
+          {
+            "id": "SAL",
+            "name": "SALDATRICI"
+          }
+        ]
+      },
+      {
+        "id": "MAC",
+        "name": "MARTELLI E ATTREZZATURA DA CANTIERE",
+        "children": [
+          {
+            "id": "LAME",
+            "name": "LAME E ACCESSORI DA TAGLIO"
+          },
+          {
+            "id": "LC",
+            "name": "LEVACHIODI"
+          },
+          {
+            "id": "MAR",
+            "name": "MARTELLI"
+          },
+          {
+            "id": "RAS",
+            "name": "RASCHIETTI"
+          },
+          {
+            "id": "SCF",
+            "name": "SPATOLE CAZZUOLE E FRATTAZZI"
+          },
+          {
+            "id": "SSC",
+            "name": "SET SCALPELLI"
+          }
+        ]
+      },
+      {
+        "id": "RIT",
+        "name": "RACCORDI, INNESTI, TUBI, IRRIGATORI",
+        "children": [
+          {
+            "id": "PIGON",
+            "name": "PISTOLE DI GONFIAGGIO"
+          },
+          {
+            "id": "RI",
+            "name": "RACCORDI ED INNESTI GIARDINAGGIO"
+          },
+          {
+            "id": "SPAC",
+            "name": "SPAZZOLE PER AUTO E CERCHIONI"
+          }
+        ]
+      },
+      {
+        "id": "SAL",
+        "name": "SALDATRICI E ACCESSORI",
+        "children": [
+          {
+            "id": "SAL",
+            "name": "SALDATRICI"
+          }
+        ]
+      },
+      {
+        "id": "STRM",
+        "name": "STRUMENTI DI MISURA",
+        "children": [
+          {
+            "id": "CF",
+            "name": "CERCAFASE"
+          },
+          {
+            "id": "FLE",
+            "name": "FLESSOMETRI"
+          },
+          {
+            "id": "LIV",
+            "name": "LIVELLE"
+          },
+          {
+            "id": "MLA",
+            "name": "MISURATORE LASER"
+          },
+          {
+            "id": "MU",
+            "name": "MULTIMETRO"
+          },
+          {
+            "id": "TERM",
+            "name": "STRUMENTI DI MISURA"
+          },
+          {
+            "id": "TESTE",
+            "name": "TESTER E STRUMENTI DI MISURA"
+          }
+        ]
+      },
+      {
+        "id": "UTM",
+        "name": "UTENSILI MANUALI",
+        "children": [
+          {
+            "id": "ACC",
+            "name": "ACCETTA"
+          },
+          {
+            "id": "ASAL",
+            "name": "ACCESSORI PER SALDATURA"
+          },
+          {
+            "id": "BUS",
+            "name": "BUSSOLE E INSERTI"
+          },
+          {
+            "id": "CHIAV",
+            "name": "CHIAVI E UTENSILI DI SERRAGGIO"
+          },
+          {
+            "id": "CHRU",
+            "name": "CHIAVI PER RUOTE"
+          },
+          {
+            "id": "CI",
+            "name": "CHIAVI INGLESI"
+          },
+          {
+            "id": "CPA",
+            "name": "CONTENITORI IN PLASTICA PER ATTREZZ"
+          },
+          {
+            "id": "DIF",
+            "name": "DISCHI FLEX"
+          },
+          {
+            "id": "FUS",
+            "name": "FUSTELLATRICI"
+          },
+          {
+            "id": "LAME",
+            "name": "LAME E ACCESSORI DA TAGLIO"
+          },
+          {
+            "id": "LC",
+            "name": "LEVACHIODI"
+          },
+          {
+            "id": "LIA",
+            "name": "LIME IN ACCIAIO"
+          },
+          {
+            "id": "MAR",
+            "name": "MARTELLI"
+          },
+          {
+            "id": "MASF",
+            "name": "SET MASCHI E FILIERE"
+          },
+          {
+            "id": "MOR",
+            "name": "MORSE"
+          },
+          {
+            "id": "MUL",
+            "name": "MULTIFUNZIONE"
+          },
+          {
+            "id": "PI",
+            "name": "PINZE"
+          },
+          {
+            "id": "PIS",
+            "name": "PISTOLE PER SILICONE"
+          },
+          {
+            "id": "PRID",
+            "name": "PRESSE IDRAULICHE"
+          },
+          {
+            "id": "PUT",
+            "name": "PUNTE TRAPANO"
+          },
+          {
+            "id": "RAS",
+            "name": "RASCHIETTI"
+          },
+          {
+            "id": "RIV",
+            "name": "RIVETTATRICI"
+          },
+          {
+            "id": "SCAC",
+            "name": "SET CACCIAVITI"
+          },
+          {
+            "id": "SCI",
+            "name": "SET CHIAVI INGLESI"
+          },
+          {
+            "id": "SCRI",
+            "name": "SET CHIAVI A CRICCHETTO"
+          },
+          {
+            "id": "SEG",
+            "name": "SEGACCIO"
+          },
+          {
+            "id": "SPA",
+            "name": "SPAZZOLE IN ACCIAIO"
+          },
+          {
+            "id": "SPAC",
+            "name": "SPAZZOLE PER AUTO E CERCHIONI"
+          },
+          {
+            "id": "SPC",
+            "name": "SPARA CHIODI E PUNTI"
+          },
+          {
+            "id": "SSC",
+            "name": "SET SCALPELLI"
+          },
+          {
+            "id": "STIS",
+            "name": "SPECCHI DI ISPEZIONE"
+          },
+          {
+            "id": "TAGLI",
+            "name": "TAGLIAPIASTRELLE ELETTRICI"
+          },
+          {
+            "id": "UTEL",
+            "name": "UTENSILI ELETTRICISTA"
+          },
+          {
+            "id": "VER",
+            "name": "VERNICIATORE"
+          }
+        ]
+      }
+    ]
+  }
+]
