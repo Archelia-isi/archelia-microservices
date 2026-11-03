@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import HTMLFlipBook from 'react-pageflip';
+import {
+  Search,
+  Eye,
+  Download,
+  Percent,
+  Trash2,
+  Settings2,
+  Package,
+  ChevronDown,
+} from 'lucide-react';
+import StickyHeader from '../../components/ui/StickyHeader';
+import Tabs from '../../components/ui/Tabs';
+import GlassPanel from '../../components/ui/GlassPanel';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import TextInput from '../../components/ui/TextInput';
+import Select from '../../components/ui/Select';
+import Switch from '../../components/ui/Switch';
 import { useWindowStore } from '../../store/useWindowStore';
 import {
   type AgentManagedClient,
@@ -136,106 +154,178 @@ function MultiSelectFacetDropdown({
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <label
+        style={{
+          display: 'block',
+          fontSize: '11px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+          color: 'var(--color-text-muted)',
+          marginBottom: '6px',
+        }}
+      >
         {label}
       </label>
-      <button
-        type="button"
+      <div
         onClick={() => setOpen(prev => !prev)}
-        className={`w-full flex items-center justify-between px-3 py-2.5 text-left text-sm rounded-lg border transition-colors bg-white ${
-          selectedValues.length > 0
-            ? 'border-brand-main ring-1 ring-brand-main/20 text-gray-900 font-semibold'
-            : 'border-gray-300 text-gray-700 hover:border-gray-400'
-        }`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderRadius: 'var(--radius-sm)',
+          border:
+            selectedValues.length > 0
+              ? '2px solid var(--color-primary)'
+              : '1px solid var(--color-border)',
+          background: 'var(--color-surface-solid)',
+          cursor: 'pointer',
+          fontSize: '12px',
+          fontWeight: selectedValues.length > 0 ? 700 : 500,
+        }}
       >
-        <span className="truncate">
+        <span
+          style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {selectedValues.length === 0
             ? placeholder
             : selectedValues.length === 1
             ? options.find(o => o.code === selectedValues[0])?.label || selectedValues[0]
             : `${selectedValues.length} selezionati (${selectedValues.join(', ')})`}
         </span>
-        <div className="flex items-center gap-1.5 ml-2 shrink-0">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {selectedValues.length > 0 && (
             <span
               onClick={e => {
                 e.stopPropagation();
                 onChange([]);
               }}
-              className="px-1.5 py-0.5 text-[10px] font-bold bg-gray-200 hover:bg-red-100 hover:text-red-700 text-gray-700 rounded transition-colors"
+              style={{
+                padding: '1px 5px',
+                fontSize: '10px',
+                fontWeight: 800,
+                background: 'var(--color-hover-dark)',
+                borderRadius: '4px',
+              }}
               title="Azzera selezione"
             >
               ✕
             </span>
           )}
-          <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown size={14} />
         </div>
-      </button>
+      </div>
 
       {open && (
-        <div className="absolute z-40 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-gray-100 bg-gray-50">
-            <input
-              type="text"
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 60,
+            left: 0,
+            right: 0,
+            marginTop: '6px',
+            background: 'var(--color-surface-solid)',
+            border: '1px solid var(--color-border-dark)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ padding: '8px', borderBottom: '1px solid var(--color-border)' }}>
+            <TextInput
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={`Cerca in ${label.toLowerCase()}...`}
-              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-main"
-              autoFocus
+              leftIcon={<Search size={13} />}
+              fullWidth
             />
           </div>
-          <div className="max-h-60 overflow-y-auto divide-y divide-gray-50">
+          <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
             {filteredOptions.length === 0 ? (
-              <div className="p-3 text-xs text-gray-500 text-center">Nessuna opzione trovata</div>
+              <div
+                style={{
+                  padding: '12px',
+                  fontSize: '12px',
+                  color: 'var(--color-text-muted)',
+                  textAlign: 'center',
+                }}
+              >
+                Nessuna opzione trovata
+              </div>
             ) : (
               filteredOptions.map(opt => {
                 const isSelected = selectedValues.includes(opt.code);
                 return (
-                  <label
+                  <div
                     key={opt.code}
-                    className={`flex items-center justify-between px-3 py-2 text-xs cursor-pointer transition-colors ${
-                      isSelected ? 'bg-amber-50/80 font-semibold text-gray-900' : 'hover:bg-gray-50 text-gray-700'
-                    }`}
+                    onClick={() => toggleOption(opt.code)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      background: isSelected ? 'var(--color-primary-light)' : 'transparent',
+                      fontWeight: isSelected ? 700 : 500,
+                    }}
                   >
-                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                      }}
+                    >
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleOption(opt.code)}
-                        className="rounded border-gray-300 text-brand-main focus:ring-brand-main"
+                        readOnly
+                        style={{ accentColor: 'var(--color-primary)' }}
                       />
-                      <span className="truncate" title={opt.label}>
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={opt.label}
+                      >
                         {opt.label}
                       </span>
                     </div>
-                    <span className="px-1.5 py-0.5 text-[10px] font-mono bg-gray-100 text-gray-600 rounded shrink-0">
+                    <Badge variant={isSelected ? 'primary' : 'neutral'} size="sm">
                       {opt.count}
-                    </span>
-                  </label>
+                    </Badge>
+                  </div>
                 );
               })
             )}
           </div>
           {selectedValues.length > 0 && (
-            <div className="p-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-              <span className="text-[11px] text-gray-600 font-medium">
+            <div
+              style={{
+                padding: '6px 10px',
+                borderTop: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                 {selectedValues.length} selezionati
               </span>
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                className="text-[11px] font-bold text-red-600 hover:underline"
-              >
+              <Button type="button" variant="danger" size="sm" onClick={() => onChange([])}>
                 Deseleziona tutti
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -1537,798 +1627,1025 @@ export default function CatalogBuilderClient({
   };
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* INTESTAZIONE PRINCIPALE COMPATTA */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-5 py-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-black text-brand-main font-black text-sm shrink-0">
-                  📖
-                </span>
-                <h1 className="text-lg font-black text-gray-900 tracking-tight truncate">
-                  Sviluppa Catalogo Personalizzato
-                </h1>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Aggiungi prodotti per codice SKU con la barra predittiva o filtra per reparto.
-              </p>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
+      <StickyHeader paddingY="sm">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 'var(--spacing-md)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Tabs
+            activeTab={showConfigPanel ? 'all' : 'products'}
+            onChange={id => _setShowConfigPanel(id === 'all')}
+            tabs={[
+              {
+                id: 'all',
+                label: 'Configuratore Completo (Prodotti + Layout PDF)',
+                icon: <Settings2 size={14} />,
+              },
+              {
+                id: 'products',
+                label: 'Solo Ricerca & Filtri Prodotti',
+                icon: <Package size={14} />,
+              },
+            ]}
+          />
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsPreviewModalOpen(true)}
-                disabled={sortedCatalogProducts.length === 0}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-gray-900 hover:bg-black text-white shadow-sm transition-all disabled:opacity-45 disabled:cursor-not-allowed flex items-center gap-1.5 border border-gray-800"
-              >
-                <svg className="w-3.5 h-3.5 text-brand-main" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                Anteprima ({sortedCatalogProducts.length})
-              </button>
-
-              <button
-                type="button"
-                onClick={handleDownloadPdf}
-                disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
-                className="px-3.5 py-1.5 text-xs font-black rounded-lg bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-              >
-                {isGeneratingPdf ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                    Generazione PDF...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.2}
-                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    Scarica PDF ({sortedCatalogProducts.length} • {Math.ceil(sortedCatalogProducts.length / 6)}{' '}
-                    {Math.ceil(sortedCatalogProducts.length / 6) === 1 ? 'foglio' : 'fogli'})
-                  </>
-                )}
-              </button>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+            <Badge variant="neutral" size="sm">
+              Agente: {agentName} ({agentCode})
+            </Badge>
+            <Badge variant="primary" size="sm">
+              {sortedCatalogProducts.length} articoli • {totalSheets} fogli A4
+            </Badge>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Percent size={14} />}
+              onClick={() => useWindowStore.getState().openWindow('b2b_discounts')}
+            >
+              Sconti ({applicableRulesCount})
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Eye size={14} />}
+              disabled={sortedCatalogProducts.length === 0}
+              onClick={() => setIsPreviewModalOpen(true)}
+            >
+              Anteprima Sfogliabile ({sortedCatalogProducts.length})
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Download size={14} />}
+              disabled={isGeneratingPdf || sortedCatalogProducts.length === 0}
+              onClick={handleDownloadPdf}
+            >
+              {isGeneratingPdf
+                ? 'Generazione PDF...'
+                : `Scarica PDF (${sortedCatalogProducts.length} • ${Math.ceil(sortedCatalogProducts.length / 6)} fogli)`}
+            </Button>
           </div>
-
-        {pdfError && (
-          <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-center justify-between">
-            <span>⚠️ {pdfError}</span>
-            <button onClick={() => setPdfError('')} className="text-red-500 hover:text-red-800 font-bold">
-              ✕
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* PANNELLO 1: AGGIUNTA RAPIDA SINGOLO PRODOTTO (PREDITTIVA) + FILTRI REPARTO */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-100 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 text-xs font-black bg-gray-900 text-white rounded-md">
-              1
-            </span>
-            <h2 className="text-base font-bold text-gray-900">
-              Aggiungi Prodotti al Catalogo
-            </h2>
-          </div>
-          {lastAddedSku && (
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              ✓ Aggiunto al catalogo: {lastAddedSku} — scrivi pure il prossimo codice!
-            </span>
-          )}
         </div>
+      </StickyHeader>
 
-        {/* RIGA 1: Barra Predittiva (identica a PredictiveSearchBar del sito) + Filtro Deposito */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div ref={predictiveContainerRef} className="lg:col-span-7 relative">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Inserimento Rapido per Codice o Nome (Clicca sul prodotto per aggiungerlo)
-            </label>
-
-            <div className="relative flex w-full">
-              <input
-                ref={searchInputRef}
-                type="text"
-                autoComplete="off"
-                value={query}
-                onChange={e => {
-                  setQuery(e.target.value);
-                  if (!isPredictiveOpen && e.target.value.trim().length > 0) {
-                    setIsPredictiveOpen(true);
-                  }
+      {/* LAYOUT A 2 COLONNE SENZA SOVRAPPOSIZIONI */}
+      <div
+        style={{
+          padding: 'var(--spacing-lg)',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 310px',
+          gap: 'var(--spacing-lg)',
+          alignItems: 'start',
+          flex: 1,
+        }}
+      >
+        {/* COLONNA SINISTRA: STEP 1 E STEP 2 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+          {pdfError && (
+            <GlassPanel padding="sm" radius="md">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  color: 'var(--color-danger)',
+                  fontSize: '12px',
+                  fontWeight: 700,
                 }}
-                onFocus={() => {
-                  if (query.trim().length > 0) {
-                    setIsPredictiveOpen(true);
-                  }
-                }}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Scrivi codice SKU o prodotto (es. E45, IL34, faretto)... clicca e passa al successivo"
-                className="w-full px-4 py-2.5 pr-20 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-brand-main focus:border-transparent transition-all shadow-sm font-medium text-sm"
-              />
+              >
+                <span>⚠️ {pdfError}</span>
+                <Button size="sm" variant="danger" onClick={() => setPdfError('')}>
+                  Chiudi
+                </Button>
+              </div>
+            </GlassPanel>
+          )}
 
-              {query.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery('');
-                    setPredictiveResults([]);
-                    setIsPredictiveOpen(false);
-                    searchInputRef.current?.focus();
-                  }}
-                  aria-label="Cancella ricerca"
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors p-1"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+          {/* PANNELLO 1: AGGIUNGI PRODOTTI AL CATALOGO */}
+          <GlassPanel padding="lg" radius="lg">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'var(--spacing-md)',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Badge variant="primary" size="sm">
+                  STEP 1
+                </Badge>
+                <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                  Aggiungi Prodotti al Catalogo
+                </span>
+              </div>
+              {lastAddedSku && (
+                <Badge variant="success" size="sm">
+                  ✓ Aggiunto al catalogo: {lastAddedSku} — scrivi pure il prossimo codice!
+                </Badge>
               )}
+            </div>
 
-              <div className="absolute right-0 top-0 bottom-0 w-11 bg-brand-main rounded-r-md flex items-center justify-center text-black pointer-events-none">
-                {isPredictiveLoading ? (
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.4fr 1fr',
+                gap: 'var(--spacing-md)',
+                alignItems: 'start',
+                marginBottom: 'var(--spacing-md)',
+              }}
+            >
+              {/* Barra Predittiva */}
+              <div ref={predictiveContainerRef} style={{ position: 'relative' }}>
+                <TextInput
+                  label="Inserimento Rapido per Codice o Nome (Clicca sul prodotto per aggiungerlo)"
+                  value={query}
+                  onChange={e => {
+                    setQuery(e.target.value);
+                    if (!isPredictiveOpen && e.target.value.trim().length > 0) {
+                      setIsPredictiveOpen(true);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (query.trim().length > 0) {
+                      setIsPredictiveOpen(true);
+                    }
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="Scrivi codice SKU o prodotto (es. E45, IL34, faretto)... clicca e passa al successivo"
+                  leftIcon={<Search size={15} />}
+                  fullWidth
+                />
+
+                {isPredictiveOpen && query.trim().length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: '6px',
+                      background: 'var(--color-surface-solid)',
+                      border: '1px solid var(--color-border-dark)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      zIndex: 80,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        background: 'var(--color-bg)',
+                        borderBottom: '1px solid var(--color-border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '11px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Badge variant="primary" size="sm">
+                          Izzo Distribuzione
+                        </Badge>
+                        <span style={{ color: 'var(--color-text-muted)' }}>
+                          {isPredictiveLoading
+                            ? 'Ricerca in corso...'
+                            : `${predictiveFound} prodotti trovati — clicca per aggiungere`}
+                        </span>
+                      </div>
+                      {predictiveResults.length > 0 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="primary"
+                          onClick={handleAddAllFromSearchQuery}
+                        >
+                          + Aggiungi tutti ({predictiveFound})
+                        </Button>
+                      )}
+                    </div>
+
+                    <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                      {predictiveResults.length > 0 ? (
+                        predictiveResults.map((product, index) => {
+                          const isHighlighted = index === activeIndex;
+                          const alreadyInCatalog = catalogIdsSet.has(product.id);
+                          const pricing = calculateProductPricing(product);
+
+                          return (
+                            <div
+                              key={product.id || product.sku}
+                              onClick={() => handleAddSingleProductFromPredictive(product)}
+                              onMouseEnter={() => setActiveIndex(index)}
+                              style={{
+                                padding: '8px 12px',
+                                borderBottom: '1px solid var(--color-border-light)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                background: alreadyInCatalog
+                                  ? 'var(--color-primary-light)'
+                                  : isHighlighted
+                                  ? 'var(--color-hover-light)'
+                                  : 'transparent',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  minWidth: 0,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--color-border)',
+                                    background: '#fff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    padding: '2px',
+                                  }}
+                                >
+                                  {product.imageUrl ? (
+                                    <img
+                                      src={product.imageUrl}
+                                      alt={product.title}
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'contain',
+                                      }}
+                                    />
+                                  ) : (
+                                    <span style={{ fontSize: '9px', color: '#94a3b8' }}>N/D</span>
+                                  )}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      flexWrap: 'wrap',
+                                    }}
+                                  >
+                                    <Badge variant="neutral" size="sm">
+                                      {product.sku}
+                                    </Badge>
+                                    {renderPredictiveStockBadges(product)}
+                                    {alreadyInCatalog && (
+                                      <Badge variant="success" size="sm">
+                                        ✓ Già nel catalogo
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    {product.originalName || product.title}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '12px', fontWeight: 800 }}>
+                                  € {pricing.netPrice.toFixed(2).replace('.', ',')}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    color: 'var(--color-primary)',
+                                  }}
+                                >
+                                  {alreadyInCatalog ? 'Aggiunto' : '+ Clicca per aggiungere'}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : !isPredictiveLoading ? (
+                        <div
+                          style={{
+                            padding: '16px',
+                            textAlign: 'center',
+                            fontSize: '12px',
+                            color: 'var(--color-text-muted)',
+                          }}
+                        >
+                          Nessun risultato trovato per "{query.trim()}"
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 )}
+              </div>
+
+              {/* Disponibilità / Deposito */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--color-text-muted)',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Disponibilità / Deposito
+                </div>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                  {WAREHOUSE_OPTIONS.map(opt => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      size="sm"
+                      variant={warehouse === opt.value ? 'primary' : 'secondary'}
+                      onClick={() => setWarehouse(opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+                <Switch
+                  checked={includeZeroStock}
+                  onChange={setIncludeZeroStock}
+                  label="Includi prodotti a giacenza 0"
+                />
               </div>
             </div>
 
-            {/* TENDINA PREDITTIVA (Stile e Ordinamento identici a PredictiveSearchBar.tsx del sito) */}
-            {isPredictiveOpen && query.trim().length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-lg shadow-2xl z-[80] overflow-hidden text-gray-900">
-                {/* Context Header */}
-                <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold uppercase tracking-wider text-[10px] px-2 py-0.5 rounded bg-brand-main/15 text-brand-main border border-brand-main/30">
-                      Izzo Distribuzione
-                    </span>
-                    <span className="text-gray-500 font-medium">
-                      {isPredictiveLoading
-                        ? 'Ricerca in corso...'
-                        : `${predictiveFound} prodott${predictiveFound === 1 ? 'o' : 'i'} trovat${predictiveFound === 1 ? 'o' : 'i'} — clicca per aggiungere al catalogo`}
-                    </span>
-                  </div>
-                  {isPredictiveLoading && (
-                    <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-brand-main rounded-full animate-spin" />
+            {/* RIGA 2: FILTRI REPARTO / MARCHIO */}
+            <div
+              style={{
+                paddingTop: 'var(--spacing-md)',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-text-muted)',
+                  marginBottom: '10px',
+                }}
+              >
+                Oppure carica intere linee filtrando per Marchio o Tipo di Prodotto:
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gap: 'var(--spacing-sm)',
+                }}
+              >
+                <MultiSelectFacetDropdown
+                  label="Marchio (Brand)"
+                  placeholder="Tutti i Marchi"
+                  options={facets.brands}
+                  selectedValues={selectedBrands}
+                  onChange={setSelectedBrands}
+                />
+                <MultiSelectFacetDropdown
+                  label="Tipo Prodotto — Gruppo (L1)"
+                  placeholder="Tutti i Gruppi Merceologici"
+                  options={facets.productGroups}
+                  selectedValues={selectedProductGroups}
+                  onChange={setSelectedProductGroups}
+                />
+                <MultiSelectFacetDropdown
+                  label="Tipo Prodotto — Famiglia (L2)"
+                  placeholder="Tutte le Famiglie"
+                  options={facets.families}
+                  selectedValues={selectedFamilies}
+                  onChange={setSelectedFamilies}
+                />
+                <MultiSelectFacetDropdown
+                  label="Tipo Prodotto — Categoria (L3)"
+                  placeholder="Tutte le Categorie"
+                  options={facets.categories}
+                  selectedValues={selectedCategories}
+                  onChange={setSelectedCategories}
+                />
+              </div>
+            </div>
+
+            {/* RIGA 3: ORDINAMENTO E SVUOTA */}
+            <div
+              style={{
+                marginTop: 'var(--spacing-md)',
+                paddingTop: 'var(--spacing-md)',
+                borderTop: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 'var(--spacing-sm)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700 }}>Ordina per:</span>
+                <div style={{ width: '320px' }}>
+                  <Select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as CatalogSortMode)}
+                    options={[
+                      {
+                        value: 'TAXONOMY_ASC',
+                        label: 'Gruppo Merceologico / Famiglia / Categoria',
+                      },
+                      {
+                        value: 'INSERTION_ORDER',
+                        label: 'Ordine di inserimento (Come scelti)',
+                      },
+                      { value: 'STOCK_DESC', label: 'Giacenza Maggiore (Prima 2GG)' },
+                      { value: 'SKU_ASC', label: 'Codice Articolo (A-Z)' },
+                      { value: 'PRICE_ASC', label: 'Prezzo Crescente' },
+                      { value: 'PRICE_DESC', label: 'Prezzo Decrescente' },
+                      { value: 'TITLE_ASC', label: 'Descrizione (A-Z)' },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {catalogItems.length > 0 && (
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  icon={<Trash2 size={14} />}
+                  onClick={handleClearCatalog}
+                >
+                  Svuota catalogo ({catalogItems.length} schede)
+                </Button>
+              )}
+            </div>
+          </GlassPanel>
+
+          {/* PANNELLO 2: PERSONALIZZA PREZZI, SCONTI CLIENTE E LAYOUT PDF */}
+          {showConfigPanel && (
+            <GlassPanel padding="lg" radius="lg">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 'var(--spacing-md)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Badge variant="success" size="sm">
+                    STEP 2
+                  </Badge>
+                  <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                    Personalizza Prezzi, Sconti Cliente e Layout del PDF
+                  </span>
+                </div>
+                <Badge variant="neutral" size="sm">
+                  Agente: {agentName} ({agentCode})
+                </Badge>
+              </div>
+
+              {/* Riga Titolo, Sottotitolo e Cliente */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: 'var(--spacing-md)',
+                  marginBottom: 'var(--spacing-md)',
+                }}
+              >
+                <TextInput
+                  label="Titolo del Catalogo PDF"
+                  value={catalogTitle}
+                  onChange={e => setCatalogTitle(e.target.value)}
+                  placeholder="Es. Catalistino Riservato a..."
+                  fullWidth
+                />
+                <TextInput
+                  label="Sottotitolo / Nota Commerciale (Opzionale)"
+                  value={catalogSubtitle}
+                  onChange={e => setCatalogSubtitle(e.target.value)}
+                  placeholder="Es. Offerta esclusiva valida per il primo acquisto"
+                  fullWidth
+                />
+
+                {/* Selettore Cliente */}
+                <div ref={clientDropdownRef} style={{ position: 'relative' }}>
+                  <TextInput
+                    label="Associa a un tuo Cliente (Carica Sconti Automatici)"
+                    value={clientSearchText}
+                    onFocus={() => setIsClientDropdownOpen(true)}
+                    onChange={e => {
+                      setClientSearchText(e.target.value);
+                      setIsClientDropdownOpen(true);
+                      if (!e.target.value.trim()) {
+                        setSelectedClientId('');
+                        setBaseDiscount(0);
+                        setExtraDiscount(0);
+                        setElmarkDiscounts({});
+                      }
+                    }}
+                    placeholder="Cerca tuo cliente per Ragione Sociale o Codice..."
+                    rightIcon={
+                      selectedClient ? (
+                        <span
+                          style={{
+                            cursor: 'pointer',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            color: 'var(--color-danger)',
+                          }}
+                          onClick={() => handleSelectClient(null)}
+                        >
+                          ✕
+                        </span>
+                      ) : undefined
+                    }
+                    fullWidth
+                  />
+
+                  {isClientDropdownOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        zIndex: 60,
+                        left: 0,
+                        right: 0,
+                        marginTop: '6px',
+                        background: 'var(--color-surface-solid)',
+                        border: '1px solid var(--color-border-dark)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-lg)',
+                        maxHeight: '240px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      <div
+                        onClick={() => handleSelectClient(null)}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--color-border)',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        — Nessun cliente specifico (Usa sconto manuale) —
+                      </div>
+                      {filteredClients.map(c => (
+                        <div
+                          key={c.id}
+                          onClick={() => handleSelectClient(c)}
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid var(--color-border-light)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background:
+                              selectedClientId === c.id
+                                ? 'var(--color-primary-light)'
+                                : 'transparent',
+                          }}
+                        >
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 700 }}>{c.companyName}</div>
+                            <div
+                              style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}
+                            >
+                              Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
+                            </div>
+                          </div>
+                          <Badge variant="success" size="sm">
+                            Sc. {Number(c.discount || 0)}%
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
+              </div>
 
-                {/* Lista Prodotti Predittiva */}
-                <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-100">
-                  {predictiveResults.length > 0 ? (
-                    predictiveResults.map((product, index) => {
-                      const isHighlighted = index === activeIndex;
-                      const alreadyInCatalog = catalogIdsSet.has(product.id);
-                      const pricing = calculateProductPricing(product);
-
+              {/* Riga Modalità Prezzi, Sconto Applicato, Modalità Giacenze */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.2fr 1fr 1.1fr',
+                  gap: 'var(--spacing-md)',
+                  alignItems: 'start',
+                }}
+              >
+                {/* Visualizzazione Prezzi */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    Visualizzazione Prezzi nel Catalogo
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    {PRICE_MODE_OPTIONS.map(opt => {
+                      const active = priceMode === opt.value;
                       return (
                         <div
-                          key={product.id || product.sku}
-                          onClick={() => handleAddSingleProductFromPredictive(product)}
-                          onMouseEnter={() => setActiveIndex(index)}
-                          className={`px-3.5 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${
-                            alreadyInCatalog
-                              ? 'bg-emerald-50/70 hover:bg-emerald-100/70'
-                              : isHighlighted
-                              ? 'bg-gray-100'
-                              : 'hover:bg-gray-50'
-                          }`}
+                          key={opt.value}
+                          onClick={() => setPriceMode(opt.value)}
+                          style={{
+                            padding: '10px',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
+                            background: active
+                              ? 'var(--color-primary-light)'
+                              : 'var(--color-surface-solid)',
+                            border: active
+                              ? '2px solid var(--color-primary)'
+                              : '1px solid var(--color-border)',
+                          }}
                         >
-                          <div className="w-12 h-12 flex-shrink-0 bg-white border border-gray-200 rounded p-1 flex items-center justify-center">
-                            {product.imageUrl ? (
-                              <img
-                                src={product.imageUrl}
-                                alt={product.originalName || product.title}
-                                className="w-full h-full object-contain"
-                              />
-                            ) : (
-                              <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-bold text-gray-900 font-mono bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                {product.sku}
-                              </span>
-                              {product.brand && (
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                                  {product.brand}
-                                </span>
-                              )}
-                              {renderPredictiveStockBadges(product)}
-                              {alreadyInCatalog && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white">
-                                  ✓ Già nel catalogo
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-sm font-medium text-gray-800 truncate">
-                              {product.originalName || product.title}
-                            </span>
-                            {(product.categoryLabel || product.familyLabel || product.productGroupLabel) && (
-                              <span className="text-[11px] text-gray-400 truncate">
-                                {[product.productGroupLabel, product.familyLabel, product.categoryLabel]
-                                  .filter(Boolean)
-                                  .join(' › ')}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col items-end shrink-0 pl-2">
-                            {pricing.discountPct > 0 && (
-                              <div className="flex flex-wrap items-center justify-end gap-1">
-                                <span className="text-[10px] text-gray-400 line-through">
-                                  € {pricing.listPrice.toFixed(2).replace('.', ',')}
-                                </span>
-                                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                                  -{pricing.discountPct}%
-                                </span>
-                                {pricing.appliedRuleExpiresFormatted && (
-                                  <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">
-                                    ⏳ {pricing.appliedRuleExpiresFormatted}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            <span className="text-sm font-bold text-gray-900 whitespace-nowrap">
-                              € {pricing.netPrice.toFixed(2).replace('.', ',')}
-                            </span>
-                            <span className="text-[10px] font-bold text-brand-main">
-                              {alreadyInCatalog ? 'Aggiunto' : '+ Clicca per aggiungere'}
-                            </span>
+                          <div style={{ fontSize: '12px', fontWeight: 700 }}>{opt.label}</div>
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              color: 'var(--color-text-muted)',
+                              marginTop: '2px',
+                            }}
+                          >
+                            {opt.desc}
                           </div>
                         </div>
                       );
-                    })
-                  ) : !isPredictiveLoading ? (
-                    <div className="px-4 py-6 text-center text-sm text-gray-500">
-                      Nessun risultato trovato in <span className="font-bold text-gray-700">Izzo Distribuzione</span> per &ldquo;{query.trim()}&rdquo;
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* Footer CTA per aggiungere tutti i risultati della ricerca */}
-                {predictiveResults.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleAddAllFromSearchQuery}
-                    className="w-full px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border-t border-gray-200 text-xs font-bold text-brand-main uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <span>
-                      + Aggiungi tutti i {predictiveFound} risultati per &ldquo;{query.trim()}&rdquo; al catalogo
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-5">
-            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-              Disponibilità / Deposito
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {WAREHOUSE_OPTIONS.map(opt => {
-                const active = warehouse === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setWarehouse(opt.value)}
-                    className={`px-3 py-2.5 text-xs font-bold rounded-lg border transition-all text-center ${
-                      active
-                        ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-            <label className="mt-2.5 inline-flex items-center gap-2 text-xs font-semibold text-gray-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includeZeroStock}
-                onChange={e => setIncludeZeroStock(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-brand-main focus:ring-brand-main cursor-pointer"
-              />
-              <span>Includi prodotti a giacenza 0</span>
-            </label>
-          </div>
-        </div>
-
-        {/* RIGA 2: Oppure carica intere linee per Marchio / Gruppo / Famiglia / Categoria */}
-        <div className="pt-2 border-t border-gray-100">
-          <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">
-            Oppure carica intere linee filtrando per Marchio o Tipo di Prodotto:
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MultiSelectFacetDropdown
-              label="Marchio (Brand)"
-              placeholder="Tutti i Marchi"
-              options={facets.brands}
-              selectedValues={selectedBrands}
-              onChange={setSelectedBrands}
-            />
-
-            <MultiSelectFacetDropdown
-              label="Tipo Prodotto — Gruppo (L1)"
-              placeholder="Tutti i Gruppi Merceologici"
-              options={facets.productGroups}
-              selectedValues={selectedProductGroups}
-              onChange={setSelectedProductGroups}
-            />
-
-            <MultiSelectFacetDropdown
-              label="Tipo Prodotto — Famiglia (L2)"
-              placeholder="Tutte le Famiglie"
-              options={facets.families}
-              selectedValues={selectedFamilies}
-              onChange={setSelectedFamilies}
-            />
-
-            <MultiSelectFacetDropdown
-              label="Tipo Prodotto — Categoria (L3)"
-              placeholder="Tutte le Categorie"
-              options={facets.categories}
-              selectedValues={selectedCategories}
-              onChange={setSelectedCategories}
-            />
-          </div>
-        </div>
-
-        {/* RIGA 3: Ordinamento e Svuota Catalogo */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-gray-100">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-bold text-gray-600">Ordina per:</label>
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as CatalogSortMode)}
-                className="px-2.5 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg bg-white"
-              >
-                <option value="TAXONOMY_ASC">Gruppo Merceologico / Famiglia / Categoria</option>
-                <option value="INSERTION_ORDER">Ordine di inserimento (Come scelti)</option>
-                <option value="STOCK_DESC">Giacenza Maggiore (Prima 2GG)</option>
-                <option value="SKU_ASC">Codice Articolo (A-Z)</option>
-                <option value="PRICE_ASC">Prezzo Crescente</option>
-                <option value="PRICE_DESC">Prezzo Decrescente</option>
-                <option value="TITLE_ASC">Descrizione (A-Z)</option>
-              </select>
-            </div>
-          </div>
-
-          {catalogItems.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearCatalog}
-              className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline flex items-center gap-1"
-            >
-              ✕ Svuota catalogo ({catalogItems.length} schede)
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* PANNELLO 2: CONFIGURAZIONE LISTINO, CLIENTE ASSEGNATO, PREZZI & GIACENZE NEL PDF */}
-      {showConfigPanel && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 text-xs font-black bg-brand-main text-black rounded-md">
-                2
-              </span>
-              <h2 className="text-base font-bold text-gray-900">
-                Personalizza Prezzi, Sconti Cliente e Layout del PDF
-              </h2>
-            </div>
-            <span className="text-xs text-gray-500">
-              Agente: <strong>{agentName}</strong> {agentCode ? `(Cod. ${agentCode})` : ''}
-            </span>
-          </div>
-
-          {/* Intestazione PDF + Selezione Cliente Predittiva */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            <div className="lg:col-span-4">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Titolo del Catalogo PDF
-              </label>
-              <input
-                type="text"
-                value={catalogTitle}
-                onChange={e => setCatalogTitle(e.target.value)}
-                placeholder="Es. Selezione Illuminazione LED Primavera"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-main"
-              />
-            </div>
-
-            <div className="lg:col-span-4">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Sottotitolo / Nota Commerciale (Opzionale)
-              </label>
-              <input
-                type="text"
-                value={catalogSubtitle}
-                onChange={e => setCatalogSubtitle(e.target.value)}
-                placeholder="Es. Condizioni riservate valide fino a fine mese"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-main"
-              />
-            </div>
-
-            {/* Selettore Predittivo Cliente Assegnato */}
-            <div ref={clientDropdownRef} className="lg:col-span-4 relative">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                Associa a un tuo Cliente (Carica Sconti Automatici)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={clientSearchText}
-                  onFocus={() => setIsClientDropdownOpen(true)}
-                  onChange={e => {
-                    setClientSearchText(e.target.value);
-                    setIsClientDropdownOpen(true);
-                    if (!e.target.value.trim()) {
-                      setSelectedClientId('');
-                      setBaseDiscount(0);
-                      setExtraDiscount(0);
-                      setElmarkDiscounts({});
-                    }
-                  }}
-                  placeholder="Cerca tuo cliente per Ragione Sociale o Codice..."
-                  className="w-full pl-3 pr-16 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-main"
-                />
-                {selectedClient && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectClient(null)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[11px] font-bold bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-700 rounded"
-                  >
-                    Scollega
-                  </button>
-                )}
-              </div>
-
-              {isClientDropdownOpen && (
-                <div className="absolute z-40 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto divide-y divide-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectClient(null)}
-                    className="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 font-medium"
-                  >
-                    — Nessun cliente specifico (Usa sconto manuale) —
-                  </button>
-                  {filteredClients.length === 0 ? (
-                    <div className="p-3 text-xs text-gray-500 text-center">
-                      Nessun cliente trovato
-                    </div>
-                  ) : (
-                    filteredClients.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => handleSelectClient(c)}
-                        className={`w-full text-left px-3 py-2 text-xs hover:bg-amber-50 transition-colors flex items-center justify-between ${
-                          selectedClientId === c.id ? 'bg-amber-50 font-bold' : ''
-                        }`}
-                      >
-                        <div className="truncate pr-2">
-                          <div className="font-bold text-gray-900 truncate">{c.companyName}</div>
-                          <div className="text-[11px] text-gray-500">
-                            Cod. {c.zucchettiCode}{' '}
-                            {c.customerType && !c.customerType.toLowerCase().includes('nessuna')
-                              ? `• ${c.customerType}`
-                              : ''}{' '}
-                            {c.city ? `• ${c.city}` : ''}
-                          </div>
-                        </div>
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded shrink-0">
-                          Sc. {Number(c.discount || 0)}%
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Modalità Prezzi, Sconti Manuali e Modalità Giacenze */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
-            {/* Scelta Modalità Prezzi */}
-            <div className="lg:col-span-5">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Visualizzazione Prezzi nel Catalogo
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PRICE_MODE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setPriceMode(opt.value)}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
-                      priceMode === opt.value
-                        ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
-                        : 'border-gray-200 bg-gray-50/60 text-gray-800 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="text-xs font-bold">{opt.label}</div>
-                    <div
-                      className={`text-[10px] mt-0.5 leading-snug ${
-                        priceMode === opt.value ? 'text-gray-300' : 'text-gray-500'
-                      }`}
-                    >
-                      {opt.desc}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sconto Base + Extra Sconto */}
-            <div className="lg:col-span-3">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Sconto Applicato ai Prezzi
-              </label>
-              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Sconto Base (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={95}
-                      step={0.5}
-                      disabled={
-                        Boolean(selectedClient) ||
-                        priceMode === 'LIST_ONLY' ||
-                        priceMode === 'NO_PRICE'
-                      }
-                      readOnly={Boolean(selectedClient)}
-                      value={baseDiscount}
-                      onChange={e => {
-                        if (selectedClient) return;
-                        setBaseDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)));
-                      }}
-                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-75"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                      Extra Sconto (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={95}
-                      step={0.5}
-                      disabled={
-                        Boolean(selectedClient) ||
-                        priceMode === 'LIST_ONLY' ||
-                        priceMode === 'NO_PRICE'
-                      }
-                      readOnly={Boolean(selectedClient)}
-                      value={extraDiscount}
-                      onChange={e => {
-                        if (selectedClient) return;
-                        setExtraDiscount(Math.max(0, Math.min(95, Number(e.target.value) || 0)));
-                      }}
-                      className="w-full px-2.5 py-1.5 text-sm font-bold border border-gray-300 rounded-md bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-75"
-                    />
+                    })}
                   </div>
                 </div>
-                <p className="text-[11px] text-gray-500 leading-tight">
-                  {selectedClient ? (
-                    <>
-                      🔒 Sconto Base fisso di{' '}
-                      <strong>{selectedClient.companyName}</strong> ({baseDiscount}%) +{' '}
-                      <strong>{applicableRulesCount}</strong> regole di sconto attive.
-                    </>
-                  ) : (
-                    <>
-                      Imposta uno sconto manuale oppure seleziona un cliente per applicare il suo
-                      listino riservato ({applicableRulesCount} regole generali attive).
-                    </>
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => useWindowStore.getState().openWindow('b2b_discounts')}
-                  className="w-full px-3 py-1.5 text-[11px] font-extrabold rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <span>🏷️ Gestisci Sconti Prodotti / Marchi / Categorie ({applicableRulesCount})</span>
-                </button>
-              </div>
-            </div>
 
-            {/* Scelta Modalità Giacenze */}
-            <div className="lg:col-span-4">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Visualizzazione Giacenze / Depositi nel PDF
-              </label>
-              <div className="space-y-1.5">
-                {STOCK_MODE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setStockMode(opt.value)}
-                    className={`w-full px-3 py-2 rounded-lg border text-left transition-all flex items-center justify-between ${
-                      stockMode === opt.value
-                        ? 'border-brand-main bg-amber-50/70 text-gray-900 font-bold'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
+                {/* Sconto Applicato ai Prezzi */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '8px',
+                    }}
                   >
-                    <div>
-                      <div className="text-xs font-bold">{opt.label}</div>
-                      <div className="text-[10px] text-gray-500">{opt.desc}</div>
-                    </div>
+                    Sconto Applicato ai Prezzi
+                  </div>
+                  <div
+                    style={{
+                      padding: '12px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-surface-solid)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
                     <div
-                      className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-2 ${
-                        stockMode === opt.value
-                          ? 'border-brand-main bg-brand-main text-black'
-                          : 'border-gray-300'
-                      }`}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '8px',
+                      }}
                     >
-                      {stockMode === opt.value && <span className="text-[10px] font-black">✓</span>}
+                      <TextInput
+                        label="Sconto Base (%)"
+                        type="number"
+                        min={0}
+                        max={95}
+                        step={0.5}
+                        disabled={
+                          Boolean(selectedClient) ||
+                          priceMode === 'LIST_ONLY' ||
+                          priceMode === 'NO_PRICE'
+                        }
+                        value={baseDiscount}
+                        onChange={e => {
+                          if (selectedClient) return;
+                          setBaseDiscount(
+                            Math.max(0, Math.min(95, Number(e.target.value) || 0))
+                          );
+                        }}
+                        fullWidth
+                      />
+                      <TextInput
+                        label="Extra Sconto (%)"
+                        type="number"
+                        min={0}
+                        max={95}
+                        step={0.5}
+                        disabled={
+                          Boolean(selectedClient) ||
+                          priceMode === 'LIST_ONLY' ||
+                          priceMode === 'NO_PRICE'
+                        }
+                        value={extraDiscount}
+                        onChange={e => {
+                          if (selectedClient) return;
+                          setExtraDiscount(
+                            Math.max(0, Math.min(95, Number(e.target.value) || 0))
+                          );
+                        }}
+                        fullWidth
+                      />
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      </div>
-
-      {/* COLONNA DESTRA ANCORATA ALLA BARRA SUPERIORE E AL BORDO DESTRO DELLO SCHERMO */}
-      <aside className="fixed top-[81px] right-0 bottom-0 z-40 w-[270px] bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-        {/* Intestazione pulita senza fascia nera e senza icona carrello */}
-        <div className="px-3.5 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
-          <span className="text-xs font-extrabold text-gray-800">
-            Articoli ({sortedCatalogProducts.length})
-          </span>
-          {sortedCatalogProducts.length > 0 ? (
-            <button
-              type="button"
-              onClick={handleClearCatalog}
-              className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-            >
-              Svuota tutto
-            </button>
-          ) : (
-            <span className="text-[11px] text-gray-400">0 fogli</span>
-          )}
-        </div>
-
-        {/* Lista Scorrevole degli Articoli Inseriti */}
-        <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/40">
-          {isSearching ? (
-            <div className="py-16 px-4 text-center space-y-3">
-              <div className="w-7 h-7 border-2 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-semibold text-gray-600">
-                Caricamento articoli...
-              </p>
-            </div>
-          ) : searchError ? (
-            <div className="p-4 text-center text-red-600 font-semibold text-xs">{searchError}</div>
-          ) : sortedCatalogProducts.length === 0 ? (
-            <div className="py-12 px-4 text-center space-y-1.5">
-              <p className="text-xs font-semibold text-gray-500">
-                Nessun articolo inserito
-              </p>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Aggiungi i prodotti dalla barra di ricerca o dai filtri.
-              </p>
-            </div>
-          ) : (
-            sortedCatalogProducts.map((product, idx) => {
-              const pricing = calculateProductPricing(product);
-              return (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-all"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">
-                      {idx + 1}.
-                    </span>
-                    <div className="w-8 h-8 rounded border border-gray-100 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
-                      {product.imageUrl ? (
-                        <img
-                          src={product.imageUrl}
-                          alt={product.title}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                        />
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      {selectedClient ? (
+                        <>
+                          🔒 Sconto Base fisso di{' '}
+                          <strong>{selectedClient.companyName}</strong> ({baseDiscount}%) +{' '}
+                          <strong>{applicableRulesCount}</strong> regole di sconto attive.
+                        </>
                       ) : (
-                        <span className="text-[8px] font-bold text-gray-300">N/D</span>
+                        <>
+                          Imposta uno sconto manuale oppure seleziona un cliente (
+                          {applicableRulesCount} regole generali attive).
+                        </>
                       )}
                     </div>
-                    <a
-                      href={`/product/${encodeURIComponent(product.id || product.sku)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="min-w-0 group"
-                      title="Apri scheda prodotto sul sito"
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Percent size={13} />}
+                      onClick={() => useWindowStore.getState().openWindow('b2b_discounts')}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-[11px] font-black text-gray-900 group-hover:text-emerald-700 group-hover:underline truncate">
-                          {product.sku}
-                        </span>
-                        {priceMode !== 'NO_PRICE' && (
-                          <span className="text-[11px] font-extrabold text-emerald-700 shrink-0">
-                            €{' '}
-                            {(priceMode === 'LIST_ONLY' ? pricing.listPrice : pricing.netPrice)
-                              .toFixed(2)
-                              .replace('.', ',')}
-                          </span>
-                        )}
-                        {priceMode !== 'NO_PRICE' &&
-                          priceMode !== 'LIST_ONLY' &&
-                          pricing.discountPct > 0 &&
-                          pricing.appliedRuleExpiresFormatted && (
-                            <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded shrink-0">
-                              ⏳ {pricing.appliedRuleExpiresFormatted}
-                            </span>
-                          )}
-                      </div>
-                      <div className="text-[10px] text-gray-500 group-hover:text-gray-800 truncate">
-                        {product.originalName || product.title}
-                      </div>
-                    </a>
+                      Gestisci Sconti Prodotti / Marchi / Categorie ({applicableRulesCount})
+                    </Button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveProductFromCatalog(product.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors shrink-0"
-                    title="Rimuovi dal catalogo"
-                  >
-                    ✕
-                  </button>
                 </div>
-              );
-            })
+
+                {/* Visualizzazione Giacenze */}
+                <div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    Visualizzazione Giacenze / Depositi nel PDF
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {STOCK_MODE_OPTIONS.map(opt => {
+                      const active = stockMode === opt.value;
+                      return (
+                        <div
+                          key={opt.value}
+                          onClick={() => setStockMode(opt.value)}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            cursor: 'pointer',
+                            background: active
+                              ? 'var(--color-primary-light)'
+                              : 'var(--color-surface-solid)',
+                            border: active
+                              ? '2px solid var(--color-primary)'
+                              : '1px solid var(--color-border)',
+                          }}
+                        >
+                          <div style={{ fontSize: '12px', fontWeight: 700 }}>{opt.label}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                            {opt.desc}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </GlassPanel>
           )}
         </div>
 
-        {/* Footer Fisso con conteggio fogli */}
-        <div className="px-3.5 py-2 bg-white border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500 shrink-0">
-          <span>{sortedCatalogProducts.length} schede</span>
-          <span>
-            {sortedCatalogProducts.length > 0
-              ? `${totalSheets} ${totalSheets === 1 ? 'foglio A4' : 'fogli A4'}`
-              : '0 fogli A4'}
-          </span>
+        {/* COLONNA DESTRA: LISTA ARTICOLI NEL CATALOGO (STICKY IN GRIGLIA, ZERO SOVRAPPOSIZIONI) */}
+        <div style={{ position: 'sticky', top: '72px' }}>
+          <GlassPanel padding="md" radius="lg">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              <span style={{ fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                Articoli ({sortedCatalogProducts.length})
+              </span>
+              {sortedCatalogProducts.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={handleClearCatalog}
+                >
+                  Svuota tutto
+                </Button>
+              ) : (
+                <Badge variant="neutral" size="sm">
+                  0 fogli
+                </Badge>
+              )}
+            </div>
+
+            <div
+              style={{
+                maxHeight: '420px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              {isSearching ? (
+                <div
+                  style={{
+                    padding: '24px 8px',
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  Caricamento articoli...
+                </div>
+              ) : searchError ? (
+                <div
+                  style={{
+                    padding: '16px',
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    color: 'var(--color-danger)',
+                  }}
+                >
+                  {searchError}
+                </div>
+              ) : sortedCatalogProducts.length === 0 ? (
+                <div
+                  style={{
+                    padding: '28px 12px',
+                    textAlign: 'center',
+                    fontSize: '12px',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+                    Nessun articolo inserito
+                  </div>
+                  <div style={{ fontSize: '11px' }}>
+                    Aggiungi i prodotti dalla barra di ricerca o dai filtri.
+                  </div>
+                </div>
+              ) : (
+                sortedCatalogProducts.map((product, idx) => {
+                  const pricing = calculateProductPricing(product);
+                  return (
+                    <div
+                      key={product.id}
+                      style={{
+                        padding: '6px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--color-surface-solid)',
+                        border: '1px solid var(--color-border)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '11px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          minWidth: 0,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                          {idx + 1}.
+                        </span>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <strong style={{ fontFamily: 'monospace' }}>{product.sku}</strong>
+                            {priceMode !== 'NO_PRICE' && (
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  color: 'var(--color-success)',
+                                }}
+                              >
+                                €{' '}
+                                {(priceMode === 'LIST_ONLY'
+                                  ? pricing.listPrice
+                                  : pricing.netPrice
+                                )
+                                  .toFixed(2)
+                                  .replace('.', ',')}
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              color: 'var(--color-text-muted)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {product.originalName || product.title}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveProductFromCatalog(product.id)}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          color: 'var(--color-danger)',
+                          fontWeight: 800,
+                        }}
+                        title="Rimuovi dal catalogo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div
+              style={{
+                marginTop: '10px',
+                paddingTop: '8px',
+                borderTop: '1px solid var(--color-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '11px',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              <span>{sortedCatalogProducts.length} schede</span>
+              <Badge variant="primary" size="sm">
+                {sortedCatalogProducts.length > 0
+                  ? `${totalSheets} ${totalSheets === 1 ? 'foglio A4' : 'fogli A4'}`
+                  : '0 fogli A4'}
+              </Badge>
+            </div>
+          </GlassPanel>
         </div>
-      </aside>
+      </div>
 
       {/* MODALE A TUTTO SCHERMO PER L'ANTEPRIMA SFOGLIABILE DEL CATALOGO (1 PAGINA O 2 PAGINE + ZOOM) */}
       {isPreviewModalOpen && (
@@ -2596,6 +2913,6 @@ export default function CatalogBuilderClient({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

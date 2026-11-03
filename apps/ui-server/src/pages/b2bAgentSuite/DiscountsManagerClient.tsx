@@ -1,4 +1,29 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Percent,
+  Users,
+  Layers,
+  Globe,
+  Package,
+  Tag,
+  FolderTree,
+  Calendar,
+  Plus,
+  Trash2,
+  Edit3,
+  Check,
+  Search,
+  BookOpen,
+  RotateCcw,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import StickyHeader from '../../components/ui/StickyHeader';
+import Tabs from '../../components/ui/Tabs';
+import GlassPanel from '../../components/ui/GlassPanel';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import TextInput from '../../components/ui/TextInput';
+import Switch from '../../components/ui/Switch';
 import { useWindowStore } from '../../store/useWindowStore';
 import {
   type AgentManagedClient,
@@ -73,99 +98,165 @@ function MultiSelectPicker({
   };
 
   return (
-    <div className="border border-gray-200 rounded-xl bg-white overflow-hidden">
-      <div className="p-3 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <span className="text-xs font-extrabold uppercase tracking-wider text-gray-800">
+    <GlassPanel padding="md" radius="md">
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 'var(--spacing-md)',
+          flexWrap: 'wrap',
+          marginBottom: 'var(--spacing-sm)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'var(--color-text-main)',
+            }}
+          >
             {label}
           </span>
           {selectedValues.length > 0 && (
-            <span className="ml-2 px-2 py-0.5 text-[11px] font-bold bg-amber-100 text-amber-900 rounded-full">
+            <Badge variant="primary" size="sm">
               {selectedValues.length} selezionat{selectedValues.length === 1 ? 'o' : 'i'}
-            </span>
+            </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={placeholder}
-            className="w-full sm:w-56 px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-main"
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+          <div style={{ width: '240px' }}>
+            <TextInput
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={placeholder}
+              leftIcon={<Search size={14} />}
+              fullWidth
+            />
+          </div>
           {selectedValues.length > 0 && (
-            <button
-              type="button"
-              onClick={() => onChange([])}
-              className="text-xs font-bold text-red-600 hover:underline whitespace-nowrap"
-            >
+            <Button variant="danger" size="sm" type="button" onClick={() => onChange([])}>
               Svuota
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Chip valori selezionati */}
       {selectedValues.length > 0 && (
-        <div className="px-3 py-2 bg-amber-50/60 border-b border-amber-100 flex flex-wrap gap-1.5">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            padding: 'var(--spacing-sm)',
+            background: 'var(--color-primary-light)',
+            borderRadius: 'var(--radius-sm)',
+            marginBottom: 'var(--spacing-sm)',
+          }}
+        >
           {selectedValues.map(code => {
             const opt = options.find(o => o.code.toUpperCase() === code.toUpperCase());
             return (
-              <span
-                key={code}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-200/80 text-amber-950"
-              >
-                <span>{opt ? opt.label : code}</span>
-                <button
-                  type="button"
-                  onClick={() => toggleValue(code)}
-                  className="text-amber-800 hover:text-red-700 font-black"
-                >
-                  ×
-                </button>
-              </span>
+              <Badge key={code} variant="primary" size="sm">
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {opt ? opt.label : code}
+                  <span
+                    style={{ cursor: 'pointer', fontWeight: 800 }}
+                    onClick={() => toggleValue(code)}
+                  >
+                    ×
+                  </span>
+                </span>
+              </Badge>
             );
           })}
         </div>
       )}
 
-      <div className="max-h-56 overflow-y-auto divide-y divide-gray-100 p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1">
+      <div
+        style={{
+          maxHeight: '220px',
+          overflowY: 'auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gap: '6px',
+          paddingTop: '4px',
+        }}
+      >
         {filtered.length === 0 ? (
-          <div className="col-span-2 py-6 text-center text-xs text-gray-400">
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              padding: 'var(--spacing-lg)',
+              textAlign: 'center',
+              fontSize: '12px',
+              color: 'var(--color-text-muted)',
+            }}
+          >
             Nessuna voce trovata
           </div>
         ) : (
           filtered.map(opt => {
             const checked = selectedValues.includes(opt.code.toUpperCase());
             return (
-              <label
+              <div
                 key={opt.code}
-                className={`flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                  checked
-                    ? 'bg-amber-50 text-gray-900 font-bold border border-amber-300'
-                    : 'hover:bg-gray-50 text-gray-700 border border-transparent'
-                }`}
+                onClick={() => toggleValue(opt.code)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: checked ? 700 : 500,
+                  background: checked ? 'var(--color-primary-light)' : 'var(--color-surface-solid)',
+                  border: checked
+                    ? '1px solid var(--color-primary)'
+                    : '1px solid var(--color-border)',
+                  transition: 'var(--transition-fast)',
+                }}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    minWidth: 0,
+                    overflow: 'hidden',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={() => toggleValue(opt.code)}
-                    className="rounded border-gray-300 text-brand-main focus:ring-brand-main shrink-0"
+                    readOnly
+                    style={{ accentColor: 'var(--color-primary)', flexShrink: 0 }}
                   />
-                  <span className="truncate" title={opt.label}>
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={opt.label}
+                  >
                     {opt.label}
                   </span>
                 </div>
-                <span className="px-1.5 py-0.5 text-[10px] font-mono bg-gray-100 text-gray-600 rounded shrink-0">
+                <Badge variant={checked ? 'primary' : 'neutral'} size="sm">
                   {opt.count}
-                </span>
-              </label>
+                </Badge>
+              </div>
             );
           })
         )}
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -178,27 +269,20 @@ export default function DiscountsManagerClient({
   initialRules,
   initialPreset,
 }: Props) {
+  const [activeTab, setActiveTab] = useState<'editor' | 'list'>('editor');
   const [rules, setRules] = useState<AgentDiscountRule[]>(initialRules || []);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
   // Stato form regola
   const [ruleName, setRuleName] = useState<string>('');
-  const [clientScope, setClientScope] =
-    useState<DiscountClientScope>('SELECTED_CLIENTS');
-  // Array di ID clienti selezionati (1 o più clienti)
+  const [clientScope, setClientScope] = useState<DiscountClientScope>('SELECTED_CLIENTS');
   const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
-  // Array di Categorie Clienti selezionate (es. ['RIV', 'IST'])
-  const [selectedClientCategories, setSelectedClientCategories] = useState<string[]>(
-    []
-  );
-  // Filtro rapido per categoria cliente dentro la tendina di selezione clienti
-  const [dropdownClientCatFilter, setDropdownClientCatFilter] =
-    useState<string>('ALL');
+  const [selectedClientCategories, setSelectedClientCategories] = useState<string[]>([]);
+  const [dropdownClientCatFilter, setDropdownClientCatFilter] = useState<string>('ALL');
 
   const [clientSearchText, setClientSearchText] = useState<string>('');
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState<boolean>(false);
   const clientDropdownRef = useRef<HTMLDivElement>(null);
-  const clientSearchInputRef = useRef<HTMLInputElement>(null);
 
   const [targetType, setTargetType] = useState<DiscountTargetType>('PRODUCTS');
   const [selectedProducts, setSelectedProducts] = useState<DiscountTargetProductMeta[]>([]);
@@ -210,16 +294,18 @@ export default function DiscountsManagerClient({
   const [calculationMode, setCalculationMode] =
     useState<DiscountCalculationMode>('EXTRA_CASCADE');
   const [discountValue, setDiscountValue] = useState<number>(10);
-  // Tipo di scadenza ('NONE' | 'DATE' | 'FIRST_PURCHASE' | 'NEXT_PURCHASE') e data opzionale (YYYY-MM-DD)
   const [expiryType, setExpiryType] = useState<DiscountExpiryType>('NONE');
   const [expiresAtDate, setExpiresAtDate] = useState<string>('');
 
   useEffect(() => {
     if (!initialPreset) return;
+    setActiveTab('editor');
     if (initialPreset.ruleName) setRuleName(initialPreset.ruleName);
     if (initialPreset.targetType) setTargetType(initialPreset.targetType);
     if (initialPreset.calculationMode) setCalculationMode(initialPreset.calculationMode);
-    if (initialPreset.discountValue !== undefined) setDiscountValue(Number(initialPreset.discountValue));
+    if (initialPreset.discountValue !== undefined) {
+      setDiscountValue(Number(initialPreset.discountValue));
+    }
     if (initialPreset.expiryType) setExpiryType(initialPreset.expiryType);
     if (initialPreset.targetCompanyName && clients.length > 0) {
       const targetLower = String(initialPreset.targetCompanyName).trim().toLowerCase();
@@ -259,16 +345,11 @@ export default function DiscountsManagerClient({
   const [isPredictiveOpen, setIsPredictiveOpen] = useState<boolean>(false);
   const [isPredictiveLoading, setIsPredictiveLoading] = useState<boolean>(false);
   const predictiveRef = useRef<HTMLDivElement>(null);
-  const productSearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Stato salvataggio / filtri lista regole
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string>('');
-  const [formSuccess, setFormSuccess] = useState<string>('');
   const [filterClientScope, setFilterClientScope] = useState<string>('ALL');
   const [filterSearch, setFilterSearch] = useState<string>('');
 
-  // Chiudi dropdown cliccando fuori
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       if (
@@ -285,173 +366,70 @@ export default function DiscountsManagerClient({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
-  // Ricerca predittiva prodotti (identica alle barre del sito)
+  // Ricerca predittiva prodotti (160ms debounce)
   useEffect(() => {
     const q = productQuery.trim();
-    if (q.length < 1) {
+    if (q.length < 1 || targetType !== 'PRODUCTS') {
       setPredictiveResults([]);
+      setIsPredictiveOpen(false);
       setIsPredictiveLoading(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsPredictiveLoading(true);
-      try {
-        const res = await searchCatalogPredictiveAction(q, 'ALL_WAREHOUSES', true);
-        if (res.success) {
-          setPredictiveResults(res.products);
-        }
-      } catch (e) {
-        console.error('Errore ricerca predittiva prodotti sconti:', e);
-      } finally {
-        setIsPredictiveLoading(false);
-      }
-    }, 180);
-
-    return () => clearTimeout(timer);
-  }, [productQuery]);
-
-  // Helper per determinare il codice e l'etichetta della categoria di un cliente
-  const getClientCategoryInfo = (c: AgentManagedClient) => {
-    const normCode = normalizeClientCategoryCode(
-      c.categoriaCode || c.customerType,
-      c.discount
-    );
-    if (normCode === 'RIV') {
-      return { code: 'RIV', shortLabel: 'Rivenditore', fullLabel: 'RIV - Rivenditore' };
-    }
-    if (normCode === 'IST') {
-      return {
-        code: 'IST',
-        shortLabel: 'Installatore / Impiantista',
-        fullLabel: 'IST - Installatore / Impiantista',
-      };
-    }
-    if (normCode === 'GEN') {
-      return { code: 'GEN', shortLabel: 'Generale', fullLabel: 'GEN - Generale' };
-    }
-    if (normCode) {
-      return {
-        code: normCode,
-        shortLabel: c.customerType || normCode,
-        fullLabel: c.customerType || normCode,
-      };
-    }
-    return {
-      code: '',
-      shortLabel: 'Nessuna Cat.',
-      fullLabel: 'Nessuna Categoria',
-    };
-  };
-
-  // Lista categorie clienti disponibili (arricchita col conteggio dei clienti dell'agente in ogni categoria)
-  const enrichedClientCategories = useMemo(() => {
-    const baseList =
-      clientCategories && clientCategories.length > 0
-        ? clientCategories
-        : [
-            { code: 'RIV', label: 'RIV - Rivenditore (Sconto base 50%)', discount: 50 },
-            {
-              code: 'IST',
-              label: 'IST - Installatore / Impiantista (Sconto base 40%)',
-              discount: 40,
-            },
-            { code: 'GEN', label: 'GEN - Generale (Sconto base 25%)', discount: 25 },
-          ];
-
-    return baseList.map(cat => {
-      const upperCode = normalizeClientCategoryCode(cat.code, cat.discount);
-      const matchingClientsCount = clients.filter(
-        c => getClientCategoryInfo(c).code === upperCode
-      ).length;
-      const cleanName = cat.label.replace(/\s*\(Sconto.*\)$/i, '').trim();
-      return {
-        code: upperCode,
-        name: cleanName,
-        label: cat.label,
-        discount: cat.discount,
-        clientsCount: matchingClientsCount,
-      };
-    });
-  }, [clientCategories, clients]);
-
-  const selectedClientsObjects = useMemo(
-    () => clients.filter(c => selectedClientIds.includes(c.id)),
-    [clients, selectedClientIds]
-  );
-
-  // Clienti effettivamente coinvolti dalla regola in creazione (mostrati nel 1/3 superiore della barra destra)
-  const sidebarClients = useMemo(() => {
-    if (clientScope === 'ALL_CLIENTS') {
-      return clients;
-    }
-    if (clientScope === 'CLIENT_CATEGORY') {
-      if (selectedClientCategories.length === 0) return [];
-      return clients.filter(c =>
-        selectedClientCategories.includes(getClientCategoryInfo(c).code)
-      );
-    }
-    return selectedClientsObjects;
-  }, [clientScope, clients, selectedClientCategories, selectedClientsObjects]);
-
-  // Prodotti corrispondenti a Marchio / Gruppo / Famiglia / Categoria / Tutto il Catalogo per il 2/3 inferiore della barra destra
-  const [scopeProducts, setScopeProducts] = useState<CatalogProductItem[]>([]);
-  const [scopeProductsTotal, setScopeProductsTotal] = useState<number>(0);
-  const [isLoadingScopeProducts, setIsLoadingScopeProducts] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (targetType === 'PRODUCTS') {
-      setScopeProducts([]);
-      setScopeProductsTotal(0);
-      setIsLoadingScopeProducts(false);
-      return;
-    }
-
-    const activeBrands = targetType === 'BRAND' ? selectedBrands : [];
-    const activeGroups = targetType === 'PRODUCT_GROUP' ? selectedProductGroups : [];
-    const activeFamilies = targetType === 'FAMILY' ? selectedFamilies : [];
-    const activeCategories = targetType === 'CATEGORY' ? selectedCategories : [];
-
-    const hasActiveFacet =
-      targetType === 'ALL_CATALOG' ||
-      activeBrands.length > 0 ||
-      activeGroups.length > 0 ||
-      activeFamilies.length > 0 ||
-      activeCategories.length > 0;
-
-    if (!hasActiveFacet) {
-      setScopeProducts([]);
-      setScopeProductsTotal(0);
-      setIsLoadingScopeProducts(false);
       return;
     }
 
     let cancelled = false;
     const timer = setTimeout(async () => {
-      setIsLoadingScopeProducts(true);
+      setIsPredictiveLoading(true);
+      try {
+        const res = await searchCatalogPredictiveAction(q, 'ALL_WAREHOUSES', true);
+        if (cancelled) return;
+        if (res.success) {
+          setPredictiveResults(res.products || []);
+          setIsPredictiveOpen(true);
+        }
+      } finally {
+        if (!cancelled) setIsPredictiveLoading(false);
+      }
+    }, 160);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [productQuery, targetType]);
+
+  // --- ANTEPRIMA LIVE PRODOTTI ---
+  const [previewSampleProducts, setPreviewSampleProducts] = useState<CatalogProductItem[]>([]);
+  const [previewTotalCatalogCount, setPreviewTotalCatalogCount] = useState<number>(0);
+  const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (targetType === 'PRODUCTS') return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setIsPreviewLoading(true);
       try {
         const res = await searchAgentCatalogProducts({
-          catalogSource: 'ALL',
+          catalogSource: 'ZUCCHETTI',
           query: '',
           warehouse: 'ALL_WAREHOUSES',
           includeZeroStock: true,
-          brands: activeBrands,
-          productGroups: activeGroups,
-          families: activeFamilies,
-          categories: activeCategories,
-          sortBy: 'SKU_ASC',
-          limit: 200,
+          brands: targetType === 'BRAND' ? selectedBrands : [],
+          productGroups: targetType === 'PRODUCT_GROUP' ? selectedProductGroups : [],
+          families: targetType === 'FAMILY' ? selectedFamilies : [],
+          categories: targetType === 'CATEGORY' ? selectedCategories : [],
+          sortBy: 'TAXONOMY_ASC',
+          limit: 60,
         });
-        if (!cancelled && res.success) {
-          setScopeProducts(res.products);
-          setScopeProductsTotal(res.totalFound || res.products.length);
+        if (cancelled) return;
+        if (res.success) {
+          setPreviewSampleProducts(res.products || []);
+          setPreviewTotalCatalogCount(res.totalFound || (res.products || []).length);
         }
-      } catch (e) {
-        console.error('Errore caricamento prodotti ambito sconto:', e);
       } finally {
-        if (!cancelled) setIsLoadingScopeProducts(false);
+        if (!cancelled) setIsPreviewLoading(false);
       }
-    }, 150);
+    }, 180);
 
     return () => {
       cancelled = true;
@@ -465,84 +443,173 @@ export default function DiscountsManagerClient({
     selectedCategories,
   ]);
 
-  const sidebarProductsList = useMemo<DiscountTargetProductMeta[]>(() => {
-    if (targetType === 'PRODUCTS') {
-      return selectedProducts;
-    }
-    return scopeProducts.map(p => ({
-      sku: p.sku,
-      title: p.originalName || p.title,
-      brand: p.brandLabel || p.brand,
-      imageUrl: p.imageUrl,
-      listPrice: p.listPrice,
-    }));
-  }, [targetType, selectedProducts, scopeProducts]);
+  const enrichedClientCategories = useMemo(() => {
+    const map = new Map<
+      string,
+      { code: string; name: string; discount: number; clientsCount: number }
+    >();
 
-  const sidebarProductsTotalCount =
-    targetType === 'PRODUCTS'
-      ? selectedProducts.length
-      : scopeProductsTotal || scopeProducts.length;
+    const defaults = [
+      { code: 'RIV', name: 'RIV - Rivenditore', discount: 50 },
+      { code: 'IST', name: 'IST - Installatore / Impiantista', discount: 40 },
+      { code: 'GEN', name: 'GEN - Generale', discount: 25 },
+      { code: 'NONE', name: 'Nessuna Categoria (Sconto Base 0%)', discount: 0 },
+    ];
+    for (const d of defaults) {
+      map.set(d.code, { ...d, clientsCount: 0 });
+    }
+
+    for (const cat of clientCategories) {
+      const upper = normalizeClientCategoryCode(cat.code);
+      if (!upper) continue;
+      const cleanName = cat.label.replace(/\s*\(Sconto.*\)$/i, '').trim() || upper;
+      map.set(upper, {
+        code: upper,
+        name: cleanName,
+        discount: cat.discount,
+        clientsCount: 0,
+      });
+    }
+
+    for (const c of clients) {
+      const code = normalizeClientCategoryCode(
+        c.categoriaCode || c.customerType,
+        c.discount
+      );
+      if (!code) continue;
+      const existing = map.get(code);
+      if (existing) {
+        existing.clientsCount += 1;
+      } else {
+        map.set(code, {
+          code,
+          name: c.customerType || code,
+          discount: c.discount || 0,
+          clientsCount: 1,
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [clientCategories, clients]);
+
+  const selectedClientsObjects = useMemo(
+    () => clients.filter(c => selectedClientIds.includes(c.id)),
+    [clients, selectedClientIds]
+  );
+
+  const getClientCategoryLabel = (client: AgentManagedClient): string => {
+    const norm = normalizeClientCategoryCode(
+      client.categoriaCode || client.customerType,
+      client.discount
+    );
+    const found = enrichedClientCategories.find(c => c.code === norm);
+    return found ? found.name : client.customerType || 'Nessuna Categoria';
+  };
 
   const filteredClientsForDropdown = useMemo(() => {
     const q = clientSearchText.trim().toLowerCase();
-    return clients.filter(c => {
-      if (dropdownClientCatFilter !== 'ALL') {
-        const catInfo = getClientCategoryInfo(c);
-        if (catInfo.code !== dropdownClientCatFilter) return false;
-      }
-      if (!q) return true;
-      const catInfo = getClientCategoryInfo(c);
-      return (
-        (c.companyName || '').toLowerCase().includes(q) ||
-        (c.zucchettiCode || '').toLowerCase().includes(q) ||
-        (c.email || '').toLowerCase().includes(q) ||
-        (c.city || '').toLowerCase().includes(q) ||
-        catInfo.fullLabel.toLowerCase().includes(q)
-      );
-    });
-  }, [clients, clientSearchText, dropdownClientCatFilter]);
+    return clients
+      .filter(c => {
+        const normCat = normalizeClientCategoryCode(
+          c.categoriaCode || c.customerType,
+          c.discount
+        );
+        if (dropdownClientCatFilter !== 'ALL' && normCat !== dropdownClientCatFilter) {
+          return false;
+        }
+        if (!q) return true;
+        const catLabel = getClientCategoryLabel(c).toLowerCase();
+        return (
+          (c.companyName || '').toLowerCase().includes(q) ||
+          (c.zucchettiCode || '').toLowerCase().includes(q) ||
+          (c.city || '').toLowerCase().includes(q) ||
+          (c.vatNumber || '').toLowerCase().includes(q) ||
+          normCat.toLowerCase().includes(q) ||
+          catLabel.includes(q)
+        );
+      })
+      .slice(0, 80);
+  }, [clients, clientSearchText, dropdownClientCatFilter, enrichedClientCategories]);
 
-  const toggleClientSelection = (clientId: string) => {
+  const toggleSelectClient = (client: AgentManagedClient) => {
     setSelectedClientIds(prev =>
-      prev.includes(clientId)
-        ? prev.filter(id => id !== clientId)
-        : [...prev, clientId]
+      prev.includes(client.id)
+        ? prev.filter(id => id !== client.id)
+        : [...prev, client.id]
     );
   };
 
-  const toggleClientCategorySelection = (catCode: string) => {
-    const upper = catCode.toUpperCase();
+  const toggleSelectClientCategory = (catCode: string) => {
+    const upper = normalizeClientCategoryCode(catCode);
     setSelectedClientCategories(prev =>
       prev.includes(upper) ? prev.filter(c => c !== upper) : [...prev, upper]
     );
   };
 
-  const addProductToRule = (p: CatalogProductItem) => {
-    const cleanSku = p.sku.trim().toUpperCase();
+  const handleAddProduct = (prod: CatalogProductItem) => {
     setSelectedProducts(prev => {
-      if (prev.some(item => item.sku.toUpperCase() === cleanSku)) {
-        return prev.filter(item => item.sku.toUpperCase() !== cleanSku);
+      if (prev.some(p => p.sku.toUpperCase() === prod.sku.toUpperCase())) {
+        return prev;
       }
       return [
         ...prev,
         {
-          sku: cleanSku,
-          title: p.originalName || p.title,
-          brand: p.brandLabel || p.brand,
-          imageUrl: p.imageUrl,
-          listPrice: p.listPrice,
+          sku: prod.sku,
+          title: prod.originalName || prod.title,
+          brand: prod.brandLabel || prod.brand,
+          listPrice: prod.listPrice,
+          imageUrl: prod.imageUrl,
         },
       ];
     });
     setProductQuery('');
     setPredictiveResults([]);
     setIsPredictiveOpen(false);
-    productSearchInputRef.current?.focus();
   };
 
-  const removeProductFromRule = (sku: string) => {
-    const cleanSku = sku.trim().toUpperCase();
-    setSelectedProducts(prev => prev.filter(p => p.sku.toUpperCase() !== cleanSku));
+  const handleAddAllFromSearch = async () => {
+    const q = productQuery.trim();
+    if (!q) return;
+    setIsPredictiveOpen(false);
+    const res = await searchAgentCatalogProducts({
+      catalogSource: 'ZUCCHETTI',
+      query: q,
+      warehouse: 'ALL_WAREHOUSES',
+      includeZeroStock: true,
+      brands: [],
+      productGroups: [],
+      families: [],
+      categories: [],
+      sortBy: 'TAXONOMY_ASC',
+      limit: 100,
+    });
+    if (res.success && res.products.length > 0) {
+      setSelectedProducts(prev => {
+        const existingSkus = new Set(prev.map(p => p.sku.toUpperCase()));
+        const additions: DiscountTargetProductMeta[] = [];
+        for (const p of res.products) {
+          if (!existingSkus.has(p.sku.toUpperCase())) {
+            existingSkus.add(p.sku.toUpperCase());
+            additions.push({
+              sku: p.sku,
+              title: p.originalName || p.title,
+              brand: p.brandLabel || p.brand,
+              listPrice: p.listPrice,
+              imageUrl: p.imageUrl,
+            });
+          }
+        }
+        return [...prev, ...additions];
+      });
+      setProductQuery('');
+    }
+  };
+
+  const handleRemoveProduct = (sku: string) => {
+    setSelectedProducts(prev =>
+      prev.filter(p => p.sku.toUpperCase() !== sku.toUpperCase())
+    );
   };
 
   const resetForm = () => {
@@ -551,8 +618,8 @@ export default function DiscountsManagerClient({
     setClientScope('SELECTED_CLIENTS');
     setSelectedClientIds([]);
     setSelectedClientCategories([]);
-    setClientSearchText('');
     setDropdownClientCatFilter('ALL');
+    setClientSearchText('');
     setTargetType('PRODUCTS');
     setSelectedProducts([]);
     setSelectedBrands([]);
@@ -563,10 +630,60 @@ export default function DiscountsManagerClient({
     setDiscountValue(10);
     setExpiryType('NONE');
     setExpiresAtDate('');
-    setFormError('');
   };
 
-  const applyRuleExpiryToForm = (rule: AgentDiscountRule) => {
+  const handleEditRule = (rule: AgentDiscountRule) => {
+    setEditingRuleId(rule.id);
+    setRuleName(rule.name || '');
+
+    if (rule.clientScope === 'ALL_CLIENTS') {
+      setClientScope('ALL_CLIENTS');
+      setSelectedClientIds([]);
+      setSelectedClientCategories([]);
+    } else if (rule.clientScope === 'CLIENT_CATEGORY') {
+      setClientScope('CLIENT_CATEGORY');
+      setSelectedClientCategories(
+        (rule.clientCategories || []).map(c => normalizeClientCategoryCode(c))
+      );
+      setSelectedClientIds([]);
+    } else {
+      setClientScope('SELECTED_CLIENTS');
+      const ids = new Set<string>(rule.clientIds || []);
+      if (rule.clientId) ids.add(rule.clientId);
+      for (const code of rule.clientCodes || []) {
+        const match = clients.find(
+          c => c.zucchettiCode.toUpperCase() === code.toUpperCase()
+        );
+        if (match) ids.add(match.id);
+      }
+      if (rule.clientCode) {
+        const match = clients.find(
+          c => c.zucchettiCode.toUpperCase() === rule.clientCode!.toUpperCase()
+        );
+        if (match) ids.add(match.id);
+      }
+      setSelectedClientIds(Array.from(ids));
+      setSelectedClientCategories([]);
+    }
+
+    setTargetType(rule.targetType);
+    setSelectedProducts(
+      rule.targetProductsMeta && rule.targetProductsMeta.length > 0
+        ? rule.targetProductsMeta
+        : (rule.targetSkus || []).map(sku => ({
+            sku,
+            title: sku,
+            brand: '',
+            listPrice: 0,
+            imageUrl: '',
+          }))
+    );
+    setSelectedBrands(rule.targetBrands || []);
+    setSelectedProductGroups(rule.targetProductGroups || []);
+    setSelectedFamilies(rule.targetFamilies || []);
+    setSelectedCategories(rule.targetCategories || []);
+    setCalculationMode(rule.calculationMode);
+    setDiscountValue(rule.discountValue);
     if (rule.expiryType === 'FIRST_PURCHASE') {
       setExpiryType('FIRST_PURCHASE');
       setExpiresAtDate('');
@@ -575,123 +692,68 @@ export default function DiscountsManagerClient({
       setExpiresAtDate('');
     } else if (rule.expiresAt) {
       setExpiryType('DATE');
-      setExpiresAtDate(String(rule.expiresAt).slice(0, 10));
+      setExpiresAtDate(rule.expiresAt.slice(0, 10));
     } else {
       setExpiryType('NONE');
       setExpiresAtDate('');
     }
-  };
-
-  const _handleEditRule = (rule: AgentDiscountRule) => {
-    setEditingRuleId(rule.id);
-    setRuleName(rule.name);
-    if (rule.clientScope === 'ALL_CLIENTS') {
-      setClientScope('ALL_CLIENTS');
-      setSelectedClientIds([]);
-      setSelectedClientCategories([]);
-      setClientSearchText('');
-    } else if (rule.clientScope === 'CLIENT_CATEGORY') {
-      setClientScope('CLIENT_CATEGORY');
-      setSelectedClientCategories(
-        (rule.clientCategories || []).map(c => normalizeClientCategoryCode(c)).filter(Boolean)
-      );
-      setSelectedClientIds([]);
-      setClientSearchText('');
-    } else {
-      setClientScope('SELECTED_CLIENTS');
-      setSelectedClientCategories([]);
-      const ruleIds = new Set(rule.clientIds || (rule.clientId ? [rule.clientId] : []));
-      const ruleCodes = new Set(
-        (rule.clientCodes || (rule.clientCode ? [rule.clientCode] : [])).map(c =>
-          c.toUpperCase()
-        )
-      );
-      const matchedIds = clients
-        .filter(
-          c =>
-            ruleIds.has(c.id) ||
-            (c.zucchettiCode && ruleCodes.has(c.zucchettiCode.toUpperCase()))
-        )
-        .map(c => c.id);
-      setSelectedClientIds(matchedIds);
-      setClientSearchText('');
-    }
-
-    setTargetType(rule.targetType);
-    setSelectedProducts(
-      rule.targetProductsMeta && rule.targetProductsMeta.length > 0
-        ? rule.targetProductsMeta
-        : rule.targetSkus.map(sku => ({ sku, title: `Articolo ${sku}` }))
-    );
-    setSelectedBrands(rule.targetBrands || []);
-    setSelectedProductGroups(rule.targetProductGroups || []);
-    setSelectedFamilies(rule.targetFamilies || []);
-    setSelectedCategories(rule.targetCategories || []);
-    setCalculationMode(rule.calculationMode);
-    setDiscountValue(rule.discountValue);
-    applyRuleExpiryToForm(rule);
-    setFormError('');
-    setFormSuccess('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setActiveTab('editor');
   };
 
   const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
+
+    if (clientScope === 'SELECTED_CLIENTS' && selectedClientsObjects.length === 0) {
+      toast.error('Seleziona almeno un cliente a cui applicare la regola di sconto.');
+      return;
+    }
+    if (clientScope === 'CLIENT_CATEGORY' && selectedClientCategories.length === 0) {
+      toast.error(
+        'Seleziona almeno una Categoria Cliente (es. Rivenditore o Installatore).'
+      );
+      return;
+    }
+
+    const clientsMetaPayload: DiscountTargetClientMeta[] =
+      clientScope === 'SELECTED_CLIENTS'
+        ? selectedClientsObjects.map(c => ({
+            id: c.id,
+            code: c.zucchettiCode,
+            name: c.companyName,
+            category: normalizeClientCategoryCode(
+              c.categoriaCode || c.customerType,
+              c.discount
+            ),
+          }))
+        : [];
+
+    const isSpecificClients = clientScope === 'SELECTED_CLIENTS';
+    const singleClient =
+      isSpecificClients && selectedClientsObjects.length === 1
+        ? selectedClientsObjects[0]
+        : null;
+
     setIsSaving(true);
-
     try {
-      const targetSkus = selectedProducts.map(p => p.sku.trim().toUpperCase());
-      const clientsMeta: DiscountTargetClientMeta[] = selectedClientsObjects.map(c => {
-        const catInfo = getClientCategoryInfo(c);
-        return {
-          id: c.id,
-          code: c.zucchettiCode,
-          name: c.companyName,
-          baseDiscount: Number(c.discount || 0),
-          categoryCode: catInfo.code,
-          categoryLabel: catInfo.shortLabel,
-        };
-      });
-
-      const resolvedScope: DiscountClientScope =
-        clientScope === 'ALL_CLIENTS'
-          ? 'ALL_CLIENTS'
-          : clientScope === 'CLIENT_CATEGORY'
-            ? 'CLIENT_CATEGORY'
-            : selectedClientsObjects.length > 1
-              ? 'SELECTED_CLIENTS'
-              : 'SINGLE_CLIENT';
-
-      const isSpecificClients =
-        resolvedScope === 'SINGLE_CLIENT' || resolvedScope === 'SELECTED_CLIENTS';
-
       const res = await saveAgentDiscountRuleAction({
         id: editingRuleId || undefined,
         name: ruleName,
-        clientScope: resolvedScope,
-        clientId:
-          isSpecificClients && selectedClientsObjects[0]
-            ? selectedClientsObjects[0].id
-            : null,
-        clientCode:
-          isSpecificClients && selectedClientsObjects[0]
-            ? selectedClientsObjects[0].zucchettiCode
-            : null,
-        clientName:
-          isSpecificClients && selectedClientsObjects[0]
-            ? selectedClientsObjects[0].companyName
-            : null,
+        clientScope:
+          isSpecificClients && selectedClientsObjects.length === 1
+            ? 'SINGLE_CLIENT'
+            : clientScope,
+        clientId: singleClient ? singleClient.id : null,
+        clientCode: singleClient ? singleClient.zucchettiCode : null,
+        clientName: singleClient ? singleClient.companyName : null,
         clientIds: isSpecificClients ? selectedClientsObjects.map(c => c.id) : [],
         clientCodes: isSpecificClients
           ? selectedClientsObjects.map(c => c.zucchettiCode)
           : [],
-        clientsMeta: isSpecificClients ? clientsMeta : [],
+        clientsMeta: clientsMetaPayload,
         clientCategories:
-          resolvedScope === 'CLIENT_CATEGORY' ? selectedClientCategories : [],
+          clientScope === 'CLIENT_CATEGORY' ? selectedClientCategories : [],
         targetType,
-        targetSkus,
+        targetSkus: selectedProducts.map(p => p.sku),
         targetProductsMeta: selectedProducts,
         targetBrands: selectedBrands,
         targetProductGroups: selectedProductGroups,
@@ -700,1649 +762,1678 @@ export default function DiscountsManagerClient({
         calculationMode,
         discountValue,
         isActive: true,
-        expiryType:
-          expiryType === 'FIRST_PURCHASE' || expiryType === 'NEXT_PURCHASE'
-            ? expiryType
-            : expiresAtDate
-              ? 'DATE'
-              : 'NONE',
-        expiresAt:
-          expiryType === 'DATE' && expiresAtDate ? expiresAtDate : null,
+        expiryType,
+        expiresAt: expiryType === 'DATE' ? expiresAtDate || null : null,
       });
 
       if (!res.success) {
-        setFormError(res.error || 'Errore durante il salvataggio della regola.');
-      } else {
-        if (res.rules) setRules(res.rules);
-        setFormSuccess(
-          editingRuleId
-            ? 'Regola di sconto aggiornata con successo!'
-            : 'Nuova regola di sconto salvata e attivata!'
-        );
-        resetForm();
+        toast.error(res.error || 'Errore durante il salvataggio della regola.');
+        return;
       }
-    } catch (err: any) {
-      setFormError(err.message || 'Errore imprevisto.');
+
+      if (res.rules) {
+        setRules(res.rules);
+      }
+      toast.success(
+        editingRuleId
+          ? 'Regola di sconto aggiornata con successo!'
+          : 'Nuova regola di sconto creata e attivata!'
+      );
+      resetForm();
     } finally {
       setIsSaving(false);
     }
   };
 
-  const _handleToggleRule = async (rule: AgentDiscountRule) => {
+  const handleToggleRule = async (rule: AgentDiscountRule) => {
     const res = await toggleAgentDiscountRuleAction(rule.id, !rule.isActive);
     if (res.success && res.rules) {
       setRules(res.rules);
+      toast.success(rule.isActive ? 'Regola disattivata' : 'Regola attivata');
     }
   };
 
-  const _handleDeleteRule = async (ruleId: string) => {
+  const handleDeleteRule = async (ruleId: string) => {
     const res = await deleteAgentDiscountRuleAction(ruleId);
     if (res.success && res.rules) {
       setRules(res.rules);
-      if (editingRuleId === ruleId) {
-        resetForm();
-      }
+      if (editingRuleId === ruleId) resetForm();
+      toast.success('Regola eliminata');
     }
   };
 
   const handleRemoveRuleFromSingleClient = async (
-    ruleId: string,
-    client: AgentManagedClient
-  ) => {
-    const res = await removeDiscountFromClientAction(
-      ruleId,
-      client.id,
-      client.zucchettiCode
-    );
-    if (res.success && res.rules) {
-      setRules(res.rules);
-      if (editingRuleId === ruleId) {
-        resetForm();
-      }
-    }
-  };
-
-  const handleEditRuleForSingleClient = (
     rule: AgentDiscountRule,
     client: AgentManagedClient
   ) => {
-    setEditingRuleId(rule.id);
-    setRuleName(rule.name);
-    setClientScope('SELECTED_CLIENTS');
-    setSelectedClientCategories([]);
-    setSelectedClientIds([client.id]);
-    setClientSearchText('');
-    setTargetType(rule.targetType);
-    setSelectedProducts(
-      rule.targetProductsMeta && rule.targetProductsMeta.length > 0
-        ? rule.targetProductsMeta
-        : rule.targetSkus.map(sku => ({ sku, title: `Articolo ${sku}` }))
+    const res = await removeDiscountFromClientAction(
+      rule.id,
+      client.id,
+      client.zucchettiCode
     );
-    setSelectedBrands(rule.targetBrands || []);
-    setSelectedProductGroups(rule.targetProductGroups || []);
-    setSelectedFamilies(rule.targetFamilies || []);
-    setSelectedCategories(rule.targetCategories || []);
-    setCalculationMode(rule.calculationMode);
-    setDiscountValue(rule.discountValue);
-    applyRuleExpiryToForm(rule);
-    setFormError('');
-    setFormSuccess('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!res.success) {
+      toast.error(res.error || 'Impossibile rimuovere lo sconto dal cliente.');
+      return;
+    }
+    if (res.rules) {
+      setRules(res.rules);
+      toast.success(`Sconto rimosso per ${client.companyName}`);
+    }
   };
 
-  // Simulazione prezzo in tempo reale nel pannello di creazione
-  const simulationPreview = useMemo(() => {
-    let sampleBaseDiscount = 40;
-    let sampleClientName = 'Cliente tipo';
-
+  // --- SIMULAZIONE LIVE PREZZO ---
+  const exampleBaseDiscount = useMemo(() => {
+    if (clientScope === 'SELECTED_CLIENTS' && selectedClientsObjects.length > 0) {
+      return Number(selectedClientsObjects[0].discount || 0);
+    }
     if (clientScope === 'CLIENT_CATEGORY' && selectedClientCategories.length > 0) {
       const firstCat = enrichedClientCategories.find(
         c => c.code === selectedClientCategories[0]
       );
-      if (firstCat) {
-        sampleBaseDiscount = Number(firstCat.discount || 0);
-        sampleClientName = firstCat.name;
-      }
-    } else if (
-      clientScope !== 'ALL_CLIENTS' &&
-      clientScope !== 'CLIENT_CATEGORY' &&
-      selectedClientsObjects.length > 0
-    ) {
-      sampleBaseDiscount = Number(selectedClientsObjects[0].discount || 0);
-      sampleClientName = selectedClientsObjects[0].companyName;
+      if (firstCat) return Number(firstCat.discount || 0);
     }
-
-    const sampleListPrice =
-      targetType === 'PRODUCTS' &&
-      selectedProducts.length > 0 &&
-      selectedProducts[0].listPrice
-        ? Number(selectedProducts[0].listPrice)
-        : 100;
-    const baseNetPrice = sampleListPrice * (1 - sampleBaseDiscount / 100);
-    const val = Math.max(0, Math.min(95, Number(discountValue || 0)));
-
-    if (calculationMode === 'FIXED_OVERRIDE') {
-      const finalNet = sampleListPrice * (1 - val / 100);
-      return {
-        sampleClientName,
-        sampleListPrice,
-        sampleBaseDiscount,
-        baseNetPrice,
-        finalNet,
-        effectivePct: val,
-        formulaText: `Sconto Fisso Sostitutivo ${val}% (sostituisce lo sconto base ${sampleBaseDiscount}%)`,
-      };
-    } else {
-      const finalNet = baseNetPrice * (1 - val / 100);
-      const effectivePct =
-        sampleListPrice > 0
-          ? Number(((1 - finalNet / sampleListPrice) * 100).toFixed(2))
-          : 0;
-      return {
-        sampleClientName,
-        sampleListPrice,
-        sampleBaseDiscount,
-        baseNetPrice,
-        finalNet,
-        effectivePct,
-        formulaText: `Sconto Base Fisso ${sampleBaseDiscount}% + Extra ${val}% a cascata (${effectivePct}% effettivo)`,
-      };
-    }
+    return 40;
   }, [
     clientScope,
     selectedClientsObjects,
     selectedClientCategories,
     enrichedClientCategories,
-    targetType,
-    selectedProducts,
-    calculationMode,
-    discountValue,
   ]);
 
-  // Raggruppamento CLIENTE-CENTRICO: per ogni cliente mostriamo tutti i suoi sconti attivi/configurati
-  const clientsWithDiscounts = useMemo(() => {
-    const q = filterSearch.trim().toLowerCase();
+  const exampleListPrice = 100;
+  const exampleAfterBase = exampleListPrice * (1 - exampleBaseDiscount / 100);
+  const exampleFinalNet =
+    calculationMode === 'FIXED_OVERRIDE'
+      ? exampleListPrice * (1 - discountValue / 100)
+      : exampleAfterBase * (1 - discountValue / 100);
+  const exampleEffectivePct =
+    calculationMode === 'FIXED_OVERRIDE'
+      ? discountValue
+      : Math.round((1 - (1 - exampleBaseDiscount / 100) * (1 - discountValue / 100)) * 10000) /
+        100;
 
-    return clients
-      .map(client => {
-        const catInfo = getClientCategoryInfo(client);
-        const clientRules = rules.filter(r =>
-          doesRuleMatchClient(r, {
-            clientId: client.id,
-            clientCode: client.zucchettiCode,
-            clientCategory: catInfo.code || client.customerType || '',
-            baseDiscount: client.discount ?? null,
-          })
+  const previewSummaryClients = useMemo(() => {
+    if (clientScope === 'SELECTED_CLIENTS') {
+      return selectedClientsObjects;
+    }
+    if (clientScope === 'CLIENT_CATEGORY') {
+      if (selectedClientCategories.length === 0) return [];
+      return clients.filter(c => {
+        const norm = normalizeClientCategoryCode(
+          c.categoriaCode || c.customerType,
+          c.discount
         );
-
-        const filteredClientRules = clientRules.filter(r => {
-          if (!q) return true;
-          const clientMatches =
-            (client.companyName || '').toLowerCase().includes(q) ||
-            (client.zucchettiCode || '').toLowerCase().includes(q) ||
-            catInfo.fullLabel.toLowerCase().includes(q);
-          if (clientMatches) return true;
-
-          const ruleHay = [
-            r.name,
-            ...r.targetSkus,
-            ...r.targetBrands,
-            ...r.targetProductGroups,
-            ...r.targetFamilies,
-            ...r.targetCategories,
-            r.targetType === 'ALL_CATALOG' ? 'tutto il catalogo' : '',
-          ]
-            .join(' ')
-            .toLowerCase();
-          return ruleHay.includes(q);
-        });
-
-        return {
-          client,
-          catInfo,
-          rules: filteredClientRules,
-          totalRulesCount: clientRules.length,
-        };
-      })
-      .filter(entry => {
-        if (entry.rules.length === 0) return false;
-        if (filterClientScope.startsWith('CAT:')) {
-          const catCode = filterClientScope.replace('CAT:', '');
-          if (entry.catInfo.code !== catCode) return false;
-        } else if (filterClientScope !== 'ALL' && filterClientScope !== 'ALL_CLIENTS') {
-          if (entry.client.id !== filterClientScope) return false;
-        }
-        return true;
+        return selectedClientCategories.includes(norm);
       });
-  }, [clients, rules, filterClientScope, filterSearch]);
+    }
+    return clients;
+  }, [clientScope, selectedClientsObjects, selectedClientCategories, clients]);
 
-  const formatFacetLabel = (code: string, list: CatalogFacetOption[]) => {
+  const previewSummaryProducts = useMemo<DiscountTargetProductMeta[]>(() => {
+    if (targetType === 'PRODUCTS') {
+      return selectedProducts;
+    }
+    if (
+      (targetType === 'BRAND' && selectedBrands.length === 0) ||
+      (targetType === 'PRODUCT_GROUP' && selectedProductGroups.length === 0) ||
+      (targetType === 'FAMILY' && selectedFamilies.length === 0) ||
+      (targetType === 'CATEGORY' && selectedCategories.length === 0)
+    ) {
+      return [];
+    }
+    return previewSampleProducts.map(p => ({
+      sku: p.sku,
+      title: p.originalName || p.title,
+      brand: p.brandLabel || p.brand,
+      listPrice: p.listPrice,
+      imageUrl: p.imageUrl,
+    }));
+  }, [
+    targetType,
+    selectedProducts,
+    selectedBrands,
+    selectedProductGroups,
+    selectedFamilies,
+    selectedCategories,
+    previewSampleProducts,
+  ]);
+
+  const previewProductsTotal = useMemo(() => {
+    if (targetType === 'PRODUCTS') return selectedProducts.length;
+    if (
+      (targetType === 'BRAND' && selectedBrands.length === 0) ||
+      (targetType === 'PRODUCT_GROUP' && selectedProductGroups.length === 0) ||
+      (targetType === 'FAMILY' && selectedFamilies.length === 0) ||
+      (targetType === 'CATEGORY' && selectedCategories.length === 0)
+    ) {
+      return 0;
+    }
+    return previewTotalCatalogCount || previewSummaryProducts.length;
+  }, [
+    targetType,
+    selectedProducts.length,
+    selectedBrands.length,
+    selectedProductGroups.length,
+    selectedFamilies.length,
+    selectedCategories.length,
+    previewTotalCatalogCount,
+    previewSummaryProducts.length,
+  ]);
+
+  const evaluateDiscountedPrice = (listPrice?: number) => {
+    const lp = Number(listPrice || 0);
+    if (lp <= 0) return 0;
+    const afterBase = lp * (1 - exampleBaseDiscount / 100);
+    return calculationMode === 'FIXED_OVERRIDE'
+      ? lp * (1 - discountValue / 100)
+      : afterBase * (1 - discountValue / 100);
+  };
+
+  const filteredRules = useMemo(() => {
+    return rules.filter(r => {
+      if (filterClientScope === 'ALL_CLIENTS' && r.clientScope !== 'ALL_CLIENTS') {
+        return false;
+      }
+      if (
+        filterClientScope === 'SELECTED_CLIENTS' &&
+        r.clientScope !== 'SINGLE_CLIENT' &&
+        r.clientScope !== 'SELECTED_CLIENTS'
+      ) {
+        return false;
+      }
+      if (
+        filterClientScope === 'CLIENT_CATEGORY' &&
+        r.clientScope !== 'CLIENT_CATEGORY'
+      ) {
+        return false;
+      }
+
+      const q = filterSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.clientName || '').toLowerCase().includes(q) ||
+        (r.clientCode || '').toLowerCase().includes(q) ||
+        (r.clientsMeta || []).some(
+          cm =>
+            cm.name.toLowerCase().includes(q) || cm.code.toLowerCase().includes(q)
+        ) ||
+        (r.clientCategories || []).some(cat => cat.toLowerCase().includes(q)) ||
+        (r.targetSkus || []).some(s => s.toLowerCase().includes(q)) ||
+        (r.targetBrands || []).some(b => b.toLowerCase().includes(q)) ||
+        (r.targetProductGroups || []).some(g => g.toLowerCase().includes(q)) ||
+        (r.targetFamilies || []).some(f => f.toLowerCase().includes(q)) ||
+        (r.targetCategories || []).some(c => c.toLowerCase().includes(q))
+      );
+    });
+  }, [rules, filterClientScope, filterSearch]);
+
+  const activeRulesCount = useMemo(
+    () => rules.filter(r => r.isActive && !isDiscountRuleExpired(r)).length,
+    [rules]
+  );
+
+  const formatTargetBadge = (rule: AgentDiscountRule): string => {
+    switch (rule.targetType) {
+      case 'ALL_CATALOG':
+        return '🌐 Tutto il Catalogo';
+      case 'PRODUCTS':
+        return `🎯 ${rule.targetSkus.length} Prodott${rule.targetSkus.length === 1 ? 'o' : 'i'} Specific${rule.targetSkus.length === 1 ? 'o' : 'i'}`;
+      case 'BRAND':
+        return `🏷️ ${rule.targetBrands.length} March${rule.targetBrands.length === 1 ? 'io' : 'i'}`;
+      case 'PRODUCT_GROUP':
+        return `📦 ${rule.targetProductGroups.length} Grupp${rule.targetProductGroups.length === 1 ? 'o' : 'i'} (L1)`;
+      case 'FAMILY':
+        return `📂 ${rule.targetFamilies.length} Famigli${rule.targetFamilies.length === 1 ? 'a' : 'e'} (L2)`;
+      case 'CATEGORY':
+        return `📑 ${rule.targetCategories.length} Categori${rule.targetCategories.length === 1 ? 'a' : 'e'} (L3)`;
+      default:
+        return rule.targetType;
+    }
+  };
+
+  const resolveFacetLabel = (
+    list: CatalogFacetOption[],
+    code: string
+  ): string => {
     const found = list.find(o => o.code.toUpperCase() === code.toUpperCase());
     return found ? found.label : code;
   };
 
-  const _formatClientCategoryBadge = (catCode: string) => {
-    const upper = normalizeClientCategoryCode(catCode);
-    const found = enrichedClientCategories.find(c => c.code === upper);
-    if (found) {
-      return `${found.name} (Sconto Base Fisso: ${found.discount}%)`;
-    }
-    if (upper === 'RIV') return 'RIV - Rivenditore (Sconto Base Fisso: 50%)';
-    if (upper === 'IST') return 'IST - Installatore / Impiantista (Sconto Base Fisso: 40%)';
-    if (upper === 'GEN') return 'GEN - Generale (Sconto Base Fisso: 25%)';
-    return upper;
-  };
-  void [_handleEditRule, _handleToggleRule, _handleDeleteRule, _formatClientCategoryBadge];
-
   return (
-    <>
-      <div className="space-y-6 pb-12">
-      {/* INTESTAZIONE */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider bg-brand-main text-black rounded">
-                Gestione Sconti B2B
-              </span>
-              {agentCode && (
-                <span className="text-xs text-gray-500 font-mono">
-                  Agente: {agentName} ({agentCode})
-                </span>
-              )}
-            </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mt-1">
-              Gestione Sconti Prodotti, Marchi, Categorie e Catalogo
-            </h1>
-            <p className="text-sm text-gray-600 mt-0.5">
-              Ogni cliente mantiene il suo <strong>Sconto Base fisso non modificabile</strong>. Qui puoi abbinare sconti dedicati su{' '}
-              <strong>tutto il catalogo</strong>, <strong>singoli prodotti (o selezioni di prodotti)</strong>,{' '}
-              <strong>marchi</strong>, <strong>gruppi</strong>, <strong>famiglie</strong> o <strong>categorie</strong> per{' '}
-              <strong>uno o più clienti scelti</strong>, per <strong>Categoria Cliente (Rivenditore, Installatore / Impiantista, ecc.)</strong> oppure per{' '}
-              <strong>tutti i tuoi clienti</strong>.
-            </p>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
+      <StickyHeader paddingY="sm">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 'var(--spacing-md)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <Tabs
+            activeTab={activeTab}
+            onChange={id => setActiveTab(id as 'editor' | 'list')}
+            tabs={[
+              {
+                id: 'editor',
+                label: editingRuleId ? 'Modifica Regola Sconto' : 'Configuratore Regola Sconto',
+                icon: <Plus size={14} />,
+              },
+              {
+                id: 'list',
+                label: `Regole & Matrice Clienti (${rules.length})`,
+                icon: <Percent size={14} />,
+              },
+            ]}
+          />
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+            <Badge variant="neutral" size="sm">
+              Agente: {agentName} ({agentCode})
+            </Badge>
+            <Badge variant="success" size="sm">
+              {activeRulesCount} Regole Attive
+            </Badge>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<BookOpen size={14} />}
               onClick={() => useWindowStore.getState().openWindow('b2b_catalog_builder')}
-              className="px-4 py-2.5 text-xs font-extrabold rounded-lg bg-black hover:bg-gray-800 text-white shadow-sm transition-colors flex items-center gap-2 cursor-pointer"
             >
-              <span>📖 Vai a Sviluppa Catalogo PDF</span>
-            </button>
+              Vai a Sviluppa Catalogo PDF
+            </Button>
           </div>
         </div>
-      </div>
+      </StickyHeader>
 
-      {/* FORM CREAZIONE / MODIFICA REGOLA DI SCONTO */}
-      <form
-        onSubmit={handleSaveRule}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
-      >
-        <div className="px-6 py-4 bg-gray-900 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-extrabold flex items-center gap-2">
-              <span>{editingRuleId ? '✏️ Modifica Regola di Sconto' : '➕ Nuova Regola di Sconto'}</span>
-            </h2>
-            <p className="text-xs text-gray-300 mt-0.5">
-              Le regole attive vengono applicate automaticamente sia nello Sviluppo Catalogo PDF sia nel listino B2B dei clienti selezionati.
-            </p>
-          </div>
-          {editingRuleId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-700 hover:bg-gray-600 text-white"
+      {/* CONTENUTO PRINCIPALE */}
+      <div style={{ padding: 'var(--spacing-lg)', flex: 1 }}>
+        {activeTab === 'editor' && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) 300px',
+              gap: 'var(--spacing-lg)',
+              alignItems: 'start',
+            }}
+          >
+            {/* COLONNA SINISTRA: FORM 4 STEP */}
+            <form
+              onSubmit={handleSaveRule}
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}
             >
-              Annulla modifica
-            </button>
-          )}
-        </div>
-
-        <div className="p-6 space-y-6">
-          {formError && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700">
-              ⚠️ {formError}
-            </div>
-          )}
-          {formSuccess && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800">
-              ✅ {formSuccess}
-            </div>
-          )}
-
-          {/* STEP 1: DESTINATARIO (CLIENTI SCELTI, CATEGORIA CLIENTE: RIVENDITORE/IMPIANTISTA/ECC., OPPURE TUTTI I CLIENTI) */}
-          <div className="space-y-4">
-            <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-              1. A quali clienti vuoi applicare lo sconto?
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setClientScope('SELECTED_CLIENTS')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT'
-                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-gray-900">
-                    👤 Uno o più Clienti Scelti
-                  </span>
-                  {selectedClientsObjects.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
-                      {selectedClientsObjects.length}
+              {/* STEP 1: CLIENTI */}
+              <GlassPanel padding="lg" radius="lg">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 'var(--spacing-md)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Badge variant="primary" size="sm">
+                      STEP 1
+                    </Badge>
+                    <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                      A quali clienti vuoi applicare lo sconto?
                     </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
-                  Seleziona 1 cliente singolo oppure più clienti specifici
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setClientScope('CLIENT_CATEGORY')}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  clientScope === 'CLIENT_CATEGORY'
-                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-gray-900">
-                    🏢 Per Categoria Cliente
-                  </span>
-                  {selectedClientCategories.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
-                      {selectedClientCategories.length}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
-                  Rivenditore (RIV), Installatore / Impiantista (IST), Generale (GEN)...
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setClientScope('ALL_CLIENTS');
-                  setSelectedClientIds([]);
-                  setSelectedClientCategories([]);
-                  setClientSearchText('');
-                }}
-                className={`p-3 rounded-xl border text-left transition-all ${
-                  clientScope === 'ALL_CLIENTS'
-                    ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                    : 'border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="text-xs font-extrabold text-gray-900">
-                  👥 Tutti i miei Clienti
-                </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
-                  Valido per l&apos;intero tuo portafoglio ({clients.length} clienti)
-                </div>
-              </button>
-            </div>
-
-            {/* CONTENUTO DESTINATARIO: UNO O PIÙ CLIENTI SCELTI */}
-            {(clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT') && (
-              <div className="space-y-3 p-4 rounded-xl bg-gray-50/70 border border-gray-200">
-                <div className="relative" ref={clientDropdownRef}>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                      Cerca e seleziona uno o più Clienti B2B ({selectedClientsObjects.length} selezionat{selectedClientsObjects.length === 1 ? 'o' : 'i'})
-                    </label>
-
-                    {/* Pill filtro rapido per Categoria Cliente */}
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] text-gray-500 font-semibold mr-1">
-                        Filtra per categoria:
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownClientCatFilter('ALL');
-                          setIsClientDropdownOpen(true);
-                        }}
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
-                          dropdownClientCatFilter === 'ALL'
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                        }`}
-                      >
-                        Tutti ({clients.length})
-                      </button>
-                      {enrichedClientCategories.map(cat => (
-                        <button
-                          key={cat.code}
-                          type="button"
-                          onClick={() => {
-                            setDropdownClientCatFilter(cat.code);
-                            setIsClientDropdownOpen(true);
-                          }}
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
-                            dropdownClientCatFilter === cat.code
-                              ? 'bg-brand-main text-black border-brand-main'
-                              : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                          }`}
-                        >
-                          {cat.name} ({cat.clientsCount})
-                        </button>
-                      ))}
-                      {selectedClientsObjects.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedClientIds([])}
-                          className="ml-2 text-xs font-bold text-red-600 hover:underline"
-                        >
-                          Svuota ({selectedClientsObjects.length})
-                        </button>
-                      )}
-                    </div>
                   </div>
-
-                  <div className="relative flex items-center">
-                    <input
-                      ref={clientSearchInputRef}
-                      type="text"
-                      value={clientSearchText}
-                      onFocus={() => setIsClientDropdownOpen(true)}
-                      onChange={e => {
-                        setClientSearchText(e.target.value);
-                        setIsClientDropdownOpen(true);
-                      }}
-                      placeholder="Digita ragione sociale, codice cliente, categoria (es. Rivenditore, Installatore) o città..."
-                      className="w-full px-3.5 py-2.5 pr-28 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-main"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsClientDropdownOpen(prev => !prev)}
-                      className="absolute right-2 px-2.5 py-1 text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
-                    >
-                      {isClientDropdownOpen ? 'Chiudi ▲' : 'Sfoglia ▼'}
-                    </button>
-                  </div>
-
-                  {isClientDropdownOpen && (
-                    <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl z-40 overflow-hidden">
-                      <div className="px-3.5 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
-                        <span className="text-gray-600 font-semibold">
-                          Clicca sui clienti per selezionarli o deselezionarli ({filteredClientsForDropdown.length} trovati)
-                        </span>
-                        <div className="flex items-center gap-3">
-                          {filteredClientsForDropdown.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const idsToAdd = filteredClientsForDropdown.map(c => c.id);
-                                setSelectedClientIds(prev =>
-                                  Array.from(new Set([...prev, ...idsToAdd]))
-                                );
-                              }}
-                              className="font-bold text-brand-main hover:underline"
-                            >
-                              + Seleziona tutti i {filteredClientsForDropdown.length} filtrati
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setIsClientDropdownOpen(false)}
-                            className="font-bold text-gray-500 hover:text-gray-800"
-                          >
-                            Chiudi ✕
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                        {filteredClientsForDropdown.length === 0 ? (
-                          <div className="p-4 text-xs text-gray-400 text-center">
-                            Nessun cliente trovato
-                          </div>
-                        ) : (
-                          filteredClientsForDropdown.map(c => {
-                            const isSelected = selectedClientIds.includes(c.id);
-                            const catInfo = getClientCategoryInfo(c);
-                            return (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => toggleClientSelection(c.id)}
-                                className={`w-full text-left px-3.5 py-2.5 transition-colors flex items-center justify-between gap-2 ${
-                                  isSelected
-                                    ? 'bg-emerald-50/90 hover:bg-emerald-100/80'
-                                    : 'hover:bg-amber-50'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <input
-                                    type="checkbox"
-                                    readOnly
-                                    checked={isSelected}
-                                    className="rounded border-gray-300 text-brand-main focus:ring-brand-main pointer-events-none"
-                                  />
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-xs font-bold text-gray-900 truncate">
-                                        {c.companyName}
-                                      </span>
-                                      {catInfo.code && (
-                                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded bg-indigo-50 text-indigo-800 border border-indigo-200">
-                                          🏢 {catInfo.fullLabel}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[11px] text-gray-500 font-mono">
-                                      Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="px-2 py-0.5 text-[11px] font-extrabold bg-gray-100 text-gray-800 rounded">
-                                    🔒 Sconto Base: {c.discount || 0}%
-                                  </span>
-                                  <span
-                                    className={`px-2 py-0.5 text-[10px] font-extrabold rounded ${
-                                      isSelected
-                                        ? 'bg-emerald-600 text-white'
-                                        : 'bg-brand-main text-black'
-                                    }`}
-                                  >
-                                    {isSelected ? '✓ Scelto' : '+ Aggiungi'}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* CONTENUTO DESTINATARIO: PER CATEGORIA CLIENTE (RIVENDITORE, INSTALLATORE / IMPIANTISTA, GENERALE, ECC.) */}
-            {clientScope === 'CLIENT_CATEGORY' && (
-              <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-200 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <div className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">
-                      🏢 Seleziona una o più Categorie Clienti
-                    </div>
-                    <p className="text-[11px] text-indigo-800">
-                      Lo sconto verrà applicato automaticamente a tutti i tuoi clienti appartenenti alla categoria scelta (mantenendo fisso il rispettivo Sconto Base di categoria).
-                    </p>
-                  </div>
-                  {selectedClientCategories.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedClientCategories([])}
-                      className="text-xs font-bold text-red-600 hover:underline shrink-0"
-                    >
-                      Deseleziona tutte
-                    </button>
+                  {editingRuleId && (
+                    <Button variant="secondary" size="sm" type="button" onClick={resetForm}>
+                      Annulla Modifica
+                    </Button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {enrichedClientCategories.map(cat => {
-                    const checked = selectedClientCategories.includes(cat.code);
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 'var(--spacing-sm)',
+                    marginBottom: 'var(--spacing-md)',
+                  }}
+                >
+                  {[
+                    {
+                      id: 'SELECTED_CLIENTS' as DiscountClientScope,
+                      title: 'Uno o più Clienti Scelti',
+                      desc: 'Seleziona 1 cliente singolo oppure più clienti specifici',
+                      icon: <Users size={15} />,
+                    },
+                    {
+                      id: 'CLIENT_CATEGORY' as DiscountClientScope,
+                      title: 'Per Categoria Cliente',
+                      desc: 'Rivenditore (RIV), Installatore (IST), Generale (GEN)...',
+                      icon: <Layers size={15} />,
+                    },
+                    {
+                      id: 'ALL_CLIENTS' as DiscountClientScope,
+                      title: 'Tutti i miei Clienti',
+                      desc: `Valido per l'intero portafoglio (${clients.length} clienti)`,
+                      icon: <Globe size={15} />,
+                    },
+                  ].map(item => {
+                    const active =
+                      clientScope === item.id ||
+                      (item.id === 'SELECTED_CLIENTS' && clientScope === 'SINGLE_CLIENT');
                     return (
-                      <button
-                        key={cat.code}
-                        type="button"
-                        onClick={() => toggleClientCategorySelection(cat.code)}
-                        className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
-                          checked
-                            ? 'border-indigo-600 bg-white ring-2 ring-indigo-500/30 shadow-sm'
-                            : 'border-gray-200 bg-white/80 hover:bg-white'
-                        }`}
+                      <div
+                        key={item.id}
+                        onClick={() => setClientScope(item.id)}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          background: active
+                            ? 'var(--color-primary-light)'
+                            : 'var(--color-surface-solid)',
+                          border: active
+                            ? '2px solid var(--color-primary)'
+                            : '1px solid var(--color-border)',
+                          transition: 'var(--transition-fast)',
+                        }}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              readOnly
-                              checked={checked}
-                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 pointer-events-none"
-                            />
-                            <span className="text-xs font-extrabold text-gray-900">
-                              {cat.name}
-                            </span>
-                          </div>
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-100 text-indigo-900 rounded-full shrink-0">
-                            {cat.clientsCount} client{cat.clientsCount === 1 ? 'e' : 'i'}
-                          </span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            color: 'var(--color-text-main)',
+                          }}
+                        >
+                          {item.icon}
+                          <span>{item.title}</span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px]">
-                          <span className="text-gray-500 font-medium">
-                            🔒 Sconto Base Fisso:
-                          </span>
-                          <span className="font-black text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
-                            {cat.discount}%
-                          </span>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--color-text-muted)',
+                            marginTop: '4px',
+                          }}
+                        >
+                          {item.desc}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
 
-            {/* CONTENUTO DESTINATARIO: TUTTI I CLIENTI */}
-            {clientScope === 'ALL_CLIENTS' && (
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950">
-                <div className="font-extrabold">
-                  👥 Regola valida per tutti i tuoi clienti ({clients.length} clienti in anagrafica)
-                </div>
-                <p className="text-[11px] text-blue-800 mt-0.5">
-                  Ogni cliente manterrà il proprio <strong>Sconto Base fisso individuale</strong> (es. Rivenditore 50%, Installatore 40%, Generale 25%) come punto di partenza, a cui si applicherà questa regola.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* STEP 2: AMBITO PRODOTTI (TUTTO IL CATALOGO, PRODOTTI SCELTI, MARCHIO, GRUPPO, FAMIGLIA, CATEGORIA) */}
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                2. Su quali articoli vuoi applicare lo sconto?
-              </label>
-
-              {/* Riepilogo filtri attivi nella regola */}
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                {targetType === 'ALL_CATALOG' ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-extrabold">
-                    🌐 Tutto il Catalogo
-                  </span>
-                ) : (
-                  <>
-                    {selectedProducts.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold">
-                        {selectedProducts.length} Prodott{selectedProducts.length === 1 ? 'o' : 'i'}
-                      </span>
-                    )}
-                    {selectedBrands.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-bold">
-                        {selectedBrands.length} March{selectedBrands.length === 1 ? 'io' : 'i'}
-                      </span>
-                    )}
-                    {selectedProductGroups.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-900 font-bold">
-                        {selectedProductGroups.length} Grupp{selectedProductGroups.length === 1 ? 'o' : 'i'}
-                      </span>
-                    )}
-                    {selectedFamilies.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-900 font-bold">
-                        {selectedFamilies.length} Famigli{selectedFamilies.length === 1 ? 'a' : 'e'}
-                      </span>
-                    )}
-                    {selectedCategories.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-bold">
-                        {selectedCategories.length} Categori{selectedCategories.length === 1 ? 'a' : 'e'}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* TABS DI SELEZIONE AMBITO (INCLUSO TUTTO IL CATALOGO) */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              {[
-                {
-                  id: 'ALL_CATALOG' as DiscountTargetType,
-                  title: '🌐 Tutto il Catalogo',
-                  sub: 'Intero listino prodotti',
-                  count: targetType === 'ALL_CATALOG' ? 1 : 0,
-                },
-                {
-                  id: 'PRODUCTS' as DiscountTargetType,
-                  title: '🎯 Singolo / Più Prodotti',
-                  sub: 'Ricerca predittiva SKU',
-                  count: selectedProducts.length,
-                },
-                {
-                  id: 'BRAND' as DiscountTargetType,
-                  title: '🏷️ Per Marchio',
-                  sub: `${facets.brands.length} marchi`,
-                  count: selectedBrands.length,
-                },
-                {
-                  id: 'PRODUCT_GROUP' as DiscountTargetType,
-                  title: '📦 Gruppo Merceol.',
-                  sub: `${facets.productGroups.length} gruppi (L1)`,
-                  count: selectedProductGroups.length,
-                },
-                {
-                  id: 'FAMILY' as DiscountTargetType,
-                  title: '📂 Per Famiglia',
-                  sub: `${facets.families.length} famiglie (L2)`,
-                  count: selectedFamilies.length,
-                },
-                {
-                  id: 'CATEGORY' as DiscountTargetType,
-                  title: '📑 Per Categoria',
-                  sub: `${facets.categories.length} categorie (L3)`,
-                  count: selectedCategories.length,
-                },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setTargetType(tab.id)}
-                  className={`p-3 rounded-xl border text-left transition-all relative ${
-                    targetType === tab.id
-                      ? 'border-brand-main bg-amber-50/80 ring-2 ring-brand-main/30'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-xs font-extrabold text-gray-900">
-                      {tab.title}
-                    </span>
-                    {tab.count > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-black bg-brand-main text-black rounded-full">
-                        {tab.id === 'ALL_CATALOG' ? '✓' : tab.count}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{tab.sub}</div>
-                </button>
-              ))}
-            </div>
-
-            {/* CONTENUTO TAB: TUTTO IL CATALOGO */}
-            {targetType === 'ALL_CATALOG' && (
-              <div className="p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="text-sm font-extrabold text-emerald-950 flex items-center gap-2">
-                    <span>🌐 Sconto applicato a TUTTO IL CATALOGO</span>
-                  </div>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    Questa regola verrà applicata automaticamente su <strong>tutti gli articoli del catalogo</strong>. Se imposti anche regole più specifiche (es. su un singolo prodotto o un marchio), quelle più specifiche avranno sempre priorità.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* CONTENUTO TAB: SINGOLO PRODOTTO O SELEZIONE DI PRODOTTI */}
-            {targetType === 'PRODUCTS' && (
-              <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-4">
-                <div ref={predictiveRef} className="relative">
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Cerca e clicca i prodotti da includere nello sconto (es. scrivi <code className="bg-white px-1 py-0.5 rounded border">e45</code> e clicca, poi <code className="bg-white px-1 py-0.5 rounded border">il34</code> e clicca...)
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      ref={productSearchInputRef}
-                      type="text"
-                      value={productQuery}
-                      onFocus={() => {
-                        if (productQuery.trim().length > 0) setIsPredictiveOpen(true);
+                {/* CONTENUTO STEP 1A: CLIENTI SCELTI */}
+                {(clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT') && (
+                  <div ref={clientDropdownRef} style={{ position: 'relative' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        marginBottom: '8px',
                       }}
-                      onChange={e => {
-                        setProductQuery(e.target.value);
-                        setIsPredictiveOpen(true);
-                      }}
-                      placeholder="Digita codice articolo (SKU) o descrizione per aggiungere un prodotto..."
-                      className="w-full px-4 py-2.5 text-sm bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:border-brand-main"
-                    />
-                    {isPredictiveLoading && (
-                      <span className="absolute right-3 text-xs text-gray-400 font-bold">
-                        Ricerca...
+                    >
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        Cerca e seleziona uno o più clienti B2B ({selectedClientsObjects.length}{' '}
+                        selezionati)
                       </span>
-                    )}
-                  </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={dropdownClientCatFilter === 'ALL' ? 'primary' : 'secondary'}
+                          onClick={() => setDropdownClientCatFilter('ALL')}
+                        >
+                          Tutti ({clients.length})
+                        </Button>
+                        {enrichedClientCategories
+                          .filter(c => c.clientsCount > 0)
+                          .map(cat => (
+                            <Button
+                              key={cat.code}
+                              type="button"
+                              size="sm"
+                              variant={
+                                dropdownClientCatFilter === cat.code ? 'primary' : 'secondary'
+                              }
+                              onClick={() => setDropdownClientCatFilter(cat.code)}
+                            >
+                              {cat.name} ({cat.clientsCount})
+                            </Button>
+                          ))}
+                      </div>
+                    </div>
 
-                  {/* TENDINA PREDITTIVA */}
-                  {isPredictiveOpen && productQuery.trim().length > 0 && (
-                    <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto divide-y divide-gray-100">
-                      {predictiveResults.length === 0 && !isPredictiveLoading ? (
-                        <div className="p-4 text-center text-xs text-gray-500">
-                          Nessun prodotto trovato per &ldquo;{productQuery}&rdquo;
+                    <div onClick={() => setIsClientDropdownOpen(true)}>
+                      <TextInput
+                        value={clientSearchText}
+                        onChange={e => {
+                          setClientSearchText(e.target.value);
+                          setIsClientDropdownOpen(true);
+                        }}
+                        placeholder="Digita ragione sociale, codice cliente, categoria o città..."
+                        leftIcon={<Search size={15} />}
+                        fullWidth
+                      />
+                    </div>
+
+                    {selectedClientsObjects.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          gap: '6px',
+                          marginTop: '10px',
+                        }}
+                      >
+                        {selectedClientsObjects.map(c => (
+                          <Badge key={c.id} variant="primary" size="md">
+                            <span
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              <strong>{c.companyName}</strong> ({c.zucchettiCode}) • Base{' '}
+                              {c.discount}%
+                              <span
+                                style={{ cursor: 'pointer', fontWeight: 800 }}
+                                onClick={() => toggleSelectClient(c)}
+                              >
+                                ×
+                              </span>
+                            </span>
+                          </Badge>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setSelectedClientIds([])}
+                        >
+                          Svuota selezione
+                        </Button>
+                      </div>
+                    )}
+
+                    {isClientDropdownOpen && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          zIndex: 60,
+                          left: 0,
+                          right: 0,
+                          marginTop: '6px',
+                          background: 'var(--color-surface-solid)',
+                          border: '1px solid var(--color-border-dark)',
+                          borderRadius: 'var(--radius-md)',
+                          boxShadow: 'var(--shadow-lg)',
+                          maxHeight: '280px',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '8px 12px',
+                            borderBottom: '1px solid var(--color-border)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'var(--color-bg)',
+                            position: 'sticky',
+                            top: 0,
+                          }}
+                        >
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                            Clicca sui clienti per aggiungerli ({filteredClientsForDropdown.length}{' '}
+                            risultati)
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="primary"
+                            onClick={() => setIsClientDropdownOpen(false)}
+                          >
+                            Chiudi tendina ✓
+                          </Button>
                         </div>
-                      ) : (
-                        predictiveResults.map(p => {
-                          const isSelected = selectedProducts.some(
-                            sp => sp.sku.toUpperCase() === p.sku.toUpperCase()
+                        {filteredClientsForDropdown.map(c => {
+                          const isChecked = selectedClientIds.includes(c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => toggleSelectClient(c)}
+                              style={{
+                                padding: '8px 12px',
+                                borderBottom: '1px solid var(--color-border-light)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                background: isChecked
+                                  ? 'var(--color-primary-light)'
+                                  : 'transparent',
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  readOnly
+                                  style={{ accentColor: 'var(--color-primary)' }}
+                                />
+                                <div>
+                                  <div style={{ fontSize: '12px', fontWeight: 700 }}>
+                                    {c.companyName}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: '11px',
+                                      color: 'var(--color-text-muted)',
+                                    }}
+                                  >
+                                    Cod: {c.zucchettiCode}{' '}
+                                    {c.city ? `• ${c.city} (${c.province})` : ''}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Badge variant="neutral" size="sm">
+                                  {getClientCategoryLabel(c)}
+                                </Badge>
+                                <Badge variant="success" size="sm">
+                                  Base {c.discount}%
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CONTENUTO STEP 1B: PER CATEGORIA CLIENTE */}
+                {clientScope === 'CLIENT_CATEGORY' && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                      gap: 'var(--spacing-sm)',
+                    }}
+                  >
+                    {enrichedClientCategories.map(cat => {
+                      const checked = selectedClientCategories.includes(cat.code);
+                      return (
+                        <div
+                          key={cat.code}
+                          onClick={() => toggleSelectClientCategory(cat.code)}
+                          style={{
+                            padding: '12px',
+                            borderRadius: 'var(--radius-md)',
+                            cursor: 'pointer',
+                            background: checked
+                              ? 'var(--color-primary-light)'
+                              : 'var(--color-surface-solid)',
+                            border: checked
+                              ? '2px solid var(--color-primary)'
+                              : '1px solid var(--color-border)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span style={{ fontWeight: 700, fontSize: '13px' }}>{cat.name}</span>
+                            <Badge variant={checked ? 'primary' : 'neutral'} size="sm">
+                              Base {cat.discount}%
+                            </Badge>
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--color-text-muted)',
+                              marginTop: '4px',
+                            }}
+                          >
+                            {cat.clientsCount} client{cat.clientsCount === 1 ? 'e' : 'i'} in
+                            portafoglio
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* CONTENUTO STEP 1C: TUTTI I CLIENTI */}
+                {clientScope === 'ALL_CLIENTS' && (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-primary-light)',
+                      border: '1px solid var(--color-primary)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <strong>Regola Globale Portafoglio Agente:</strong> questo sconto si
+                    applicherà automaticamente a tutti i tuoi <strong>{clients.length}</strong>{' '}
+                    clienti gestiti (mantenendo per ciascuno il proprio Sconto Base fisso).
+                  </div>
+                )}
+              </GlassPanel>
+
+              {/* STEP 2: ARTICOLI / REPARTI */}
+              <GlassPanel padding="lg" radius="lg">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: 'var(--spacing-md)',
+                  }}
+                >
+                  <Badge variant="primary" size="sm">
+                    STEP 2
+                  </Badge>
+                  <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                    Su quali articoli vuoi applicare lo sconto?
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: 'var(--spacing-sm)',
+                    marginBottom: 'var(--spacing-md)',
+                  }}
+                >
+                  {[
+                    {
+                      id: 'ALL_CATALOG' as DiscountTargetType,
+                      title: 'Tutto il Catalogo',
+                      sub: 'Intero listino prodotti',
+                      icon: <Globe size={14} />,
+                    },
+                    {
+                      id: 'PRODUCTS' as DiscountTargetType,
+                      title: 'Singolo / Più Prodotti',
+                      sub: 'Ricerca predittiva SKU',
+                      icon: <Package size={14} />,
+                    },
+                    {
+                      id: 'BRAND' as DiscountTargetType,
+                      title: 'Per Marchio',
+                      sub: `${facets.brands.length} marchi`,
+                      icon: <Tag size={14} />,
+                    },
+                    {
+                      id: 'PRODUCT_GROUP' as DiscountTargetType,
+                      title: 'Gruppo Merceol.',
+                      sub: `${facets.productGroups.length} gruppi (L1)`,
+                      icon: <FolderTree size={14} />,
+                    },
+                    {
+                      id: 'FAMILY' as DiscountTargetType,
+                      title: 'Per Famiglia',
+                      sub: `${facets.families.length} famiglie (L2)`,
+                      icon: <FolderTree size={14} />,
+                    },
+                    {
+                      id: 'CATEGORY' as DiscountTargetType,
+                      title: 'Per Categoria',
+                      sub: `${facets.categories.length} categorie (L3)`,
+                      icon: <FolderTree size={14} />,
+                    },
+                  ].map(t => {
+                    const active = targetType === t.id;
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => setTargetType(t.id)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          background: active
+                            ? 'var(--color-primary-light)'
+                            : 'var(--color-surface-solid)',
+                          border: active
+                            ? '2px solid var(--color-primary)'
+                            : '1px solid var(--color-border)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontWeight: 700,
+                            fontSize: '12px',
+                          }}
+                        >
+                          {t.icon}
+                          <span>{t.title}</span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--color-text-muted)',
+                            marginTop: '2px',
+                          }}
+                        >
+                          {t.sub}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {targetType === 'ALL_CATALOG' && (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-primary-light)',
+                      border: '1px solid var(--color-primary)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    🌐 <strong>Sconto applicato a TUTTO IL CATALOGO:</strong> le regole più
+                    specifiche (es. singolo prodotto o marchio) avranno sempre priorità.
+                  </div>
+                )}
+
+                {targetType === 'PRODUCTS' && (
+                  <div ref={predictiveRef} style={{ position: 'relative' }}>
+                    <TextInput
+                      label="Aggiungi uno o più prodotti con la barra predittiva (per codice SKU o nome)"
+                      value={productQuery}
+                      onChange={e => setProductQuery(e.target.value)}
+                      onFocus={() => {
+                        if (predictiveResults.length > 0) setIsPredictiveOpen(true);
+                      }}
+                      placeholder="Digita codice SKU (es. E45, IL34) o descrizione prodotto..."
+                      leftIcon={<Search size={15} />}
+                      rightIcon={
+                        isPredictiveLoading ? (
+                          <span style={{ fontSize: '11px' }}>...</span>
+                        ) : undefined
+                      }
+                      fullWidth
+                    />
+
+                    {isPredictiveOpen && predictiveResults.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          zIndex: 60,
+                          left: 0,
+                          right: 0,
+                          marginTop: '6px',
+                          background: 'var(--color-surface-solid)',
+                          border: '1px solid var(--color-border-dark)',
+                          borderRadius: 'var(--radius-md)',
+                          boxShadow: 'var(--shadow-lg)',
+                          maxHeight: '280px',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '8px 12px',
+                            borderBottom: '1px solid var(--color-border)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'var(--color-bg)',
+                          }}
+                        >
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                            Clicca su un articolo per aggiungerlo alla regola
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="primary"
+                            onClick={handleAddAllFromSearch}
+                          >
+                            + Aggiungi tutti i risultati per "{productQuery}"
+                          </Button>
+                        </div>
+                        {predictiveResults.map(prod => {
+                          const already = selectedProducts.some(
+                            p => p.sku.toUpperCase() === prod.sku.toUpperCase()
                           );
                           return (
-                            <button
-                              key={p.sku}
-                              type="button"
-                              onClick={() => addProductToRule(p)}
-                              className={`w-full text-left px-4 py-2.5 flex items-center justify-between gap-3 transition-colors ${
-                                isSelected ? 'bg-emerald-50' : 'hover:bg-amber-50'
-                              }`}
+                            <div
+                              key={prod.id}
+                              onClick={() => handleAddProduct(prod)}
+                              style={{
+                                padding: '8px 12px',
+                                borderBottom: '1px solid var(--color-border-light)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                background: already ? 'var(--color-primary-light)' : 'transparent',
+                              }}
                             >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded border border-gray-200 bg-white flex items-center justify-center overflow-hidden shrink-0">
-                                  {p.imageUrl ? (
-                                    <img
-                                      src={p.imageUrl}
-                                      alt={p.sku}
-                                      className="w-full h-full object-contain"
-                                    />
-                                  ) : (
-                                    <span className="text-[9px] text-gray-300 font-mono">
-                                      NO IMG
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs font-extrabold text-gray-900">
-                                      {p.sku}
-                                    </span>
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                                      {p.brandLabel || p.brand}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-gray-600 truncate">
-                                    {p.originalName || p.title}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3 shrink-0">
-                                <span className="text-xs font-extrabold text-gray-800">
-                                  € {p.listPrice.toFixed(2)}
-                                </span>
-                                <span
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold ${
-                                    isSelected
-                                      ? 'bg-emerald-600 text-white'
-                                      : 'bg-brand-main text-black'
-                                  }`}
-                                >
-                                  {isSelected ? '✓ Scelto' : '+ Seleziona'}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Badge variant="neutral" size="sm">
+                                  {prod.sku}
+                                </Badge>
+                                <span style={{ fontSize: '12px', fontWeight: 600 }}>
+                                  {prod.originalName || prod.title}
                                 </span>
                               </div>
-                            </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700 }}>
+                                  € {prod.listPrice.toFixed(2)}
+                                </span>
+                                <Badge variant={already ? 'success' : 'primary'} size="sm">
+                                  {already ? '✓ Già presente' : '+ Aggiungi'}
+                                </Badge>
+                              </div>
+                            </div>
                           );
-                        })
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                        })}
+                      </div>
+                    )}
 
-            {targetType === 'BRAND' && (
-              <MultiSelectPicker
-                label="Seleziona uno o più Marchi"
-                placeholder="Cerca marchio..."
-                options={facets.brands}
-                selectedValues={selectedBrands}
-                onChange={setSelectedBrands}
-              />
-            )}
+                    {selectedProducts.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '6px',
+                          marginTop: '10px',
+                        }}
+                      >
+                        {selectedProducts.map(p => (
+                          <Badge key={p.sku} variant="primary" size="md">
+                            <span
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              <strong>{p.sku}</strong> — {p.title.slice(0, 32)}
+                              <span
+                                style={{ cursor: 'pointer', fontWeight: 800 }}
+                                onClick={() => handleRemoveProduct(p.sku)}
+                              >
+                                ×
+                              </span>
+                            </span>
+                          </Badge>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => setSelectedProducts([])}
+                        >
+                          Svuota ({selectedProducts.length})
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-            {targetType === 'PRODUCT_GROUP' && (
-              <MultiSelectPicker
-                label="Seleziona uno o più Gruppi Merceologici (Livello 1)"
-                placeholder="Cerca gruppo merceologico..."
-                options={facets.productGroups}
-                selectedValues={selectedProductGroups}
-                onChange={setSelectedProductGroups}
-              />
-            )}
+                {targetType === 'BRAND' && (
+                  <MultiSelectPicker
+                    label="Seleziona uno o più Marchi (Brand)"
+                    placeholder="Cerca marchio..."
+                    options={facets.brands}
+                    selectedValues={selectedBrands}
+                    onChange={setSelectedBrands}
+                  />
+                )}
 
-            {targetType === 'FAMILY' && (
-              <MultiSelectPicker
-                label="Seleziona una o più Famiglie (Livello 2)"
-                placeholder="Cerca famiglia..."
-                options={facets.families}
-                selectedValues={selectedFamilies}
-                onChange={setSelectedFamilies}
-              />
-            )}
+                {targetType === 'PRODUCT_GROUP' && (
+                  <MultiSelectPicker
+                    label="Seleziona uno o più Gruppi Merceologici (L1)"
+                    placeholder="Cerca gruppo merceologico..."
+                    options={facets.productGroups}
+                    selectedValues={selectedProductGroups}
+                    onChange={setSelectedProductGroups}
+                  />
+                )}
 
-            {targetType === 'CATEGORY' && (
-              <MultiSelectPicker
-                label="Seleziona una o più Categorie (Livello 3)"
-                placeholder="Cerca categoria..."
-                options={facets.categories}
-                selectedValues={selectedCategories}
-                onChange={setSelectedCategories}
-              />
-            )}
-          </div>
+                {targetType === 'FAMILY' && (
+                  <MultiSelectPicker
+                    label="Seleziona una o più Famiglie Prodotto (L2)"
+                    placeholder="Cerca famiglia..."
+                    options={facets.families}
+                    selectedValues={selectedFamilies}
+                    onChange={setSelectedFamilies}
+                  />
+                )}
 
-          <hr className="border-gray-100" />
+                {targetType === 'CATEGORY' && (
+                  <MultiSelectPicker
+                    label="Seleziona una o più Categorie Specifiche (L3)"
+                    placeholder="Cerca categoria..."
+                    options={facets.categories}
+                    selectedValues={selectedCategories}
+                    onChange={setSelectedCategories}
+                  />
+                )}
+              </GlassPanel>
 
-          {/* STEP 3: MODALITÀ DI CALCOLO, PERCENTUALE E ANTEPRIMA */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            <div className="lg:col-span-5 space-y-2">
-              <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                3. Come deve agire questo sconto rispetto allo Sconto Base?
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setCalculationMode('EXTRA_CASCADE')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    calculationMode === 'EXTRA_CASCADE'
-                      ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
+              {/* STEP 3 & STEP 4: MODALITÀ CALCOLO, VALORE E SCADENZA */}
+              <GlassPanel padding="lg" radius="lg">
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: 'var(--spacing-md)',
+                  }}
                 >
-                  <div className="text-xs font-extrabold text-gray-900">
-                    ➕ Extra Sconto a Cascata
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
-                    Si aggiunge oltre allo Sconto Base fisso del cliente (es. Base 40% + 10%)
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setCalculationMode('FIXED_OVERRIDE')}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    calculationMode === 'FIXED_OVERRIDE'
-                      ? 'border-brand-main bg-amber-50/70 ring-2 ring-brand-main/30'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-xs font-extrabold text-gray-900">
-                    🎯 Sconto Fisso Sostitutivo
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
-                    Imposta una % fissa sugli articoli scelti (es. 55% fisso)
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-3 space-y-2">
-              <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                {calculationMode === 'EXTRA_CASCADE'
-                  ? 'Extra Sconto (%)'
-                  : 'Sconto Fisso (%)'}
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0.5}
-                  max={95}
-                  step={0.5}
-                  value={discountValue}
-                  onChange={e => setDiscountValue(Number(e.target.value || 0))}
-                  className="w-full px-4 py-2.5 text-lg font-black border-2 border-gray-300 rounded-xl focus:outline-none focus:border-brand-main"
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-gray-500">
-                  %
-                </span>
-              </div>
-              <input
-                type="text"
-                value={ruleName}
-                onChange={e => setRuleName(e.target.value)}
-                placeholder="Nota / Nome regola (opzionale)"
-                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-brand-main"
-              />
-            </div>
-
-            {/* BOX SIMULAZIONE CALCOLO IN TEMPO REALE */}
-            <div className="lg:col-span-4 p-4 rounded-xl bg-gray-900 text-white space-y-2">
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">
-                Simulazione Prezzo ({simulationPreview.sampleClientName})
-              </div>
-              <div className="text-xs text-gray-300">
-                {simulationPreview.formulaText}
-              </div>
-              <div className="pt-1 border-t border-gray-800 flex items-baseline justify-between">
-                <div className="text-[11px] text-gray-400">
-                  Listino: <span className="line-through">€ {simulationPreview.sampleListPrice.toFixed(2)}</span>
-                  <span className="ml-2">
-                    (Solo Base: € {simulationPreview.baseNetPrice.toFixed(2)})
+                  <Badge variant="primary" size="sm">
+                    STEP 3 & 4
+                  </Badge>
+                  <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                    Modalità di Calcolo, Percentuale e Scadenza dello Sconto
                   </span>
                 </div>
-                <div className="text-base font-black text-emerald-400">
-                  Netto: € {simulationPreview.finalNet.toFixed(2)}
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* STEP 4: SCADENZA DELLO SCONTO (DATA + PREIMPOSTATI + SUL PRIMO ACQUISTO + SUL PROSSIMO ACQUISTO + SENZA SCADENZA) */}
-          <div className="p-4 rounded-xl bg-gray-50/80 border border-gray-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <label className="block text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                4. Scadenza dello sconto
-              </label>
-              <p className="text-[11px] text-gray-500">
-                Scegli <strong>Sul primo acquisto</strong>, <strong>Sul prossimo acquisto</strong>, una durata in giorni, una data dal calendario oppure <strong>Senza scadenza</strong>.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setExpiryType('NONE');
-                  setExpiresAtDate('');
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
-                  expiryType === 'NONE' && !expiresAtDate
-                    ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-                }`}
-              >
-                ∞ Senza scadenza
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setExpiryType('FIRST_PURCHASE');
-                  setExpiresAtDate('');
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
-                  expiryType === 'FIRST_PURCHASE'
-                    ? 'bg-brand-main text-black border-brand-main shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                }`}
-              >
-                🎁 Sul primo acquisto
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setExpiryType('NEXT_PURCHASE');
-                  setExpiresAtDate('');
-                }}
-                className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
-                  expiryType === 'NEXT_PURCHASE'
-                    ? 'bg-brand-main text-black border-brand-main shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                }`}
-              >
-                🛒 Sul prossimo acquisto
-              </button>
-
-              {[
-                { label: '15 gg', days: 15 },
-                { label: '30 gg', days: 30 },
-                { label: '60 gg', days: 60 },
-                { label: '90 gg', days: 90 },
-              ].map(preset => {
-                const targetDate = getDatePlusDaysStr(preset.days);
-                const isActivePreset =
-                  expiryType === 'DATE' && expiresAtDate === targetDate;
-                return (
-                  <button
-                    key={preset.days}
-                    type="button"
-                    onClick={() => {
-                      setExpiryType('DATE');
-                      setExpiresAtDate(targetDate);
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-extrabold border transition-all ${
-                      isActivePreset
-                        ? 'bg-brand-main text-black border-brand-main shadow-sm'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-amber-50'
-                    }`}
-                  >
-                    ⏱️ {preset.label}
-                  </button>
-                );
-              })}
-
-              <div className="flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5">
-                <span className="text-[11px] font-bold text-gray-500">Data:</span>
-                <input
-                  type="date"
-                  value={expiryType === 'DATE' ? expiresAtDate : ''}
-                  min={getDatePlusDaysStr(0)}
-                  onChange={e => {
-                    const val = e.target.value;
-                    if (val) {
-                      setExpiryType('DATE');
-                      setExpiresAtDate(val);
-                    } else {
-                      setExpiryType('NONE');
-                      setExpiresAtDate('');
-                    }
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.2fr 1fr 1.1fr',
+                    gap: 'var(--spacing-md)',
+                    alignItems: 'start',
+                    marginBottom: 'var(--spacing-md)',
                   }}
-                  className="text-xs font-extrabold text-gray-900 bg-transparent focus:outline-none cursor-pointer"
-                />
-                {expiryType === 'DATE' && expiresAtDate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExpiryType('NONE');
-                      setExpiresAtDate('');
-                    }}
-                    title="Torna a Senza scadenza"
-                    className="text-gray-400 hover:text-red-600 text-xs font-black ml-1"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-2 flex justify-end gap-3">
-            {editingRuleId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2.5 text-xs font-bold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Annulla
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-6 py-3 text-xs font-black uppercase tracking-wider rounded-xl bg-brand-main hover:bg-amber-400 text-black shadow-sm transition-colors disabled:opacity-50"
-            >
-              {isSaving
-                ? 'Salvataggio in corso...'
-                : editingRuleId
-                  ? '💾 Aggiorna Regola di Sconto'
-                  : '✅ Salva e Attiva Regola di Sconto'}
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {/* ELENCO SCONTI RAGGRUPPATI PER SINGOLO CLIENTE (CLIENTE-CENTRICO) */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-extrabold text-gray-900">
-              Clienti con Sconti Personalizzati ({clientsWithDiscounts.length})
-            </h2>
-            <p className="text-xs text-gray-500">
-              Ogni cliente ha le proprie condizioni di sconto dedicate: eliminando o modificando uno sconto su un cliente non vengono mai alterati gli sconti degli altri clienti.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={filterClientScope}
-              onChange={e => setFilterClientScope(e.target.value)}
-              className="px-3 py-2 text-xs font-bold border border-gray-300 rounded-lg bg-white"
-            >
-              <option value="ALL">Tutti i clienti con sconti ({clientsWithDiscounts.length})</option>
-              <optgroup label="🏢 Filtra per Categoria Cliente">
-                {enrichedClientCategories.map(cat => (
-                  <option key={cat.code} value={`CAT:${cat.code}`}>
-                    🏢 {cat.name} (Base {cat.discount}%)
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="👤 Filtra per Singolo Cliente">
-                {clients.map(c => {
-                  const catInfo = getClientCategoryInfo(c);
-                  return (
-                    <option key={c.id} value={c.id}>
-                      👤 {c.companyName} ({catInfo.code || 'Base'} {c.discount || 0}%)
-                    </option>
-                  );
-                })}
-              </optgroup>
-            </select>
-
-            <input
-              type="text"
-              value={filterSearch}
-              onChange={e => setFilterSearch(e.target.value)}
-              placeholder="Cerca cliente, codice, SKU, marchio..."
-              className="px-3 py-2 text-xs border border-gray-300 rounded-lg"
-            />
-          </div>
-        </div>
-
-        {clientsWithDiscounts.length === 0 ? (
-          <div className="p-10 text-center space-y-2">
-            <div className="text-sm font-bold text-gray-700">
-              Nessun cliente con sconti personalizzati attivi.
-            </div>
-            <p className="text-xs text-gray-500 max-w-md mx-auto">
-              Usa il modulo qui sopra per impostare uno sconto su uno o più clienti. Ogni sconto verrà registrato singolarmente sulla scheda di ciascun cliente.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {clientsWithDiscounts.map(({ client, catInfo, rules: clientRules }) => (
-              <div key={client.id} className="p-5 bg-white space-y-3">
-                {/* INTESTAZIONE CLIENTE (PROTAGONISTA) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-gray-100">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded bg-gray-900 text-white font-mono text-xs font-extrabold">
-                      {client.zucchettiCode || 'N/D'}
-                    </span>
-                    <span className="text-base font-extrabold text-gray-900">
-                      {client.companyName}
-                    </span>
-                    {catInfo.code && (
-                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-bold">
-                        🏢 {catInfo.fullLabel}
-                      </span>
-                    )}
-                    <span className="px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-800 text-xs font-black">
-                      🔒 Sconto Base Fisso: {client.discount || 0}%
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-extrabold">
-                      {clientRules.length} scont{clientRules.length === 1 ? 'o' : 'i'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        resetForm();
-                        setClientScope('SELECTED_CLIENTS');
-                        setSelectedClientIds([client.id]);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-brand-main hover:bg-amber-400 text-black transition-colors"
-                    >
-                      + Aggiungi Sconto a questo cliente
-                    </button>
-                  </div>
-                </div>
-
-                {/* LISTA SCONTI APPLICATI A QUESTO SINGOLO CLIENTE */}
-                <div className="space-y-2 pl-0 sm:pl-2">
-                  {clientRules.map(rule => (
+                >
+                  {/* Modalità */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div
-                      key={`${client.id}-${rule.id}`}
-                      className={`p-3.5 rounded-xl border flex flex-col lg:flex-row lg:items-center justify-between gap-3 transition-colors ${
-                        rule.isActive
-                          ? 'bg-gray-50/70 border-gray-200 hover:border-gray-300'
-                          : 'bg-gray-100/70 border-gray-200 opacity-65'
-                      }`}
+                      onClick={() => setCalculationMode('EXTRA_CASCADE')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        background:
+                          calculationMode === 'EXTRA_CASCADE'
+                            ? 'var(--color-primary-light)'
+                            : 'var(--color-surface-solid)',
+                        border:
+                          calculationMode === 'EXTRA_CASCADE'
+                            ? '2px solid var(--color-primary)'
+                            : '1px solid var(--color-border)',
+                      }}
                     >
-                      <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {rule.calculationMode === 'EXTRA_CASCADE' ? (
-                            <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-emerald-100 text-emerald-900">
-                              ➕ +{rule.discountValue}% Extra a cascata (oltre Base {client.discount || 0}%)
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-amber-200 text-amber-950">
-                              🎯 {rule.discountValue}% Sconto Fisso Sostitutivo
-                            </span>
-                          )}
-
-                          {rule.expiryType === 'FIRST_PURCHASE' ? (
-                            isDiscountRuleExpired(rule) ? (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
-                                ⛔ Scaduto (1° acquisto effettuato)
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-purple-50 text-purple-900 border border-purple-200">
-                                🎁 Sul primo acquisto
-                              </span>
-                            )
-                          ) : rule.expiryType === 'NEXT_PURCHASE' ? (
-                            isDiscountRuleExpired(rule) ? (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
-                                ⛔ Scaduto (Prossimo acquisto effettuato)
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-blue-50 text-blue-900 border border-blue-200">
-                                🛒 Sul prossimo acquisto
-                              </span>
-                            )
-                          ) : rule.expiresAt ? (
-                            isDiscountRuleExpired(rule) ? (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-red-100 text-red-800 border border-red-200">
-                                ⛔ Scaduto il {formatExpiryDisplay(rule.expiresAt)}
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-md text-xs font-extrabold bg-amber-50 text-amber-900 border border-amber-200">
-                                📅 Scade il {formatExpiryDisplay(rule.expiresAt)}
-                              </span>
-                            )
-                          ) : (
-                            <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-white border border-gray-200 text-gray-600">
-                              ∞ Senza scadenza
-                            </span>
-                          )}
-
-                          <span className="text-xs font-bold text-gray-800">
-                            {rule.name}
-                          </span>
-                        </div>
-
-                        {/* Dettaglio articoli / marchi / categorie dello sconto */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {rule.targetType === 'ALL_CATALOG' && (
-                            <span className="px-2.5 py-0.5 text-[11px] font-extrabold rounded bg-emerald-600 text-white">
-                              🌐 TUTTO IL CATALOGO
-                            </span>
-                          )}
-                          {rule.targetSkus.map(sku => {
-                            const meta = rule.targetProductsMeta?.find(
-                              m => m.sku.toUpperCase() === sku.toUpperCase()
-                            );
-                            return (
-                              <span
-                                key={sku}
-                                className="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-white text-gray-800 border border-gray-200"
-                                title={meta?.title || sku}
-                              >
-                                🎯 {sku}
-                                {meta?.title ? ` - ${meta.title.slice(0, 32)}` : ''}
-                              </span>
-                            );
-                          })}
-                          {rule.targetBrands.map(b => (
-                            <span
-                              key={b}
-                              className="px-2 py-0.5 text-[11px] font-bold rounded bg-blue-50 text-blue-900 border border-blue-200"
-                            >
-                              🏷️ Marchio: {formatFacetLabel(b, facets.brands)}
-                            </span>
-                          ))}
-                          {rule.targetProductGroups.map(g => (
-                            <span
-                              key={g}
-                              className="px-2 py-0.5 text-[11px] font-bold rounded bg-purple-50 text-purple-900 border border-purple-200"
-                            >
-                              📦 Gruppo: {formatFacetLabel(g, facets.productGroups)}
-                            </span>
-                          ))}
-                          {rule.targetFamilies.map(f => (
-                            <span
-                              key={f}
-                              className="px-2 py-0.5 text-[11px] font-bold rounded bg-indigo-50 text-indigo-900 border border-indigo-200"
-                            >
-                              📂 Famiglia: {formatFacetLabel(f, facets.families)}
-                            </span>
-                          ))}
-                          {rule.targetCategories.map(c => (
-                            <span
-                              key={c}
-                              className="px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-50 text-emerald-900 border border-emerald-200"
-                            >
-                              📑 Categoria: {formatFacetLabel(c, facets.categories)}
-                            </span>
-                          ))}
-                        </div>
+                      <div style={{ fontWeight: 700, fontSize: '12px' }}>
+                        ➕ Extra Sconto a Cascata (X% + Y%)
                       </div>
-
-                      {/* Azioni sullo sconto di QUESTO singolo cliente */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleEditRuleForSingleClient(rule, client)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
-                        >
-                          Modifica
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleRemoveRuleFromSingleClient(rule.id, client)
-                          }
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold border border-red-200 bg-white text-red-600 hover:bg-red-50"
-                          title={`Elimina questo sconto solo per ${client.companyName}`}
-                        >
-                          Elimina dal cliente
-                        </button>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        Si aggiunge in cascata allo Sconto Base fisso del cliente (es. 40% + 10%)
                       </div>
                     </div>
+
+                    <div
+                      onClick={() => setCalculationMode('FIXED_OVERRIDE')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        background:
+                          calculationMode === 'FIXED_OVERRIDE'
+                            ? 'var(--color-primary-light)'
+                            : 'var(--color-surface-solid)',
+                        border:
+                          calculationMode === 'FIXED_OVERRIDE'
+                            ? '2px solid var(--color-primary)'
+                            : '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: '12px' }}>
+                        🎯 Sconto Fisso Sostitutivo
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        Imposta una % fissa sugli articoli scelti (es. 55% fisso)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Valore % + Nota */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <TextInput
+                      label={
+                        calculationMode === 'EXTRA_CASCADE'
+                          ? 'Extra Sconto a Cascata (%)'
+                          : 'Sconto Fisso Totale (%)'
+                      }
+                      type="number"
+                      min={0}
+                      max={95}
+                      step={0.5}
+                      value={discountValue}
+                      onChange={e =>
+                        setDiscountValue(
+                          Math.min(95, Math.max(0, parseFloat(e.target.value) || 0))
+                        )
+                      }
+                      fullWidth
+                    />
+                    <TextInput
+                      label="Nota / Nome regola (opzionale)"
+                      value={ruleName}
+                      onChange={e => setRuleName(e.target.value)}
+                      placeholder="Es. Promo 1° Acquisto Pronta Consegna"
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Simulazione Prezzo */}
+                  <div
+                    style={{
+                      padding: '14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-text-main)',
+                      color: '#ffffff',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        color: '#fbbf24',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      Simulazione Prezzo (Listino €100,00)
+                    </div>
+                    <div style={{ fontSize: '12px', marginTop: '6px', opacity: 0.9 }}>
+                      {calculationMode === 'EXTRA_CASCADE'
+                        ? `Base ${exampleBaseDiscount}% + Extra ${discountValue}% (${exampleEffectivePct}% netto)`
+                        : `Sconto Fisso ${discountValue}%`}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid rgba(255,255,255,0.15)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', opacity: 0.75 }}>
+                        Solo Base: €{exampleAfterBase.toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: '18px', fontWeight: 900, color: '#34d399' }}>
+                        € {exampleFinalNet.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scadenza */}
+                <div
+                  style={{
+                    paddingTop: 'var(--spacing-md)',
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 'var(--spacing-sm)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar size={15} />
+                    <span style={{ fontSize: '12px', fontWeight: 700 }}>
+                      Scadenza dello Sconto:
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expiryType === 'NONE' ? 'primary' : 'secondary'}
+                      onClick={() => {
+                        setExpiryType('NONE');
+                        setExpiresAtDate('');
+                      }}
+                    >
+                      ∞ Senza scadenza
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expiryType === 'FIRST_PURCHASE' ? 'primary' : 'secondary'}
+                      onClick={() => {
+                        setExpiryType('FIRST_PURCHASE');
+                        setExpiresAtDate('');
+                      }}
+                    >
+                      🎁 Sul primo acquisto
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={expiryType === 'NEXT_PURCHASE' ? 'primary' : 'secondary'}
+                      onClick={() => {
+                        setExpiryType('NEXT_PURCHASE');
+                        setExpiresAtDate('');
+                      }}
+                    >
+                      🛒 Sul prossimo acquisto
+                    </Button>
+                    {[15, 30, 60, 90].map(d => (
+                      <Button
+                        key={d}
+                        type="button"
+                        size="sm"
+                        variant={
+                          expiryType === 'DATE' && expiresAtDate === getDatePlusDaysStr(d)
+                            ? 'primary'
+                            : 'secondary'
+                        }
+                        onClick={() => {
+                          setExpiryType('DATE');
+                          setExpiresAtDate(getDatePlusDaysStr(d));
+                        }}
+                      >
+                        ⏱️ {d} gg
+                      </Button>
+                    ))}
+                    <input
+                      type="date"
+                      value={expiresAtDate}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setExpiresAtDate(val);
+                        setExpiryType(val ? 'DATE' : 'NONE');
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Submit Bar */}
+                <div
+                  style={{
+                    marginTop: 'var(--spacing-md)',
+                    paddingTop: 'var(--spacing-md)',
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 'var(--spacing-sm)',
+                  }}
+                >
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    icon={<RotateCcw size={14} />}
+                    onClick={resetForm}
+                  >
+                    Ripristina
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    icon={<Check size={15} />}
+                    disabled={isSaving}
+                  >
+                    {isSaving
+                      ? 'Salvataggio in corso...'
+                      : editingRuleId
+                      ? 'Salva Modifiche Regola'
+                      : 'Salva ed Attiva Regola di Sconto'}
+                  </Button>
+                </div>
+              </GlassPanel>
+            </form>
+
+            {/* COLONNA DESTRA: RIEPILOGO LIVE (CLIENTI + PRODOTTI) SENZA ALCUNA SOVRAPPOSIZIONE */}
+            <div style={{ position: 'sticky', top: '72px' }}>
+              <GlassPanel padding="md" radius="lg">
+                {/* Riquadro 1: Clienti */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <span style={{ fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                    Clienti Target ({previewSummaryClients.length})
+                  </span>
+                  <Badge variant="primary" size="sm">
+                    {clientScope === 'ALL_CLIENTS'
+                      ? 'Tutti'
+                      : clientScope === 'CLIENT_CATEGORY'
+                      ? 'Categorie'
+                      : `${previewSummaryClients.length} scelti`}
+                  </Badge>
+                </div>
+
+                <div
+                  style={{
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    marginBottom: 'var(--spacing-md)',
+                    paddingBottom: 'var(--spacing-sm)',
+                    borderBottom: '1px solid var(--color-border)',
+                  }}
+                >
+                  {previewSummaryClients.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '16px 8px',
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      Nessun cliente selezionato
+                    </div>
+                  ) : (
+                    previewSummaryClients.slice(0, 60).map((client, idx) => (
+                      <div
+                        key={client.id}
+                        style={{
+                          padding: '6px 8px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--color-surface-solid)',
+                          border: '1px solid var(--color-border)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '11px',
+                        }}
+                      >
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {idx + 1}. {client.companyName}
+                          </div>
+                          <div style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
+                            {client.zucchettiCode} • Base {client.discount}%
+                          </div>
+                        </div>
+                        {clientScope === 'SELECTED_CLIENTS' && (
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectClient(client)}
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              color: 'var(--color-danger)',
+                              fontWeight: 800,
+                            }}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Riquadro 2: Prodotti */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <span style={{ fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                    Prodotti ({previewProductsTotal})
+                  </span>
+                  <Badge variant="success" size="sm">
+                    {targetType === 'ALL_CATALOG' ? 'Intero catalogo' : targetType}
+                  </Badge>
+                </div>
+
+                <div
+                  style={{
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  {isPreviewLoading ? (
+                    <div
+                      style={{
+                        padding: '16px 8px',
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      Caricamento articoli...
+                    </div>
+                  ) : previewSummaryProducts.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '16px 8px',
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      Nessun prodotto selezionato
+                    </div>
+                  ) : (
+                    previewSummaryProducts.map((prod, idx) => {
+                      const netPrice = evaluateDiscountedPrice(prod.listPrice);
+                      return (
+                        <div
+                          key={prod.sku}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--color-surface-solid)',
+                            border: '1px solid var(--color-border)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '11px',
+                          }}
+                        >
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <div style={{ fontWeight: 700 }}>
+                              {idx + 1}. {prod.sku}{' '}
+                              {netPrice > 0 && (
+                                <span style={{ color: 'var(--color-success)' }}>
+                                  € {netPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: 'var(--color-text-muted)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {prod.title}
+                            </div>
+                          </div>
+                          {targetType === 'PRODUCTS' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProduct(prod.sku)}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: 'var(--color-danger)',
+                                fontWeight: 800,
+                              }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </GlassPanel>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: LISTA REGOLE E MATRICE CLIENTI */}
+        {activeTab === 'list' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            <GlassPanel padding="md" radius="lg">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 'var(--spacing-md)',
+                }}
+              >
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'ALL', label: `Tutte (${rules.length})` },
+                    { id: 'SELECTED_CLIENTS', label: 'Clienti Scelti' },
+                    { id: 'CLIENT_CATEGORY', label: 'Categorie Clienti' },
+                    { id: 'ALL_CLIENTS', label: 'Tutti i Clienti' },
+                  ].map(tab => (
+                    <Button
+                      key={tab.id}
+                      size="sm"
+                      variant={filterClientScope === tab.id ? 'primary' : 'secondary'}
+                      onClick={() => setFilterClientScope(tab.id)}
+                    >
+                      {tab.label}
+                    </Button>
                   ))}
                 </div>
+                <div style={{ width: '320px' }}>
+                  <TextInput
+                    value={filterSearch}
+                    onChange={e => setFilterSearch(e.target.value)}
+                    placeholder="Cerca regola per cliente, SKU, marchio..."
+                    leftIcon={<Search size={14} />}
+                    fullWidth
+                  />
+                </div>
               </div>
-            ))}
+            </GlassPanel>
+
+            {filteredRules.length === 0 ? (
+              <GlassPanel padding="lg" radius="lg">
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: 'var(--spacing-xl)',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  Nessuna regola di sconto trovata.
+                </div>
+              </GlassPanel>
+            ) : (
+              filteredRules.map(rule => {
+                const expired = isDiscountRuleExpired(rule);
+                const ruleMatchedClients = clients.filter(c =>
+                  doesRuleMatchClient(rule, {
+                    clientId: c.id,
+                    clientCode: c.zucchettiCode,
+                    clientCategory: normalizeClientCategoryCode(
+                      c.categoriaCode || c.customerType,
+                      c.discount
+                    ),
+                    baseDiscount: c.discount,
+                  })
+                );
+
+                return (
+                  <GlassPanel key={rule.id} padding="md" radius="lg">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: 'var(--spacing-md)',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '280px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                            marginBottom: '6px',
+                          }}
+                        >
+                          <Badge
+                            variant={
+                              !rule.isActive
+                                ? 'neutral'
+                                : expired
+                                ? 'danger'
+                                : 'success'
+                            }
+                            size="sm"
+                          >
+                            {!rule.isActive
+                              ? 'Disattivata'
+                              : expired
+                              ? 'Scaduta / Consumata'
+                              : 'Attiva'}
+                          </Badge>
+                          <Badge variant="primary" size="sm">
+                            {formatTargetBadge(rule)}
+                          </Badge>
+                          <Badge variant="warning" size="sm">
+                            {rule.calculationMode === 'EXTRA_CASCADE'
+                              ? `Extra +${rule.discountValue}% a cascata`
+                              : `Fisso ${rule.discountValue}%`}
+                          </Badge>
+                          <Badge variant="neutral" size="sm">
+                            {rule.expiryType === 'FIRST_PURCHASE'
+                              ? '🎁 Sul 1° Acquisto'
+                              : rule.expiryType === 'NEXT_PURCHASE'
+                              ? '🛒 Sul Prossimo Acquisto'
+                              : rule.expiresAt
+                              ? `Scade: ${formatExpiryDisplay(rule.expiresAt)}`
+                              : '∞ Senza scadenza'}
+                          </Badge>
+                        </div>
+
+                        <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '6px' }}>
+                          {rule.name || 'Regola Sconto B2B'}
+                        </div>
+
+                        {/* Dettaglio clienti associati */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {rule.clientScope === 'ALL_CLIENTS' ? (
+                            <Badge variant="primary" size="sm">
+                              Tutti i clienti ({clients.length})
+                            </Badge>
+                          ) : rule.clientScope === 'CLIENT_CATEGORY' ? (
+                            (rule.clientCategories || []).map(cat => (
+                              <Badge key={cat} variant="primary" size="sm">
+                                Categoria: {cat.toUpperCase()}
+                              </Badge>
+                            ))
+                          ) : (
+                            ruleMatchedClients.slice(0, 12).map(c => (
+                              <Badge key={c.id} variant="neutral" size="sm">
+                                <span
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                  }}
+                                >
+                                  {c.companyName} ({c.zucchettiCode})
+                                  {ruleMatchedClients.length > 1 && (
+                                    <span
+                                      style={{ cursor: 'pointer', fontWeight: 800 }}
+                                      title="Rimuovi questo cliente dalla regola"
+                                      onClick={() => handleRemoveRuleFromSingleClient(rule, c)}
+                                    >
+                                      ×
+                                    </span>
+                                  )}
+                                </span>
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Dettaglio target */}
+                        {rule.targetType === 'BRAND' && rule.targetBrands.length > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '4px',
+                              marginTop: '6px',
+                            }}
+                          >
+                            {rule.targetBrands.map(b => (
+                              <Badge key={b} variant="neutral" size="sm">
+                                {resolveFacetLabel(facets.brands, b)}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Switch
+                          checked={rule.isActive}
+                          onChange={() => handleToggleRule(rule)}
+                          label={rule.isActive ? 'Attiva' : 'Off'}
+                        />
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          icon={<Edit3 size={14} />}
+                          onClick={() => handleEditRule(rule)}
+                        >
+                          Modifica
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          icon={<Trash2 size={14} />}
+                          onClick={() => handleDeleteRule(rule.id)}
+                        >
+                          Elimina
+                        </Button>
+                      </div>
+                    </div>
+                  </GlassPanel>
+                );
+              })
+            )}
           </div>
         )}
       </div>
-      </div>
-
-      {/* COLONNA DESTRA ANCORATA ALLA BARRA SUPERIORE E AL BORDO DESTRO DELLO SCHERMO (1/3 CLIENTI + 2/3 PRODOTTI, CORPO UNICO) */}
-      <aside className="fixed top-[81px] right-0 bottom-0 z-40 w-[270px] bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-        {/* SEZIONE SUPERIORE (1/3): CLIENTI A CUI STIAMO APPLICANDO LO SCONTO */}
-        <div className="h-1/3 flex flex-col min-h-0">
-          <div className="px-3.5 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
-            <span className="text-xs font-extrabold text-gray-800">
-              Clienti ({sidebarClients.length})
-            </span>
-            {(clientScope === 'SELECTED_CLIENTS' || clientScope === 'SINGLE_CLIENT') &&
-            selectedClientsObjects.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedClientIds([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota tutto
-              </button>
-            ) : clientScope === 'CLIENT_CATEGORY' && selectedClientCategories.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedClientCategories([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota
-              </button>
-            ) : clientScope === 'ALL_CLIENTS' ? (
-              <span className="text-[11px] font-semibold text-blue-600">Tutti</span>
-            ) : (
-              <span className="text-[11px] text-gray-400">0 scelti</span>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/40">
-            {sidebarClients.length === 0 ? (
-              <div className="py-8 px-3 text-center space-y-1">
-                <p className="text-xs font-semibold text-gray-500">
-                  Nessun cliente inserito
-                </p>
-                <p className="text-[11px] text-gray-400 leading-relaxed">
-                  {clientScope === 'CLIENT_CATEGORY'
-                    ? 'Seleziona una o più categorie clienti a sinistra.'
-                    : 'Seleziona i clienti a cui applicare lo sconto.'}
-                </p>
-              </div>
-            ) : (
-              sidebarClients.map((client, idx) => {
-                const catInfo = getClientCategoryInfo(client);
-                return (
-                  <div
-                    key={client.id}
-                    className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-all"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">
-                        {idx + 1}.
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-[11px] font-extrabold text-gray-900 truncate">
-                          {client.companyName}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <span className="font-mono">{client.zucchettiCode}</span>
-                          {catInfo.code && (
-                            <span className="px-1 py-0.2 rounded bg-indigo-50 text-indigo-800 font-bold text-[9px]">
-                              {catInfo.code}
-                            </span>
-                          )}
-                          <span className="font-extrabold text-emerald-700">
-                            Base {client.discount || 0}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {(clientScope === 'SELECTED_CLIENTS' ||
-                      clientScope === 'SINGLE_CLIENT') && (
-                      <button
-                        type="button"
-                        onClick={() => toggleClientSelection(client.id)}
-                        title="Rimuovi cliente"
-                        className="w-6 h-6 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors text-xs font-bold"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* SEZIONE INFERIORE (2/3): PRODOTTI SU CUI STIAMO APPLICANDO LO SCONTO */}
-        <div className="h-2/3 flex flex-col min-h-0 border-t border-gray-200">
-          <div className="px-3.5 py-2.5 bg-white border-b border-gray-200 flex items-center justify-between shrink-0">
-            <span className="text-xs font-extrabold text-gray-800">
-              Prodotti ({sidebarProductsTotalCount})
-            </span>
-            {targetType === 'PRODUCTS' && selectedProducts.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedProducts([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota tutto
-              </button>
-            ) : targetType === 'BRAND' && selectedBrands.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedBrands([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota
-              </button>
-            ) : targetType === 'PRODUCT_GROUP' && selectedProductGroups.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedProductGroups([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota
-              </button>
-            ) : targetType === 'FAMILY' && selectedFamilies.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedFamilies([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota
-              </button>
-            ) : targetType === 'CATEGORY' && selectedCategories.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setSelectedCategories([])}
-                className="text-[11px] font-bold text-red-600 hover:text-red-800 hover:underline"
-              >
-                Svuota
-              </button>
-            ) : targetType === 'ALL_CATALOG' ? (
-              <span className="text-[11px] font-semibold text-emerald-700">
-                Intero catalogo
-              </span>
-            ) : (
-              <span className="text-[11px] text-gray-400">0 articoli</span>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-2 bg-gray-50/40">
-            {isLoadingScopeProducts ? (
-              <div className="py-12 px-4 text-center space-y-2.5">
-                <div className="w-6 h-6 border-2 border-brand-main border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-gray-600">
-                  Caricamento prodotti...
-                </p>
-              </div>
-            ) : sidebarProductsList.length === 0 ? (
-              <div className="py-12 px-4 text-center space-y-1.5">
-                <p className="text-xs font-semibold text-gray-500">
-                  Nessun prodotto selezionato
-                </p>
-                <p className="text-[11px] text-gray-400 leading-relaxed">
-                  {targetType === 'PRODUCTS'
-                    ? 'Aggiungi i prodotti dalla barra di ricerca.'
-                    : 'Seleziona uno o più filtri per visualizzare i prodotti inclusi.'}
-                </p>
-              </div>
-            ) : (
-              sidebarProductsList.map((product, idx) => {
-                const listPrice = Number(product.listPrice || 0);
-                const val = Math.max(0, Math.min(95, Number(discountValue || 0)));
-                const baseDisc = simulationPreview.sampleBaseDiscount;
-                const netPrice =
-                  listPrice > 0
-                    ? calculationMode === 'FIXED_OVERRIDE'
-                      ? listPrice * (1 - val / 100)
-                      : listPrice * (1 - baseDisc / 100) * (1 - val / 100)
-                    : 0;
-
-                return (
-                  <div
-                    key={`${product.sku}-${idx}`}
-                    className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-all"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 w-4 shrink-0">
-                        {idx + 1}.
-                      </span>
-                      <div className="w-8 h-8 rounded border border-gray-100 bg-white flex items-center justify-center shrink-0 p-0.5 overflow-hidden">
-                        {product.imageUrl ? (
-                          <img
-                            src={product.imageUrl}
-                            alt={product.title || product.sku}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <span className="text-[8px] font-bold text-gray-300">N/D</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[11px] font-black text-gray-900 truncate">
-                            {product.sku}
-                          </span>
-                          {listPrice > 0 && (
-                            <span className="text-[11px] font-extrabold text-emerald-700 shrink-0">
-                              € {netPrice.toFixed(2).replace('.', ',')}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-gray-500 truncate">
-                          {product.title}
-                        </div>
-                      </div>
-                    </div>
-
-                    {targetType === 'PRODUCTS' && (
-                      <button
-                        type="button"
-                        onClick={() => removeProductFromRule(product.sku)}
-                        title="Rimuovi prodotto"
-                        className="w-6 h-6 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center shrink-0 transition-colors text-xs font-bold"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </aside>
-    </>
+    </div>
   );
 }

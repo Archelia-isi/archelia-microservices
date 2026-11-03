@@ -82,7 +82,7 @@ export default function B2BDiscountsApp() {
         icon={<Percent size={32} color="#10b981" />}
       />
       {isAppReady && initData && (
-        <div className="b2b-agent-suite-root" style={{ padding: '20px 24px 40px' }}>
+        <div className="b2b-agent-suite-root" style={{ minHeight: '100%' }}>
           <DiscountsManagerClient
             agentName={initData.agentName}
             agentCode={initData.agentCode}
