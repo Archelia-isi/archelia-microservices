@@ -59,6 +59,9 @@ export interface AgentManagedClient {
   isActive: boolean;
   ordersCount: number;
   createdAt: string;
+  agentId?: string;
+  agentCode?: string;
+  agentName?: string;
 }
 
 export interface CatalogFacetOption {

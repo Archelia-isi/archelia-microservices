@@ -693,6 +693,15 @@ export default function CatalogBuilderClient({
     setCurrentSheet(0);
   };
 
+  const formatClientAgentLabel = (client: AgentManagedClient): string => {
+    const name = (client.agentName || '').trim();
+    const code = (client.agentCode || '').trim();
+    if (name && code && !name.includes(code)) return `${name} (${code})`;
+    if (name) return name;
+    if (code) return `Agente ${code}`;
+    return 'Direzionale / Sede';
+  };
+
   // Clienti filtrati in modo predittivo
   const filteredClients = useMemo(() => {
     const q = clientSearchText.trim().toLowerCase();
@@ -703,7 +712,8 @@ export default function CatalogBuilderClient({
           (c.companyName || '').toLowerCase().includes(q) ||
           (c.zucchettiCode || '').toLowerCase().includes(q) ||
           (c.city || '').toLowerCase().includes(q) ||
-          (c.vatNumber || '').toLowerCase().includes(q)
+          (c.vatNumber || '').toLowerCase().includes(q) ||
+          formatClientAgentLabel(c).toLowerCase().includes(q)
       )
       .slice(0, 60);
   }, [clients, clientSearchText]);
@@ -2253,14 +2263,30 @@ export default function CatalogBuilderClient({
                             <div
                               style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}
                             >
-                              Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''}
+                              Cod. {c.zucchettiCode} {c.city ? `• ${c.city}` : ''} • 🧑‍💼 Agente:{' '}
+                              <strong>{formatClientAgentLabel(c)}</strong>
                             </div>
                           </div>
-                          <Badge variant="success" size="sm">
-                            Sc. {Number(c.discount || 0)}%
-                          </Badge>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Badge variant="neutral" size="sm">
+                              🧑‍💼 {formatClientAgentLabel(c)}
+                            </Badge>
+                            <Badge variant="success" size="sm">
+                              Sc. {Number(c.discount || 0)}%
+                            </Badge>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {selectedClient && (
+                    <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <Badge variant="neutral" size="sm">
+                        🧑‍💼 Agente: {formatClientAgentLabel(selectedClient)}
+                      </Badge>
+                      <Badge variant="primary" size="sm">
+                        Cod. {selectedClient.zucchettiCode || 'N/D'}
+                      </Badge>
                     </div>
                   )}
                 </div>
@@ -2405,7 +2431,8 @@ export default function CatalogBuilderClient({
                       {selectedClient ? (
                         <>
                           🔒 Sconto Base fisso di{' '}
-                          <strong>{selectedClient.companyName}</strong> ({baseDiscount}%) +{' '}
+                          <strong>{selectedClient.companyName}</strong> (🧑‍💼 Agente:{' '}
+                          <strong>{formatClientAgentLabel(selectedClient)}</strong> • Base {baseDiscount}%) +{' '}
                           <strong>{applicableRulesCount}</strong> regole di sconto attive.
                         </>
                       ) : (

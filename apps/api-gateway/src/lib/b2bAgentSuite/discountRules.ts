@@ -355,8 +355,8 @@ export async function hydrateRulesWithPurchaseConsumption(
 }
 
 export async function getAgentDiscountRulesFromDb(
-  agentId: string,
-  agentCode?: string,
+  _agentId: string,
+  _agentCode?: string,
   options?: {
     excludeOrderId?: string | null;
     fallbackClientId?: string | null;
@@ -364,17 +364,9 @@ export async function getAgentDiscountRulesFromDb(
   }
 ): Promise<AgentDiscountRule[]> {
   const queryRules = async () => {
-    const cleanCode = (agentCode || '').trim();
-    const rows: any[] = cleanCode
-      ? await prisma.$queryRawUnsafe(
-          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" IN ($1, 'GLOBAL', 'ADMIN') OR ("agentCode" != '' AND "agentCode" = $2) ORDER BY "createdAt" DESC`,
-          agentId,
-          cleanCode
-        )
-      : await prisma.$queryRawUnsafe(
-          `SELECT * FROM "b2b_agent_discount_rules" WHERE "agentId" IN ($1, 'GLOBAL', 'ADMIN') ORDER BY "createdAt" DESC`,
-          agentId
-        );
+    const rows: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "b2b_agent_discount_rules" ORDER BY "createdAt" DESC`
+    );
     const mapped = (rows || []).map(mapRowToAgentDiscountRule);
     return await hydrateRulesWithPurchaseConsumption(mapped, options);
   };

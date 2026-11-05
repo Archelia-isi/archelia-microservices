@@ -41,6 +41,9 @@ export interface AgentManagedClient {
   isActive: boolean;
   ordersCount: number;
   createdAt: string;
+  agentId?: string;
+  agentCode?: string;
+  agentName?: string;
 }
 
 export const DEFAULT_AGENT_ID = 'cmtu64h1c0000jk0sb1ho1o49';
@@ -87,6 +90,56 @@ let cachedZucchettiClients: {
   expiresAt: number;
 } | null = null;
 let inflightZucchettiClients: Promise<{ rows: any[]; map: Map<string, any> }> | null = null;
+
+let cachedZucchettiAgents: {
+  map: Map<string, { code: string; name: string }>;
+  expiresAt: number;
+} | null = null;
+let inflightZucchettiAgents: Promise<Map<string, { code: string; name: string }>> | null = null;
+
+async function fetchZucchettiAgentsCached(): Promise<Map<string, { code: string; name: string }>> {
+  if (cachedZucchettiAgents && Date.now() < cachedZucchettiAgents.expiresAt) {
+    return cachedZucchettiAgents.map;
+  }
+  if (inflightZucchettiAgents) {
+    return inflightZucchettiAgents;
+  }
+
+  inflightZucchettiAgents = (async () => {
+    const map = new Map<string, { code: string; name: string }>();
+    try {
+      const url = `${getZucchettiBaseUrl()}/servlet/api/SPVQRProducer/zzna_agenti?sp_company=A0002&limit=1000&offset=0`;
+      const res = await zFetch(url, { headers: getZucchettiHeaders() }, 3000);
+      if (res.ok) {
+        const json: any = await res.json();
+        const rows: any[] = json.data || json.dataset || json.zzna_agenti || [];
+        for (const r of rows) {
+          const rawCode = String(r.agcodage || r.Agcodage || '').trim();
+          const name = String(r.agdesage || r.Agdesage || '').trim();
+          if (!rawCode) continue;
+          const norm = normalizeAgentCode(rawCode);
+          if (norm) {
+            map.set(norm, { code: rawCode, name: name || `Agente ${rawCode}` });
+          }
+        }
+      }
+    } catch (_e) {
+      if (cachedZucchettiAgents) {
+        return cachedZucchettiAgents.map;
+      }
+    }
+
+    cachedZucchettiAgents = {
+      map,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    };
+    return map;
+  })().finally(() => {
+    inflightZucchettiAgents = null;
+  });
+
+  return inflightZucchettiAgents;
+}
 
 const cachedAgentClientsByAgentId = new Map<
   string,
@@ -315,25 +368,108 @@ export async function getAgentClientsList(
     return cachedForAgent.data;
   }
 
-  const [categories, zucchettiClientsData, allExistingB2B, dbClients] = await Promise.all([
-    fetchZucchettiCategoriesCached(),
-    fetchZucchettiClientsCached(),
-    prisma.b2BUser.findMany({
-      where: { role: 'USER' },
-      select: { zucchettiCode: true, vatNumber: true },
-    }),
-    prisma.b2BUser.findMany({
-      where: {
-        role: 'USER',
-      },
-      include: {
-        _count: {
-          select: { orders: true },
+  const [categories, zucchettiClientsData, zucchettiAgentsMap, allExistingB2B, dbClients, dbAgents] =
+    await Promise.all([
+      fetchZucchettiCategoriesCached(),
+      fetchZucchettiClientsCached(),
+      fetchZucchettiAgentsCached(),
+      prisma.b2BUser.findMany({
+        where: { role: 'USER' },
+        select: { zucchettiCode: true, vatNumber: true },
+      }),
+      prisma.b2BUser.findMany({
+        where: {
+          role: 'USER',
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-  ]);
+        include: {
+          _count: {
+            select: { orders: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.b2BUser.findMany({
+        where: {
+          role: 'AGENT',
+        },
+        select: {
+          id: true,
+          zucchettiCode: true,
+          companyName: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+        },
+      }),
+    ]);
+
+  const agentById = new Map<string, { id: string; code: string; name: string }>();
+  const agentByNormCode = new Map<string, { id: string; code: string; name: string }>();
+  const b2bAgentNormCodes = new Set<string>();
+
+  for (const [normCode, zAg] of Array.from(zucchettiAgentsMap.entries())) {
+    agentByNormCode.set(normCode, {
+      id: `ZAG:${normCode}`,
+      code: zAg.code,
+      name: zAg.name,
+    });
+  }
+
+  agentById.set(DEFAULT_AGENT_ID, {
+    id: DEFAULT_AGENT_ID,
+    code: DEFAULT_AGENT_CODE,
+    name: DEFAULT_AGENT_NAME,
+  });
+  agentByNormCode.set(normalizeAgentCode(DEFAULT_AGENT_CODE), {
+    id: DEFAULT_AGENT_ID,
+    code: DEFAULT_AGENT_CODE,
+    name: DEFAULT_AGENT_NAME,
+  });
+  b2bAgentNormCodes.add(normalizeAgentCode(DEFAULT_AGENT_CODE));
+
+  for (const ag of dbAgents) {
+    const agName =
+      ag.companyName ||
+      `${ag.firstName || ''} ${ag.lastName || ''}`.trim() ||
+      ag.username ||
+      'Agente';
+    const agCode = (ag.zucchettiCode || '').trim();
+    const info = { id: ag.id, code: agCode, name: agName };
+    agentById.set(ag.id, info);
+    if (agCode) {
+      const norm = normalizeAgentCode(agCode);
+      agentByNormCode.set(norm, info);
+      b2bAgentNormCodes.add(norm);
+    }
+  }
+
+  const resolveClientAgentInfo = (
+    uAgentId?: string | null,
+    zRow?: any
+  ): { agentId: string; agentCode: string; agentName: string } => {
+    if (uAgentId && agentById.has(uAgentId)) {
+      const ag = agentById.get(uAgentId)!;
+      return { agentId: ag.id, agentCode: ag.code, agentName: ag.name };
+    }
+    const rawZAg = String(zRow?.ancodag1 || zRow?.Ancodag1 || '').trim();
+    const normZAg = normalizeAgentCode(rawZAg);
+    if (normZAg && agentByNormCode.has(normZAg)) {
+      const ag = agentByNormCode.get(normZAg)!;
+      return { agentId: ag.id, agentCode: ag.code || rawZAg, agentName: ag.name };
+    }
+    if (rawZAg) {
+      return {
+        agentId: uAgentId || `ZAG:${normZAg}`,
+        agentCode: rawZAg,
+        agentName: `Agente ${rawZAg}`,
+      };
+    }
+    return {
+      agentId: 'DIREZIONALE',
+      agentCode: '',
+      agentName: 'Direzionale / Sede',
+    };
+  };
 
   const zucchettiMap = zucchettiClientsData.map;
 
@@ -354,19 +490,12 @@ export async function getAgentClientsList(
 
   const normAgentCode = normalizeAgentCode(agentCode);
 
-  const filteredDbClients = dbClients.filter(u => {
-    if (u.agentId === agentId) return true;
-    const zCode = (u.zucchettiCode || '').trim().toUpperCase();
-    if (!zCode || zCode.startsWith('CLIPR')) return true;
-    const zRow = zucchettiMap.get(zCode);
-    if (!zRow) return true;
-    const rowAgent = normalizeAgentCode(zRow?.ancodag1 || zRow?.Ancodag1);
-    return Boolean(normAgentCode) && Boolean(rowAgent) && rowAgent === normAgentCode;
-  });
+  const filteredDbClients = dbClients;
 
   const mappedB2B: AgentManagedClient[] = filteredDbClients.map(u => {
     const zCode = (u.zucchettiCode || '').trim().toUpperCase();
     const zRow = zCode ? zucchettiMap.get(zCode) : null;
+    const resolvedAg = resolveClientAgentInfo(u.agentId, zRow);
 
     const rawCatFromType = (u.customerType || '').split('-')[0]?.trim().toLowerCase();
     const zCat = String(zRow?.ancatscm || zRow?.Ancatscm || '').trim().toLowerCase();
@@ -427,6 +556,9 @@ export async function getAgentClientsList(
       isActive: u.isActive,
       ordersCount: u._count.orders,
       createdAt: u.createdAt.toISOString(),
+      agentId: resolvedAg.agentId,
+      agentCode: resolvedAg.agentCode,
+      agentName: resolvedAg.agentName,
     };
   });
 
@@ -438,9 +570,11 @@ export async function getAgentClientsList(
     if (zVat && existingB2BVats.has(zVat)) continue;
 
     const rowAgent = normalizeAgentCode(zRow?.ancodag1 || zRow?.Ancodag1);
-    if (!normAgentCode || !rowAgent || rowAgent !== normAgentCode) {
+    if (!rowAgent || !b2bAgentNormCodes.has(rowAgent)) {
       continue;
     }
+
+    const resolvedAg = resolveClientAgentInfo(null, zRow);
 
     const companyName = String(zRow?.andescri || zRow?.Andescri || '').trim();
     if (!companyName) continue;
@@ -493,6 +627,9 @@ export async function getAgentClientsList(
       isActive: false,
       ordersCount: 0,
       createdAt: new Date(0).toISOString(),
+      agentId: resolvedAg.agentId,
+      agentCode: resolvedAg.agentCode,
+      agentName: resolvedAg.agentName,
     });
   }
 

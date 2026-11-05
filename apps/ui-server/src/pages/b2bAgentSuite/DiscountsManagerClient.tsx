@@ -503,6 +503,30 @@ export default function DiscountsManagerClient({
     return found ? found.name : client.customerType || 'Nessuna Categoria';
   };
 
+  const formatClientAgentLabel = (client: AgentManagedClient): string => {
+    const name = (client.agentName || '').trim();
+    const code = (client.agentCode || '').trim();
+    if (name && code && !name.includes(code)) return `${name} (${code})`;
+    if (name) return name;
+    if (code) return `Agente ${code}`;
+    return 'Direzionale / Sede';
+  };
+
+  const availableClientAgents = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; count: number }>();
+    for (const c of clients) {
+      const label = formatClientAgentLabel(c);
+      const key = c.agentId || c.agentCode || label;
+      const prev = map.get(key);
+      if (prev) {
+        prev.count += 1;
+      } else {
+        map.set(key, { key, label, count: 1 });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [clients]);
+
   const filteredClientsForDropdown = useMemo(() => {
     const q = clientSearchText.trim().toLowerCase();
     return clients
@@ -516,13 +540,15 @@ export default function DiscountsManagerClient({
         }
         if (!q) return true;
         const catLabel = getClientCategoryLabel(c).toLowerCase();
+        const agLabel = formatClientAgentLabel(c).toLowerCase();
         return (
           (c.companyName || '').toLowerCase().includes(q) ||
           (c.zucchettiCode || '').toLowerCase().includes(q) ||
           (c.city || '').toLowerCase().includes(q) ||
           (c.vatNumber || '').toLowerCase().includes(q) ||
           normCat.toLowerCase().includes(q) ||
-          catLabel.includes(q)
+          catLabel.includes(q) ||
+          agLabel.includes(q)
         );
       })
       .slice(0, 80);
@@ -934,10 +960,12 @@ export default function DiscountsManagerClient({
 
         const filteredClientRules = clientRules.filter(r => {
           if (!q) return true;
+          const agLabel = formatClientAgentLabel(client).toLowerCase();
           const clientMatches =
             (client.companyName || '').toLowerCase().includes(q) ||
             (client.zucchettiCode || '').toLowerCase().includes(q) ||
-            catInfo.fullLabel.toLowerCase().includes(q);
+            catInfo.fullLabel.toLowerCase().includes(q) ||
+            agLabel.includes(q);
           if (clientMatches) return true;
 
           const ruleHay = [
@@ -966,6 +994,13 @@ export default function DiscountsManagerClient({
         if (filterClientScope.startsWith('CAT:')) {
           const catCode = filterClientScope.replace('CAT:', '');
           if (entry.catInfo.code !== catCode) return false;
+        } else if (filterClientScope.startsWith('AG:')) {
+          const agKey = filterClientScope.replace('AG:', '');
+          const cKey =
+            entry.client.agentId ||
+            entry.client.agentCode ||
+            formatClientAgentLabel(entry.client);
+          if (cKey !== agKey) return false;
         } else if (filterClientScope !== 'ALL' && filterClientScope !== 'ALL_CLIENTS') {
           if (entry.client.id !== filterClientScope) return false;
         }
@@ -1241,8 +1276,8 @@ export default function DiscountsManagerClient({
                             <span
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                             >
-                              <strong>{c.companyName}</strong> ({c.zucchettiCode}) • Base{' '}
-                              {c.discount}%
+                              <strong>{c.companyName}</strong> ({c.zucchettiCode}) • 🧑‍💼{' '}
+                              {formatClientAgentLabel(c)} • Base {c.discount}%
                               <span
                                 style={{ cursor: 'pointer', fontWeight: 800 }}
                                 onClick={() => toggleSelectClient(c)}
@@ -1340,11 +1375,15 @@ export default function DiscountsManagerClient({
                                     }}
                                   >
                                     Cod: {c.zucchettiCode}{' '}
-                                    {c.city ? `• ${c.city} (${c.province})` : ''}
+                                    {c.city ? `• ${c.city} (${c.province})` : ''} • 🧑‍💼 Agente:{' '}
+                                    <strong>{formatClientAgentLabel(c)}</strong>
                                   </div>
                                 </div>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Badge variant="neutral" size="sm">
+                                  🧑‍💼 {formatClientAgentLabel(c)}
+                                </Badge>
                                 <Badge variant="neutral" size="sm">
                                   {getClientCategoryLabel(c)}
                                 </Badge>
@@ -2079,7 +2118,8 @@ export default function DiscountsManagerClient({
                             {idx + 1}. {client.companyName}
                           </div>
                           <div style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                            {client.zucchettiCode} • Base {client.discount}%
+                            {client.zucchettiCode} • Base {client.discount}% • 🧑‍💼{' '}
+                            {formatClientAgentLabel(client)}
                           </div>
                         </div>
                         {clientScope === 'SELECTED_CLIENTS' && (
@@ -2264,6 +2304,13 @@ export default function DiscountsManagerClient({
                   <option value="ALL">
                     Tutti i clienti con sconti ({clientsWithDiscounts.length})
                   </option>
+                  <optgroup label="🧑‍💼 Filtra per Agente">
+                    {availableClientAgents.map(ag => (
+                      <option key={ag.key} value={`AG:${ag.key}`}>
+                        🧑‍💼 Agente: {ag.label} ({ag.count} clienti)
+                      </option>
+                    ))}
+                  </optgroup>
                   <optgroup label="🏢 Filtra per Categoria Cliente">
                     {enrichedClientCategories.map(cat => (
                       <option key={cat.code} value={`CAT:${cat.code}`}>
@@ -2276,7 +2323,7 @@ export default function DiscountsManagerClient({
                       const catInfo = getClientCategoryInfo(c);
                       return (
                         <option key={c.id} value={c.id}>
-                          👤 {c.companyName} ({catInfo.code || 'Base'} {c.discount || 0}%)
+                          👤 {c.companyName} — Agente: {formatClientAgentLabel(c)} ({catInfo.code || 'Base'} {c.discount || 0}%)
                         </option>
                       );
                     })}
@@ -2287,7 +2334,7 @@ export default function DiscountsManagerClient({
                   <TextInput
                     value={filterSearch}
                     onChange={e => setFilterSearch(e.target.value)}
-                    placeholder="Cerca cliente, codice, SKU, marchio..."
+                    placeholder="Cerca cliente, agente, codice, SKU, marchio..."
                     leftIcon={<Search size={14} />}
                     fullWidth
                   />
@@ -2360,6 +2407,9 @@ export default function DiscountsManagerClient({
                         >
                           {client.companyName}
                         </span>
+                        <Badge variant="neutral" size="sm">
+                          🧑‍💼 Agente: {formatClientAgentLabel(client)}
+                        </Badge>
                         {catInfo.code && (
                           <Badge variant="primary" size="sm">
                             🏢 {catInfo.fullLabel}
