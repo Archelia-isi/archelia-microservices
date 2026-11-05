@@ -44,6 +44,7 @@ model SdrProspect {
   aiProfileSummary    String?           @map("ai_profile_summary")
   brandsDetected      String?           @map("brands_detected")
   recommendedFamily   String?           @map("recommended_family")
+  richMetadata        Json?             @default("{}") @map("rich_metadata")
   
   pipelineStatus      String            @default("Da_Contattare") @map("pipeline_status")
   promoProspectId     String?           @unique @map("promo_prospect_id") // ID in b2b_promo_prospects quando contattato

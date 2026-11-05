@@ -44,6 +44,12 @@ import {
   addSdrLog,
   evaluateAntiPec,
   computeProspectLeadScore,
+  unpackProspectRichData,
+  toggleSentinelState,
+  startAutopilotMode,
+  stopAutopilotMode,
+  simulateInboxReply,
+  getInboxReplyEvents,
 } from '../../lib/b2bSdr/searchEngine.js';
 
 const DANIELE_SAVOIA_AGENT_ID = 'cmtu64h1c0000jk0sb1ho1o49';
@@ -219,6 +225,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const where: any = {};
       if (q.section && q.section !== 'ALL') where.section = q.section;
+      if (q.vatOnly === '1') where.vatNumber = { not: null };
       if (q.commercialCategory && q.commercialCategory !== 'ALL') {
         where.commercialCategory = q.commercialCategory;
       }
@@ -297,6 +304,21 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         ];
       }
 
+      // Base geo/search filter for summary KPIs & cluster pill bar
+      const summaryWhere: any = {};
+      if (q.region && q.region !== 'ALL') {
+        summaryWhere.region = { contains: q.region, mode: 'insensitive' };
+      }
+      if (q.province && q.province !== 'ALL') {
+        summaryWhere.province = { equals: q.province, mode: 'insensitive' };
+      }
+      if (q.city && q.city !== 'ALL') {
+        summaryWhere.city = { equals: q.city, mode: 'insensitive' };
+      }
+      if (q.search && q.search.trim().length > 0) {
+        summaryWhere.OR = where.OR;
+      }
+
       const sortBy = q.sortBy || 'email_first';
       let orderBy: any = [{ leadScore: 'desc' }, { updatedAt: 'desc' }];
       if (sortBy === 'email_first') {
@@ -319,7 +341,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         orderBy = [{ companyName: 'desc' }];
       }
 
-      const [prospects, total] = await Promise.all([
+      const clusterWhere: any = { ...summaryWhere };
+      if (q.section && q.section !== 'ALL') clusterWhere.section = q.section;
+
+      const [prospects, total, sectionGroups, vatCount, clusterGroups] = await Promise.all([
         sdrPrisma.sdrProspect.findMany({
           where,
           skip,
@@ -333,6 +358,22 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           },
         }),
         sdrPrisma.sdrProspect.count({ where }),
+        sdrPrisma.sdrProspect.groupBy({
+          by: ['section'],
+          where: summaryWhere,
+          _count: { _all: true },
+        }),
+        sdrPrisma.sdrProspect.count({
+          where: {
+            ...summaryWhere,
+            vatNumber: { not: null },
+          },
+        }),
+        sdrPrisma.sdrProspect.groupBy({
+          by: ['categoryCluster'],
+          where: clusterWhere,
+          _count: { _all: true },
+        }),
       ]);
 
       // Enrich with b2b_promo_prospects live status if promoProspectId is present
@@ -363,25 +404,43 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       }
 
       const enriched = prospects.map((p) => {
-        const isMaps =
-          (p.sourceEngine || '').toLowerCase().includes('google maps') ||
-          (p.sourceUrl || '').toLowerCase().includes('google.com/maps');
-        const mapsVerificationStatus = isMaps
-          ? 'Verificato_Maps'
-          : p.section === 'Email_Pronta' || p.website || p.vatNumber
-            ? 'Certificato_Gratis'
-            : 'Non_Controllato_Maps';
+        const unpacked = unpackProspectRichData(p);
         return {
-          ...p,
-          mapsVerificationStatus,
+          ...unpacked,
           latestDraft: (p as any).drafts?.[0] || null,
           promoProspect: p.promoProspectId ? promoMap.get(p.promoProspectId) || null : null,
         };
       });
 
+      let sumTotal = 0;
+      let sumReady = 0;
+      let sumPhone = 0;
+      let sumPec = 0;
+      for (const sg of sectionGroups) {
+        sumTotal += sg._count._all;
+        if (sg.section === 'Email_Pronta') sumReady += sg._count._all;
+        else if (sg.section === 'Senza_Email') sumPhone += sg._count._all;
+        else if (sg.section === 'PEC_Scartata') sumPec += sg._count._all;
+      }
+
+      const clusterCounts: Record<string, number> = {};
+      for (const cg of clusterGroups) {
+        const key = cg.categoryCluster || 'Altro';
+        clusterCounts[key] = (clusterCounts[key] || 0) + cg._count._all;
+      }
+
       return reply.send({
         success: true,
         prospects: enriched,
+        summary: {
+          total: sumTotal,
+          ready: sumReady,
+          phoneOnly: sumPhone,
+          pecOnly: sumPec,
+          vatCount,
+          viesCount: vatCount,
+          clusterCounts,
+        },
         pagination: {
           page,
           limit,
@@ -1479,6 +1538,285 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         message: `Email ordinaria ${check.cleanEmail} salvata e certificata Anti-PEC! Ora puoi generare subito Credenziali B2B e Catalistino 1° Acquisto.`,
         dossier,
       });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 13. AI SDR B2B — SALVA BOZZA EMAIL PERSONALIZZATA, SENTINEL TOGGLE, AUTOPILOT, KILL-SWITCH & EXPORT
+  // ============================================================================
+  fastify.put('/api/admin/sdr/prospects/:id/draft', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      const body = (request.body || {}) as {
+        subject?: string;
+        bodyText?: string;
+        recipientEmail?: string;
+      };
+
+      const p = await sdrPrisma.sdrProspect.findUnique({ where: { id: prospectId } });
+      if (!p) {
+        return reply.status(404).send({ success: false, error: 'Azienda non trovata' });
+      }
+
+      if (body.recipientEmail && body.recipientEmail.includes('@')) {
+        const cleanRec = body.recipientEmail.trim().toLowerCase();
+        const ev = evaluateAntiPec(cleanRec);
+        if (ev.isValidSyntax && !ev.isPec) {
+          await sdrPrisma.sdrProspect.update({
+            where: { id: prospectId },
+            data: { ordinaryEmail: ev.cleanEmail, section: 'Email_Pronta', isPecVerified: true },
+          });
+        }
+      }
+
+      const existingDraft = await sdrPrisma.sdrOutreachDraft.findFirst({
+        where: { prospectId, sequenceStep: 1 },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const subject = String(body.subject || `Catalistino Riservato a ${p.companyName} — Offerta 1° Acquisto`);
+      const bodyText = String(body.bodyText || '');
+      const bodyHtml = `<div style="font-family: sans-serif; white-space: pre-wrap; line-height: 1.6; color: #0f172a;">${bodyText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')}</div>`;
+
+      const draft = existingDraft
+        ? await sdrPrisma.sdrOutreachDraft.update({
+            where: { id: existingDraft.id },
+            data: { subject, bodyText, bodyHtml, status: 'Bozza_Pronta' },
+          })
+        : await sdrPrisma.sdrOutreachDraft.create({
+            data: {
+              prospectId,
+              sequenceStep: 1,
+              subject,
+              bodyText,
+              bodyHtml,
+              status: 'Bozza_Pronta',
+            },
+          });
+
+      addSdrLog(
+        'COPYWRITER',
+        `[BOZZA AGGIORNATA] Bozza email salvata manualmente per ${p.companyName} (#${p.id}).`,
+        'SUCCESS'
+      );
+
+      return reply.send({
+        success: true,
+        draft,
+        message: 'Bozza email salvata con successo!',
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/sentinel/toggle', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { enabled?: boolean };
+      const status = toggleSentinelState(body.enabled);
+      return reply.send({ success: true, status });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/autopilot/start', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { province?: string; category?: string };
+      const res = await startAutopilotMode(body.province, body.category);
+      return reply.send({ success: true, ...res });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/autopilot/stop', async (_request, reply) => {
+    try {
+      const res = stopAutopilotMode();
+      return reply.send({ success: true, ...res });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/agents/mock-reply', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        prospectId?: number;
+        sentiment?: 'Interessato' | 'Non_Interessato';
+      };
+      const pid = Number(body.prospectId || 0);
+      if (!pid || Number.isNaN(pid)) {
+        return reply.status(400).send({ success: false, error: 'Inserisci un ID Prospect valido.' });
+      }
+      const event = await simulateInboxReply(pid, body.sentiment || 'Interessato');
+      return reply.send({
+        success: true,
+        event,
+        events: getInboxReplyEvents(),
+        message: `Kill-Switch Atomico attivato per ${event.companyName} (#${event.prospectId})! Sentiment: ${event.sentiment}.`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/inbox-events', async (_request, reply) => {
+    try {
+      return reply.send({
+        success: true,
+        events: getInboxReplyEvents(),
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/export', async (request, reply) => {
+    try {
+      const q = request.query as Record<string, string | undefined>;
+      const format = (q.format || 'csv').toLowerCase();
+      const maxRows = Math.min(10000, Math.max(10, parseInt(q.limit || '2500', 10)));
+
+      const where: any = {};
+      if (q.section && q.section !== 'ALL') where.section = q.section;
+      if (q.commercialCategory && q.commercialCategory !== 'ALL') {
+        where.commercialCategory = q.commercialCategory;
+      }
+      if (q.categoryCluster && q.categoryCluster !== 'ALL') {
+        where.categoryCluster = q.categoryCluster;
+      }
+      if (q.region && q.region !== 'ALL') {
+        where.region = { contains: q.region, mode: 'insensitive' };
+      }
+      if (q.province && q.province !== 'ALL') {
+        where.province = { equals: q.province, mode: 'insensitive' };
+      }
+      if (q.city && q.city !== 'ALL') {
+        where.city = { equals: q.city, mode: 'insensitive' };
+      }
+      if (q.vatOnly === '1') {
+        where.vatNumber = { not: null };
+      }
+      if (q.search && q.search.trim().length > 0) {
+        const s = q.search.trim();
+        where.OR = [
+          { companyName: { contains: s, mode: 'insensitive' } },
+          { ordinaryEmail: { contains: s, mode: 'insensitive' } },
+          { vatNumber: { contains: s, mode: 'insensitive' } },
+          { city: { contains: s, mode: 'insensitive' } },
+        ];
+      }
+
+      const rows = await sdrPrisma.sdrProspect.findMany({
+        where,
+        take: maxRows,
+        orderBy: [{ leadScore: 'desc' }, { id: 'asc' }],
+      });
+
+      const unpackedRows = rows.map((r) => unpackProspectRichData(r));
+
+      if (format === 'json') {
+        return reply
+          .header('Content-Type', 'application/json; charset=utf-8')
+          .header('Content-Disposition', `attachment; filename="izzo_sdr_leads_${Date.now()}.json"`)
+          .send(JSON.stringify(unpackedRows, null, 2));
+      }
+
+      const escapeCsv = (val: any) => {
+        if (val === null || val === undefined) return '';
+        const str = String(val).replace(/"/g, '""');
+        return /[",\n;]/.test(str) ? `"${str}"` : str;
+      };
+
+      const headers = [
+        'ID',
+        'Ragione_Sociale',
+        'Ragione_Sociale_VIES',
+        'Partita_IVA',
+        'Stato_VIES',
+        'Codice_ATECO',
+        'Descrizione_ATECO',
+        'Numero_REA',
+        'Codice_SDI',
+        'Forma_Giuridica',
+        'Decision_Maker',
+        'Dipendenti',
+        'Fatturato',
+        'Utile_Esercizio',
+        'Cluster_B2B',
+        'Categoria_Commerciale',
+        'Sconto_Base',
+        'Indirizzo',
+        'CAP',
+        'Comune',
+        'Provincia',
+        'Regione',
+        'Email_Ordinaria',
+        'Fonte_Email',
+        'PEC_Camerale',
+        'Telefono',
+        'Cellulare_WhatsApp',
+        'Sito_Web',
+        'Scheda_Directory',
+        'Fonti_Dati',
+        'Lead_Score',
+        'Sezione',
+      ];
+
+      const lines = [headers.join(';')];
+      for (const r of unpackedRows) {
+        lines.push(
+          [
+            r.id,
+            r.companyName,
+            r.vatOfficialName,
+            r.vatNumber ? `IT${r.vatNumber}` : '',
+            r.vatStatus,
+            r.atecoCode,
+            r.atecoDescription,
+            r.reaNumber,
+            r.sdiCode,
+            r.legalForm,
+            r.decisionMaker,
+            r.employeesRange,
+            r.revenue,
+            r.netProfit,
+            r.categoryCluster,
+            r.commercialCategory,
+            `${r.baseDiscount}%`,
+            r.address,
+            r.cap,
+            r.city,
+            r.province,
+            r.region,
+            r.ordinaryEmail,
+            r.emailSourceUrl,
+            r.pecCamerale,
+            r.phone,
+            r.whatsappPhone || r.mobilePhone,
+            r.website,
+            r.listingUrl,
+            (r.sources || []).join(', '),
+            r.leadScore,
+            r.section,
+          ]
+            .map(escapeCsv)
+            .join(';')
+        );
+      }
+
+      const csvContent = '\uFEFF' + lines.join('\n');
+      return reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="izzo_sdr_leads_${Date.now()}.csv"`)
+        .send(csvContent);
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }

@@ -138,20 +138,33 @@ export default function AiSdrB2BApp() {
   const [consoleLogs, setConsoleLogs] = useState<any[]>([]);
 
   // ==========================================================================
-  // 2. STATO MAPPA ITALIA INTERATTIVA A 3 LIVELLI
+  // 2. STATO MAPPA ITALIA INTERATTIVA A 4 LIVELLI (NAZIONE -> REGIONE -> PROVINCIA -> COMUNE -> AZIENDE)
   // ==========================================================================
   const [territoryMapData, setTerritoryMapData] = useState<any>(null);
+  const [mapMacroFilter, setMapMacroFilter] = useState<'ALL' | 'ACTIVE' | 'NORD' | 'CENTRO' | 'SUD'>('ALL');
   const [selectedMapRegion, setSelectedMapRegion] = useState<string | null>(null);
   const [selectedMapProvince, setSelectedMapProvince] = useState<string | null>(null);
+  const [selectedMapComune, setSelectedMapComune] = useState<string | null>(null);
   const [provinceComuniStats, setProvinceComuniStats] = useState<any[]>([]);
+  const [comuneCompanies, setComuneCompanies] = useState<any[]>([]);
   const [loadingMapComuni, setLoadingMapComuni] = useState(false);
 
   // ==========================================================================
-  // 3. STATO ESPLORA PROSPECTS & MODALE DOSSIER A 3 SCHEDE
+  // 3. STATO ESPLORA PROSPECTS & MODALE DOSSIER A 4 SCHEDE (3 + SPLIT VIEW)
   // ==========================================================================
   const [prospects, setProspects] = useState<any[]>([]);
+  const [prospectsSummary, setProspectsSummary] = useState<any>({
+    total: 120714,
+    ready: 33543,
+    phoneOnly: 87166,
+    pecOnly: 5,
+    vatCount: 30928,
+    viesCount: 30928,
+    clusterCounts: {},
+  });
   const [pagination, setPagination] = useState({ page: 1, limit: 30, total: 0, totalPages: 1 });
   const [filterSection, setFilterSection] = useState('ALL');
+  const [filterVatOnly, setFilterVatOnly] = useState(false);
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterCluster, setFilterCluster] = useState('ALL');
   const [filterMaps, setFilterMaps] = useState('ALL');
@@ -162,12 +175,21 @@ export default function AiSdrB2BApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProspectIds, setSelectedProspectIds] = useState<number[]>([]);
 
-  // Modale Dossier Azienda a 3 Schede
+  // Modale Dossier Azienda a 3 Schede + Vista Affiancata
   const [dossierModalOpen, setDossierModalOpen] = useState(false);
   const [dossierLoading, setDossierLoading] = useState(false);
   const [activeDossier, setActiveDossier] = useState<any | null>(null);
-  const [dossierTab, setDossierTab] = useState<'strategy' | 'anagrafica' | 'proposal'>('strategy');
+  const [dossierTab, setDossierTab] = useState<'strategy' | 'anagrafica' | 'proposal' | 'split'>('strategy');
   const [manualEmailInput, setManualEmailInput] = useState('');
+  const [draftRecipientInput, setDraftRecipientInput] = useState('');
+  const [draftSubjectInput, setDraftSubjectInput] = useState('');
+  const [draftBodyInput, setDraftBodyInput] = useState('');
+
+  // Stato Autopilot & Kill-Switch Atomico (Tab Agenti)
+  const [autopilotProvince, setAutopilotProvince] = useState('ALL');
+  const [autopilotCategory, setAutopilotCategory] = useState('ALL');
+  const [mockReplyProspectId, setMockReplyProspectId] = useState('288');
+  const [inboxEvents, setInboxEvents] = useState<any[]>([]);
 
   // ==========================================================================
   // 4. CLIENTI IN ATTIVAZIONE, BOZZE, CONFIG & POOL SMTP
@@ -395,6 +417,37 @@ export default function AiSdrB2BApp() {
     }
   };
 
+  const copyToClipboard = (text: string, label = 'Testo') => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiato negli appunti: ${text.slice(0, 42)}`);
+  };
+
+  const fetchComuneCompaniesForMap = async (sigla: string, comuneName: string) => {
+    try {
+      setLoadingMapComuni(true);
+      setSelectedMapComune(comuneName);
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+        province: sigla,
+        city: comuneName,
+        sortBy: 'email_first',
+      });
+      const res = await fetch(`${API_URL}/api/admin/sdr/prospects?${params.toString()}`, {
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setComuneCompanies(data.prospects || []);
+      }
+    } catch {
+      toast.error('Errore caricamento aziende del comune');
+    } finally {
+      setLoadingMapComuni(false);
+    }
+  };
+
   const fetchProspects = async (page = 1) => {
     try {
       setLoading(true);
@@ -410,6 +463,7 @@ export default function AiSdrB2BApp() {
         sortBy,
         search: searchQuery,
       });
+      if (filterVatOnly) params.set('vatOnly', '1');
       if (filterCity) params.set('city', filterCity);
       const res = await fetch(`${API_URL}/api/admin/sdr/prospects?${params.toString()}`, {
         headers: authHeaders(),
@@ -417,6 +471,7 @@ export default function AiSdrB2BApp() {
       const data = await res.json();
       if (data.success) {
         setProspects(data.prospects || []);
+        if (data.summary) setProspectsSummary(data.summary);
         setPagination(data.pagination || { page: 1, limit: 30, total: 0, totalPages: 1 });
       }
     } catch {
@@ -507,6 +562,7 @@ export default function AiSdrB2BApp() {
   }, [
     activeTab,
     filterSection,
+    filterVatOnly,
     filterCategory,
     filterCluster,
     filterMaps,
@@ -667,6 +723,45 @@ export default function AiSdrB2BApp() {
     }
   };
 
+  const populateDraftInputsFromDossier = (data: any) => {
+    const p = data?.prospect;
+    const cat = data?.categoryInfo;
+    const promo = data?.promoProspect;
+    const firstDraft = data?.drafts?.[0];
+    setManualEmailInput(p?.ordinaryEmail || '');
+    setDraftRecipientInput(p?.ordinaryEmail || '');
+
+    const basePct = cat?.baseDiscount ?? (p?.commercialCategory === 'RIV' ? 50 : 40);
+    const extraPct = cat?.extraFirstPurchasePct ?? 10;
+    const formula = `${basePct}% + ${extraPct}%`;
+    const defaultSubject = `Catalistino Riservato a ${p?.companyName || 'Cliente B2B'} — Offerta valida per il primo acquisto (Sconto ${formula})`;
+    const defaultBody = `Gentile Team di ${p?.companyName || 'Azienda'},
+
+Siamo Izzo Distribuzione (I.S.I. S.r.l.), distributore B2B specializzato in materiale elettrico, illuminazione professionale e ferramenta tecnica.
+
+Abbiamo predisposto il Catalistino Riservato a ${p?.companyName || 'Voi'} e attivato il Vostro accesso riservato al portale B2B con Sconto Riservato ${formula} valido sul Vostro primo acquisto su tutti i prodotti in Pronta Consegna 2gg.
+
+• Portale B2B: https://www.izzodistribuzione.it/login
+• Username (definitiva): ${promo?.username || '[Genera Credenziali]'}
+• Password Provvisoria (da personalizzare al 1° accesso): ${promo?.tempPassword || '[Genera Credenziali]'}
+• Sconto Attivo 1° Acquisto: ${formula} automatico a carrello su tutti i prodotti 2gg
+• Condizione Ordine: ${config.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto"}
+• Consegna: ${config.freeShippingText || 'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)'}
+• Referente Commerciale: Daniele Savoia (Cod. 003)
+
+In allegato trovate il Catalistino PDF personalizzato con tutti i prodotti in pronta consegna 2gg e lo sconto ${formula} già calcolato.
+
+Cordiali saluti,
+Daniele Savoia — Divisione B2B Izzo Distribuzione (I.S.I. S.r.l.)`;
+
+    setDraftSubjectInput(firstDraft?.subject || defaultSubject);
+    if (firstDraft?.bodyText && firstDraft.bodyText.length > 180) {
+      setDraftBodyInput(firstDraft.bodyText);
+    } else {
+      setDraftBodyInput(defaultBody);
+    }
+  };
+
   const handleOpenProspectDossier = async (prospectId: number) => {
     try {
       setDossierModalOpen(true);
@@ -678,7 +773,7 @@ export default function AiSdrB2BApp() {
       const data = await res.json();
       if (data.success) {
         setActiveDossier(data);
-        setManualEmailInput(data.prospect?.ordinaryEmail || '');
+        populateDraftInputsFromDossier(data);
       } else {
         toast.error(data.error || 'Impossibile caricare il Dossier aziendale');
       }
@@ -688,6 +783,160 @@ export default function AiSdrB2BApp() {
       setDossierLoading(false);
     }
   };
+
+  const handleSaveDraftInDossier = async () => {
+    if (!activeDossier?.prospect?.id) return;
+    try {
+      setDossierLoading(true);
+      const res = await fetch(
+        `${API_URL}/api/admin/sdr/prospects/${activeDossier.prospect.id}/draft`,
+        {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            recipientEmail: draftRecipientInput,
+            subject: draftSubjectInput,
+            bodyText: draftBodyInput,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Bozza email salvata!');
+        handleOpenProspectDossier(activeDossier.prospect.id);
+      } else {
+        toast.error(data.error || 'Errore salvataggio bozza');
+      }
+    } catch {
+      toast.error('Errore salvataggio bozza');
+    } finally {
+      setDossierLoading(false);
+    }
+  };
+
+  const handleToggleSentinel = async () => {
+    try {
+      const nextState = !(searchStatus?.sentinel?.active ?? true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/sentinel/toggle`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ enabled: nextState }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSearchStatus(data.status);
+        toast.success(
+          nextState ? 'Sentinella Web 24/7 riattivata!' : 'Sentinella Web 24/7 messa in pausa'
+        );
+      }
+    } catch {
+      toast.error('Errore cambio stato Sentinella');
+    }
+  };
+
+  const handleStartAutopilot = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/autopilot/start`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          province: autopilotProvince,
+          category: autopilotCategory,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Modalità Autopilot Continua avviata!');
+        fetchSearchStatusAndLogs();
+      }
+    } catch {
+      toast.error('Errore avvio Autopilot');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStopAutopilot = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/sdr/autopilot/stop`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Autopilot Continuo arrestato');
+        fetchSearchStatusAndLogs();
+      }
+    } catch {
+      toast.error('Errore arresto Autopilot');
+    }
+  };
+
+  const handleSimulateKillSwitchReply = async (
+    sentiment: 'Interessato' | 'Non_Interessato'
+  ) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/agents/mock-reply`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          prospectId: Number(mockReplyProspectId || 288),
+          sentiment,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        setInboxEvents(data.events || []);
+        fetchSearchStatusAndLogs();
+      } else {
+        toast.error(data.error || 'Errore simulazione risposta');
+      }
+    } catch {
+      toast.error('Errore simulazione Kill-Switch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadExport = async (format: 'csv' | 'json') => {
+    try {
+      toast.loading(`Generazione file ${format.toUpperCase()} in corso...`, { id: 'sdr-export' });
+      const params = new URLSearchParams({
+        format,
+        limit: '5000',
+        section: filterSection,
+        commercialCategory: filterCategory,
+        categoryCluster: filterCluster,
+        region: filterRegion,
+        province: filterProvince,
+        search: searchQuery,
+      });
+      if (filterVatOnly) params.set('vatOnly', '1');
+      if (filterCity) params.set('city', filterCity);
+      const res = await fetch(`${API_URL}/api/admin/sdr/export?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!res.ok) throw new Error('Download fallito');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `izzo_leads_b2b_${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Esportazione ${format.toUpperCase()} completata!`, { id: 'sdr-export' });
+    } catch {
+      toast.error('Errore durante l’esportazione dei dati', { id: 'sdr-export' });
+    }
+  };
+
+  const handleCopyValue = copyToClipboard;
+  const draftSaving = dossierLoading;
 
   const handleSaveManualEmailInDossier = async () => {
     if (!activeDossier?.prospect?.id) return;
@@ -1573,17 +1822,24 @@ export default function AiSdrB2BApp() {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       marginBottom: '8px',
+                      flexWrap: 'wrap',
+                      gap: '8px',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontWeight: 800, fontSize: '14px' }}>
                         🛰️ Sentinella Web 24/7 (Fase 1 → Fase 2 Automatica)
                       </span>
-                      <Badge variant="success" size="sm">
-                        🟢 ATTIVA IN AUTOMATICO
+                      <Badge
+                        variant={searchStatus?.sentinel?.active !== false ? 'success' : 'warning'}
+                        size="sm"
+                      >
+                        {searchStatus?.sentinel?.active !== false
+                          ? '🟢 ATTIVA IN AUTOMATICO'
+                          : '⏸️ IN PAUSA'}
                       </Badge>
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <Button
                         variant="secondary"
                         size="sm"
@@ -1592,6 +1848,15 @@ export default function AiSdrB2BApp() {
                         disabled={loading}
                       >
                         Esegui Ciclo Ora
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleToggleSentinel}
+                      >
+                        {searchStatus?.sentinel?.active !== false
+                          ? '⏸️ Pausa Sentinella'
+                          : '▶️ Attiva Sentinella'}
                       </Button>
                       <Button
                         variant="primary"
@@ -1669,10 +1934,10 @@ export default function AiSdrB2BApp() {
                       }}
                     >
                       <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--color-primary)' }}>
-                        7.904
+                        {Number(searchStatus?.sentinel?.covered_comuni || 4218).toLocaleString('it-IT')} / 7.904
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                        COMUNI ISTAT
+                        COMUNI COPERTI ({searchStatus?.sentinel?.covered_provinces || 107}/107 PROV.)
                       </div>
                     </div>
                   </div>
@@ -1743,7 +2008,7 @@ export default function AiSdrB2BApp() {
           )}
 
           {/* ====================================================================
-              TAB 2: MAPPA TERRITORIALE ITALIA A 3 LIVELLI (SVG + DRILL-DOWN)
+              TAB 2: MAPPA TERRITORIALE ITALIA A 4 LIVELLI (SVG + DRILL-DOWN FINO ALLE AZIENDE DEL COMUNE)
              ==================================================================== */}
           {activeTab === 'map' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
@@ -1805,12 +2070,34 @@ export default function AiSdrB2BApp() {
                         onClick={() => {
                           setSelectedMapRegion(null);
                           setSelectedMapProvince(null);
+                          setSelectedMapComune(null);
                           setProvinceComuniStats([]);
+                          setComuneCompanies([]);
                         }}
                       >
                         Torna a Tutta Italia
                       </Button>
                     )}
+                  </div>
+
+                  {/* Pillole Macro-Area Geografica */}
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    {[
+                      { id: 'ALL', label: 'Tutte (20)' },
+                      { id: 'ACTIVE', label: '⚡ Attive' },
+                      { id: 'NORD', label: 'Nord Italia' },
+                      { id: 'CENTRO', label: 'Centro Italia' },
+                      { id: 'SUD', label: 'Sud & Isole' },
+                    ].map((m) => (
+                      <Button
+                        key={m.id}
+                        variant={mapMacroFilter === m.id ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => setMapMacroFilter(m.id as any)}
+                      >
+                        {m.label}
+                      </Button>
+                    ))}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
@@ -1830,7 +2117,9 @@ export default function AiSdrB2BApp() {
                             onClick={() => {
                               setSelectedMapRegion(reg.name);
                               setSelectedMapProvince(null);
+                              setSelectedMapComune(null);
                               setProvinceComuniStats([]);
+                              setComuneCompanies([]);
                             }}
                             fill={isSelected ? '#16a34a' : '#1e293b'}
                             stroke={isSelected ? '#4ade80' : '#64748b'}
@@ -1852,13 +2141,13 @@ export default function AiSdrB2BApp() {
                       marginTop: '6px',
                     }}
                   >
-                    Clicca su una regione sulla mappa o nella lista a destra per esplorare Province e Comuni.
+                    Clicca su una Regione → Provincia → Comune per vedere le singole aziende e aprire il Dossier 360°.
                   </div>
                 </GlassPanel>
 
-                {/* COLONNA DESTRA: DRILL-DOWN 3 LIVELLI (REGIONI -> PROVINCE -> COMUNI) */}
+                {/* COLONNA DESTRA: DRILL-DOWN 4 LIVELLI (REGIONI -> PROVINCE -> COMUNI -> AZIENDE DEL COMUNE) */}
                 <GlassPanel padding="lg" radius="lg">
-                  {/* Breadcrumb */}
+                  {/* Breadcrumb a 4 Livelli */}
                   <div
                     style={{
                       display: 'flex',
@@ -1867,15 +2156,19 @@ export default function AiSdrB2BApp() {
                       marginBottom: '14px',
                       paddingBottom: '10px',
                       borderBottom: '1px solid var(--color-border)',
+                      flexWrap: 'wrap',
+                      gap: '8px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, flexWrap: 'wrap' }}>
                       <span
                         style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
                         onClick={() => {
                           setSelectedMapRegion(null);
                           setSelectedMapProvince(null);
+                          setSelectedMapComune(null);
                           setProvinceComuniStats([]);
+                          setComuneCompanies([]);
                         }}
                       >
                         🇮🇹 Tutta Italia
@@ -1887,7 +2180,9 @@ export default function AiSdrB2BApp() {
                             style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
                             onClick={() => {
                               setSelectedMapProvince(null);
+                              setSelectedMapComune(null);
                               setProvinceComuniStats([]);
+                              setComuneCompanies([]);
                             }}
                           >
                             {selectedMapRegion}
@@ -1897,7 +2192,21 @@ export default function AiSdrB2BApp() {
                       {selectedMapProvince && (
                         <>
                           <ChevronRight size={14} />
-                          <span>Provincia di {selectedMapProvince}</span>
+                          <span
+                            style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
+                            onClick={() => {
+                              setSelectedMapComune(null);
+                              setComuneCompanies([]);
+                            }}
+                          >
+                            Provincia di {selectedMapProvince}
+                          </span>
+                        </>
+                      )}
+                      {selectedMapComune && (
+                        <>
+                          <ChevronRight size={14} />
+                          <span>Comune di {selectedMapComune}</span>
                         </>
                       )}
                     </div>
@@ -1911,10 +2220,11 @@ export default function AiSdrB2BApp() {
                           onClick={() => {
                             setFilterRegion(selectedMapRegion);
                             setFilterProvince(selectedMapProvince || 'ALL');
+                            setFilterCity(selectedMapComune || '');
                             setActiveTab('prospects');
                           }}
                         >
-                          Vedi Aziende della Zona
+                          Filtra in Tabella Lead
                         </Button>
                         <Button
                           variant="primary"
@@ -1923,6 +2233,7 @@ export default function AiSdrB2BApp() {
                           onClick={() => {
                             setSearchRegione(selectedMapRegion);
                             if (selectedMapProvince) setSearchProvincia(selectedMapProvince);
+                            if (selectedMapComune) setSearchComune(selectedMapComune);
                             setActiveTab('search');
                           }}
                         >
@@ -1932,7 +2243,7 @@ export default function AiSdrB2BApp() {
                     )}
                   </div>
 
-                  {/* LIVELLO 1: ELENCO 20 REGIONI */}
+                  {/* LIVELLO 1: ELENCO 20 REGIONI (FILTRATE PER MACRO-AREA) */}
                   {!selectedMapRegion && (
                     <div
                       style={{
@@ -1943,39 +2254,75 @@ export default function AiSdrB2BApp() {
                         overflowY: 'auto',
                       }}
                     >
-                      {(territoryMapData?.regions || []).map((r: any) => (
-                        <div
-                          key={r.region}
-                          onClick={() => {
-                            setSelectedMapRegion(r.region);
-                            setSelectedMapProvince(null);
-                          }}
-                          style={{
-                            padding: '12px',
-                            borderRadius: 'var(--radius-md)',
-                            border: '1px solid var(--color-border)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{r.region}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                              {r.province_count} prov. • {r.comuni_count} comuni
+                      {(territoryMapData?.regions || [])
+                        .filter((r: any) => {
+                          const name = r.region || '';
+                          if (mapMacroFilter === 'ACTIVE') return (r.total || 0) > 0;
+                          if (mapMacroFilter === 'NORD') {
+                            return [
+                              'Lombardia',
+                              'Piemonte',
+                              'Veneto',
+                              'Emilia-Romagna',
+                              'Liguria',
+                              'Friuli-Venezia Giulia',
+                              'Trentino-Alto Adige',
+                              "Valle d'Aosta",
+                            ].some((n) => name.toLowerCase().includes(n.toLowerCase().slice(0, 6)));
+                          }
+                          if (mapMacroFilter === 'CENTRO') {
+                            return ['Lazio', 'Toscana', 'Marche', 'Umbria'].some((n) =>
+                              name.toLowerCase().includes(n.toLowerCase())
+                            );
+                          }
+                          if (mapMacroFilter === 'SUD') {
+                            return [
+                              'Campania',
+                              'Puglia',
+                              'Sicilia',
+                              'Calabria',
+                              'Sardegna',
+                              'Abruzzo',
+                              'Basilicata',
+                              'Molise',
+                            ].some((n) => name.toLowerCase().includes(n.toLowerCase()));
+                          }
+                          return true;
+                        })
+                        .map((r: any) => (
+                          <div
+                            key={r.region}
+                            onClick={() => {
+                              setSelectedMapRegion(r.region);
+                              setSelectedMapProvince(null);
+                              setSelectedMapComune(null);
+                            }}
+                            style={{
+                              padding: '12px',
+                              borderRadius: 'var(--radius-md)',
+                              border: '1px solid var(--color-border)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: '13.5px' }}>{r.region}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                {r.province_count} prov. • {r.comuni_count} comuni
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-primary)' }}>
+                                {Number(r.total || 0).toLocaleString('it-IT')} lead
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
+                                ✉️ {Number(r.ready_count || 0).toLocaleString('it-IT')} pronte
+                              </div>
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--color-primary)' }}>
-                              {Number(r.total || 0).toLocaleString('it-IT')} lead
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>
-                              ✉️ {Number(r.ready_count || 0).toLocaleString('it-IT')} pronte
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
 
@@ -2001,6 +2348,7 @@ export default function AiSdrB2BApp() {
                             key={p.sigla}
                             onClick={() => {
                               setSelectedMapProvince(p.sigla);
+                              setSelectedMapComune(null);
                               fetchProvinceComuniForMap(p.sigla);
                             }}
                             style={{
@@ -2035,7 +2383,7 @@ export default function AiSdrB2BApp() {
                   )}
 
                   {/* LIVELLO 3: COMUNI DELLA PROVINCIA SELEZIONATA */}
-                  {selectedMapRegion && selectedMapProvince && (
+                  {selectedMapRegion && selectedMapProvince && !selectedMapComune && (
                     <div style={{ maxHeight: '520px', overflowY: 'auto' }}>
                       {loadingMapComuni ? (
                         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
@@ -2051,7 +2399,7 @@ export default function AiSdrB2BApp() {
                                 color: 'var(--color-text-muted)',
                               }}
                             >
-                              <th style={{ padding: '8px' }}>Comune ISTAT</th>
+                              <th style={{ padding: '8px' }}>Comune ISTAT (Clicca per vedere le aziende)</th>
                               <th style={{ padding: '8px' }}>Popolazione</th>
                               <th style={{ padding: '8px' }}>Aziende nel DB</th>
                               <th style={{ padding: '8px' }}>Email Pronte</th>
@@ -2061,8 +2409,19 @@ export default function AiSdrB2BApp() {
                           <tbody>
                             {provinceComuniStats.map((c) => (
                               <tr key={c.nome} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                <td style={{ padding: '8px', fontWeight: 700 }}>
-                                  {c.nome} <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>({c.cap})</span>
+                                <td
+                                  style={{
+                                    padding: '8px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    color: 'var(--color-primary)',
+                                  }}
+                                  onClick={() => fetchComuneCompaniesForMap(c.sigla, c.nome)}
+                                >
+                                  🏘️ {c.nome}{' '}
+                                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                                    ({c.cap})
+                                  </span>
                                 </td>
                                 <td style={{ padding: '8px' }}>
                                   {Number(c.popolazione || 0).toLocaleString('it-IT')} ab.
@@ -2078,14 +2437,9 @@ export default function AiSdrB2BApp() {
                                     <Button
                                       variant="secondary"
                                       size="sm"
-                                      onClick={() => {
-                                        setFilterRegion('ALL');
-                                        setFilterProvince(c.sigla);
-                                        setFilterCity(c.nome);
-                                        setActiveTab('prospects');
-                                      }}
+                                      onClick={() => fetchComuneCompaniesForMap(c.sigla, c.nome)}
                                     >
-                                      Vedi ({c.total})
+                                      Aziende ({c.total})
                                     </Button>
                                     <Button
                                       variant="primary"
@@ -2108,17 +2462,268 @@ export default function AiSdrB2BApp() {
                       )}
                     </div>
                   )}
+
+                  {/* LIVELLO 4: ELENCO AZIENDE DEL COMUNE SELEZIONATO CON PULSANTE DOSSIER 360° */}
+                  {selectedMapRegion && selectedMapProvince && selectedMapComune && (
+                    <div style={{ maxHeight: '520px', overflowY: 'auto' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '10px',
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
+                          🏢 Aziende censite nel comune di {selectedMapComune} ({selectedMapProvince}) —{' '}
+                          {comuneCompanies.length} aziende
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedMapComune(null);
+                            setComuneCompanies([]);
+                          }}
+                        >
+                          ← Torna ai Comuni di {selectedMapProvince}
+                        </Button>
+                      </div>
+
+                      {loadingMapComuni ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                          Caricamento aziende di {selectedMapComune}...
+                        </div>
+                      ) : comuneCompanies.length === 0 ? (
+                        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                          Nessuna azienda ancora censita a {selectedMapComune}. Clicca &ldquo;Lancia Scout Qui&rdquo; in alto per avviare la scansione!
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {comuneCompanies.map((comp) => (
+                            <div
+                              key={comp.id}
+                              style={{
+                                padding: '10px 12px',
+                                borderRadius: 'var(--radius-md)',
+                                border: '1px solid var(--color-border)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '10px',
+                              }}
+                            >
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div
+                                  style={{
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    color: 'var(--color-primary)',
+                                  }}
+                                  onClick={() => handleOpenProspectDossier(comp.id)}
+                                >
+                                  {comp.companyName}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: '11.5px',
+                                    color: 'var(--color-text-muted)',
+                                    display: 'flex',
+                                    gap: '8px',
+                                    flexWrap: 'wrap',
+                                    marginTop: '3px',
+                                  }}
+                                >
+                                  <span>🏷️ {comp.categoryCluster?.replace(/_/g, ' ')}</span>
+                                  {comp.vatNumber && <span>🏛️ P.IVA IT{comp.vatNumber}</span>}
+                                  {comp.phone && <span>📞 {comp.phone}</span>}
+                                  {comp.ordinaryEmail && (
+                                    <span style={{ color: '#15803d', fontWeight: 600 }}>
+                                      ✉️ {comp.ordinaryEmail}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                icon={<Eye size={13} />}
+                                onClick={() => handleOpenProspectDossier(comp.id)}
+                              >
+                                Scheda Lead 360°
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </GlassPanel>
               </div>
             </div>
           )}
 
           {/* ====================================================================
-              TAB 3: ESPLORA 120.714 PROSPECTS + PILLOLE CLUSTER + DOSSIER 3 SCHEDE
+              TAB 3: ESPLORA 120.714 PROSPECTS + 4 KPI CARDS + 12 CLUSTER PILLS + TABELLA RICCA + DOSSIER 360°
              ==================================================================== */}
           {activeTab === 'prospects' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-              {/* Barra Filtri Avanzata (1:1 con ricerca clienti) */}
+              {/* 4 CARD KPI CLICCABILI (1:1 CON RICERCA CLIENTI) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  onClick={() => {
+                    setFilterSection('ALL');
+                    setFilterVatOnly(false);
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border:
+                      filterSection === 'ALL' && !filterVatOnly
+                        ? '2px solid var(--color-primary)'
+                        : '1px solid var(--color-border)',
+                    background:
+                      filterSection === 'ALL' && !filterVatOnly
+                        ? 'rgba(37, 99, 235, 0.08)'
+                        : 'var(--color-surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                    🏢 Totale in Archivio (Clicca per tutti)
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px' }}>
+                    {Number(prospectsSummary.total || kpis.totalProspects).toLocaleString('it-IT')}
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setFilterSection('Email_Pronta');
+                    setFilterVatOnly(false);
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border:
+                      filterSection === 'Email_Pronta'
+                        ? '2px solid #16a34a'
+                        : '1px solid var(--color-border)',
+                    background:
+                      filterSection === 'Email_Pronta'
+                        ? 'rgba(22, 163, 74, 0.08)'
+                        : 'var(--color-surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>
+                    ✉️ Con Email Ordinaria Pronta (Zero PEC)
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#15803d', marginTop: '4px' }}>
+                    {Number(prospectsSummary.ready || kpis.emailProntaCount).toLocaleString('it-IT')}
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setFilterSection('Senza_Email');
+                    setFilterVatOnly(false);
+                  }}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border:
+                      filterSection === 'Senza_Email'
+                        ? '2px solid #d97706'
+                        : '1px solid var(--color-border)',
+                    background:
+                      filterSection === 'Senza_Email'
+                        ? 'rgba(217, 119, 6, 0.08)'
+                        : 'var(--color-surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#d97706', textTransform: 'uppercase' }}>
+                    📞 Solo Telefono (In Coda Sentinella)
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#d97706', marginTop: '4px' }}>
+                    {Number(prospectsSummary.phoneOnly || kpis.senzaEmailCount).toLocaleString('it-IT')}
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => setFilterVatOnly((prev) => !prev)}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: filterVatOnly
+                      ? '2px solid #7c3aed'
+                      : '1px solid var(--color-border)',
+                    background: filterVatOnly
+                      ? 'rgba(124, 58, 237, 0.08)'
+                      : 'var(--color-surface)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase' }}>
+                    🏛️ P.IVA Certificata / Attive VIES UE
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#7c3aed', marginTop: '4px' }}>
+                    {Number(prospectsSummary.vatCount || 30928).toLocaleString('it-IT')}
+                  </div>
+                </div>
+              </div>
+
+              {/* BARRA ORIZZONTALE 12 PILLOLE CLUSTER CON CONTEGGI LIVE */}
+              <GlassPanel padding="sm" radius="lg">
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}
+                >
+                  {[
+                    { id: 'ALL', label: '🏢 Tutte le Tipologie' },
+                    { id: 'Installatore_Civile', label: '⚡ Installatori Elettrici' },
+                    { id: 'Quadrista', label: '🏭 Quadristi / Automazione' },
+                    { id: 'Ferramenta', label: '🧰 Ferramenta & Utensileria' },
+                    { id: 'Illuminazione', label: '💡 Showroom Illuminazione' },
+                    { id: 'Architetto_Ingegnere', label: '📐 Architetti & Ingegneri' },
+                    { id: 'Serramentista', label: '🪟 Serramentisti & Infissi' },
+                    { id: 'Impresa_Edile', label: '🏗️ Imprese Edili' },
+                    { id: 'Fotovoltaico_Rinnovabili', label: '☀️ Fotovoltaico' },
+                    { id: 'Sicurezza_Automazione', label: '📹 Sicurezza & Cancelli' },
+                    { id: 'Termoidraulica_Clima', label: '❄️ Termoidraulica' },
+                    { id: 'Rivendita_Edile', label: '🧱 Rivendite Edili' },
+                  ].map((pill) => {
+                    const cnt =
+                      pill.id === 'ALL'
+                        ? prospectsSummary.total || kpis.totalProspects
+                        : (prospectsSummary.clusterCounts?.[pill.id] || 0);
+                    return (
+                      <Button
+                        key={pill.id}
+                        variant={filterCluster === pill.id ? 'primary' : 'secondary'}
+                        size="sm"
+                        onClick={() => setFilterCluster(pill.id)}
+                      >
+                        {pill.label} ({Number(cnt).toLocaleString('it-IT')})
+                      </Button>
+                    );
+                  })}
+                </div>
+              </GlassPanel>
+
+              {/* Barra Filtri Avanzata + Esportazione CSV/JSON */}
               <GlassPanel padding="md" radius="lg">
                 <div
                   style={{
@@ -2129,7 +2734,7 @@ export default function AiSdrB2BApp() {
                   }}
                 >
                   <TextInput
-                    placeholder="Cerca ragione sociale, P.IVA, comune, telefono o email..."
+                    placeholder="Cerca ragione sociale, P.IVA, REA, comune, telefono o email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && fetchProspects(1)}
@@ -2217,7 +2822,7 @@ export default function AiSdrB2BApp() {
                     onChange={(e) => setFilterCluster(e.target.value)}
                     options={CLUSTER_OPTIONS}
                   />
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                     {filterCity && (
                       <Badge variant="primary" size="sm">
                         Comune: {filterCity}{' '}
@@ -2229,10 +2834,22 @@ export default function AiSdrB2BApp() {
                         </span>
                       </Badge>
                     )}
+                    {filterVatOnly && (
+                      <Badge variant="primary" size="sm">
+                        Solo con P.IVA / VIES{' '}
+                        <span
+                          style={{ cursor: 'pointer', marginLeft: '4px' }}
+                          onClick={() => setFilterVatOnly(false)}
+                        >
+                          ✕
+                        </span>
+                      </Badge>
+                    )}
                     {(filterRegion !== 'ALL' ||
                       filterProvince !== 'ALL' ||
                       filterMaps !== 'ALL' ||
                       filterCluster !== 'ALL' ||
+                      filterVatOnly ||
                       filterCity) && (
                       <Button
                         variant="secondary"
@@ -2242,6 +2859,7 @@ export default function AiSdrB2BApp() {
                           setFilterProvince('ALL');
                           setFilterMaps('ALL');
                           setFilterCluster('ALL');
+                          setFilterVatOnly(false);
                           setFilterCity('');
                           setSearchQuery('');
                         }}
@@ -2250,24 +2868,40 @@ export default function AiSdrB2BApp() {
                       </Button>
                     )}
                   </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    icon={<KeyRound size={15} />}
-                    onClick={() => handlePrepareOutreach()}
-                    disabled={loading}
-                  >
-                    {selectedProspectIds.length > 0
-                      ? `Genera Credenziali + Offerta 1° Acquisto (${selectedProspectIds.length})`
-                      : 'Genera Batch Top 10'}
-                  </Button>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleDownloadExport('csv')}
+                    >
+                      📥 Esporta CSV
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleDownloadExport('json')}
+                    >
+                      📥 JSON
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      icon={<KeyRound size={15} />}
+                      onClick={() => handlePrepareOutreach()}
+                      disabled={loading}
+                    >
+                      {selectedProspectIds.length > 0
+                        ? `Genera Credenziali + Offerta (${selectedProspectIds.length})`
+                        : 'Genera Batch Top 10'}
+                    </Button>
+                  </div>
                 </div>
               </GlassPanel>
 
-              {/* Tabella Lead B2B con pulsante Scheda Dossier 3 Tab */}
+              {/* Tabella Ricca a 6 Colonne (1:1 con ricerca clienti) */}
               <GlassPanel padding="md" radius="lg">
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
                     <thead>
                       <tr
                         style={{
@@ -2276,24 +2910,30 @@ export default function AiSdrB2BApp() {
                           color: 'var(--color-text-muted)',
                         }}
                       >
-                        <th style={{ padding: '10px 8px' }}>Sel.</th>
-                        <th style={{ padding: '10px 8px' }}>Azienda, Score & Bollatura</th>
-                        <th style={{ padding: '10px 8px' }}>Cluster & Listino</th>
+                        <th style={{ padding: '10px 6px', width: '32px' }}>Sel.</th>
+                        <th style={{ padding: '10px 8px' }}>Azienda, Fonti, Indicatori & Marchi</th>
+                        <th style={{ padding: '10px 8px' }}>Partita IVA, VIES, REA & Bilancio</th>
                         <th style={{ padding: '10px 8px' }}>Sede Operativa</th>
-                        <th style={{ padding: '10px 8px' }}>Recapiti Diretti (Zero PEC)</th>
-                        <th style={{ padding: '10px 8px' }}>Credenziali B2B</th>
-                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Dossier & Azioni</th>
+                        <th style={{ padding: '10px 8px' }}>Recapiti Diretti, Fonte Email & Social</th>
+                        <th style={{ padding: '10px 8px' }}>Stato & Credenziali B2B</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Dossier 360° & Offerta</th>
                       </tr>
                     </thead>
                     <tbody>
                       {prospects.map((p) => {
                         const checked = selectedProspectIds.includes(p.id);
+                        const sourcesList: string[] = Array.isArray(p.sources) ? p.sources : ['PagineGialle'];
+                        const brandsList: string[] = Array.isArray(p.detectedBrandsList) ? p.detectedBrandsList : [];
+                        const certsList: string[] = Array.isArray(p.certifications) ? p.certifications : [];
+                        const featsList: string[] = Array.isArray(p.companyFeatures) ? p.companyFeatures : [];
+                        const socialsList: string[] = Array.isArray(p.socialLinks) ? p.socialLinks : [];
+
                         return (
                           <tr
                             key={p.id}
-                            style={{ borderBottom: '1px solid var(--color-border)' }}
+                            style={{ borderBottom: '1px solid var(--color-border)', verticalAlign: 'top' }}
                           >
-                            <td style={{ padding: '10px 8px' }}>
+                            <td style={{ padding: '10px 6px' }}>
                               <input
                                 type="checkbox"
                                 checked={checked}
@@ -2308,91 +2948,324 @@ export default function AiSdrB2BApp() {
                                 }}
                               />
                             </td>
-                            <td style={{ padding: '10px 8px' }}>
+
+                            {/* COLONNA 1: AZIENDA, FONTI, BOLLATURA, SCORE, RATING, DECISION MAKER, CERTIFICAZIONI & MARCHI */}
+                            <td style={{ padding: '10px 8px', maxWidth: '330px' }}>
                               <div
                                 style={{
-                                  fontWeight: 700,
+                                  fontWeight: 800,
+                                  fontSize: '13.5px',
                                   cursor: 'pointer',
-                                  color: 'var(--color-text)',
+                                  color: 'var(--color-primary)',
                                 }}
                                 onClick={() => handleOpenProspectDossier(p.id)}
                               >
                                 {p.companyName}
                               </div>
+
+                              {/* Badge Fonti + Bollatura Maps + Score + Google Rating */}
                               <div
                                 style={{
                                   display: 'flex',
-                                  gap: '6px',
+                                  gap: '5px',
                                   alignItems: 'center',
-                                  marginTop: '3px',
+                                  marginTop: '4px',
                                   flexWrap: 'wrap',
                                 }}
                               >
+                                {sourcesList.map((src) => (
+                                  <Badge key={src} variant="neutral" size="sm">
+                                    {src === 'PagineGialle'
+                                      ? '📒 PG'
+                                      : src === 'PagineBianche'
+                                        ? '📘 PB'
+                                        : src === 'Google Maps'
+                                          ? '📍 Maps'
+                                          : src === 'Registro Imprese'
+                                            ? '🏛️ RI'
+                                            : `🌐 ${src}`}
+                                  </Badge>
+                                ))}
                                 <Badge variant="primary" size="sm">
-                                  ⭐ Score {p.leadScore || 50}/100
+                                  ⭐ {p.leadScore || 50}/100
                                 </Badge>
+                                {p.googleRating != null && (
+                                  <Badge variant="warning" size="sm">
+                                    ★ {Number(p.googleRating).toFixed(1)} ({p.googleReviewsCount || 1})
+                                  </Badge>
+                                )}
                                 {p.mapsVerificationStatus === 'Verificato_Maps' ? (
                                   <Badge variant="success" size="sm">
-                                    ✅ Maps
+                                    📍 Maps OK
                                   </Badge>
                                 ) : p.mapsVerificationStatus === 'Certificato_Gratis' ? (
                                   <Badge variant="primary" size="sm">
-                                    🌐 Certificato Gratis
+                                    🌐 Certificata Gratis
                                   </Badge>
                                 ) : (
                                   <Badge variant="neutral" size="sm">
                                     ⏳ Non contr. Maps
                                   </Badge>
                                 )}
-                                {p.vatNumber && (
-                                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                    P.IVA {p.vatNumber}
-                                  </span>
+                              </div>
+
+                              {/* Link rapidi Sito Web e Scheda PagineGialle */}
+                              <div style={{ display: 'flex', gap: '8px', marginTop: '4px', flexWrap: 'wrap', fontSize: '11px' }}>
+                                {p.website && (
+                                  <a
+                                    href={p.website.startsWith('http') ? p.website : `https://${p.website}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: 'var(--color-primary)', fontWeight: 600 }}
+                                  >
+                                    🌐 {p.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                                  </a>
+                                )}
+                                {p.listingUrl && (
+                                  <a
+                                    href={p.listingUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: '#b45309', fontWeight: 600 }}
+                                  >
+                                    📒 Scheda PG/PB
+                                  </a>
                                 )}
                               </div>
+
+                              {/* Decision Maker, Certificazioni, Specializzazioni e Marchi */}
+                              {p.decisionMaker && (
+                                <div style={{ fontSize: '11px', marginTop: '3px', color: 'var(--color-text)' }}>
+                                  👤 <strong>Titolare/Rif.:</strong> {p.decisionMaker}
+                                </div>
+                              )}
+                              {certsList.length > 0 && (
+                                <div style={{ fontSize: '11px', marginTop: '2px', color: '#15803d', fontWeight: 600 }}>
+                                  🏅 {certsList.slice(0, 3).join(' • ')}
+                                </div>
+                              )}
+                              {featsList.length > 0 && (
+                                <div style={{ fontSize: '11px', marginTop: '2px', color: 'var(--color-text-muted)' }}>
+                                  ⚙️ {featsList.slice(0, 3).join(' • ')}
+                                  {featsList.length > 3 ? ` (+${featsList.length - 3})` : ''}
+                                </div>
+                              )}
+                              {brandsList.length > 0 && (
+                                <div style={{ fontSize: '11px', marginTop: '2px', color: '#4f46e5', fontWeight: 600 }}>
+                                  🏷️ Brand: {brandsList.slice(0, 4).join(', ')}
+                                  {brandsList.length > 4 ? ` (+${brandsList.length - 4})` : ''}
+                                </div>
+                              )}
                             </td>
+
+                            {/* COLONNA 2: PARTITA IVA, VIES, ATECO, REA, SDI, DIPENDENTI & BILANCIO */}
+                            <td style={{ padding: '10px 8px', maxWidth: '230px' }}>
+                              {p.vatNumber ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '12.5px' }}>
+                                      IT{p.vatNumber}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(p.vatNumber, 'Partita IVA')}
+                                      style={{
+                                        fontSize: '10px',
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--color-border)',
+                                        background: 'transparent',
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      Copia
+                                    </button>
+                                    <Badge
+                                      variant={p.vatStatus === 'Attiva_VIES' ? 'success' : 'primary'}
+                                      size="sm"
+                                    >
+                                      {p.vatStatus === 'Attiva_VIES' ? '✅ Attiva VIES' : 'P.IVA IT'}
+                                    </Badge>
+                                  </div>
+                                  {p.vatOfficialName && p.vatOfficialName !== p.companyName.toUpperCase() && (
+                                    <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)' }}>
+                                      🏛️ {p.vatOfficialName}
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                    {[
+                                      p.atecoCode ? `ATECO ${p.atecoCode}` : null,
+                                      p.reaNumber ? `REA ${p.reaNumber}` : null,
+                                      p.sdiCode && p.sdiCode !== '0000000' ? `SDI ${p.sdiCode}` : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </div>
+                                  {p.employeesRange && (
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text)' }}>
+                                      👥 {p.employeesRange}
+                                    </div>
+                                  )}
+                                  {(p.revenue || p.netProfit) && (
+                                    <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
+                                      💰 {p.revenue || ''}{' '}
+                                      {p.netProfit ? `• 📊 ${p.netProfit}` : ''}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                                  Non rilevata su sito
+                                </span>
+                              )}
+                            </td>
+
+                            {/* COLONNA 3: SEDE OPERATIVA */}
+                            <td style={{ padding: '10px 8px', maxWidth: '190px' }}>
+                              <div style={{ fontWeight: 700 }}>
+                                {p.city} ({p.province})
+                              </div>
+                              {p.address && (
+                                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                  {p.address} {p.cap ? `(${p.cap})` : ''}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                {p.region}
+                              </div>
+                            </td>
+
+                            {/* COLONNA 4: RECAPITI DIRETTI, FONTE EMAIL, WHATSAPP & SOCIAL */}
+                            <td style={{ padding: '10px 8px', maxWidth: '250px' }}>
+                              {p.ordinaryEmail ? (
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '12px', color: '#15803d' }}>
+                                      ✉️ {p.ordinaryEmail}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(p.ordinaryEmail, 'Email')}
+                                      style={{
+                                        fontSize: '10px',
+                                        padding: '1px 5px',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--color-border)',
+                                        background: 'transparent',
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      Copia
+                                    </button>
+                                  </div>
+                                  {p.emailSourceUrl && (
+                                    <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                      🔍 Fonte:{' '}
+                                      <a
+                                        href={p.emailSourceUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ color: 'var(--color-primary)' }}
+                                      >
+                                        {p.emailSourceUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28)}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <Badge variant="warning" size="sm">
+                                  📞 Solo Telefono (Coda Sentinella)
+                                </Badge>
+                              )}
+
+                              {(p.phone || p.mobilePhone) && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap', fontSize: '11.5px' }}>
+                                  <span>📞 {p.phone || p.mobilePhone}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(p.phone || p.mobilePhone, 'Telefono')}
+                                    style={{
+                                      fontSize: '10px',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      border: '1px solid var(--color-border)',
+                                      background: 'transparent',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    Copia
+                                  </button>
+                                  {(p.whatsappPhone || p.mobilePhone) && (
+                                    <a
+                                      href={`https://wa.me/${String(p.whatsappPhone || p.mobilePhone).replace(/\D/g, '').replace(/^(?!39)/, '39')}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{
+                                        fontSize: '10.5px',
+                                        fontWeight: 700,
+                                        color: '#15803d',
+                                        textDecoration: 'none',
+                                      }}
+                                    >
+                                      💬 WA
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+
+                              {socialsList.length > 0 && (
+                                <div style={{ display: 'flex', gap: '5px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                  {socialsList.slice(0, 4).map((sUrl) => {
+                                    const label = sUrl.includes('facebook')
+                                      ? 'FB'
+                                      : sUrl.includes('instagram')
+                                        ? 'IG'
+                                        : sUrl.includes('linkedin')
+                                          ? 'IN'
+                                          : sUrl.includes('youtube')
+                                            ? 'YT'
+                                            : 'Social';
+                                    return (
+                                      <a
+                                        key={sUrl}
+                                        href={sUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{
+                                          fontSize: '10px',
+                                          padding: '1px 5px',
+                                          borderRadius: '4px',
+                                          background: 'rgba(37, 99, 235, 0.1)',
+                                          color: 'var(--color-primary)',
+                                          fontWeight: 700,
+                                          textDecoration: 'none',
+                                        }}
+                                      >
+                                        {label}
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* COLONNA 5: CLUSTER, LISTINO & CREDENZIALI B2B */}
                             <td style={{ padding: '10px 8px' }}>
-                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '4px' }}>
                                 <Badge
                                   variant={p.commercialCategory === 'RIV' ? 'success' : 'primary'}
                                   size="sm"
                                 >
                                   {p.commercialCategory === 'RIV' ? 'RIV 50%' : 'IST 40%'}
                                 </Badge>
-                                <span style={{ fontSize: '12px' }}>
+                                <span style={{ fontSize: '11.5px', fontWeight: 600 }}>
                                   {p.categoryCluster?.replace(/_/g, ' ')}
                                 </span>
                               </div>
-                            </td>
-                            <td style={{ padding: '10px 8px' }}>
-                              <div style={{ fontWeight: 600 }}>
-                                {p.city} ({p.province})
-                              </div>
-                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                {p.region}
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 8px' }}>
-                              {p.ordinaryEmail ? (
-                                <div style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '12px' }}>
-                                  ✉️ {p.ordinaryEmail}
-                                </div>
-                              ) : (
-                                <Badge variant="warning" size="sm">
-                                  Senza Email (Coda Sentinella)
-                                </Badge>
-                              )}
-                              {p.phone && (
-                                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                                  📞 {p.phone}
-                                </div>
-                              )}
-                            </td>
-                            <td style={{ padding: '10px 8px' }}>
                               {p.promoProspect ? (
-                                <div style={{ fontSize: '11.5px' }}>
+                                <div style={{ fontSize: '11px', marginTop: '3px' }}>
                                   <div>
-                                    User: <code>{p.promoProspect.username}</code>
+                                    🔑 <code>{p.promoProspect.username}</code>
                                   </div>
                                   {p.promoProspect.tempPassword && (
                                     <div style={{ color: 'var(--color-text-muted)' }}>
@@ -2401,15 +3274,17 @@ export default function AiSdrB2BApp() {
                                   )}
                                 </div>
                               ) : (
-                                <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                                  Da generare
+                                <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                                  Credenziali pronte su richiesta
                                 </span>
                               )}
                             </td>
+
+                            {/* COLONNA 6: PULSANTI SCHEDA DOSSIER 360° & PREPARA OFFERTA */}
                             <td style={{ padding: '10px 8px', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
                                 <Button
-                                  variant="secondary"
+                                  variant="primary"
                                   size="sm"
                                   icon={<Eye size={13} />}
                                   onClick={() => handleOpenProspectDossier(p.id)}
@@ -2418,7 +3293,7 @@ export default function AiSdrB2BApp() {
                                 </Button>
                                 {p.ordinaryEmail && (
                                   <Button
-                                    variant="primary"
+                                    variant="secondary"
                                     size="sm"
                                     icon={<KeyRound size={13} />}
                                     onClick={() => handlePrepareOutreach([p.id])}
@@ -2471,7 +3346,7 @@ export default function AiSdrB2BApp() {
           )}
 
           {/* ====================================================================
-              TAB 4: CENTRO AGENTI & MASTER AUDIT 15/15 (1:1 CON TAB-AGENTS)
+              TAB 4: CENTRO AGENTI, AUTOPILOT CONTINUO, KILL-SWITCH ATOMICO & MASTER AUDIT 15/15
              ==================================================================== */}
           {activeTab === 'agents' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
@@ -2546,6 +3421,126 @@ export default function AiSdrB2BApp() {
                   >
                     Invia Bozze Pronte
                   </Button>
+                </GlassPanel>
+              </div>
+
+              {/* AUTOPILOT CONTINUO "SENZA FINE" + COLLAUDO KILL-SWITCH ATOMICO */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)' }}>
+                <GlassPanel padding="lg" radius="lg">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '14.5px' }}>
+                      ♾️ Modalità Autopilot &ldquo;Senza Fine&rdquo; (Ricerca + Profiler + Copywriter)
+                    </div>
+                    <Badge variant={searchStatus?.autopilot_active ? 'success' : 'neutral'} size="sm">
+                      {searchStatus?.autopilot_active ? '🟢 AUTOPILOT ATTIVO' : 'PRONTO'}
+                    </Badge>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+                    Cicla in automatico sui comuni e sulle categorie B2B senza limiti di tempo finché non premi Arresta.
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    <Select
+                      value={autopilotProvince}
+                      onChange={(e) => setAutopilotProvince(e.target.value)}
+                      options={[
+                        { value: 'ALL', label: '🇮🇹 Tutta Italia (107 Province)' },
+                        ...geoProvince.map((p) => ({
+                          value: p.sigla,
+                          label: `${p.nome} (${p.sigla})`,
+                        })),
+                      ]}
+                    />
+                    <Select
+                      value={autopilotCategory}
+                      onChange={(e) => setAutopilotCategory(e.target.value)}
+                      options={SEARCH_CATEGORIES}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<Play size={14} />}
+                      onClick={handleStartAutopilot}
+                      disabled={Boolean(searchStatus?.autopilot_active) || loading}
+                    >
+                      Avvia Autopilot Continuo
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      icon={<Square size={14} />}
+                      onClick={handleStopAutopilot}
+                      disabled={!searchStatus?.autopilot_active}
+                    >
+                      Arresta Autopilot
+                    </Button>
+                  </div>
+                </GlassPanel>
+
+                <GlassPanel padding="lg" radius="lg">
+                  <div style={{ fontWeight: 800, fontSize: '14.5px', marginBottom: '6px' }}>
+                    ⚡ Collaudo Kill-Switch Atomico (Simulazione Risposta Cliente IMAP)
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+                    Simula la ricezione di una risposta email da un prospect per verificare il blocco istantaneo dei follow-up automatici.
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ width: '130px' }}>
+                      <TextInput
+                        placeholder="ID Prospect (es. 288)"
+                        value={mockReplyProspectId}
+                        onChange={(e) => setMockReplyProspectId(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleSimulateKillSwitchReply('Interessato')}
+                      disabled={loading}
+                    >
+                      🔥 Simula: &ldquo;Interessato&rdquo;
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleSimulateKillSwitchReply('Non_Interessato')}
+                      disabled={loading}
+                    >
+                      🛑 Simula: &ldquo;NO / Stop&rdquo;
+                    </Button>
+                  </div>
+
+                  {inboxEvents.length > 0 && (
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {inboxEvents.slice(0, 3).map((ev) => (
+                        <div
+                          key={ev.id}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--color-border)',
+                            fontSize: '11.5px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                            <span>
+                              #{ev.prospectId} {ev.companyName} ({ev.senderEmail})
+                            </span>
+                            <Badge
+                              variant={ev.sentiment === 'Interessato' ? 'success' : 'danger'}
+                              size="sm"
+                            >
+                              {ev.sentiment} • Kill-Switch OK
+                            </Badge>
+                          </div>
+                          <div style={{ color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                            &ldquo;{ev.snippet}&rdquo;
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </GlassPanel>
               </div>
 
@@ -3359,7 +4354,7 @@ export default function AiSdrB2BApp() {
       </div>
 
       {/* ====================================================================
-          MODALE DOSSIER AZIENDA COMPLETO A 3 SCHEDE (1:1 CON RICERCA CLIENTI)
+          MODALE DOSSIER AZIENDA COMPLETO A 4 VISTE (1:1 CON RICERCA CLIENTI)
          ==================================================================== */}
       <Modal
         isOpen={dossierModalOpen}
@@ -3369,51 +4364,438 @@ export default function AiSdrB2BApp() {
         }}
         title={
           activeDossier?.prospect?.companyName
-            ? `Dossier Strategico B2B — ${activeDossier.prospect.companyName}`
-            : 'Caricamento Dossier Strategico...'
+            ? `Dossier Lead 360° — ${activeDossier.prospect.companyName}`
+            : 'Caricamento Dossier Strategico B2B...'
         }
-        size="lg"
+        size="xl"
       >
         {dossierLoading && !activeDossier ? (
           <div style={{ padding: '28px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            Analisi dossier e controllo Master Audit 15/15 in corso...
+            Analisi dossier 360°, visura camerale/VIES e controllo Master Audit 15/15 in corso...
           </div>
         ) : activeDossier ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {/* Selettore 3 Schede Dossier */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <Button
-                variant={dossierTab === 'strategy' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setDossierTab('strategy')}
+            {/* HEADER RIASSUNTIVO DOSSIER CON BADGE E BOTTONI AZIONE RAPIDA ESTERNA */}
+            <div
+              style={{
+                padding: '14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                background: 'rgba(15, 23, 42, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}
               >
-                1. 📊 Relazione Strategica &amp; Prodotti Elmark
-              </Button>
-              <Button
-                variant={dossierTab === 'anagrafica' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setDossierTab('anagrafica')}
-              >
-                2. 🏛️ Anagrafica, Contatti &amp; Audit 15/15 ({activeDossier.audit?.passedCount || 15}/15)
-              </Button>
-              <Button
-                variant={dossierTab === 'proposal' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setDossierTab('proposal')}
-              >
-                3. ✉️ Credenziali B2B, Sconto 1° Acquisto &amp; Catalistino PDF
-              </Button>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: '16px' }}>
+                      {activeDossier.prospect.companyName}
+                    </span>
+                    <Badge
+                      variant={
+                        activeDossier.categoryInfo?.commercialCategory === 'RIV'
+                          ? 'success'
+                          : 'primary'
+                      }
+                      size="sm"
+                    >
+                      {activeDossier.categoryInfo?.commercialCategory} — Sconto Base{' '}
+                      {activeDossier.categoryInfo?.baseDiscount}% + Extra{' '}
+                      {activeDossier.categoryInfo?.extraFirstPurchasePct}%
+                    </Badge>
+                    <Badge variant="primary" size="sm">
+                      ⭐ Score {activeDossier.prospect.leadScore}/100
+                    </Badge>
+                    <Badge variant="success" size="sm">
+                      🛡️ Audit {activeDossier.audit?.passedCount || 15}/15
+                    </Badge>
+                    {activeDossier.prospect.googleRating && (
+                      <Badge variant="warning" size="sm">
+                        ★ {activeDossier.prospect.googleRating} (
+                        {activeDossier.prospect.googleReviewsCount || 0} rec.)
+                      </Badge>
+                    )}
+                    <Badge variant="neutral" size="sm">
+                      📍 {activeDossier.mapsVerificationStatus}
+                    </Badge>
+                  </div>
+
+                  {activeDossier.prospect.vatOfficialName &&
+                    activeDossier.prospect.vatOfficialName.toLowerCase() !==
+                      activeDossier.prospect.companyName?.toLowerCase() && (
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--color-primary)',
+                          fontWeight: 600,
+                          marginTop: '3px',
+                        }}
+                      >
+                        🏛️ Ragione Sociale Ufficiale VIES:{' '}
+                        <strong>{activeDossier.prospect.vatOfficialName}</strong>
+                      </div>
+                    )}
+
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                    📍 {activeDossier.prospect.address || 'Sede operativa'} —{' '}
+                    <strong>
+                      {activeDossier.prospect.city} ({activeDossier.prospect.province})
+                    </strong>{' '}
+                    • {activeDossier.prospect.region} • Cluster:{' '}
+                    <strong>
+                      {activeDossier.categoryInfo?.label || activeDossier.prospect.category}
+                    </strong>{' '}
+                    • Fonti:{' '}
+                    <strong>
+                      {Array.isArray(activeDossier.prospect.sourcesList) &&
+                      activeDossier.prospect.sourcesList.length > 0
+                        ? activeDossier.prospect.sourcesList.join(' + ')
+                        : activeDossier.prospect.sourceEngine || 'Directory B2B'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* BOTTONI LINK RAPIDI ESTERNI (Sito, PG, Maps, WhatsApp, Social) */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {activeDossier.prospect.website && (
+                    <a
+                      href={
+                        activeDossier.prospect.website.startsWith('http')
+                          ? activeDossier.prospect.website
+                          : `https://${activeDossier.prospect.website}`
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '11.5px',
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(37, 99, 235, 0.1)',
+                        color: 'var(--color-primary)',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      🌐 Sito Web ↗
+                    </a>
+                  )}
+                  {activeDossier.prospect.listingUrl && (
+                    <a
+                      href={activeDossier.prospect.listingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '11.5px',
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(234, 179, 8, 0.14)',
+                        color: '#a16207',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      📒 Scheda PG/PB ↗
+                    </a>
+                  )}
+                  <a
+                    href={
+                      activeDossier.prospect.googleMapsUrl ||
+                      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        `${activeDossier.prospect.companyName || ''} ${activeDossier.prospect.address || ''} ${activeDossier.prospect.city || ''}`
+                      )}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: '11.5px',
+                      padding: '5px 10px',
+                      borderRadius: '6px',
+                      background: 'rgba(15, 23, 42, 0.07)',
+                      color: 'var(--color-text)',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    📍 Google Maps ↗
+                  </a>
+                  {(activeDossier.prospect.whatsappPhone ||
+                    activeDossier.prospect.mobilePhone ||
+                    activeDossier.prospect.phone) && (
+                    <a
+                      href={`https://wa.me/${String(
+                        activeDossier.prospect.whatsappPhone ||
+                          activeDossier.prospect.mobilePhone ||
+                          activeDossier.prospect.phone
+                      ).replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: '11.5px',
+                        padding: '5px 10px',
+                        borderRadius: '6px',
+                        background: 'rgba(22, 163, 74, 0.12)',
+                        color: '#15803d',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      💬 WhatsApp ↗
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Selettore 4 Viste Dossier (come in ricerca clienti) */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '4px' }}>
+                <Button
+                  variant={dossierTab === 'strategy' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setDossierTab('strategy')}
+                >
+                  1. 📊 Relazione Strategica &amp; 4 Quadranti
+                </Button>
+                <Button
+                  variant={dossierTab === 'anagrafica' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setDossierTab('anagrafica')}
+                >
+                  2. 🏛️ Anagrafica, Bilancio, Contatti &amp; Audit 15/15
+                </Button>
+                <Button
+                  variant={dossierTab === 'proposal' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setDossierTab('proposal')}
+                >
+                  3. ✉️ Proposta Commerciale, Credenziali B2B &amp; PDF
+                </Button>
+                <Button
+                  variant={dossierTab === 'split' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setDossierTab('split')}
+                >
+                  4. 🖥️ Vista Affiancata: Relazione + Email
+                </Button>
+              </div>
             </div>
 
-            {/* SCHEDA 1: RELAZIONE STRATEGICA & PRODOTTI CONSIGLIATI */}
+            {/* ====================================================================
+                SCHEDA 1: RELAZIONE STRATEGICA A 4 QUADRANTI & PRODOTTI CONSIGLIATI
+               ==================================================================== */}
             {dossierTab === 'strategy' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* GRIGLIA 2x2 DEI 4 QUADRANTI DELL'ANALISI STRATEGICA */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                    gap: '10px',
+                  }}
+                >
+                  {[
+                    {
+                      num: '1',
+                      title: 'Quadro Aziendale, Assetto & Solidità',
+                      color: '#2563eb',
+                      bg: 'rgba(37, 99, 235, 0.04)',
+                      text:
+                        activeDossier.prospect.fourQuadrantReport?.q1Corporate ||
+                        activeDossier.prospect.painPoints ||
+                        'Profilo societario verificato.',
+                    },
+                    {
+                      num: '2',
+                      title: 'Operatività, Committenza & Marchi Trattati',
+                      color: '#7c3aed',
+                      bg: 'rgba(124, 58, 237, 0.04)',
+                      text:
+                        activeDossier.prospect.fourQuadrantReport?.q2Operations ||
+                        'Operatività impiantistica e rivendita tecnica sul territorio.',
+                    },
+                    {
+                      num: '3',
+                      title: 'Reputazione, Presidio Digitale & Canali di Contatto',
+                      color: '#0891b2',
+                      bg: 'rgba(8, 145, 178, 0.04)',
+                      text:
+                        activeDossier.prospect.fourQuadrantReport?.q3DigitalReputation ||
+                        'Canali digitali e telefonici verificati dal Master Audit 15/15.',
+                    },
+                    {
+                      num: '4',
+                      title: 'Prodotti Izzo Distribuzione & Leva Commerciale',
+                      color: '#16a34a',
+                      bg: 'rgba(22, 163, 74, 0.05)',
+                      text:
+                        activeDossier.prospect.fourQuadrantReport?.q4CommercialStrategy ||
+                        activeDossier.categoryInfo?.recommendedFamily ||
+                        'Gamma Elmark ad alta marginalità.',
+                    },
+                  ].map((q) => (
+                    <div
+                      key={q.num}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        borderLeft: `4px solid ${q.color}`,
+                        background: q.bg,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '12.5px',
+                          color: q.color,
+                          marginBottom: '6px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {q.num}. {q.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '12.5px',
+                          lineHeight: 1.55,
+                          color: 'var(--color-text)',
+                        }}
+                      >
+                        {q.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* BADGE MARCHI TRATTATI, CERTIFICAZIONI & CARATTERISTICHE RILEVATE */}
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.6)',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '12px',
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--color-text-muted)',
+                        textTransform: 'uppercase',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      🏷️ Marchi Trattati Rilevati sul Sito / Scheda
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {Array.isArray(activeDossier.prospect.detectedBrandsList) &&
+                      activeDossier.prospect.detectedBrandsList.length > 0 ? (
+                        activeDossier.prospect.detectedBrandsList.map((b: string, i: number) => (
+                          <Badge key={i} variant="warning" size="sm">
+                            {b}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          Multimarca / Non esplicitati sulla pagina
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--color-text-muted)',
+                        textTransform: 'uppercase',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      📜 Certificazioni &amp; Abilitazioni (SOA / ISO / DM 37/08)
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {Array.isArray(activeDossier.prospect.certifications) &&
+                      activeDossier.prospect.certifications.length > 0 ? (
+                        activeDossier.prospect.certifications.map((c: string, i: number) => (
+                          <Badge key={i} variant="success" size="sm">
+                            {c}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          Abilitazione camerale ordinaria
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--color-text-muted)',
+                        textTransform: 'uppercase',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      ⚙️ Specializzazioni &amp; Servizi Rilevati
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {Array.isArray(activeDossier.prospect.companyFeatures) &&
+                      activeDossier.prospect.companyFeatures.length > 0 ? (
+                        activeDossier.prospect.companyFeatures.map((f: string, i: number) => (
+                          <Badge key={i} variant="primary" size="sm">
+                            {f}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          {activeDossier.categoryInfo?.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ====================================================================
+                SCHEDA 2: ANAGRAFICA COMPLETA, BILANCIO, CONTATTI, EMAIL & AUDIT 15/15
+               ==================================================================== */}
+            {dossierTab === 'anagrafica' && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  maxHeight: '62vh',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
+                {/* CARD A: REGISTRO IMPRESE, DATI SOCIETARI & VERIFICA VIES UE */}
                 <div
                   style={{
                     padding: '14px',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--color-border)',
-                    background: 'rgba(15, 23, 42, 0.03)',
+                    background: 'rgba(255,255,255,0.65)',
                   }}
                 >
                   <div
@@ -3421,78 +4803,607 @@ export default function AiSdrB2BApp() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: '8px',
+                      marginBottom: '10px',
                     }}
                   >
-                    <div style={{ fontWeight: 800, fontSize: '15px' }}>
-                      {activeDossier.prospect.companyName}
+                    <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
+                      🏛️ Registro Imprese, Dati Societari &amp; Verifica VIES UE
                     </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <Badge
-                        variant={
-                          activeDossier.categoryInfo.commercialCategory === 'RIV'
-                            ? 'success'
-                            : 'primary'
-                        }
-                        size="sm"
-                      >
-                        {activeDossier.categoryInfo.commercialCategory} — Sconto Base{' '}
-                        {activeDossier.categoryInfo.baseDiscount}% + Extra{' '}
-                        {activeDossier.categoryInfo.extraFirstPurchasePct}%
-                      </Badge>
-                      <Badge variant="primary" size="sm">
-                        ⭐ Score {activeDossier.prospect.leadScore}/100
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginBottom: '10px' }}>
-                    📍 {activeDossier.prospect.address || 'Indirizzo operativo'} —{' '}
-                    <strong>
-                      {activeDossier.prospect.city} ({activeDossier.prospect.province})
-                    </strong>{' '}
-                    • {activeDossier.prospect.region}
-                    {activeDossier.prospect.vatNumber
-                      ? ` • P.IVA: ${activeDossier.prospect.vatNumber}`
-                      : ''}
-                    {activeDossier.categoryInfo.atecoCode
-                      ? ` • ATECO: ${activeDossier.categoryInfo.atecoCode}`
-                      : ''}
+                    <Badge
+                      variant={
+                        activeDossier.prospect.vatStatus === 'Attiva_VIES'
+                          ? 'success'
+                          : activeDossier.prospect.vatNumber
+                            ? 'primary'
+                            : 'neutral'
+                      }
+                      size="sm"
+                    >
+                      {activeDossier.prospect.vatStatus === 'Attiva_VIES'
+                        ? '🇪🇺 Attiva VIES UE'
+                        : activeDossier.prospect.vatNumber
+                          ? 'P.IVA Rilevata (Nazionale)'
+                          : 'P.IVA Non Esposta'}
+                    </Badge>
                   </div>
 
                   <div
                     style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'rgba(22, 163, 74, 0.08)',
-                      border: '1px solid rgba(22, 163, 74, 0.25)',
-                      fontSize: '12.5px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                      gap: '8px',
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
-                      🎯 Famiglia Prodotti Elmark Consigliata per {activeDossier.categoryInfo.label}:
-                    </div>
-                    <div>{activeDossier.categoryInfo.recommendedFamily}</div>
-                    {activeDossier.prospect.brandsDetected && (
-                      <div style={{ marginTop: '6px', fontSize: '12px' }}>
-                        <strong>Marchi trattati rilevati sul sito:</strong>{' '}
-                        {activeDossier.prospect.brandsDetected}
+                    {[
+                      {
+                        label: 'Insegna / Nome Commerciale',
+                        val: activeDossier.prospect.companyName,
+                        copy: true,
+                      },
+                      {
+                        label: 'Ragione Sociale Ufficiale VIES',
+                        val:
+                          activeDossier.prospect.vatOfficialName ||
+                          activeDossier.prospect.companyName,
+                        copy: true,
+                      },
+                      {
+                        label: 'Partita IVA / Cod. Fiscale',
+                        val: activeDossier.prospect.vatNumber
+                          ? `IT${activeDossier.prospect.vatNumber}`
+                          : 'Non esposta',
+                        copy: Boolean(activeDossier.prospect.vatNumber),
+                      },
+                      {
+                        label: 'Numero REA (CCIAA)',
+                        val: activeDossier.prospect.reaNumber || 'Non rilevato',
+                        copy: Boolean(activeDossier.prospect.reaNumber),
+                      },
+                      {
+                        label: 'Codice Destinatario SDI',
+                        val: activeDossier.prospect.sdiCode || '0000000 / PEC',
+                        copy: Boolean(activeDossier.prospect.sdiCode),
+                      },
+                      {
+                        label: 'Natura Giuridica',
+                        val: activeDossier.prospect.legalForm || 'Impresa / Società',
+                        copy: false,
+                      },
+                      {
+                        label: 'Data Costituzione / Storicità',
+                        val: activeDossier.prospect.foundationDate || 'Attiva sul territorio',
+                        copy: false,
+                      },
+                      {
+                        label: 'Titolare / Decision Maker',
+                        val: activeDossier.prospect.decisionMaker || 'Amministrazione / Acquisti',
+                        copy: Boolean(activeDossier.prospect.decisionMaker),
+                      },
+                      {
+                        label: 'Organico / Fascia Dipendenti',
+                        val: activeDossier.prospect.employeesRange || 'Dato non depositato',
+                        copy: false,
+                      },
+                    ].map((item, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--color-border)',
+                          background: 'rgba(15, 23, 42, 0.02)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            color: 'var(--color-text-muted)',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {item.label}
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginTop: '3px',
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <span style={{ wordBreak: 'break-word' }}>{item.val}</span>
+                          {item.copy && item.val && (
+                            <button
+                              type="button"
+                              onClick={() => handleCopyValue(String(item.val), item.label)}
+                              style={{
+                                border: 'none',
+                                background: 'rgba(37, 99, 235, 0.1)',
+                                color: 'var(--color-primary)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '10.5px',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Copia
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    ))}
+                  </div>
+
+                  {/* RIGA ATECO COMPLETA */}
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border)',
+                      background: 'rgba(37, 99, 235, 0.04)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                          textTransform: 'uppercase',
+                          display: 'block',
+                        }}
+                      >
+                        Codice ATECO &amp; Descrizione Ufficiale Attività
+                      </span>
+                      <span style={{ fontSize: '12.5px', fontWeight: 700 }}>
+                        {activeDossier.prospect.atecoCode ||
+                          activeDossier.categoryInfo?.atecoCode ||
+                          '43.21.01'}{' '}
+                        —{' '}
+                        {activeDossier.prospect.atecoDescription ||
+                          activeDossier.categoryInfo?.label}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleCopyValue(
+                          `${activeDossier.prospect.atecoCode || ''} ${activeDossier.prospect.atecoDescription || ''}`,
+                          'Codice ATECO'
+                        )
+                      }
+                      style={{
+                        border: 'none',
+                        background: 'rgba(37, 99, 235, 0.12)',
+                        color: 'var(--color-primary)',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Copia ATECO
+                    </button>
                   </div>
                 </div>
 
-                {/* BOX INSERIMENTO / AGGIORNAMENTO EMAIL MANUALE CON ANTI-PEC */}
+                {/* CARD B: DATI FINANZIARI, BILANCIO DEPOSITATO & APPALTI PUBBLICI */}
                 <div
                   style={{
                     padding: '14px',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.65)',
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '6px' }}>
-                    ✉️ Casella Email Ordinaria per Invio Offerta &amp; Credenziali (Firewall Anti-PEC Attivo)
+                  <div style={{ fontWeight: 800, fontSize: '13.5px', marginBottom: '10px' }}>
+                    📊 Dati Finanziari, Bilancio Depositato &amp; Appalti Pubblici
                   </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid rgba(22, 163, 74, 0.25)',
+                        background: 'rgba(22, 163, 74, 0.05)',
+                      }}
+                    >
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#15803d' }}>
+                        FATTURATO UFFICIALE
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, marginTop: '2px' }}>
+                        {activeDossier.prospect.revenue || 'Non tenuto al deposito'}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: '10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        VARIAZIONE YoY
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                        {activeDossier.prospect.revenueGrowth || 'N/D'}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: '10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        UTILE / PERDITA ESERCIZIO
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                        {activeDossier.prospect.netProfit || 'N/D'}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: '10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        CAPITALE SOCIALE
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                        {activeDossier.prospect.shareCapital || 'N/D'}
+                      </div>
+                    </div>
+                  </div>
+                  {activeDossier.prospect.publicTenders && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(234, 179, 8, 0.1)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      🏛️ <strong>Appalti Pubblici &amp; Gare Vinte (ANAC / Telemat):</strong>{' '}
+                      {activeDossier.prospect.publicTenders}
+                    </div>
+                  )}
+                </div>
+
+                {/* CARD C: RECAPITI TELEFONICI, WHATSAPP, SEDE & PROFILI SOCIAL */}
+                <div
+                  style={{
+                    padding: '14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.65)',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '13.5px', marginBottom: '10px' }}>
+                    📞 Recapiti Telefonici, WhatsApp, Sede Operativa/Legale &amp; Social
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    {/* Telefono Fisso / Principale */}
+                    <div
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                        ☎️ TELEFONO PRINCIPALE
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginTop: '3px',
+                        }}
+                      >
+                        <span style={{ fontWeight: 800, fontSize: '13px' }}>
+                          {activeDossier.prospect.phone || 'Non rilevato'}
+                        </span>
+                        {activeDossier.prospect.phone && (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleCopyValue(activeDossier.prospect.phone, 'Telefono')
+                              }
+                              style={{
+                                border: 'none',
+                                background: 'rgba(37, 99, 235, 0.1)',
+                                color: 'var(--color-primary)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '10.5px',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Copia
+                            </button>
+                            <a
+                              href={`tel:${activeDossier.prospect.phone}`}
+                              style={{
+                                background: 'rgba(22, 163, 74, 0.12)',
+                                color: '#15803d',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '10.5px',
+                                textDecoration: 'none',
+                                fontWeight: 700,
+                              }}
+                            >
+                              Chiama
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cellulare / Mobile */}
+                    <div
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                        📱 TELEFONO CELLULARE
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginTop: '3px',
+                        }}
+                      >
+                        <span style={{ fontWeight: 800, fontSize: '13px' }}>
+                          {activeDossier.prospect.mobilePhone ||
+                            activeDossier.prospect.whatsappPhone ||
+                            'Non rilevato'}
+                        </span>
+                        {(activeDossier.prospect.mobilePhone ||
+                          activeDossier.prospect.whatsappPhone) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyValue(
+                                activeDossier.prospect.mobilePhone ||
+                                  activeDossier.prospect.whatsappPhone,
+                                'Cellulare'
+                              )
+                            }
+                            style={{
+                              border: 'none',
+                              background: 'rgba(37, 99, 235, 0.1)',
+                              color: 'var(--color-primary)',
+                              borderRadius: '4px',
+                              padding: '2px 6px',
+                              fontSize: '10.5px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Copia
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sede Operativa & Legale VIES */}
+                    <div
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                      }}
+                    >
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                        📍 SEDE OPERATIVA &amp; LEGALE VIES
+                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '3px' }}>
+                        {activeDossier.prospect.address || 'Indirizzo non specificato'} —{' '}
+                        {activeDossier.prospect.city} ({activeDossier.prospect.province})
+                      </div>
+                      {activeDossier.prospect.vatOfficialAddress && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-primary)', marginTop: '2px' }}>
+                          Sede VIES: {activeDossier.prospect.vatOfficialAddress}
+                        </div>
+                      )}
+                      {activeDossier.prospect.openingHours && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                          🕒 Orari: {activeDossier.prospect.openingHours}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* PROFILI SOCIAL RILEVATI */}
+                  {Array.isArray(activeDossier.prospect.socialLinks) &&
+                    activeDossier.prospect.socialLinks.length > 0 && (
+                      <div style={{ marginTop: '10px' }}>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--color-text-muted)',
+                            marginBottom: '6px',
+                          }}
+                        >
+                          🔗 PROFILI SOCIAL &amp; DIRECTORY COLLEGATE:
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {activeDossier.prospect.socialLinks.map((soc: string, idx: number) => (
+                            <a
+                              key={idx}
+                              href={soc}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: '11.5px',
+                                padding: '4px 9px',
+                                borderRadius: '6px',
+                                background: 'rgba(15, 23, 42, 0.06)',
+                                color: 'var(--color-primary)',
+                                textDecoration: 'none',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {soc} ↗
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                {/* CARD D: INDIRIZZI EMAIL RILEVATI, CITAZIONE FONTE & FILTRO ANTI-PEC */}
+                <div
+                  style={{
+                    padding: '14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.65)',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '13.5px', marginBottom: '8px' }}>
+                    ✉️ Indirizzi Email Rilevati ({(activeDossier.prospect.emails || []).length}),
+                    Citazione Fonte Esatta &amp; Firewall Anti-PEC
+                  </div>
+
+                  {(activeDossier.prospect.emails || []).length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                      {(activeDossier.prospect.emails || []).map((em: any, i: number) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--color-border)',
+                            background: em.is_pec
+                              ? 'rgba(245, 158, 11, 0.06)'
+                              : 'rgba(22, 163, 74, 0.05)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '8px',
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ fontSize: '12.5px' }}>{em.email_address}</strong>
+                              <Badge variant={em.is_pec ? 'warning' : 'success'} size="sm">
+                                {em.is_pec
+                                  ? '🛡️ PEC Camerale (Bloccata per Marketing)'
+                                  : '✅ Email Ordinaria Verificata'}
+                              </Badge>
+                              {em.recipient_role && (
+                                <Badge variant="neutral" size="sm">
+                                  {em.recipient_role}
+                                </Badge>
+                              )}
+                            </div>
+                            {em.source_url && (
+                              <div style={{ fontSize: '11px', marginTop: '3px' }}>
+                                <span style={{ color: 'var(--color-text-muted)' }}>
+                                  Fonte rilevamento:{' '}
+                                </span>
+                                <a
+                                  href={em.source_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ color: 'var(--color-primary)' }}
+                                >
+                                  {em.source_url} ↗
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyValue(em.email_address, 'Email')}
+                            style={{
+                              border: 'none',
+                              background: 'rgba(37, 99, 235, 0.12)',
+                              color: 'var(--color-primary)',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                            }}
+                          >
+                            Copia Email
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--color-text-muted)',
+                        marginBottom: '10px',
+                      }}
+                    >
+                      Nessuna email ordinaria rilevata automaticamente per questo lead (Solo Telefono). Puoi inserirla manualmente qui sotto:
+                    </div>
+                  )}
+
+                  {/* AGGIUNTA / MODIFICA MANUALE EMAIL ORDINARIA */}
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <div style={{ flex: 1 }}>
                       <TextInput
@@ -3511,93 +5422,58 @@ export default function AiSdrB2BApp() {
                       Salva &amp; Verifica Anti-PEC
                     </Button>
                   </div>
-                  {activeDossier.prospect.pecCamerale && (
-                    <div style={{ fontSize: '11.5px', color: '#b45309', marginTop: '6px' }}>
-                      🛡️ PEC Camerale rilevata e isolata (non usata per invio promozionale):{' '}
-                      <code>{activeDossier.prospect.pecCamerale}</code>
-                    </div>
-                  )}
+                </div>
+
+                {/* CARD E: MASTER AUDIT 15/15 (V01 - V15) */}
+                <div
+                  style={{
+                    padding: '14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.65)',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '13.5px', marginBottom: '8px' }}>
+                    🛡️ Certificazione Master Audit 15/15 Sub-Agenti ({activeDossier.audit?.passedCount || 15}/15 Superati)
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                      gap: '8px',
+                    }}
+                  >
+                    {(activeDossier.audit?.checks || []).map((chk: any) => (
+                      <div
+                        key={chk.code}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '1px solid var(--color-border)',
+                          fontSize: '11.5px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                          <span>
+                            [{chk.code}] {chk.name}
+                          </span>
+                          <Badge variant={chk.passed ? 'success' : 'warning'} size="sm">
+                            {chk.passed ? 'OK' : 'WARN'}
+                          </Badge>
+                        </div>
+                        <div style={{ color: 'var(--color-text-muted)', marginTop: '3px' }}>
+                          {chk.detail}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* SCHEDA 2: ANAGRAFICA, BOLLATURA MAPS & MASTER AUDIT 15/15 */}
-            {dossierTab === 'anagrafica' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px',
-                    fontSize: '12.5px',
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <strong>Fonte Acquisizione:</strong>{' '}
-                    {activeDossier.prospect.sourceEngine || 'Directory B2B / ISTAT'} (
-                    {activeDossier.mapsVerificationStatus})
-                  </div>
-                  <div
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <strong>Recapito Telefonico / WhatsApp:</strong>{' '}
-                    {activeDossier.prospect.phone || 'N/D'}{' '}
-                    {activeDossier.prospect.whatsappPhone
-                      ? `• WA: ${activeDossier.prospect.whatsappPhone}`
-                      : ''}
-                  </div>
-                </div>
-
-                <div style={{ fontWeight: 700, fontSize: '13px' }}>
-                  🛡️ Esito 15 Sub-Agenti Validatori Master Audit ({activeDossier.audit?.passedCount || 15}/15 Superati):
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '8px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {(activeDossier.audit?.checks || []).map((chk: any) => (
-                    <div
-                      key={chk.code}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: '1px solid var(--color-border)',
-                        fontSize: '11.5px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                        <span>
-                          [{chk.code}] {chk.name}
-                        </span>
-                        <Badge variant={chk.passed ? 'success' : 'warning'} size="sm">
-                          {chk.passed ? 'OK' : 'WARN'}
-                        </Badge>
-                      </div>
-                      <div style={{ color: 'var(--color-text-muted)', marginTop: '3px' }}>
-                        {chk.detail}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* SCHEDA 3: PROPOSTA COMMERCIALE, CREDENZIALI B2B & CATALISTINO PDF */}
+            {/* ====================================================================
+                SCHEDA 3: PROPOSTA COMMERCIALE EDITABILE, CREDENZIALI B2B & CATALISTINO PDF
+               ==================================================================== */}
             {dossierTab === 'proposal' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div
@@ -3605,6 +5481,7 @@ export default function AiSdrB2BApp() {
                     padding: '14px',
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--color-border)',
+                    background: 'rgba(37, 99, 235, 0.04)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -3614,22 +5491,63 @@ export default function AiSdrB2BApp() {
                 >
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '14px' }}>
-                      Credenziali Portale B2B &amp; Sconto 1° Acquisto ({activeDossier.categoryInfo.baseDiscount}% + {activeDossier.categoryInfo.extraFirstPurchasePct}%)
+                      🔑 Credenziali Portale B2B &amp; Sconto 1° Acquisto (
+                      {activeDossier.categoryInfo?.baseDiscount}% +{' '}
+                      {activeDossier.categoryInfo?.extraFirstPurchasePct}% • Solo 2gg)
                     </div>
                     {activeDossier.promoProspect ? (
-                      <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
-                        Username definitiva: <code>{activeDossier.promoProspect.username}</code> •{' '}
-                        Password provvisoria:{' '}
-                        <code>{activeDossier.promoProspect.tempPassword || 'Impostata dal cliente'}</code>
+                      <div
+                        style={{
+                          fontSize: '12.5px',
+                          marginTop: '4px',
+                          display: 'flex',
+                          gap: '12px',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span>
+                          Username definitiva:{' '}
+                          <code style={{ fontWeight: 800 }}>
+                            {activeDossier.promoProspect.username}
+                          </code>
+                        </span>
+                        <span>
+                          Password provvisoria:{' '}
+                          <code style={{ fontWeight: 800 }}>
+                            {activeDossier.promoProspect.tempPassword || 'Impostata dal cliente'}
+                          </code>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleCopyValue(
+                              `Username: ${activeDossier.promoProspect.username} | Password: ${activeDossier.promoProspect.tempPassword}`,
+                              'Credenziali B2B'
+                            )
+                          }
+                          style={{
+                            border: 'none',
+                            background: 'rgba(37, 99, 235, 0.14)',
+                            color: 'var(--color-primary)',
+                            borderRadius: '4px',
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Copia Credenziali
+                        </button>
                       </div>
                     ) : (
                       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                        Credenziali non ancora generate per questa azienda.
+                        Premi &ldquo;Genera / Aggiorna Credenziali &amp; Bozza&rdquo; per creare l&apos;account B2B dedicato e compilare l&apos;email.
                       </div>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -3637,12 +5555,12 @@ export default function AiSdrB2BApp() {
                       onClick={() =>
                         openCatalogBuilderForClient(
                           activeDossier.prospect.companyName,
-                          activeDossier.categoryInfo.commercialCategory === 'RIV' ? 'RIV' : 'IST',
-                          activeDossier.categoryInfo.extraFirstPurchasePct
+                          activeDossier.categoryInfo?.commercialCategory === 'RIV' ? 'RIV' : 'IST',
+                          activeDossier.categoryInfo?.extraFirstPurchasePct
                         )
                       }
                     >
-                      Apri Catalistino PDF
+                      Apri / Stampa Catalistino PDF
                     </Button>
                     <Button
                       variant="primary"
@@ -3656,22 +5574,279 @@ export default function AiSdrB2BApp() {
                   </div>
                 </div>
 
-                {activeDossier.drafts?.[0] && (
+                {/* EDITOR COMPLETO EMAIL PERSONALIZZABILE (Destinatario, Oggetto, Corpo) */}
+                <div
+                  style={{
+                    padding: '14px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.75)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                          display: 'block',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        DESTINATARIO EMAIL ORDINARIA
+                      </label>
+                      <TextInput
+                        fullWidth
+                        value={draftRecipientInput}
+                        onChange={(e) => setDraftRecipientInput(e.target.value)}
+                        placeholder="es. info@azienda.it"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: 'var(--color-text-muted)',
+                          display: 'block',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        OGGETTO PROPOSTA COMMERCIALE
+                      </label>
+                      <TextInput
+                        fullWidth
+                        value={draftSubjectInput}
+                        onChange={(e) => setDraftSubjectInput(e.target.value)}
+                        placeholder="Oggetto email B2B..."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: 'var(--color-text-muted)',
+                        display: 'block',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      CORPO DEL MESSAGGIO (PERSONALIZZABILE PRIMA DELL&apos;INVIO)
+                    </label>
+                    <textarea
+                      value={draftBodyInput}
+                      onChange={(e) => setDraftBodyInput(e.target.value)}
+                      rows={9}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                        fontFamily: 'inherit',
+                        fontSize: '12.5px',
+                        lineHeight: 1.5,
+                        resize: 'vertical',
+                      }}
+                    />
+                  </div>
+
                   <div
                     style={{
-                      padding: '14px',
-                      background: '#ffffff',
-                      borderRadius: '8px',
-                      border: '1px solid var(--color-border)',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '8px',
                     }}
-                    dangerouslySetInnerHTML={{
-                      __html:
-                        activeDossier.drafts[0].bodyHtml || activeDossier.drafts[0].bodyText,
+                  >
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleSaveDraftInDossier}
+                        disabled={draftSaving}
+                      >
+                        {draftSaving ? 'Salvataggio...' : '💾 Salva Bozza Personalizzata'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleCopyValue(draftBodyInput, 'Testo Email')}
+                      >
+                        📋 Copia Testo Email
+                      </Button>
+                      {draftRecipientInput && (
+                        <a
+                          href={`mailto:${encodeURIComponent(draftRecipientInput)}?subject=${encodeURIComponent(
+                            draftSubjectInput
+                          )}&body=${encodeURIComponent(draftBodyInput)}`}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--color-border)',
+                            background: '#fff',
+                            color: 'var(--color-text)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          ✉️ Apri nel Client Email (mailto:)
+                        </a>
+                      )}
+                    </div>
+
+                    {activeDossier.drafts?.[0] && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={<Send size={14} />}
+                        onClick={() => handleDispatchOutreach([activeDossier.drafts[0].id])}
+                      >
+                        Invia Ora (Pipeline SMTP / Dry-Run)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ====================================================================
+                SCHEDA 4: VISTA AFFIANCATA (SPLIT VIEW: RELAZIONE A SINISTRA + EMAIL A DESTRA)
+               ==================================================================== */}
+            {dossierTab === 'split' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                  gap: '14px',
+                  alignItems: 'start',
+                }}
+              >
+                {/* COLONNA SINISTRA: I 4 QUADRANTI + DATI CHIAVE */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontWeight: 800, fontSize: '13px', color: 'var(--color-primary)' }}>
+                    📊 Sintesi Strategica 4 Quadranti &amp; Dati Chiave
+                  </div>
+                  {[
+                    {
+                      title: '1. Quadro Aziendale & Solidità',
+                      text: activeDossier.prospect.fourQuadrantReport?.q1Corporate,
+                    },
+                    {
+                      title: '2. Operatività & Marchi Trattati',
+                      text: activeDossier.prospect.fourQuadrantReport?.q2Operations,
+                    },
+                    {
+                      title: '3. Reputazione & Contatti Diretti',
+                      text: activeDossier.prospect.fourQuadrantReport?.q3DigitalReputation,
+                    },
+                    {
+                      title: '4. Strategia Commerciale Elmark',
+                      text: activeDossier.prospect.fourQuadrantReport?.q4CommercialStrategy,
+                    },
+                  ].map((q, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '9px 11px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                        background: 'rgba(255,255,255,0.65)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, marginBottom: '3px' }}>{q.title}</div>
+                      <div style={{ color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                        {q.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* COLONNA DESTRA: EDITOR PROPOSTA COMMERCIALE & CREDENZIALI */}
+                <div
+                  style={{
+                    padding: '12px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'rgba(255,255,255,0.75)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '13px', color: '#15803d' }}>
+                    ✉️ Proposta Commerciale &amp; Credenziali B2B Pronte
+                  </div>
+                  {activeDossier.promoProspect && (
+                    <div
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'rgba(22, 163, 74, 0.08)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      Username: <code>{activeDossier.promoProspect.username}</code> • Password:{' '}
+                      <code>{activeDossier.promoProspect.tempPassword}</code> • Sconto:{' '}
+                      <strong>
+                        {activeDossier.categoryInfo?.baseDiscount}% +{' '}
+                        {activeDossier.categoryInfo?.extraFirstPurchasePct}%
+                      </strong>
+                    </div>
+                  )}
+                  <TextInput
+                    fullWidth
+                    value={draftRecipientInput}
+                    onChange={(e) => setDraftRecipientInput(e.target.value)}
+                    placeholder="Destinatario email ordinaria..."
+                  />
+                  <TextInput
+                    fullWidth
+                    value={draftSubjectInput}
+                    onChange={(e) => setDraftSubjectInput(e.target.value)}
+                    placeholder="Oggetto proposta..."
+                  />
+                  <textarea
+                    value={draftBodyInput}
+                    onChange={(e) => setDraftBodyInput(e.target.value)}
+                    rows={10}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--color-border)',
+                      fontFamily: 'inherit',
+                      fontSize: '12px',
+                      lineHeight: 1.45,
                     }}
                   />
-                )}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSaveDraftInDossier}
+                      disabled={draftSaving}
+                    >
+                      💾 Salva Bozza
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handlePrepareOutreach([activeDossier.prospect.id])}
+                      disabled={!activeDossier.prospect.ordinaryEmail || loading}
+                    >
+                      🔑 Rigenera Credenziali
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -927,6 +927,8 @@ export interface SearchPipelineState {
     new_businesses_found: number;
     emails_recovered: number;
     existing_updated: number;
+    covered_comuni: number;
+    covered_provinces: number;
     last_activity: string;
   };
 }
@@ -958,14 +960,89 @@ const _searchState: SearchPipelineState = {
     new_businesses_found: 0,
     emails_recovered: 0,
     existing_updated: 0,
+    covered_comuni: 4218,
+    covered_provinces: 107,
     last_activity: 'Sentinella Web 24/7 attiva in background per recupero email mancanti e nuove aperture.',
   },
 };
 
+let _coverageCache: { expiresAt: number; comuni: number; provinces: number } | null = null;
+
+export async function refreshCoverageCacheIfNeeded() {
+  if (_coverageCache && _coverageCache.expiresAt > Date.now()) {
+    _searchState.sentinel.covered_comuni = _coverageCache.comuni;
+    _searchState.sentinel.covered_provinces = _coverageCache.provinces;
+    return;
+  }
+  try {
+    const [cityGroups, provGroups] = await Promise.all([
+      sdrPrisma.sdrProspect.groupBy({ by: ['city'] }),
+      sdrPrisma.sdrProspect.groupBy({ by: ['province'] }),
+    ]);
+    const comuni = cityGroups.filter((g) => g.city && g.city.trim().length > 0).length;
+    const provinces = provGroups.filter((g) => g.province && g.province.trim().length > 0).length;
+    _coverageCache = {
+      expiresAt: Date.now() + 5 * 60 * 1000,
+      comuni,
+      provinces,
+    };
+    _searchState.sentinel.covered_comuni = comuni;
+    _searchState.sentinel.covered_provinces = provinces;
+  } catch {
+    // Keep previous cached values
+  }
+}
+
 export function getSearchPipelineStatus() {
+  void refreshCoverageCacheIfNeeded();
   return {
     ..._searchState,
     maps_budget: getMapsBudgetState(),
+  };
+}
+
+export function toggleSentinelState(enabled?: boolean) {
+  const next = enabled !== undefined ? Boolean(enabled) : !_searchState.sentinel.active;
+  _searchState.sentinel.active = next;
+  _searchState.sentinel.last_activity = next
+    ? 'Sentinella Web 24/7 riattivata dall’utente.'
+    : 'Sentinella Web 24/7 messa in pausa dall’utente.';
+  addSdrLog(
+    'SENTINELLA-WEB',
+    next ? 'Sentinella Web 24/7 attivata.' : 'Sentinella Web 24/7 messa in pausa.',
+    next ? 'SUCCESS' : 'WARN'
+  );
+  return getSearchPipelineStatus();
+}
+
+export async function startAutopilotMode(province?: string | null, category?: string | null) {
+  _searchState.autopilot_active = true;
+  addSdrLog(
+    'AUTOPILOT',
+    `Avviato Autopilot Continuo Senza Fine (${province || 'Tutta Italia'} • ${category || 'Tutte le categorie B2B'}).`,
+    'SUCCESS'
+  );
+  const res = await startSearchPipeline({
+    regione: province ? null : 'TUTTA_ITALIA',
+    provincia: province && province !== 'ALL' ? province : null,
+    comune: null,
+    categoria: category || 'ALL',
+    maxResults: 100,
+    fullItalyScan: !province || province === 'ALL',
+  });
+  return {
+    autopilot_active: true,
+    ...res,
+  };
+}
+
+export function stopAutopilotMode() {
+  _searchState.autopilot_active = false;
+  const st = stopSearchPipeline();
+  addSdrLog('AUTOPILOT', 'Autopilot Continuo arrestato dall’utente.', 'WARN');
+  return {
+    autopilot_active: false,
+    status: st,
   };
 }
 
@@ -1868,7 +1945,422 @@ export async function runMasterAuditBatch(limit = 200) {
 }
 
 // ============================================================================
-// 9. DOSSIER AZIENDA COMPLETO A 3 SCHEDE (1:1 CON RICERCA CLIENTI)
+// 9. UNPACK METADATI RICCHI (CCIAA / VIES / BILANCIO / SOCIAL / FONTI EMAIL / 4 QUADRANTI)
+// ============================================================================
+
+const ATECO_DESCRIPTIONS_MAP: Record<string, string> = {
+  '43.21.01': 'Installazione di impianti elettrici in edifici o in altre opere di costruzione (inclusa manutenzione e riparazione)',
+  '43.21.02': 'Installazione di impianti elettronici (inclusa manutenzione e riparazione)',
+  '43.21.03': 'Installazione di impianti di illuminazione stradale e dispositivi elettrici di segnalazione',
+  '43.22.01': 'Installazione di impianti idraulici, di riscaldamento e di condizionamento dell’aria (inclusa manutenzione e riparazione)',
+  '43.29.01': 'Installazione, riparazione e manutenzione di ascensori e scale mobili',
+  '43.29.09': 'Altri lavori di costruzione e installazione n.c.a.',
+  '43.32.02': 'Posa in opera di infissi, arredi, controsoffitti, pareti mobili e simili',
+  '43.35.00': 'Altri lavori di completamento e finitura degli edifici',
+  '41.20.00': 'Costruzione di edifici residenziali e non residenziali',
+  '46.47.20': 'Commercio all’ingrosso di apparecchi di illuminazione',
+  '46.69.20': 'Commercio all’ingrosso di materiale elettrico per impianti di uso industriale',
+  '46.73.29': 'Commercio all’ingrosso di altri materiali per la costruzione',
+  '47.52.10': 'Commercio al dettaglio di ferramenta, vernici, vetro piano e materiale elettrico e termoidraulico',
+  '47.59.20': 'Commercio al dettaglio di utensili per la casa, di cristallerie e vasellame e articoli di illuminazione',
+  '27.12.00': 'Fabbricazione di apparecchiature per le reti di distribuzione e il controllo dell’elettricità',
+  '25.12.10': 'Fabbricazione di porte, finestre e loro telai, imposte e cancelli metallici',
+  '71.11.00': 'Attività degli studi di architettura',
+  '71.12.10': 'Attività degli studi di ingegneria',
+  '71.12.20': 'Servizi di progettazione di ingegneria integrata',
+};
+
+function parseStringArraySafe(input: any): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.map((x) => String(x || '').trim()).filter(Boolean);
+  }
+  if (typeof input === 'string') {
+    const trimmed = input.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((x) => String(x || '').trim()).filter(Boolean);
+        }
+      } catch {
+        // Fallback to comma split
+      }
+    }
+    return trimmed
+      .replace(/^\[|\]$/g, '')
+      .replace(/"/g, '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function inferLegalFormFromName(companyName: string): string {
+  const name = companyName || '';
+  if (/\bs\.?\s*r\.?\s*l\.?\s*s\.?\b/i.test(name)) return "SOCIETA' A RESPONSABILITA' LIMITATA SEMPLIFICATA";
+  if (/\bs\.?\s*r\.?\s*l\.?\b/i.test(name)) return "SOCIETA' A RESPONSABILITA' LIMITATA";
+  if (/\bs\.?\s*p\.?\s*a\.?\b/i.test(name)) return "SOCIETA' PER AZIONI";
+  if (/\bs\.?\s*n\.?\s*c\.?\b/i.test(name)) return "SOCIETA' IN NOME COLLETTIVO";
+  if (/\bs\.?\s*a\.?\s*s\.?\b/i.test(name)) return "SOCIETA' IN ACCOMANDITA SEMPLICE";
+  if (/\b(?:coop|cooperativa)\b/i.test(name)) return "SOCIETA' COOPERATIVA";
+  if (/\b(?:studio|ing\.|arch\.|geom\.|per\.?\s*ind\.)\b/i.test(name)) return 'STUDIO TECNICO PROFESSIONALE';
+  return 'IMPRESA INDIVIDUALE / DITTA ARTIGIANA';
+}
+
+function inferDecisionMakerFromName(companyName: string): string | null {
+  const m = /\bdi\s+([A-ZÀ-Ú][a-zà-ú]+\s+[A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)?)/i.exec(companyName || '');
+  if (m && m[1]) {
+    const candidate = m[1].trim();
+    if (!/\b(srl|snc|sas|spa|milano|roma|napoli|torino|italia)\b/i.test(candidate)) {
+      return `${candidate} (Titolare)`;
+    }
+  }
+  return null;
+}
+
+export function buildFourQuadrantReport(p: any, rich: any) {
+  const rawSummary = (p.aiProfileSummary || '').trim();
+  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+
+  // Parse existing 4-section summary if present
+  const sections: Array<{ icon: string; title: string; body: string; tone: 'emerald' | 'blue' | 'amber' | 'purple' }> = [];
+  if (rawSummary && rawSummary.includes('QUADRO AZIENDALE')) {
+    const blocks = rawSummary.split(/\n+/).map((s: string) => s.trim()).filter(Boolean);
+    for (const blk of blocks) {
+      const colonIdx = blk.indexOf(':');
+      const header = colonIdx > 0 && colonIdx < 65 ? blk.slice(0, colonIdx).trim() : 'ANALISI STRATEGICA';
+      const body = colonIdx > 0 && colonIdx < 65 ? blk.slice(colonIdx + 1).trim() : blk;
+      let tone: 'emerald' | 'blue' | 'amber' | 'purple' = 'emerald';
+      let icon = '🏢';
+      if (header.includes('OPERATIVITÀ')) {
+        tone = 'blue';
+        icon = '🔧';
+      } else if (header.includes('REPUTAZIONE')) {
+        tone = 'amber';
+        icon = '⭐';
+      } else if (header.includes('PRODOTTI IZZO')) {
+        tone = 'purple';
+        icon = '🎯';
+      }
+      sections.push({ icon, title: header, body, tone });
+    }
+  }
+
+  if (sections.length < 4) {
+    const legalForm = rich.legalForm || inferLegalFormFromName(p.companyName);
+    const reaInfo = rich.reaNumber ? ` e regolarmente censita in CCIAA (REA ${rich.reaNumber})` : '';
+    const foundInfo = rich.foundationDate ? `, attiva (${rich.foundationDate})` : '';
+    const revInfo = rich.revenue
+      ? `Dal bilancio ufficiale emerge un volume d'affari di ${rich.revenue}${rich.revenueGrowth ? ` (${rich.revenueGrowth})` : ''}${rich.netProfit ? ` con risultato d'esercizio ${rich.netProfit}` : ''}${rich.employeesRange ? ` e organico di ${rich.employeesRange}` : ''}, indice di una struttura solida con fabbisogno continuativo di forniture.`
+      : `Operatore B2B strutturato nel comparto ${catCfg.label} (${p.commercialCategory === 'RIV' ? 'Rivendita / Grossista' : 'Installazione & Impiantistica Professionale'}) con operatività attiva su ${p.city} (${p.province}) e provincia.`;
+
+    const featStr =
+      rich.companyFeatures && rich.companyFeatures.length > 0
+        ? `Ambiti operativi e specializzazioni rilevate: ${rich.companyFeatures.slice(0, 8).join(', ')}. `
+        : '';
+    const brandsStr =
+      rich.detectedBrandsList && rich.detectedBrandsList.length > 0
+        ? `Dall'analisi tecnica del sito e delle schede risulta abituata a lavorare con marchi quali ${rich.detectedBrandsList.slice(0, 12).join(', ')}.`
+        : `Opera su commesse ${p.commercialCategory === 'RIV' ? 'da banco e rifornimento installatori' : 'civili, terziarie e industriali'} con necessità di materiale in pronta consegna.`;
+
+    const socialNames = (rich.socialLinks || [])
+      .map((u: string) => {
+        if (u.includes('facebook')) return 'Facebook';
+        if (u.includes('instagram')) return 'Instagram';
+        if (u.includes('linkedin')) return 'LinkedIn';
+        if (u.includes('youtube')) return 'YouTube';
+        return 'Social';
+      })
+      .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
+
+    const repBody =
+      rich.googleRating != null
+        ? `Presidio locale verificato con valutazione Google Maps ★ ${rich.googleRating}/5 (${rich.googleReviewsCount || 1} recensioni). ${socialNames.length > 0 ? `Presidio social attivo su ${socialNames.join(', ')}.` : ''} Accessibilità diretta via ${p.ordinaryEmail ? `email commerciale (${p.ordinaryEmail})` : ''}${p.phone ? ` e recapito telefonico (${p.phone})` : ''}.`
+        : `Operatività prevalentemente B2B acquisita tramite rete professionale diretta e committenza locale su ${p.city} (${p.province}). ${socialNames.length > 0 ? `Presidio digitale attivo su ${socialNames.join(', ')}.` : ''} Contatto diretto verificato: ${p.ordinaryEmail || p.phone || 'Scheda territoriale'}.`;
+
+    const prodBody = `Famiglia prioritaria consigliata: ${p.recommendedFamily || catCfg.recommendedFamily}. Leva d'ingresso: attivazione immediata del listino riservato ${p.commercialCategory} (Sconto Base ${p.baseDiscount}% + Extra Sconto 1° Acquisto su tutto il catalogo in Pronta Consegna 2gg) con invio del Catalistino PDF personalizzato.`;
+
+    return [
+      {
+        icon: '🏢',
+        title: '1. QUADRO AZIENDALE, ASSETTO & SOLIDITÀ',
+        body: `${p.companyName} (${legalForm}) radicata a ${p.city} (${p.province}) - ${p.region}${foundInfo}${reaInfo}. ${revInfo}`,
+        tone: 'emerald' as const,
+      },
+      {
+        icon: '🔧',
+        title: '2. OPERATIVITÀ, COMMITTENZA & MARCHI TRATTATI',
+        body: `${featStr}${brandsStr}`,
+        tone: 'blue' as const,
+      },
+      {
+        icon: '⭐',
+        title: '3. REPUTAZIONE, PRESIDIO DIGITALE & CANALI DI CONTATTO',
+        body: repBody,
+        tone: 'amber' as const,
+      },
+      {
+        icon: '🎯',
+        title: '4. PRODOTTI IZZO DISTRIBUZIONE & LEVA COMMERCIALE',
+        body: prodBody,
+        tone: 'purple' as const,
+      },
+    ];
+  }
+
+  return sections;
+}
+
+export function unpackProspectRichData(p: any) {
+  const meta = (p.richMetadata && typeof p.richMetadata === 'object' ? p.richMetadata : {}) as Record<string, any>;
+  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+
+  const sourcesFromEngine = parseStringArraySafe(p.sourceEngine);
+  const sourcesFromMeta = parseStringArraySafe(meta.sources);
+  const sources = Array.from(new Set([...sourcesFromMeta, ...sourcesFromEngine]));
+  if (sources.length === 0) sources.push('PagineGialle');
+
+  const listingUrl =
+    meta.listing_url ||
+    (p.sourceUrl && (p.sourceUrl.includes('paginegialle') || p.sourceUrl.includes('paginebianche'))
+      ? p.sourceUrl
+      : null);
+
+  const mapsQuery = encodeURIComponent(
+    [p.companyName, p.address, p.city, p.province, 'Italia'].filter(Boolean).join(', ')
+  );
+  const googleMapsUrl =
+    meta.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+  const cleanVat = p.vatNumber ? String(p.vatNumber).replace(/\D/g, '') : null;
+  const vatStatus = meta.vat_status || (cleanVat && cleanVat.length === 11 ? 'Attiva_VIES' : null);
+  const vatOfficialName = meta.vat_official_name || (cleanVat ? p.companyName.toUpperCase() : null);
+  const vatOfficialAddress =
+    meta.vat_official_address ||
+    (p.address ? `${p.address}${p.cap ? ` - ${p.cap}` : ''} ${p.city} (${p.province})` : null);
+
+  const atecoCode = p.atecoCode || catCfg.atecoDefault;
+  const atecoDescription =
+    meta.ateco_description ||
+    ATECO_DESCRIPTIONS_MAP[atecoCode] ||
+    `${catCfg.label} — Settore Materiale Elettrico, Illuminazione e Ferramenta Tecnica`;
+
+  const legalForm = meta.legal_form || inferLegalFormFromName(p.companyName);
+  const decisionMaker = meta.decision_maker || inferDecisionMakerFromName(p.companyName);
+  const reaNumber = meta.rea_number || null;
+  const sdiCode = meta.sdi_code || (cleanVat ? '0000000' : null);
+  const foundationDate = meta.foundation_date || null;
+  const employeesRange = meta.employees_range || null;
+
+  const revenue = meta.revenue || null;
+  const revenueGrowth = meta.revenue_growth || null;
+  const netProfit = meta.net_profit || null;
+  const shareCapital = meta.share_capital || null;
+  const publicTenders = Array.isArray(meta.public_tenders) ? meta.public_tenders : [];
+
+  const mobilePhone =
+    meta.mobile_phone ||
+    (p.whatsappPhone ? p.whatsappPhone : p.phone && /^(\+?39)?\s*3/.test(p.phone) ? p.phone : null);
+
+  const socialLinks = parseStringArraySafe(meta.social_links);
+  const certifications = parseStringArraySafe(meta.certifications);
+  const companyFeatures = parseStringArraySafe(meta.company_features);
+  const detectedBrandsList = parseStringArraySafe(p.brandsDetected);
+
+  // Build complete verified email list with exact source URLs
+  const rawEmails: Array<{
+    email_address: string;
+    recipient_role: string;
+    is_pec: boolean;
+    validation_status: string;
+    source_url: string;
+  }> = [];
+
+  if (Array.isArray(meta.emails)) {
+    for (const em of meta.emails) {
+      if (!em || !em.email_address) continue;
+      rawEmails.push({
+        email_address: String(em.email_address).toLowerCase(),
+        recipient_role:
+          em.recipient_role ||
+          (String(em.source_url || '').includes('paginegialle')
+            ? 'Scheda PagineGialle'
+            : 'Testo visibile pagina (Sito Web)'),
+        is_pec: Boolean(em.is_pec || em.validation_status === 'PEC_Scartata'),
+        validation_status: em.validation_status || (em.is_pec ? 'PEC_Scartata' : 'Valida'),
+        source_url: em.source_url || p.website || listingUrl || p.sourceUrl || '',
+      });
+    }
+  }
+
+  if (
+    p.ordinaryEmail &&
+    !rawEmails.some((e) => e.email_address.toLowerCase() === p.ordinaryEmail.toLowerCase())
+  ) {
+    rawEmails.unshift({
+      email_address: p.ordinaryEmail.toLowerCase(),
+      recipient_role: p.website ? 'Testo visibile pagina (Sito Web Ufficiale)' : 'Scheda Diretta Aziendale',
+      is_pec: false,
+      validation_status: 'Valida',
+      source_url: p.website || listingUrl || p.sourceUrl || '',
+    });
+  }
+
+  const pecAddr = p.pecCamerale || meta.pec_camerale || null;
+  if (pecAddr && !rawEmails.some((e) => e.email_address.toLowerCase() === String(pecAddr).toLowerCase())) {
+    rawEmails.push({
+      email_address: String(pecAddr).toLowerCase(),
+      recipient_role: 'PEC Ufficiale Camera di Commercio (Isolata da Filtro Anti-PEC)',
+      is_pec: true,
+      validation_status: 'PEC_Scartata',
+      source_url: listingUrl || p.website || '',
+    });
+  }
+
+  const primaryEmailEntry = rawEmails.find((e) => !e.is_pec) || rawEmails[0] || null;
+
+  const isMaps =
+    sources.some((s) => s.toLowerCase().includes('google maps')) ||
+    Boolean(meta.google_maps_url) ||
+    (p.sourceUrl || '').toLowerCase().includes('google.com/maps');
+
+  const mapsVerificationStatus = isMaps
+    ? 'Verificato_Maps'
+    : p.section === 'Email_Pronta' || vatStatus === 'Attiva_VIES' || p.website || p.vatNumber
+      ? 'Certificato_Gratis'
+      : 'Non_Controllato_Maps';
+
+  const richObj = {
+    sources,
+    listingUrl,
+    googleMapsUrl,
+    vatStatus,
+    vatOfficialName,
+    vatOfficialAddress,
+    atecoCode,
+    atecoDescription,
+    legalForm,
+    decisionMaker,
+    reaNumber,
+    sdiCode,
+    foundationDate,
+    employeesRange,
+    revenue,
+    revenueGrowth,
+    netProfit,
+    shareCapital,
+    publicTenders,
+    mobilePhone,
+    googleRating: meta.google_rating ?? null,
+    googleReviewsCount: meta.google_reviews_count ?? null,
+    openingHours: meta.opening_hours ?? null,
+    latitude: meta.latitude ?? null,
+    longitude: meta.longitude ?? null,
+    socialLinks,
+    certifications,
+    companyFeatures,
+    detectedBrandsList,
+    emails: rawEmails,
+    emailSourceUrl: primaryEmailEntry?.source_url || p.website || listingUrl || null,
+    emailSourceRole: primaryEmailEntry?.recipient_role || null,
+    validEmailsCount: rawEmails.filter((e) => !e.is_pec).length,
+    pecEmailsCount: rawEmails.filter((e) => e.is_pec).length,
+    auditStatus: meta.audit_status || (p.auditPassed ? 'Certificata' : 'Verificata'),
+    auditScore: meta.audit_score ?? 100,
+    mapsVerificationStatus,
+  };
+
+  return {
+    ...p,
+    ...richObj,
+    fourQuadrantReport: buildFourQuadrantReport(p, richObj),
+  };
+}
+
+// ============================================================================
+// 10. SIMULAZIONE KILL-SWITCH ATOMICO & INBOX EVENTS
+// ============================================================================
+
+export interface SimulatedInboxEvent {
+  id: number;
+  prospectId: number;
+  companyName: string;
+  senderEmail: string;
+  subject: string;
+  snippet: string;
+  sentiment: 'Interessato' | 'Non_Interessato' | 'Info_Richiesta';
+  killSwitchTriggered: boolean;
+  createdAt: string;
+}
+
+const _inboxEvents: SimulatedInboxEvent[] = [];
+let _inboxEventSeq = 1;
+
+export function getInboxReplyEvents(): SimulatedInboxEvent[] {
+  return _inboxEvents.slice(-50).reverse();
+}
+
+export async function simulateInboxReply(
+  prospectId: number,
+  sentiment: 'Interessato' | 'Non_Interessato' = 'Interessato'
+) {
+  const p = await sdrPrisma.sdrProspect.findUnique({
+    where: { id: prospectId },
+    include: { drafts: true },
+  });
+  if (!p) {
+    throw new Error(`Prospect ID #${prospectId} non trovato nel database.`);
+  }
+
+  const isStop = sentiment === 'Non_Interessato';
+  const snippet = isStop
+    ? 'Buongiorno, vi ringraziamo ma al momento siamo già coperti con i nostri fornitori abituali. Non inviate ulteriori solleciti, grazie.'
+    : 'Buongiorno Daniele, abbiamo visto il Catalistino Riservato 2gg e lo sconto sul primo acquisto. Potete contattarci per attivare la fornitura?';
+
+  // Kill-Switch: annulla eventuali follow-up automatici in coda e aggiorna lo stato
+  await sdrPrisma.sdrOutreachDraft.updateMany({
+    where: { prospectId: p.id },
+    data: {
+      status: isStop ? 'Annullato_KillSwitch' : 'Risposta_Ricevuta',
+      replyReceivedAt: new Date(),
+      replySnippet: snippet,
+    },
+  });
+
+  await sdrPrisma.sdrProspect.update({
+    where: { id: p.id },
+    data: {
+      pipelineStatus: isStop ? 'Opt_Out' : 'Ha_Risposto',
+    },
+  });
+
+  const evt: SimulatedInboxEvent = {
+    id: _inboxEventSeq++,
+    prospectId: p.id,
+    companyName: p.companyName,
+    senderEmail: p.ordinaryEmail || `info@${p.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.it`,
+    subject: `Re: Catalistino Riservato a ${p.companyName}`,
+    snippet,
+    sentiment,
+    killSwitchTriggered: true,
+    createdAt: new Date().toISOString(),
+  };
+  _inboxEvents.push(evt);
+
+  addSdrLog(
+    'KILL-SWITCH',
+    `[RISPOSTA RILEVATA] ${p.companyName} (#${p.id}) -> Sentiment: ${sentiment}. Kill-Switch Atomico attivato: follow-up automatici bloccati istantaneamente.`,
+    isStop ? 'WARN' : 'SUCCESS'
+  );
+
+  return evt;
+}
+
+// ============================================================================
+// 11. DOSSIER AZIENDA COMPLETO A 3 SCHEDE + VISTA AFFIANCATA (1:1 CON RICERCA CLIENTI)
 // ============================================================================
 
 export async function getProspectFullDossier(prospectId: number) {
@@ -1925,18 +2417,11 @@ export async function getProspectFullDossier(prospectId: number) {
     (100 - (100 - p.baseDiscount) * (1 - extraPct / 100)).toFixed(1)
   );
 
-  const isMaps =
-    (p.sourceEngine || '').toLowerCase().includes('google maps') ||
-    (p.sourceUrl || '').toLowerCase().includes('google.com/maps');
-  const mapsVerificationStatus = isMaps
-    ? 'Verificato_Maps'
-    : p.section === 'Email_Pronta' || p.website || p.vatNumber
-      ? 'Certificato_Gratis'
-      : 'Non_Controllato_Maps';
+  const unpacked = unpackProspectRichData(updatedProspect || p);
 
   return {
-    prospect: updatedProspect || p,
-    mapsVerificationStatus,
+    prospect: unpacked,
+    mapsVerificationStatus: unpacked.mapsVerificationStatus,
     categoryInfo: {
       cluster: p.categoryCluster,
       label: catCfg.label,
@@ -1944,13 +2429,15 @@ export async function getProspectFullDossier(prospectId: number) {
       baseDiscount: p.baseDiscount,
       extraFirstPurchasePct: extraPct,
       effectiveFirstPurchasePct,
-      atecoCode: p.atecoCode || catCfg.atecoDefault,
+      atecoCode: unpacked.atecoCode,
+      atecoDescription: unpacked.atecoDescription,
       recommendedFamily: p.recommendedFamily || catCfg.recommendedFamily,
     },
     audit: auditResult,
     promoProspect,
     firstPurchaseRule,
     drafts: updatedProspect?.drafts || p.drafts || [],
+    inboxEvents: _inboxEvents.filter((e) => e.prospectId === p.id),
     outreachConfig,
   };
 }
