@@ -60,8 +60,10 @@ export default function B2BCatalogBuilderApp() {
 
   return (
     <div
-      className={!isAppReady ? 'eq-splash-active' : ''}
+      className={`b2b-agent-suite-root ${!isAppReady ? 'eq-splash-active' : ''}`}
       style={{
+        flex: 1,
+        minHeight: 0,
         height: '100%',
         overflow: 'hidden',
         display: 'flex',
@@ -76,19 +78,14 @@ export default function B2BCatalogBuilderApp() {
         icon={<BookOpen size={32} color="#10b981" />}
       />
       {isAppReady && initData && (
-        <div
-          className="b2b-agent-suite-root"
-          style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-        >
-          <CatalogBuilderClient
-            agentName={initData.agentName}
-            agentCode={initData.agentCode}
-            clients={initData.clients}
-            discountRules={initData.discountRules}
-            initialSearch={initData.initialSearch}
-            initialPreset={preset}
-          />
-        </div>
+        <CatalogBuilderClient
+          agentName={initData.agentName}
+          agentCode={initData.agentCode}
+          clients={initData.clients}
+          discountRules={initData.discountRules}
+          initialSearch={initData.initialSearch}
+          initialPreset={preset}
+        />
       )}
     </div>
   );

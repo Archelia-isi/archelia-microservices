@@ -5,6 +5,13 @@
   --brand-active: #008800;
   --brand-accent: #eab308;
 }
+
+.os-window:has(.b2b-agent-suite-root) .window-content {
+  overflow: hidden !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
 .fixed {
   position: fixed;
 }

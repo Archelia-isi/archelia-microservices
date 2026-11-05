@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Percent,
   Users,
   Layers,
   Globe,
@@ -23,7 +22,6 @@ import GlassPanel from '../../components/ui/GlassPanel';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import TextInput from '../../components/ui/TextInput';
-import Switch from '../../components/ui/Switch';
 import { useWindowStore } from '../../store/useWindowStore';
 import {
   type AgentManagedClient,
@@ -33,8 +31,6 @@ import {
   searchAgentCatalogProducts,
   searchCatalogPredictiveAction,
   saveAgentDiscountRuleAction,
-  toggleAgentDiscountRuleAction,
-  deleteAgentDiscountRuleAction,
   removeDiscountFromClientAction,
 } from './actionsClient';
 import {
@@ -632,74 +628,6 @@ export default function DiscountsManagerClient({
     setExpiresAtDate('');
   };
 
-  const handleEditRule = (rule: AgentDiscountRule) => {
-    setEditingRuleId(rule.id);
-    setRuleName(rule.name || '');
-
-    if (rule.clientScope === 'ALL_CLIENTS') {
-      setClientScope('ALL_CLIENTS');
-      setSelectedClientIds([]);
-      setSelectedClientCategories([]);
-    } else if (rule.clientScope === 'CLIENT_CATEGORY') {
-      setClientScope('CLIENT_CATEGORY');
-      setSelectedClientCategories(
-        (rule.clientCategories || []).map(c => normalizeClientCategoryCode(c))
-      );
-      setSelectedClientIds([]);
-    } else {
-      setClientScope('SELECTED_CLIENTS');
-      const ids = new Set<string>(rule.clientIds || []);
-      if (rule.clientId) ids.add(rule.clientId);
-      for (const code of rule.clientCodes || []) {
-        const match = clients.find(
-          c => c.zucchettiCode.toUpperCase() === code.toUpperCase()
-        );
-        if (match) ids.add(match.id);
-      }
-      if (rule.clientCode) {
-        const match = clients.find(
-          c => c.zucchettiCode.toUpperCase() === rule.clientCode!.toUpperCase()
-        );
-        if (match) ids.add(match.id);
-      }
-      setSelectedClientIds(Array.from(ids));
-      setSelectedClientCategories([]);
-    }
-
-    setTargetType(rule.targetType);
-    setSelectedProducts(
-      rule.targetProductsMeta && rule.targetProductsMeta.length > 0
-        ? rule.targetProductsMeta
-        : (rule.targetSkus || []).map(sku => ({
-            sku,
-            title: sku,
-            brand: '',
-            listPrice: 0,
-            imageUrl: '',
-          }))
-    );
-    setSelectedBrands(rule.targetBrands || []);
-    setSelectedProductGroups(rule.targetProductGroups || []);
-    setSelectedFamilies(rule.targetFamilies || []);
-    setSelectedCategories(rule.targetCategories || []);
-    setCalculationMode(rule.calculationMode);
-    setDiscountValue(rule.discountValue);
-    if (rule.expiryType === 'FIRST_PURCHASE') {
-      setExpiryType('FIRST_PURCHASE');
-      setExpiresAtDate('');
-    } else if (rule.expiryType === 'NEXT_PURCHASE') {
-      setExpiryType('NEXT_PURCHASE');
-      setExpiresAtDate('');
-    } else if (rule.expiresAt) {
-      setExpiryType('DATE');
-      setExpiresAtDate(rule.expiresAt.slice(0, 10));
-    } else {
-      setExpiryType('NONE');
-      setExpiresAtDate('');
-    }
-    setActiveTab('editor');
-  };
-
   const handleSaveRule = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -782,23 +710,6 @@ export default function DiscountsManagerClient({
       resetForm();
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleToggleRule = async (rule: AgentDiscountRule) => {
-    const res = await toggleAgentDiscountRuleAction(rule.id, !rule.isActive);
-    if (res.success && res.rules) {
-      setRules(res.rules);
-      toast.success(rule.isActive ? 'Regola disattivata' : 'Regola attivata');
-    }
-  };
-
-  const handleDeleteRule = async (ruleId: string) => {
-    const res = await deleteAgentDiscountRuleAction(ruleId);
-    if (res.success && res.rules) {
-      setRules(res.rules);
-      if (editingRuleId === ruleId) resetForm();
-      toast.success('Regola eliminata');
     }
   };
 
@@ -929,68 +840,143 @@ export default function DiscountsManagerClient({
       : afterBase * (1 - discountValue / 100);
   };
 
-  const filteredRules = useMemo(() => {
-    return rules.filter(r => {
-      if (filterClientScope === 'ALL_CLIENTS' && r.clientScope !== 'ALL_CLIENTS') {
-        return false;
-      }
-      if (
-        filterClientScope === 'SELECTED_CLIENTS' &&
-        r.clientScope !== 'SINGLE_CLIENT' &&
-        r.clientScope !== 'SELECTED_CLIENTS'
-      ) {
-        return false;
-      }
-      if (
-        filterClientScope === 'CLIENT_CATEGORY' &&
-        r.clientScope !== 'CLIENT_CATEGORY'
-      ) {
-        return false;
-      }
+  const getClientCategoryInfo = (c: AgentManagedClient) => {
+    const normCode = normalizeClientCategoryCode(
+      c.categoriaCode || c.customerType,
+      c.discount
+    );
+    if (normCode === 'RIV') {
+      return { code: 'RIV', shortLabel: 'Rivenditore', fullLabel: 'RIV - Rivenditore' };
+    }
+    if (normCode === 'IST') {
+      return {
+        code: 'IST',
+        shortLabel: 'Installatore / Impiantista',
+        fullLabel: 'IST - Installatore / Impiantista',
+      };
+    }
+    if (normCode === 'GEN') {
+      return { code: 'GEN', shortLabel: 'Generale', fullLabel: 'GEN - Generale' };
+    }
+    if (normCode) {
+      return {
+        code: normCode,
+        shortLabel: c.customerType || normCode,
+        fullLabel: c.customerType || normCode,
+      };
+    }
+    return {
+      code: '',
+      shortLabel: 'Nessuna Cat.',
+      fullLabel: 'Nessuna Categoria',
+    };
+  };
 
-      const q = filterSearch.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        (r.name || '').toLowerCase().includes(q) ||
-        (r.clientName || '').toLowerCase().includes(q) ||
-        (r.clientCode || '').toLowerCase().includes(q) ||
-        (r.clientsMeta || []).some(
-          cm =>
-            cm.name.toLowerCase().includes(q) || cm.code.toLowerCase().includes(q)
-        ) ||
-        (r.clientCategories || []).some(cat => cat.toLowerCase().includes(q)) ||
-        (r.targetSkus || []).some(s => s.toLowerCase().includes(q)) ||
-        (r.targetBrands || []).some(b => b.toLowerCase().includes(q)) ||
-        (r.targetProductGroups || []).some(g => g.toLowerCase().includes(q)) ||
-        (r.targetFamilies || []).some(f => f.toLowerCase().includes(q)) ||
-        (r.targetCategories || []).some(c => c.toLowerCase().includes(q))
-      );
-    });
-  }, [rules, filterClientScope, filterSearch]);
+  const handleEditRuleForSingleClient = (
+    rule: AgentDiscountRule,
+    client: AgentManagedClient
+  ) => {
+    setEditingRuleId(rule.id);
+    setRuleName(rule.name || '');
+    setClientScope('SELECTED_CLIENTS');
+    setSelectedClientCategories([]);
+    setSelectedClientIds([client.id]);
+    setClientSearchText('');
+    setTargetType(rule.targetType);
+    setSelectedProducts(
+      rule.targetProductsMeta && rule.targetProductsMeta.length > 0
+        ? rule.targetProductsMeta
+        : (rule.targetSkus || []).map(sku => ({
+            sku,
+            title: `Articolo ${sku}`,
+            brand: '',
+            listPrice: 0,
+            imageUrl: '',
+          }))
+    );
+    setSelectedBrands(rule.targetBrands || []);
+    setSelectedProductGroups(rule.targetProductGroups || []);
+    setSelectedFamilies(rule.targetFamilies || []);
+    setSelectedCategories(rule.targetCategories || []);
+    setCalculationMode(rule.calculationMode);
+    setDiscountValue(rule.discountValue);
+    if (rule.expiryType === 'FIRST_PURCHASE') {
+      setExpiryType('FIRST_PURCHASE');
+      setExpiresAtDate('');
+    } else if (rule.expiryType === 'NEXT_PURCHASE') {
+      setExpiryType('NEXT_PURCHASE');
+      setExpiresAtDate('');
+    } else if (rule.expiresAt) {
+      setExpiryType('DATE');
+      setExpiresAtDate(rule.expiresAt.slice(0, 10));
+    } else {
+      setExpiryType('NONE');
+      setExpiresAtDate('');
+    }
+    setActiveTab('editor');
+  };
+
+  // Raggruppamento CLIENTE-CENTRICO (identico a b2b-storefront): per ogni cliente mostriamo tutti i suoi sconti attivi/configurati
+  const clientsWithDiscounts = useMemo(() => {
+    const q = filterSearch.trim().toLowerCase();
+
+    return clients
+      .map(client => {
+        const catInfo = getClientCategoryInfo(client);
+        const clientRules = rules.filter(r =>
+          doesRuleMatchClient(r, {
+            clientId: client.id,
+            clientCode: client.zucchettiCode,
+            clientCategory: catInfo.code || client.customerType || '',
+            baseDiscount: client.discount ?? null,
+          })
+        );
+
+        const filteredClientRules = clientRules.filter(r => {
+          if (!q) return true;
+          const clientMatches =
+            (client.companyName || '').toLowerCase().includes(q) ||
+            (client.zucchettiCode || '').toLowerCase().includes(q) ||
+            catInfo.fullLabel.toLowerCase().includes(q);
+          if (clientMatches) return true;
+
+          const ruleHay = [
+            r.name,
+            ...(r.targetSkus || []),
+            ...(r.targetBrands || []),
+            ...(r.targetProductGroups || []),
+            ...(r.targetFamilies || []),
+            ...(r.targetCategories || []),
+            r.targetType === 'ALL_CATALOG' ? 'tutto il catalogo' : '',
+          ]
+            .join(' ')
+            .toLowerCase();
+          return ruleHay.includes(q);
+        });
+
+        return {
+          client,
+          catInfo,
+          rules: filteredClientRules,
+          totalRulesCount: clientRules.length,
+        };
+      })
+      .filter(entry => {
+        if (entry.rules.length === 0) return false;
+        if (filterClientScope.startsWith('CAT:')) {
+          const catCode = filterClientScope.replace('CAT:', '');
+          if (entry.catInfo.code !== catCode) return false;
+        } else if (filterClientScope !== 'ALL' && filterClientScope !== 'ALL_CLIENTS') {
+          if (entry.client.id !== filterClientScope) return false;
+        }
+        return true;
+      });
+  }, [clients, rules, filterClientScope, filterSearch]);
 
   const activeRulesCount = useMemo(
     () => rules.filter(r => r.isActive && !isDiscountRuleExpired(r)).length,
     [rules]
   );
-
-  const formatTargetBadge = (rule: AgentDiscountRule): string => {
-    switch (rule.targetType) {
-      case 'ALL_CATALOG':
-        return '🌐 Tutto il Catalogo';
-      case 'PRODUCTS':
-        return `🎯 ${rule.targetSkus.length} Prodott${rule.targetSkus.length === 1 ? 'o' : 'i'} Specific${rule.targetSkus.length === 1 ? 'o' : 'i'}`;
-      case 'BRAND':
-        return `🏷️ ${rule.targetBrands.length} March${rule.targetBrands.length === 1 ? 'io' : 'i'}`;
-      case 'PRODUCT_GROUP':
-        return `📦 ${rule.targetProductGroups.length} Grupp${rule.targetProductGroups.length === 1 ? 'o' : 'i'} (L1)`;
-      case 'FAMILY':
-        return `📂 ${rule.targetFamilies.length} Famigli${rule.targetFamilies.length === 1 ? 'a' : 'e'} (L2)`;
-      case 'CATEGORY':
-        return `📑 ${rule.targetCategories.length} Categori${rule.targetCategories.length === 1 ? 'a' : 'e'} (L3)`;
-      default:
-        return rule.targetType;
-    }
-  };
 
   const resolveFacetLabel = (
     list: CatalogFacetOption[],
@@ -1001,9 +987,18 @@ export default function DiscountsManagerClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
       {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
-      <StickyHeader paddingY="sm">
+      <StickyHeader
+        paddingY="sm"
+        backgroundOpacity={0.96}
+        style={{
+          flexShrink: 0,
+          background: 'var(--color-surface-solid)',
+          borderBottom: '1px solid var(--color-border)',
+          zIndex: 50,
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -1026,8 +1021,8 @@ export default function DiscountsManagerClient({
               },
               {
                 id: 'list',
-                label: `Regole & Matrice Clienti (${rules.length})`,
-                icon: <Percent size={14} />,
+                label: `Clienti con Sconti Personalizzati (${clientsWithDiscounts.length})`,
+                icon: <Users size={14} />,
               },
             ]}
           />
@@ -1052,7 +1047,7 @@ export default function DiscountsManagerClient({
       </StickyHeader>
 
       {/* CONTENUTO PRINCIPALE (SCROLLABILE SOTTO L'HEADER, MAI SOTTOPOSTO ALLE TAB) */}
-      <div style={{ padding: 'var(--spacing-lg)', flex: 1, overflowY: 'auto' }}>
+      <div style={{ padding: 'var(--spacing-lg)', flex: 1, minHeight: 0, overflowY: 'auto' }}>
         {activeTab === 'editor' && (
           <div
             style={{
@@ -2219,222 +2214,326 @@ export default function DiscountsManagerClient({
           </div>
         )}
 
-        {/* TAB 2: LISTA REGOLE E MATRICE CLIENTI */}
-        {activeTab === 'list' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-            <GlassPanel padding="md" radius="lg">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 'var(--spacing-md)',
-                }}
-              >
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {[
-                    { id: 'ALL', label: `Tutte (${rules.length})` },
-                    { id: 'SELECTED_CLIENTS', label: 'Clienti Scelti' },
-                    { id: 'CLIENT_CATEGORY', label: 'Categorie Clienti' },
-                    { id: 'ALL_CLIENTS', label: 'Tutti i Clienti' },
-                  ].map(tab => (
-                    <Button
-                      key={tab.id}
-                      size="sm"
-                      variant={filterClientScope === tab.id ? 'primary' : 'secondary'}
-                      onClick={() => setFilterClientScope(tab.id)}
-                    >
-                      {tab.label}
-                    </Button>
-                  ))}
+        {/* ELENCO SCONTI RAGGRUPPATI PER SINGOLO CLIENTE (CLIENTE-CENTRICO COME SULL'AGENTE) */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--spacing-md)',
+            marginTop: activeTab === 'editor' ? 'var(--spacing-xl)' : 0,
+          }}
+        >
+          <GlassPanel padding="lg" radius="lg">
+            {/* Intestazione + Filtri Clienti con Sconti Personalizzati */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 'var(--spacing-md)',
+                paddingBottom: 'var(--spacing-md)',
+                marginBottom: 'var(--spacing-md)',
+                borderBottom: '1px solid var(--color-border)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-main)' }}>
+                  Clienti con Sconti Personalizzati ({clientsWithDiscounts.length})
                 </div>
-                <div style={{ width: '320px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  Ogni cliente ha le proprie condizioni di sconto dedicate: eliminando o modificando uno sconto su un cliente non vengono mai alterati gli sconti degli altri clienti.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
+                <select
+                  value={filterClientScope}
+                  onChange={e => setFilterClientScope(e.target.value)}
+                  style={{
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface-solid)',
+                    color: 'var(--color-text-main)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="ALL">
+                    Tutti i clienti con sconti ({clientsWithDiscounts.length})
+                  </option>
+                  <optgroup label="🏢 Filtra per Categoria Cliente">
+                    {enrichedClientCategories.map(cat => (
+                      <option key={cat.code} value={`CAT:${cat.code}`}>
+                        🏢 {cat.name} (Base {cat.discount}%)
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="👤 Filtra per Singolo Cliente">
+                    {clients.map(c => {
+                      const catInfo = getClientCategoryInfo(c);
+                      return (
+                        <option key={c.id} value={c.id}>
+                          👤 {c.companyName} ({catInfo.code || 'Base'} {c.discount || 0}%)
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                </select>
+
+                <div style={{ width: '280px' }}>
                   <TextInput
                     value={filterSearch}
                     onChange={e => setFilterSearch(e.target.value)}
-                    placeholder="Cerca regola per cliente, SKU, marchio..."
+                    placeholder="Cerca cliente, codice, SKU, marchio..."
                     leftIcon={<Search size={14} />}
                     fullWidth
                   />
                 </div>
               </div>
-            </GlassPanel>
+            </div>
 
-            {filteredRules.length === 0 ? (
-              <GlassPanel padding="lg" radius="lg">
-                <div
-                  style={{
-                    textAlign: 'center',
-                    padding: 'var(--spacing-xl)',
-                    color: 'var(--color-text-muted)',
-                  }}
-                >
-                  Nessuna regola di sconto trovata.
+            {clientsWithDiscounts.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: 'var(--spacing-xl)',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-main)', marginBottom: '4px' }}>
+                  Nessun cliente con sconti personalizzati attivi.
                 </div>
-              </GlassPanel>
+                <div style={{ fontSize: '12px' }}>
+                  Usa il configuratore per impostare uno sconto su uno o più clienti. Ogni sconto verrà registrato singolarmente sulla scheda di ciascun cliente.
+                </div>
+              </div>
             ) : (
-              filteredRules.map(rule => {
-                const expired = isDiscountRuleExpired(rule);
-                const ruleMatchedClients = clients.filter(c =>
-                  doesRuleMatchClient(rule, {
-                    clientId: c.id,
-                    clientCode: c.zucchettiCode,
-                    clientCategory: normalizeClientCategoryCode(
-                      c.categoriaCode || c.customerType,
-                      c.discount
-                    ),
-                    baseDiscount: c.discount,
-                  })
-                );
-
-                return (
-                  <GlassPanel key={rule.id} padding="md" radius="lg">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                {clientsWithDiscounts.map(({ client, catInfo, rules: clientRules }) => (
+                  <div
+                    key={client.id}
+                    style={{
+                      padding: 'var(--spacing-md)',
+                      borderRadius: 'var(--radius-lg)',
+                      background: 'var(--color-surface-solid)',
+                      border: '1px solid var(--color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    {/* INTESTAZIONE CLIENTE (PROTAGONISTA) */}
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: 'var(--spacing-md)',
+                        alignItems: 'center',
                         flexWrap: 'wrap',
+                        gap: 'var(--spacing-sm)',
+                        paddingBottom: '10px',
+                        borderBottom: '1px solid var(--color-border)',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: '280px' }}>
-                        <div
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                        <span
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flexWrap: 'wrap',
-                            marginBottom: '6px',
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--color-text-main)',
+                            color: '#ffffff',
+                            fontFamily: 'monospace',
+                            fontSize: '12px',
+                            fontWeight: 800,
                           }}
                         >
-                          <Badge
-                            variant={
-                              !rule.isActive
-                                ? 'neutral'
-                                : expired
-                                ? 'danger'
-                                : 'success'
-                            }
-                            size="sm"
-                          >
-                            {!rule.isActive
-                              ? 'Disattivata'
-                              : expired
-                              ? 'Scaduta / Consumata'
-                              : 'Attiva'}
-                          </Badge>
+                          {client.zucchettiCode || 'N/D'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '16px',
+                            fontWeight: 800,
+                            color: 'var(--color-text-main)',
+                          }}
+                        >
+                          {client.companyName}
+                        </span>
+                        {catInfo.code && (
                           <Badge variant="primary" size="sm">
-                            {formatTargetBadge(rule)}
+                            🏢 {catInfo.fullLabel}
                           </Badge>
-                          <Badge variant="warning" size="sm">
-                            {rule.calculationMode === 'EXTRA_CASCADE'
-                              ? `Extra +${rule.discountValue}% a cascata`
-                              : `Fisso ${rule.discountValue}%`}
-                          </Badge>
-                          <Badge variant="neutral" size="sm">
-                            {rule.expiryType === 'FIRST_PURCHASE'
-                              ? '🎁 Sul 1° Acquisto'
-                              : rule.expiryType === 'NEXT_PURCHASE'
-                              ? '🛒 Sul Prossimo Acquisto'
-                              : rule.expiresAt
-                              ? `Scade: ${formatExpiryDisplay(rule.expiresAt)}`
-                              : '∞ Senza scadenza'}
-                          </Badge>
-                        </div>
+                        )}
+                        <Badge variant="neutral" size="sm">
+                          🔒 Sconto Base Fisso: {client.discount || 0}%
+                        </Badge>
+                        <Badge variant="warning" size="sm">
+                          {clientRules.length} scont{clientRules.length === 1 ? 'o' : 'i'}
+                        </Badge>
+                      </div>
 
-                        <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '6px' }}>
-                          {rule.name || 'Regola Sconto B2B'}
-                        </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        icon={<Plus size={14} />}
+                        onClick={() => {
+                          resetForm();
+                          setClientScope('SELECTED_CLIENTS');
+                          setSelectedClientIds([client.id]);
+                          setActiveTab('editor');
+                        }}
+                      >
+                        + Aggiungi Sconto a questo cliente
+                      </Button>
+                    </div>
 
-                        {/* Dettaglio clienti associati */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {rule.clientScope === 'ALL_CLIENTS' ? (
-                            <Badge variant="primary" size="sm">
-                              Tutti i clienti ({clients.length})
-                            </Badge>
-                          ) : rule.clientScope === 'CLIENT_CATEGORY' ? (
-                            (rule.clientCategories || []).map(cat => (
-                              <Badge key={cat} variant="primary" size="sm">
-                                Categoria: {cat.toUpperCase()}
-                              </Badge>
-                            ))
-                          ) : (
-                            ruleMatchedClients.slice(0, 12).map(c => (
-                              <Badge key={c.id} variant="neutral" size="sm">
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                  }}
-                                >
-                                  {c.companyName} ({c.zucchettiCode})
-                                  {ruleMatchedClients.length > 1 && (
-                                    <span
-                                      style={{ cursor: 'pointer', fontWeight: 800 }}
-                                      title="Rimuovi questo cliente dalla regola"
-                                      onClick={() => handleRemoveRuleFromSingleClient(rule, c)}
-                                    >
-                                      ×
-                                    </span>
-                                  )}
-                                </span>
-                              </Badge>
-                            ))
-                          )}
-                        </div>
-
-                        {/* Dettaglio target */}
-                        {rule.targetType === 'BRAND' && rule.targetBrands.length > 0 && (
+                    {/* LISTA SCONTI APPLICATI A QUESTO SINGOLO CLIENTE */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {clientRules.map(rule => {
+                        const expired = isDiscountRuleExpired(rule);
+                        return (
                           <div
+                            key={`${client.id}-${rule.id}`}
                             style={{
+                              padding: '12px 14px',
+                              borderRadius: 'var(--radius-md)',
+                              background: 'var(--color-bg)',
+                              border: '1px solid var(--color-border)',
                               display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
                               flexWrap: 'wrap',
-                              gap: '4px',
-                              marginTop: '6px',
+                              gap: 'var(--spacing-md)',
+                              opacity: rule.isActive ? 1 : 0.65,
                             }}
                           >
-                            {rule.targetBrands.map(b => (
-                              <Badge key={b} variant="neutral" size="sm">
-                                {resolveFacetLabel(facets.brands, b)}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                            <div style={{ flex: 1, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                                {rule.calculationMode === 'EXTRA_CASCADE' ? (
+                                  <Badge variant="success" size="sm">
+                                    ➕ +{rule.discountValue}% Extra a cascata (oltre Base {client.discount || 0}%)
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="warning" size="sm">
+                                    🎯 {rule.discountValue}% Sconto Fisso Sostitutivo
+                                  </Badge>
+                                )}
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Switch
-                          checked={rule.isActive}
-                          onChange={() => handleToggleRule(rule)}
-                          label={rule.isActive ? 'Attiva' : 'Off'}
-                        />
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={<Edit3 size={14} />}
-                          onClick={() => handleEditRule(rule)}
-                        >
-                          Modifica
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          icon={<Trash2 size={14} />}
-                          onClick={() => handleDeleteRule(rule.id)}
-                        >
-                          Elimina
-                        </Button>
-                      </div>
+                                {rule.expiryType === 'FIRST_PURCHASE' ? (
+                                  expired ? (
+                                    <Badge variant="danger" size="sm">
+                                      ⛔ Scaduto (1° acquisto effettuato)
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="primary" size="sm">
+                                      🎁 Sul primo acquisto
+                                    </Badge>
+                                  )
+                                ) : rule.expiryType === 'NEXT_PURCHASE' ? (
+                                  expired ? (
+                                    <Badge variant="danger" size="sm">
+                                      ⛔ Scaduto (Prossimo acquisto effettuato)
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="primary" size="sm">
+                                      🛒 Sul prossimo acquisto
+                                    </Badge>
+                                  )
+                                ) : rule.expiresAt ? (
+                                  expired ? (
+                                    <Badge variant="danger" size="sm">
+                                      ⛔ Scaduto il {formatExpiryDisplay(rule.expiresAt)}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="warning" size="sm">
+                                      📅 Scade il {formatExpiryDisplay(rule.expiresAt)}
+                                    </Badge>
+                                  )
+                                ) : (
+                                  <Badge variant="neutral" size="sm">
+                                    ∞ Senza scadenza
+                                  </Badge>
+                                )}
+
+                                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-main)' }}>
+                                  {rule.name}
+                                </span>
+                              </div>
+
+                              {/* Dettaglio articoli / marchi / categorie dello sconto */}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {rule.targetType === 'ALL_CATALOG' && (
+                                  <Badge variant="success" size="sm">
+                                    🌐 TUTTO IL CATALOGO
+                                  </Badge>
+                                )}
+                                {(rule.targetSkus || []).map(sku => {
+                                  const meta = rule.targetProductsMeta?.find(
+                                    m => m.sku.toUpperCase() === sku.toUpperCase()
+                                  );
+                                  return (
+                                    <Badge key={sku} variant="neutral" size="sm">
+                                      🎯 {sku}
+                                      {meta?.title ? ` - ${meta.title.slice(0, 32)}` : ''}
+                                    </Badge>
+                                  );
+                                })}
+                                {(rule.targetBrands || []).map(b => (
+                                  <Badge key={b} variant="primary" size="sm">
+                                    🏷️ Marchio: {resolveFacetLabel(facets.brands, b)}
+                                  </Badge>
+                                ))}
+                                {(rule.targetProductGroups || []).map(g => (
+                                  <Badge key={g} variant="primary" size="sm">
+                                    📦 Gruppo: {resolveFacetLabel(facets.productGroups, g)}
+                                  </Badge>
+                                ))}
+                                {(rule.targetFamilies || []).map(f => (
+                                  <Badge key={f} variant="primary" size="sm">
+                                    📂 Famiglia: {resolveFacetLabel(facets.families, f)}
+                                  </Badge>
+                                ))}
+                                {(rule.targetCategories || []).map(c => (
+                                  <Badge key={c} variant="success" size="sm">
+                                    📑 Categoria: {resolveFacetLabel(facets.categories, c)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Azioni sullo sconto di QUESTO singolo cliente */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                icon={<Edit3 size={14} />}
+                                onClick={() => handleEditRuleForSingleClient(rule, client)}
+                              >
+                                Modifica
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="danger"
+                                size="sm"
+                                icon={<Trash2 size={14} />}
+                                onClick={() => handleRemoveRuleFromSingleClient(rule, client)}
+                              >
+                                Elimina dal cliente
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </GlassPanel>
-                );
-              })
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-        )}
+          </GlassPanel>
+        </div>
       </div>
     </div>
   );

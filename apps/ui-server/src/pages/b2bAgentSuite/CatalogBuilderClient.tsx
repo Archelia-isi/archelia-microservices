@@ -1627,9 +1627,18 @@ export default function CatalogBuilderClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
       {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
-      <StickyHeader paddingY="sm">
+      <StickyHeader
+        paddingY="sm"
+        backgroundOpacity={0.96}
+        style={{
+          flexShrink: 0,
+          background: 'var(--color-surface-solid)',
+          borderBottom: '1px solid var(--color-border)',
+          zIndex: 50,
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -1698,7 +1707,7 @@ export default function CatalogBuilderClient({
       </StickyHeader>
 
       {/* CONTENUTO PRINCIPALE (SCROLLABILE SOTTO L'HEADER, MAI SOTTOPOSTO ALLE TAB) */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-lg)' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--spacing-lg)' }}>
         {/* LAYOUT A 2 COLONNE SENZA SOVRAPPOSIZIONI */}
         <div
           style={{
