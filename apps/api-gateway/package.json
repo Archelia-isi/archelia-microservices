@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc && mkdir -p dist/lib/b2bSdr && cp src/lib/b2bSdr/comuni_italiani.json dist/lib/b2bSdr/comuni_italiani.json"
   },
   "dependencies": {
     "@archelia/b2b-database": "^1.0.0",

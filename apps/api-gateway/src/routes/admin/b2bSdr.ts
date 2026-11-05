@@ -23,6 +23,28 @@ import {
   searchCatalogPredictiveAction,
   generateAgentCatalogPdfAction,
 } from '../../lib/b2bAgentSuite/catalogBuilder.js';
+import {
+  getRegioni,
+  getProvince,
+  getComuni,
+  getZonaSummary,
+  getTerritoryMapStats,
+  getComuniStatsByProvince,
+  getMapsBudgetState,
+  updateMapsBudgetState,
+  getMapsBollaturaCounts,
+  getSearchPipelineStatus,
+  startSearchPipeline,
+  stopSearchPipeline,
+  runProfilerEnrichmentBatch,
+  runMasterAuditBatch,
+  runSingleProspectAudit,
+  getProspectFullDossier,
+  getRecentSdrLogs,
+  addSdrLog,
+  evaluateAntiPec,
+  computeProspectLeadScore,
+} from '../../lib/b2bSdr/searchEngine.js';
 
 const DANIELE_SAVOIA_AGENT_ID = 'cmtu64h1c0000jk0sb1ho1o49';
 const DANIELE_SAVOIA_AGENT_CODE = '003';
@@ -212,6 +234,56 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       if (q.province && q.province !== 'ALL') {
         where.province = { equals: q.province, mode: 'insensitive' };
       }
+      if (q.city && q.city !== 'ALL') {
+        where.city = { equals: q.city, mode: 'insensitive' };
+      }
+      if (q.mapsFilter && q.mapsFilter !== 'ALL') {
+        if (q.mapsFilter === 'verified_maps') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              OR: [
+                { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+              ],
+            },
+          ];
+        } else if (q.mapsFilter === 'certified_free') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              NOT: {
+                OR: [
+                  { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                  { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+                ],
+              },
+            },
+            {
+              OR: [
+                { section: 'Email_Pronta' },
+                { website: { not: null } },
+                { vatNumber: { not: null } },
+              ],
+            },
+          ];
+        } else if (q.mapsFilter === 'unverified_maps') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              NOT: {
+                OR: [
+                  { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                  { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+                ],
+              },
+            },
+            { section: { not: 'Email_Pronta' } },
+            { website: null },
+            { vatNumber: null },
+          ];
+        }
+      }
       if (q.search && q.search.trim().length > 0) {
         const s = q.search.trim();
         where.OR = [
@@ -219,8 +291,32 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           { ordinaryEmail: { contains: s, mode: 'insensitive' } },
           { vatNumber: { contains: s, mode: 'insensitive' } },
           { city: { contains: s, mode: 'insensitive' } },
+          { phone: { contains: s, mode: 'insensitive' } },
+          { atecoCode: { contains: s, mode: 'insensitive' } },
           { promotedUsername: { contains: s, mode: 'insensitive' } },
         ];
+      }
+
+      const sortBy = q.sortBy || 'email_first';
+      let orderBy: any = [{ leadScore: 'desc' }, { updatedAt: 'desc' }];
+      if (sortBy === 'email_first') {
+        orderBy = [{ section: 'asc' }, { leadScore: 'desc' }, { companyName: 'asc' }];
+      } else if (sortBy === 'score_desc') {
+        orderBy = [{ leadScore: 'desc' }, { id: 'desc' }];
+      } else if (sortBy === 'recent') {
+        orderBy = [{ id: 'desc' }];
+      } else if (sortBy === 'city_asc') {
+        orderBy = [{ city: 'asc' }, { province: 'asc' }, { companyName: 'asc' }];
+      } else if (sortBy === 'city_desc') {
+        orderBy = [{ city: 'desc' }, { province: 'asc' }, { companyName: 'asc' }];
+      } else if (sortBy === 'province_asc') {
+        orderBy = [{ province: 'asc' }, { city: 'asc' }, { companyName: 'asc' }];
+      } else if (sortBy === 'region_asc') {
+        orderBy = [{ region: 'asc' }, { city: 'asc' }, { companyName: 'asc' }];
+      } else if (sortBy === 'name_asc') {
+        orderBy = [{ companyName: 'asc' }];
+      } else if (sortBy === 'name_desc') {
+        orderBy = [{ companyName: 'desc' }];
       }
 
       const [prospects, total] = await Promise.all([
@@ -228,7 +324,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           where,
           skip,
           take: limit,
-          orderBy: [{ leadScore: 'desc' }, { updatedAt: 'desc' }],
+          orderBy,
           include: {
             drafts: {
               orderBy: { createdAt: 'desc' },
@@ -266,11 +362,22 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const enriched = prospects.map((p) => ({
-        ...p,
-        latestDraft: (p as any).drafts?.[0] || null,
-        promoProspect: p.promoProspectId ? promoMap.get(p.promoProspectId) || null : null,
-      }));
+      const enriched = prospects.map((p) => {
+        const isMaps =
+          (p.sourceEngine || '').toLowerCase().includes('google maps') ||
+          (p.sourceUrl || '').toLowerCase().includes('google.com/maps');
+        const mapsVerificationStatus = isMaps
+          ? 'Verificato_Maps'
+          : p.section === 'Email_Pronta' || p.website || p.vatNumber
+            ? 'Certificato_Gratis'
+            : 'Non_Controllato_Maps';
+        return {
+          ...p,
+          mapsVerificationStatus,
+          latestDraft: (p as any).drafts?.[0] || null,
+          promoProspect: p.promoProspectId ? promoMap.get(p.promoProspectId) || null : null,
+        };
+      });
 
       return reply.send({
         success: true,
@@ -1041,6 +1148,339 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         module: 'api-gateway:b2bSdr',
       });
       return reply.status(500).send({ ok: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 10. AI SDR B2B — CATALOGO GEOGRAFICO ISTAT (REGIONI -> PROVINCE -> COMUNI)
+  // ============================================================================
+  fastify.get('/api/admin/sdr/geo/regioni', async (_request, reply) => {
+    try {
+      const regioni = getRegioni();
+      return reply.send({ success: true, regioni });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/geo/province', async (request, reply) => {
+    try {
+      const q = request.query as { regione?: string };
+      const province = getProvince(q.regione);
+      return reply.send({ success: true, province });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/geo/comuni', async (request, reply) => {
+    try {
+      const q = request.query as { provincia?: string; regione?: string };
+      const comuni = getComuni(q.provincia, q.regione);
+      return reply.send({ success: true, comuni });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/geo/zona', async (request, reply) => {
+    try {
+      const q = request.query as {
+        regione?: string;
+        provincia?: string;
+        comune?: string;
+      };
+      const summary = await getZonaSummary(q.regione, q.provincia, q.comune);
+      return reply.send({ success: true, summary });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/territory-map', async (request, reply) => {
+    try {
+      const q = request.query as { force?: string };
+      const mapData = await getTerritoryMapStats(q.force === '1');
+      return reply.send({ success: true, ...mapData });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/territory-comuni', async (request, reply) => {
+    try {
+      const q = request.query as { provincia?: string };
+      if (!q.provincia) {
+        return reply.status(400).send({ success: false, error: 'Sigla provincia richiesta' });
+      }
+      const comuni = await getComuniStatsByProvince(q.provincia);
+      return reply.send({ success: true, provincia: q.provincia.toUpperCase(), comuni });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 11. AI SDR B2B — MOTORE DI RICERCA, MAPS BUDGET/BOLLATURA & CONSOLE LIVE
+  // ============================================================================
+  fastify.get('/api/admin/sdr/search/status', async (_request, reply) => {
+    try {
+      const [status, bollatura] = await Promise.all([
+        Promise.resolve(getSearchPipelineStatus()),
+        getMapsBollaturaCounts(),
+      ]);
+      return reply.send({
+        success: true,
+        status,
+        bollatura,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/search/start', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        regione?: string | null;
+        provincia?: string | null;
+        comune?: string | null;
+        categoria?: string | null;
+        max_results?: number;
+      };
+      const res = await startSearchPipeline({
+        regione: body.regione,
+        provincia: body.provincia,
+        comune: body.comune,
+        categoria: body.categoria,
+        maxResults: Number(body.max_results || 50),
+        fullItalyScan: false,
+      });
+      return reply.send({ success: true, ...res });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/search/start-italy', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        categoria?: string | null;
+        max_results?: number;
+      };
+      const res = await startSearchPipeline({
+        regione: 'TUTTA_ITALIA',
+        provincia: null,
+        comune: null,
+        categoria: body.categoria || 'ALL',
+        maxResults: Number(body.max_results || 100),
+        fullItalyScan: true,
+      });
+      return reply.send({ success: true, ...res });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/search/stop', async (_request, reply) => {
+    try {
+      const status = stopSearchPipeline();
+      return reply.send({ success: true, status });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/maps-budget', async (_request, reply) => {
+    try {
+      const [budget, bollatura] = await Promise.all([
+        Promise.resolve(getMapsBudgetState()),
+        getMapsBollaturaCounts(),
+      ]);
+      return reply.send({ success: true, budget, bollatura });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/maps-budget', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        mode?: 'free_tier' | 'daily_budget';
+        daily_budget_eur?: number;
+      };
+      const budget = updateMapsBudgetState(
+        body.mode || 'free_tier',
+        Number(body.daily_budget_eur || 0)
+      );
+      const bollatura = await getMapsBollaturaCounts();
+      return reply.send({ success: true, budget, bollatura });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/logs', async (request, reply) => {
+    try {
+      const q = request.query as { limit?: string };
+      const logs = getRecentSdrLogs(Number(q.limit || 120));
+      return reply.send({ success: true, logs });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 12. AI SDR B2B — CENTRO AGENTI (PROFILER, MASTER AUDIT 15/15, DOSSIER)
+  // ============================================================================
+  fastify.post('/api/admin/sdr/agents/profiler', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        regione?: string;
+        provincia?: string;
+        comune?: string;
+        limit?: number;
+      };
+      addSdrLog(
+        'PROFILER',
+        `Avvio manuale Agente Profiler & Anti-PEC 4 Livelli su ${body.comune || body.provincia || body.regione || 'Tutta Italia'}...`,
+        'INFO'
+      );
+      const result = await runProfilerEnrichmentBatch({
+        regione: body.regione,
+        provincia: body.provincia,
+        comune: body.comune,
+        limit: Number(body.limit || 30),
+      });
+      return reply.send({
+        success: true,
+        result,
+        message: `Profiler completato: ${result.processed} siti analizzati, ${result.upgraded} nuove email ordinarie certificate Anti-PEC.`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/agents/audit', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { limit?: number };
+      const res = await runMasterAuditBatch(Number(body.limit || 200));
+      return reply.send({
+        success: true,
+        ...res,
+        message: `Master Audit 15/15 completato su ${res.audited} aziende (${res.repaired} auto-riparate).`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/prospects/:id/dossier', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      if (Number.isNaN(prospectId)) {
+        return reply.status(400).send({ success: false, error: 'ID prospect non valido' });
+      }
+      const dossier = await getProspectFullDossier(prospectId);
+      return reply.send({ success: true, ...dossier });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/prospects/:id/audit', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      const audit = await runSingleProspectAudit(prospectId);
+      return reply.send({ success: true, audit });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/prospects/:id/email', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      const body = (request.body || {}) as { email?: string };
+      const rawEmail = (body.email || '').trim().toLowerCase();
+
+      const check = evaluateAntiPec(rawEmail);
+      if (!check.isValidSyntax) {
+        return reply.status(400).send({
+          success: false,
+          error: `Indirizzo email non valido (${check.reason}).`,
+        });
+      }
+
+      const existing = await sdrPrisma.sdrProspect.findUnique({
+        where: { id: prospectId },
+      });
+      if (!existing) {
+        return reply.status(404).send({ success: false, error: 'Azienda non trovata.' });
+      }
+
+      if (check.isPec) {
+        await sdrPrisma.sdrProspect.update({
+          where: { id: prospectId },
+          data: {
+            pecCamerale: check.cleanEmail,
+            pecRejectedLog: `${check.cleanEmail} (${check.reason})`,
+            section: existing.ordinaryEmail ? 'Email_Pronta' : 'PEC_Scartata',
+          },
+        });
+        addSdrLog(
+          'ANTI-PEC',
+          `[PEC RILEVATA] ${existing.companyName}: l'indirizzo ${check.cleanEmail} è una PEC (${check.reason}). Salvata in archivio camerale.`,
+          'WARN'
+        );
+        return reply.send({
+          success: true,
+          isPec: true,
+          reason: check.reason,
+          message: `Attenzione: ${check.cleanEmail} è una casella PEC (${check.reason}). È stata salvata come PEC camerale ma non verrà usata per invio commerciale.`,
+        });
+      }
+
+      const newScore = computeProspectLeadScore({
+        ordinaryEmail: check.cleanEmail,
+        phone: existing.phone,
+        whatsappPhone: existing.whatsappPhone,
+        website: existing.website,
+        vatNumber: existing.vatNumber,
+        brandsDetected: existing.brandsDetected,
+        address: existing.address,
+      });
+
+      await sdrPrisma.sdrProspect.update({
+        where: { id: prospectId },
+        data: {
+          ordinaryEmail: check.cleanEmail,
+          isPecVerified: true,
+          section: 'Email_Pronta',
+          leadScore: Math.max(existing.leadScore, newScore),
+        },
+      });
+
+      addSdrLog(
+        'COPYWRITER',
+        `[EMAIL AGGIUNTA] ${existing.companyName} -> ${check.cleanEmail} certificata Anti-PEC. Pronta per generazione credenziali e Catalistino.`,
+        'SUCCESS'
+      );
+
+      const dossier = await getProspectFullDossier(prospectId);
+      return reply.send({
+        success: true,
+        isPec: false,
+        reason: check.reason,
+        message: `Email ordinaria ${check.cleanEmail} salvata e certificata Anti-PEC! Ora puoi generare subito Credenziali B2B e Catalistino 1° Acquisto.`,
+        dossier,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
     }
   });
 }
