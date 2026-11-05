@@ -2214,15 +2214,15 @@ export default function DiscountsManagerClient({
           </div>
         )}
 
-        {/* ELENCO SCONTI RAGGRUPPATI PER SINGOLO CLIENTE (CLIENTE-CENTRICO COME SULL'AGENTE) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--spacing-md)',
-            marginTop: activeTab === 'editor' ? 'var(--spacing-xl)' : 0,
-          }}
-        >
+        {/* TAB 2: ELENCO SCONTI RAGGRUPPATI PER SINGOLO CLIENTE (CLIENTE-CENTRICO COME SULL'AGENTE) */}
+        {activeTab === 'list' && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--spacing-md)',
+            }}
+          >
           <GlassPanel padding="lg" radius="lg">
             {/* Intestazione + Filtri Clienti con Sconti Personalizzati */}
             <div
@@ -2385,7 +2385,7 @@ export default function DiscountsManagerClient({
                           setActiveTab('editor');
                         }}
                       >
-                        + Aggiungi Sconto a questo cliente
+                        Aggiungi Sconto a questo cliente
                       </Button>
                     </div>
 
@@ -2533,7 +2533,8 @@ export default function DiscountsManagerClient({
               </div>
             )}
           </GlassPanel>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
