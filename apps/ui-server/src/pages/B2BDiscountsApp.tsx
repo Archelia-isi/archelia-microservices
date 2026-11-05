@@ -71,7 +71,9 @@ export default function B2BDiscountsApp() {
       className={!isAppReady ? 'eq-splash-active' : ''}
       style={{
         height: '100%',
-        overflowY: 'auto',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         background: 'rgba(245, 245, 247, 0.78)',
         backdropFilter: 'blur(40px)',
       }}
@@ -82,7 +84,10 @@ export default function B2BDiscountsApp() {
         icon={<Percent size={32} color="#10b981" />}
       />
       {isAppReady && initData && (
-        <div className="b2b-agent-suite-root" style={{ minHeight: '100%' }}>
+        <div
+          className="b2b-agent-suite-root"
+          style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        >
           <DiscountsManagerClient
             agentName={initData.agentName}
             agentCode={initData.agentCode}

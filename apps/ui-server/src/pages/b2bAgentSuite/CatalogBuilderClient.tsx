@@ -1627,7 +1627,7 @@ export default function CatalogBuilderClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
       <StickyHeader paddingY="sm">
         <div
@@ -1636,6 +1636,8 @@ export default function CatalogBuilderClient({
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 'var(--spacing-md)',
+            padding: '0 var(--spacing-lg)',
+            width: '100%',
             flexWrap: 'wrap',
           }}
         >
@@ -1695,17 +1697,17 @@ export default function CatalogBuilderClient({
         </div>
       </StickyHeader>
 
-      {/* LAYOUT A 2 COLONNE SENZA SOVRAPPOSIZIONI */}
-      <div
-        style={{
-          padding: 'var(--spacing-lg)',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 310px',
-          gap: 'var(--spacing-lg)',
-          alignItems: 'start',
-          flex: 1,
-        }}
-      >
+      {/* CONTENUTO PRINCIPALE (SCROLLABILE SOTTO L'HEADER, MAI SOTTOPOSTO ALLE TAB) */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--spacing-lg)' }}>
+        {/* LAYOUT A 2 COLONNE SENZA SOVRAPPOSIZIONI */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) 310px',
+            gap: 'var(--spacing-lg)',
+            alignItems: 'start',
+          }}
+        >
         {/* COLONNA SINISTRA: STEP 1 E STEP 2 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
           {pdfError && (
@@ -2463,7 +2465,7 @@ export default function CatalogBuilderClient({
         </div>
 
         {/* COLONNA DESTRA: LISTA ARTICOLI NEL CATALOGO (STICKY IN GRIGLIA, ZERO SOVRAPPOSIZIONI) */}
-        <div style={{ position: 'sticky', top: '72px' }}>
+        <div style={{ position: 'sticky', top: 0 }}>
           <GlassPanel padding="md" radius="lg">
             <div
               style={{
@@ -2644,6 +2646,7 @@ export default function CatalogBuilderClient({
               </Badge>
             </div>
           </GlassPanel>
+        </div>
         </div>
       </div>
 

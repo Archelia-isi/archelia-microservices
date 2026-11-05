@@ -1001,7 +1001,7 @@ export default function DiscountsManagerClient({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* STICKY HEADER CON TABS E CONTROLLI (NESSUN H1 RIDONDANTE) */}
       <StickyHeader paddingY="sm">
         <div
@@ -1010,6 +1010,8 @@ export default function DiscountsManagerClient({
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: 'var(--spacing-md)',
+            padding: '0 var(--spacing-lg)',
+            width: '100%',
             flexWrap: 'wrap',
           }}
         >
@@ -1049,8 +1051,8 @@ export default function DiscountsManagerClient({
         </div>
       </StickyHeader>
 
-      {/* CONTENUTO PRINCIPALE */}
-      <div style={{ padding: 'var(--spacing-lg)', flex: 1 }}>
+      {/* CONTENUTO PRINCIPALE (SCROLLABILE SOTTO L'HEADER, MAI SOTTOPOSTO ALLE TAB) */}
+      <div style={{ padding: 'var(--spacing-lg)', flex: 1, overflowY: 'auto' }}>
         {activeTab === 'editor' && (
           <div
             style={{
@@ -2009,7 +2011,7 @@ export default function DiscountsManagerClient({
             </form>
 
             {/* COLONNA DESTRA: RIEPILOGO LIVE (CLIENTI + PRODOTTI) SENZA ALCUNA SOVRAPPOSIZIONE */}
-            <div style={{ position: 'sticky', top: '72px' }}>
+            <div style={{ position: 'sticky', top: 0 }}>
               <GlassPanel padding="md" radius="lg">
                 {/* Riquadro 1: Clienti */}
                 <div
