@@ -208,6 +208,21 @@ export class ZucchettiPullService {
           agg.seenEk = true;
         }
       }
+
+      // Fallback temporaneo finché Zucchetti non attiva l'automatismo B2B su VALEK / tutti gli articoli:
+      // - Se l'articolo ha solo VAELK (acquisto * 3.5), calcoliamo B2B = VAELK / 3.5 * 3 (acquisto * 3)
+      // - Se l'articolo ha ARC (LVE * 1.22 IVA incl.) ma non B2B, usiamo LVE imponibile (ARC / 1.22)
+      for (const agg of skuMap.values()) {
+        if ((!agg.priceB2b || agg.priceB2b <= 0) && agg.price > 0) {
+          if (agg.priceList === 'VAELK') {
+            agg.priceB2b = parseFloat(((agg.price / 3.5) * 3).toFixed(5));
+            agg.priceListB2b = 'VAELK_X3';
+          } else if (agg.priceList === 'ARC') {
+            agg.priceB2b = parseFloat((agg.price / 1.22).toFixed(5));
+            agg.priceListB2b = 'LVE';
+          }
+        }
+      }
       
       const articles = Array.from(skuMap.values());
       diagnostics.zucchettiLveCount = articles.length;
@@ -341,6 +356,8 @@ export class ZucchettiPullService {
                     unitMultiplier: parseFloat(article.armoltip) || 1,
                     price: agg.price,
                     priceList: agg.priceList,
+                    priceB2b: agg.priceB2b,
+                    priceListB2b: agg.priceListB2b,
                     stock: agg.stockPr,
                     rawStock: agg.rawStockPr,
                     reservedStock: agg.reservedStockPr,
@@ -351,6 +368,7 @@ export class ZucchettiPullService {
                     committedStockEk: agg.committedStockEk,
                     grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                     publishedOnWeb: article.arpubweb === 'S',
+                    publishedOnB2b: article.arpubweb === 'S',
                     zucchettiUpdatedAt: article.utdv || null,
                   },
                   create: {
@@ -369,6 +387,8 @@ export class ZucchettiPullService {
                     unitMultiplier: parseFloat(article.armoltip) || 1,
                     price: agg.price,
                     priceList: agg.priceList,
+                    priceB2b: agg.priceB2b,
+                    priceListB2b: agg.priceListB2b,
                     stock: agg.stockPr,
                     rawStock: agg.rawStockPr,
                     reservedStock: agg.reservedStockPr,
@@ -570,9 +590,9 @@ export class ZucchettiPullService {
       const skusSet = new Set(filtered.map(a => a.arcodar2));
       const existingProducts = await prisma.product.findMany({
         where: { sku: { in: Array.from(skusSet) } },
-        select: { id: true, sku: true, price: true, priceB2b: true }
+        select: { id: true, sku: true, price: true, priceB2b: true, priceListB2b: true }
       });
-      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price, priceB2b: p.priceB2b }]));
+      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price, priceB2b: p.priceB2b, priceListB2b: p.priceListB2b }]));
 
       const skuAggregated = new Map<string, any>();
       for (const a of filtered) {
@@ -602,6 +622,20 @@ export class ZucchettiPullService {
            }
         }
         skuAggregated.set(sku, existing);
+      }
+
+      // Fallback temporaneo B2B quando Zucchetti invia solo VAELK (acquisto × 3.5 -> acquisto × 3) o ARC
+      for (const u of skuAggregated.values()) {
+        if (u.newPriceB2b === null && u.newPrice !== null && u.newPrice > 0) {
+          const old = oldPriceMap.get(u.sku);
+          if (u.priceList === 'VAELK' && old?.priceListB2b !== 'B2B') {
+            u.newPriceB2b = parseFloat(((u.newPrice / 3.5) * 3).toFixed(5));
+            u.priceListB2b = 'VAELK_X3';
+          } else if (u.priceList === 'ARC' && old?.priceListB2b !== 'B2B') {
+            u.newPriceB2b = parseFloat((u.newPrice / 1.22).toFixed(5));
+            u.priceListB2b = 'LVE';
+          }
+        }
       }
 
       const updates = Array.from(skuAggregated.values());

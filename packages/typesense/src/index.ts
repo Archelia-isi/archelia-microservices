@@ -466,7 +466,7 @@ export async function runFastStockPriceSync() {
   console.log(`Fetching recently modified Standard products (since ${lastSync.toISOString()})...`);
   const recentStandard = await prisma.product.findMany({
     where: { updatedAt: { gte: lastSync } },
-    select: { id: true, sku: true, price: true, stock: true, stockEk: true }
+    select: { id: true, sku: true, price: true, priceB2b: true, stock: true, stockEk: true }
   });
 
   if (recentElmark.length === 0 && recentStandard.length === 0) {
@@ -493,7 +493,7 @@ export async function runFastStockPriceSync() {
     docsToUpdate.push({
       id: p.id.toString(), // Gli standard usano l'UUID diretto
       price: p.price ? Number(p.price) : 0,
-      price_b2b: p.price ? Number(p.price) : 0,
+      price_b2b: p.priceB2b ? Number(p.priceB2b) : 0,
       stock: p.stock || 0,
       stock_main: p.stock || 0,
       stock_ek: p.stockEk || 0
