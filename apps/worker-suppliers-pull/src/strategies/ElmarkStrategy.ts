@@ -262,15 +262,13 @@ export class ElmarkStrategy implements ISupplierStrategy {
       itemsToUpdate = [];
       
       try {
-        const productsValues: any[] = [];
-        const productsPlaceholders: string[] = [];
         const processedValues: any[] = [];
         const processedPlaceholders: string[] = [];
+        const elmarkCodes: string[] = [];
 
         for (let i = 0; i < batch.length; i++) {
           const item = batch[i];
           const elmarkId = item.id;
-          const sku = `ELM.${elmarkId}`;
           
           let totalStock = 0;
           if (item.availability && item.availability.quantity) {
@@ -300,10 +298,7 @@ export class ElmarkStrategy implements ISupplierStrategy {
           const offsetP = i * 5;
           processedValues.push(elmarkId, price, purchasePrice, totalStock, discgroup);
           processedPlaceholders.push(`($${offsetP + 1}::text, $${offsetP + 2}::numeric, $${offsetP + 3}::numeric, $${offsetP + 4}::numeric, $${offsetP + 5}::text)`);
-
-          const offset = i * 3;
-          productsValues.push(sku, price, totalStock);
-          productsPlaceholders.push(`($${offset + 1}::text, $${offset + 2}::numeric, $${offset + 3}::numeric)`);
+          elmarkCodes.push(String(elmarkId));
         }
 
         if (processedPlaceholders.length > 0) {
@@ -321,16 +316,18 @@ export class ElmarkStrategy implements ISupplierStrategy {
           `;
           await prisma.$executeRawUnsafe(queryProcessed, ...processedValues);
           
+          const codePlaceholders = elmarkCodes.map((_, idx) => `$${idx + 1}::text`).join(', ');
           const queryProducts = `
             UPDATE products AS p
             SET 
-              price = c.price,
-              "stockEk" = c."stockEk",
+              "stockEk" = epp."stockEk",
+              "rawStockEk" = epp."stockEk",
               "updatedAt" = NOW()
-            FROM (VALUES ${productsPlaceholders.join(', ')}) AS c("sku", price, "stockEk")
-            WHERE p."sku" = c."sku";
+            FROM elmark_processed_products AS epp
+            WHERE p."sku" = epp."sku"
+              AND epp."elmarkCode" IN (${codePlaceholders});
           `;
-          await prisma.$executeRawUnsafe(queryProducts, ...productsValues);
+          await prisma.$executeRawUnsafe(queryProducts, ...elmarkCodes);
         }
 
         processedCount += batch.length;
@@ -434,9 +431,9 @@ export class ElmarkStrategy implements ISupplierStrategy {
       const token = await zucchettiAuth.getToken(company);
 
       while (hasMore) {
-        const products = await prisma.product.findMany({
-          where: { brand: 'ELMARK' },
-          select: { sku: true, stockEk: true },
+        const products = await prisma.elmarkProcessedProduct.findMany({
+          where: { processingPhase: 'COMPLETED' },
+          select: { id: true, sku: true, stockEk: true, discardedSku: true },
           take: limit,
           skip: offset
         });
@@ -455,12 +452,21 @@ export class ElmarkStrategy implements ISupplierStrategy {
         for (const p of products) {
           if (!p.sku) continue;
           xmlLines.push(`  <Add_ADHOC_SALDI SLCODICE_K="${p.sku}" SLCODMAG_K="EK" SLQTAPER="${p.stockEk}" />`);
+          if (p.discardedSku && p.discardedSku !== p.sku) {
+            xmlLines.push(`  <Add_ADHOC_SALDI SLCODICE_K="${p.discardedSku}" SLCODMAG_K="EK" SLQTAPER="0" />`);
+          }
         }
 
         xmlLines.push(`</ADHOC_SALDI>`);
         const xmlPayload = xmlLines.join('\n');
 
         await zucchettiClient.importData(token, xmlPayload, 'SERVLET');
+
+        const ids = products.map(p => p.id);
+        await prisma.elmarkProcessedProduct.updateMany({
+          where: { id: { in: ids } },
+          data: { zucchettiStockSyncedAt: new Date(), zucchettiStockError: null }
+        });
         
         totalSent += products.length;
         offset += limit;

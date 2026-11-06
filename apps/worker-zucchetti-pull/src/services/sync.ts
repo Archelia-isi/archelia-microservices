@@ -146,8 +146,19 @@ export class ZucchettiPullService {
         }
       }
 
+      const discardedRows = await prisma.elmarkProcessedProduct.findMany({
+        where: { discardedSku: { not: null } },
+        select: { discardedSku: true }
+      });
+      const discardedSkusSet = new Set(
+        discardedRows.map(r => r.discardedSku).filter((s): s is string => Boolean(s))
+      );
+
       const rawFilteredArticles = allArticles.filter(
-        (a) => (LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis)) && MAGAZZINI_ABILITATI.includes(a.slcodmag)
+        (a) =>
+          !discardedSkusSet.has(a.arcodar2) &&
+          (LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis)) &&
+          MAGAZZINI_ABILITATI.includes(a.slcodmag)
       );
 
       const skuMap = new Map<string, any>();

@@ -494,9 +494,9 @@ export async function runFastStockPriceSync() {
       id: p.id.toString(), // Gli standard usano l'UUID diretto
       price: p.price ? Number(p.price) : 0,
       price_b2b: p.priceB2b ? Number(p.priceB2b) : 0,
-      stock: p.stock || 0,
-      stock_main: p.stock || 0,
-      stock_ek: p.stockEk || 0
+      stock: Math.floor((p.stock || 0) + (p.stockEk || 0)),
+      stock_main: Math.floor(p.stock || 0),
+      stock_ek: Math.floor(p.stockEk || 0)
     });
   }
 
