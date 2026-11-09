@@ -75,6 +75,44 @@ function escapeXml(unsafe: string): string {
 }
 
 /**
+ * Converte il log XML / tecnico di Zucchetti in un messaggio pulito e leggibile per l'utente,
+ * senza mai esporre XML grezzo, query SQL o stack trace Java nella UI.
+ */
+function formatCleanZucchettiError(decodedLog: string, httpStatus?: number): string {
+  if (httpStatus && httpStatus >= 400) {
+    return `Il server gestionale Zucchetti non ha risposto correttamente (HTTP ${httpStatus}). Riprova tra qualche istante.`;
+  }
+
+  const text = String(decodedLog || '');
+  if (!text) {
+    return 'Impossibile completare la registrazione del documento su Zucchetti.';
+  }
+
+  if (text.includes('fk_a0002saldiart_2') || text.includes('a0002art_icol')) {
+    return 'Errore nella causale documento o nell’anagrafica articolo su Zucchetti (codice articolo/saldi magazzino non validi per la causale selezionata).';
+  }
+
+  if (text.includes('MVUNIMIS')) {
+    return 'Uno o più articoli dell’ordine non risultano presenti o codificati correttamente nell’anagrafica Zucchetti.';
+  }
+
+  if (text.includes('MVCODCON') || text.includes('fk_a0002doc_mast')) {
+    return 'Il codice cliente associato all’ordine non risulta valido nell’anagrafica Zucchetti.';
+  }
+
+  if (text.includes('XML file is not valid') || text.includes('File XML non valido')) {
+    return 'Formato del tracciato ordine non allineato con lo schema Zucchetti.';
+  }
+
+  const codeMatch = text.match(/ErrorCode="([^"@]+)/);
+  if (codeMatch && codeMatch[1]) {
+    return `Impossibile registrare l’ordine su Zucchetti (codice errore gestionale: ${codeMatch[1].trim()}).`;
+  }
+
+  return 'Impossibile registrare l’ordine su Zucchetti. Verifica i dati dell’ordine o contatta l’assistenza.';
+}
+
+/**
  * Scompone una stringa di sconto a cascata (es. "50+10%", "40+5%", "-50%", "20+10")
  * nei singoli sconti separati [50, 10] (fino a 4 sconti: MVSCONT1..MVSCONT4).
  * Non somma e non accorpa mai (es. 50+10 resta [50, 10], mai [55]).
@@ -166,7 +204,7 @@ export async function resolveZucchettiProductForOrderItem(
         .documents()
         .search({
           q: cleanSku,
-          query_by: 'sku,title',
+          query_by: 'sku,natural_sku,title',
           filter_by: 'catalog_source:=zucchetti',
           per_page: 50,
         });
@@ -563,10 +601,11 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
 
     if (!impRes.ok) {
       const errTxt = await impRes.text();
+      console.error(`[ZucchettiOrders] HTTP ${impRes.status} su ADHOC_DOCUMENTI:`, errTxt);
       return {
         ok: false,
         decodedLog: errTxt,
-        errorMessage: `Import ADHOC_DOCUMENTI HTTP ${impRes.status}: ${errTxt}`,
+        errorMessage: formatCleanZucchettiError(errTxt, impRes.status),
       };
     }
 
@@ -587,11 +626,11 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
       /Errors\s*:\s*[1-9]/i.test(decodedLog);
 
     if (isError) {
-      const errMatch = decodedLog.match(/ErrorMessage="([^"]+)"/);
+      console.error(`[ZucchettiOrders] Dettaglio tecnico errore Zucchetti (${mvSerial}):\n`, decodedLog);
       return {
         ok: false,
         decodedLog,
-        errorMessage: errMatch ? errMatch[1] : decodedLog || 'Import ADHOC_DOCUMENTI non riuscito',
+        errorMessage: formatCleanZucchettiError(decodedLog),
       };
     }
 
