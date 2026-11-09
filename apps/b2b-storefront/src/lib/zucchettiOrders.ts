@@ -172,10 +172,10 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
   }
 
   const customerCode = (order.user?.zucchettiCode || '').trim().toUpperCase();
-  if (!customerCode || customerCode.startsWith('CLIPR')) {
+  if (!customerCode) {
     return {
       success: false,
-      error: `Il cliente associato all'ordine non possiede ancora un codice conto Zucchetti definitivo (attuale: "${customerCode || 'vuoto'}").`,
+      error: `Il cliente associato all'ordine non possiede ancora un codice conto Zucchetti definitivo.`,
     };
   }
 
@@ -225,7 +225,11 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
       // Negozio Izzo Distribuzione (ORDCL): usa il magazzino principale PR,
       // con gestione automatica EK se il prodotto attinge dal magazzino Elmark
       const stockMain = Math.max(0, Number(prod?.stock_main ?? 0));
-      const stockElmark = Math.max(0, Number(prod?.stock_elmark ?? 0));
+      const totalStock = Math.max(0, Number(prod?.stock ?? 0));
+      const stockElmark =
+        prod?.stock_elmark !== undefined && prod?.stock_elmark !== null
+          ? Math.max(0, Number(prod.stock_elmark))
+          : Math.max(0, totalStock - stockMain);
 
       if (stockMain >= item.quantity || stockElmark <= 0) {
         rows.push({
