@@ -299,7 +299,7 @@ export async function resolveZucchettiProductForOrderItem(
 
 export interface ZucchettiOrderRowPayload {
   sku: string;
-  warehouse: 'PR' | 'EK';
+  warehouse: 'PR' | 'EK' | null;
   unit: string;
   quantity: number;
   listPrice: number;
@@ -323,6 +323,7 @@ export function buildAdhocDocumentiXml(params: {
   const rowsXml = params.rows
     .map((row, idx) => {
       const rowNum = idx + 1;
+      const warehouseTagXml = row.warehouse ? `\n        <MVCODMAG>${row.warehouse}</MVCODMAG>` : '';
       const discountTagsXml =
         params.includeDiscountTags && row.discounts.length > 0
           ? row.discounts
@@ -337,8 +338,7 @@ export function buildAdhocDocumentiXml(params: {
       return `      <ADHOC_DOCUMENTI_d>
         <CPROWNUM_K>${rowNum}</CPROWNUM_K>
         <MVNUMRIF_K>0</MVNUMRIF_K>
-        <MVCODICE>${escapeXml(row.sku)}</MVCODICE>
-        <MVCODMAG>${row.warehouse}</MVCODMAG>
+        <MVCODICE>${escapeXml(row.sku)}</MVCODICE>${warehouseTagXml}
         <MVUNIMIS>${escapeXml(row.unit)}</MVUNIMIS>
         <MVQTAMOV>${row.quantity.toFixed(2)}</MVQTAMOV>
         <MVPREZZO>${row.listPrice.toFixed(4)}</MVPREZZO>${discountTagsXml}
@@ -455,11 +455,11 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
   const rows: ZucchettiOrderRowPayload[] = [];
 
   if (storeMode === 'ELMARK') {
-    // Negozio Elmark (ORDIC): tutto sempre su magazzino EK con codice articolo Zucchetti risolto
+    // Negozio Elmark (ORDIC): causale che NON movimenta il magazzino -> nessun MVCODMAG passato
     for (const it of resolvedItems) {
       rows.push({
         sku: it.zucchettiSku,
-        warehouse: 'EK',
+        warehouse: null,
         unit: it.unit,
         quantity: it.quantity,
         listPrice: it.listPrice,
