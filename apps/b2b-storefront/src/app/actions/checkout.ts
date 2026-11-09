@@ -18,6 +18,7 @@ import {
   validateAndSavePromoProspectBillingData,
   promotePromoProspectToActiveUserOnOrderApproval,
 } from './promoProspects';
+import { sendB2BOrderToZucchetti } from '@/lib/zucchettiOrders';
 
 export async function checkoutCart(
   action: 'SEND_TO_ZUCCHETTI' | 'PAUSE_CART' | 'SAVE_ORDER',
@@ -30,6 +31,7 @@ export async function checkoutCart(
   status?: string;
   storeMode?: string;
   promotedZucchettiCode?: string;
+  zucchettiOrderRef?: string;
 }> {
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const cartType = storeMode;
@@ -187,6 +189,25 @@ export async function checkoutCart(
       },
     });
 
+    let zucchettiOrderRef: string | undefined;
+
+    // Se l'ordine è stato approvato dall'agente (SEND_TO_ZUCCHETTI), lo inviamo immediatamente a Zucchetti (A0002):
+    // - ORDCL per negozio Izzo Distribuzione (ZUCCHETTI)
+    // - ORDIC per negozio Elmark (ELMARK)
+    if (orderStatus === 'APPROVED') {
+      const zRes = await sendB2BOrderToZucchetti(order.id);
+      if (!zRes.success) {
+        try {
+          await prisma.b2BOrder.delete({ where: { id: order.id } });
+        } catch {}
+        return {
+          success: false,
+          error: `Errore invio ordine a Zucchetti: ${zRes.error || 'Impossibile registrare il documento su Zucchetti.'}`,
+        };
+      }
+      zucchettiOrderRef = zRes.mvSerial;
+    }
+
     if (promoProspect && orderStatus === 'APPROVED') {
       await prisma.b2BPromoProspect.update({
         where: { id: promoProspect.id },
@@ -302,6 +323,7 @@ export async function checkoutCart(
       status: orderStatus,
       storeMode: order.storeMode,
       promotedZucchettiCode,
+      zucchettiOrderRef,
     };
   } catch (error: any) {
     console.error('Checkout error:', error);

@@ -54,10 +54,14 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
     const prod: any = await getProductById(item.sku);
     if (!prod) return { success: false, error: `Prodotto ${item.sku} non trovato` };
 
-    let originalPrice = Number(prod.price_b2b) > 0 ? Number(prod.price_b2b) : Number(prod.price || 0);
+    let originalPrice =
+      storeMode === 'ELMARK'
+        ? Number(prod.price || 0)
+        : Number(prod.price_b2b) > 0
+          ? Number(prod.price_b2b)
+          : Number(prod.price || 0);
     let basePrice = originalPrice;
     let appliedDiscount = 0;
-    let discountStr = null;
 
     if (storeMode === 'ELMARK') {
       const dGroup = prod.discgroup || '';
@@ -65,20 +69,28 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
       if (groupDisc > 0) {
         basePrice = basePrice * (1 - (groupDisc / 100));
         appliedDiscount = groupDisc;
-        discountStr = `-${groupDisc}%`;
       }
     } else {
       if (genericDiscount > 0) {
         basePrice = basePrice * (1 - (genericDiscount / 100));
         appliedDiscount = genericDiscount;
-        discountStr = `-${genericDiscount}%`;
       }
     }
-    
-    // Apply extra discount if provided
+
+    // Apply extra discount if provided (cascade discount, e.g. 50+10%)
     let finalPrice = basePrice;
-    if (item.extraDiscount && item.extraDiscount > 0) {
-      finalPrice = finalPrice * (1 - (item.extraDiscount / 100));
+    const extraDisc = item.extraDiscount && item.extraDiscount > 0 ? Number(item.extraDiscount) : 0;
+    if (extraDisc > 0) {
+      finalPrice = finalPrice * (1 - (extraDisc / 100));
+    }
+
+    let discountStr: string | null = null;
+    if (appliedDiscount > 0 && extraDisc > 0) {
+      discountStr = `${appliedDiscount}+${extraDisc}%`;
+    } else if (appliedDiscount > 0) {
+      discountStr = `${appliedDiscount}%`;
+    } else if (extraDisc > 0) {
+      discountStr = `${extraDisc}%`;
     }
     const lineTotal = finalPrice * item.quantity;
     const lineIva = lineTotal * 0.22; // Hardcoded 22% for simplicity
@@ -108,6 +120,20 @@ export async function createDraftFromOrder(originalOrderUserId: string, items: {
       }
     }
   });
+
+  if (action === 'APPROVED') {
+    const { sendB2BOrderToZucchetti } = await import('@/lib/zucchettiOrders');
+    const zRes = await sendB2BOrderToZucchetti(order.id);
+    if (!zRes.success) {
+      try {
+        await prisma.b2BOrder.delete({ where: { id: order.id } });
+      } catch {}
+      return {
+        success: false,
+        error: `Errore invio ordine a Zucchetti: ${zRes.error || 'Impossibile registrare il documento su Zucchetti.'}`,
+      };
+    }
+  }
 
   revalidatePath('/', 'layout');
   return { success: true, orderId: order.id };

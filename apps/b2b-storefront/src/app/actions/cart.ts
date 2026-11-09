@@ -255,9 +255,20 @@ export async function acceptDraftOrder(orderId: string) {
         data: { status: 'ORDER_PENDING_APPROVAL' }
       });
     } else {
+      const { sendB2BOrderToZucchetti } = await import('@/lib/zucchettiOrders');
+      const zRes = await sendB2BOrderToZucchetti(orderId);
+      if (!zRes.success) {
+        return {
+          success: false,
+          error: `Errore invio ordine a Zucchetti: ${zRes.error || 'Impossibile registrare il documento su Zucchetti.'}`,
+        };
+      }
       await prisma.b2BOrder.update({
         where: { id: orderId },
-        data: { status: 'APPROVED' }
+        data: {
+          status: 'APPROVED',
+          zucchettiOrderRef: zRes.mvSerial,
+        },
       });
     }
 
