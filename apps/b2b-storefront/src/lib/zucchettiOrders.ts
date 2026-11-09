@@ -115,7 +115,10 @@ export function buildAdhocDocumentiXml(params: {
         params.includeDiscountTags && row.discounts.length > 0
           ? row.discounts
               .slice(0, 4)
-              .map((d, dIdx) => `\n        <MVSCONT${dIdx + 1}>${d.toFixed(2)}</MVSCONT${dIdx + 1}>`)
+              .map((d, dIdx) => {
+                const negVal = -Math.abs(d);
+                return `\n        <MVSCONT${dIdx + 1}>${negVal.toFixed(2)}</MVSCONT${dIdx + 1}>`;
+              })
               .join('')
           : '';
 
