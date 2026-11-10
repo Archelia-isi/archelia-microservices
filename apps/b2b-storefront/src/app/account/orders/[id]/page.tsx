@@ -160,23 +160,28 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
   const shortOrderId = order.id.slice(-6).toUpperCase();
   const dateFormatted = order.createdAt.toLocaleDateString('it-IT');
+  const dateIso = order.createdAt.toISOString().split('T')[0];
+  const [yyyy, mm, dd] = dateIso.split('-');
+  const dateDashFormatted = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateFormatted;
   const fallbackDocType = isElmark ? 'ORDIC' : 'ORDCL';
 
-  const extractCleanDocNum = (rawRef?: string | null, rawSerial?: string | null) => {
-    if (rawSerial) {
-      const cleanS = String(rawSerial).replace(/^0+/, '');
-      if (cleanS && (!rawRef || rawRef.startsWith('Ns. doc.'))) {
-        const nMatch = String(rawRef || '').match(/n\.\s*([^\s]+)/i);
-        if (nMatch && nMatch[1]) return nMatch[1];
-        return cleanS;
-      }
-    }
+  const extractCleanDocNum = (
+    rawRef?: string | null,
+    docType: 'ORDCL' | 'ORDIC' = 'ORDCL'
+  ) => {
+    const defaultSerie = docType === 'ORDIC' ? 'OIC' : 'ST';
     const str = String(rawRef || '').trim();
-    if (!str) return shortOrderId;
+    if (!str) return defaultSerie;
+    if (str.includes('/')) {
+      const [nPart, sPart] = str.split('/').map(s => s.trim());
+      const cleanN = nPart.replace(/^.*n\.\s*/i, '').trim();
+      const cleanS = (sPart || defaultSerie).split(/\s+/)[0];
+      return `${cleanN} / ${cleanS}`;
+    }
     const nMatch = str.match(/n\.\s*([^\s]+)/i);
     if (nMatch && nMatch[1]) return nMatch[1];
-    const regMatch = str.match(/Reg\.\s*#([0-9A-Za-z]+)/i);
-    if (regMatch && regMatch[1]) return regMatch[1].replace(/^0+/, '') || regMatch[1];
+    if (str === 'ORDIC' || str === 'OIC') return 'OIC';
+    if (str === 'ORDCL' || str === 'ST') return 'ST';
     return str;
   };
 
@@ -204,8 +209,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       (item as any).zucchettiDocRef ||
       (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
         ? order.zucchettiOrderRef
-        : shortOrderId);
-    const cleanRef = extractCleanDocNum(rawItemRef, itemSerial);
+        : '');
+    const cleanRef = extractCleanDocNum(rawItemRef, docType);
 
     if (!docGroupsMap.has(docType)) {
       docGroupsMap.set(docType, {
@@ -281,13 +286,13 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                 key={group.docType}
                 className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
               >
-                {/* Intestazione essenziale: SOLO Numero Ordine Zucchetti e Data */}
+                {/* Intestazione essenziale: SOLO Riferimento in fattura e Data */}
                 <div className={`px-4 py-3 border-b ${headerBg}`}>
                   <ZucchettiDocRefEditor
                     orderId={order.id}
                     docType={group.docType}
                     currentRef={group.docRef}
-                    dateFormatted={dateFormatted}
+                    dateFormatted={dateDashFormatted}
                     canEdit={isAgent || session.user.role === 'ADMIN'}
                   />
                 </div>

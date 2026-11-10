@@ -14,35 +14,6 @@ function getMainDbPool(): Pool | null {
   return mainDbPool;
 }
 
-/**
- * Codici marchio Zucchetti (e nomi brand) appartenenti all'ecosistema / catalogo del fornitore Elmark
- * (Elmark, Stellar, TeknoLight, Zuma Line, Sonoff, Milio, ecc.)
- */
-const ELMARK_WORLD_BRANDS = new Set([
-  'EK',
-  'ELMARK',
-  'SR',
-  'STELLAR',
-  'TKLG',
-  'ZUMA',
-  'SNFF',
-  'ATRA',
-  'SOLI',
-  'FISC',
-  'WAGO',
-  'OBBT',
-  'ACRL',
-  'AOBO',
-  'LD',
-  'ST',
-  'ML',
-  'OKTY',
-  'PENS',
-  'OKTA',
-  'METS',
-  'BISH',
-]);
-
 const ELMARK_DISCGROUPS = new Set(['E1', 'L', 'E2', 'F', 'C']);
 
 function getZucchettiBaseUrl(): string {
@@ -208,15 +179,22 @@ export async function resolveZucchettiProductForOrderItem(
   try {
     const dbPool = getMainDbPool();
     if (dbPool) {
-      const dbRes = await dbPool.query(
-        `SELECT sku, "elmarkCode", price, "purchasePrice", discgroup
-         FROM elmark_processed_products
-         WHERE LOWER(TRIM(sku)) = LOWER($1)
-            OR LOWER(TRIM("elmarkCode")) = LOWER($1)
-            OR LOWER(TRIM("elmarkCode")) = LOWER($2)
-         LIMIT 1`,
-        [cleanSku, codeAfterDot || cleanSku]
-      );
+      const dbRes = upperSku.includes('.')
+        ? await dbPool.query(
+            `SELECT sku, "elmarkCode", price, "purchasePrice", discgroup
+             FROM elmark_processed_products
+             WHERE LOWER(TRIM(sku)) = LOWER($1)
+             LIMIT 1`,
+            [cleanSku]
+          )
+        : await dbPool.query(
+            `SELECT sku, "elmarkCode", price, "purchasePrice", discgroup
+             FROM elmark_processed_products
+             WHERE LOWER(TRIM(sku)) = LOWER($1)
+                OR LOWER(TRIM("elmarkCode")) = LOWER($1)
+             LIMIT 1`,
+            [cleanSku]
+          );
       if (dbRes.rows.length > 0) {
         const row = dbRes.rows[0];
         elmarkDbRow = {
@@ -310,34 +288,14 @@ export async function resolveZucchettiProductForOrderItem(
     .trim()
     .toUpperCase();
 
-  // Verifica se il prodotto appartiene al Mondo Elmark (Elmark, Stellar, Zuma, TeknoLight, Sonoff, ecc.)
-  let isElmarkWorld =
+  // Verifica se il prodotto appartiene realmente al catalogo fornitore Elmark (presente in elmark_processed_products o brand EK)
+  const isElmarkWorld =
     storeMode === 'ELMARK' ||
     Boolean(elmarkDbRow) ||
     Boolean(elmarkDoc) ||
     ELMARK_DISCGROUPS.has(discgroupUpper) ||
-    ELMARK_WORLD_BRANDS.has(brandUpper) ||
-    stockElmark > 0;
-
-  if (!isElmarkWorld && resolvedZucchettiSku.includes('.')) {
-    const resolvedAfterDot = extractCodeAfterDot(resolvedZucchettiSku);
-    if (resolvedAfterDot) {
-      try {
-        const elmarkCheck = await typesenseClient
-          .collections(PRODUCTS_COLLECTION_NAME)
-          .documents()
-          .search({
-            q: resolvedAfterDot,
-            query_by: 'sku',
-            filter_by: `catalog_source:=elmark && sku:=\`${resolvedAfterDot.replace(/`/g, '')}\``,
-            per_page: 1,
-          });
-        if ((elmarkCheck?.hits || []).length > 0) {
-          isElmarkWorld = true;
-        }
-      } catch {}
-    }
-  }
+    brandUpper === 'EK' ||
+    brandUpper === 'ELMARK';
 
   const purchasePrice =
     elmarkDbRow && Number(elmarkDbRow.purchasePrice) > 0
@@ -837,48 +795,48 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
 
       logs.push(res.decodedLog);
 
-      // Estrae il seriale interno MVSERIAL assegnato da Zucchetti (es. "0000002536" -> "2536")
+      // Estrae il seriale interno MVSERIAL assegnato da Zucchetti (es. "0000002539")
       const serialMatches = Array.from(res.decodedLog.matchAll(/MVSERIAL="([^"]+)"/g))
         .map(m => m[1])
         .filter(s => s && s !== 'CALCOLATA');
       const assignedMvSerial = serialMatches[serialMatches.length - 1] || docPlan.mvSerial;
-      const cleanSerialNum = assignedMvSerial.replace(/^0+/, '') || assignedMvSerial;
+      const defaultSerie = docPlan.mvTipDoc === 'ORDIC' ? 'OIC' : 'ST';
 
       createdDocs.push({
         mvSerialK: docPlan.mvSerial,
         assignedMvSerial,
         mvTipDoc: docPlan.mvTipDoc,
-        docRef: cleanSerialNum,
+        docRef: defaultSerie,
         items: docPlan.items,
       });
     }
 
-    // Verifica opzionale su SPVQRProducer/zzna_ordini se Zucchetti restituisce MVNUMDOC e MVALFDOC (es. "120/ST")
+    // Verifica su SPVQRProducer/zzna_ordini se Zucchetti restituisce MVNUMDOC e MVALFDOC (es. "13 / OIC" o "120 / ST")
     try {
       const basicAuth =
         'Basic ' +
         Buffer.from(
           `${process.env.ZUCCHETTI_USERNAME || 'Soapserv'}:${process.env.ZUCCHETTI_PASSWORD || 'SspSrvZ2025%%'}`
         ).toString('base64');
-      const vqrRes = await zFetch(
-        `${baseUrl}/servlet/api/SPVQRProducer/zzna_ordini?sp_company=A0002`,
-        {
-          method: 'GET',
-          headers: { authorization: basicAuth },
-        },
-        4000
-      );
-      if (vqrRes.ok) {
-        const vqrJson: any = await vqrRes.json();
-        const vqrRows: any[] = Array.isArray(vqrJson?.data) ? vqrJson.data : [];
-        for (const cDoc of createdDocs) {
+      for (const cDoc of createdDocs) {
+        const vqrRes = await zFetch(
+          `${baseUrl}/servlet/api/SPVQRProducer/zzna_ordini?sp_company=A0002&pMVSERIAL=${encodeURIComponent(cDoc.assignedMvSerial)}`,
+          {
+            method: 'GET',
+            headers: { authorization: basicAuth },
+          },
+          4000
+        );
+        if (vqrRes.ok) {
+          const vqrJson: any = await vqrRes.json();
+          const vqrRows: any[] = Array.isArray(vqrJson?.data) ? vqrJson.data : [];
           const matchRow = vqrRows.find(
             r => String(r.mvserial || '').trim() === cDoc.assignedMvSerial
-          );
+          ) || vqrRows[0];
           if (matchRow && matchRow.mvnumdoc) {
             const numDoc = String(matchRow.mvnumdoc).trim();
-            const alfDoc = String(matchRow.mvalfdoc || '').trim();
-            cDoc.docRef = alfDoc ? `${numDoc}/${alfDoc}` : numDoc;
+            const alfDoc = String(matchRow.mvalfdoc || (cDoc.mvTipDoc === 'ORDIC' ? 'OIC' : 'ST')).trim();
+            cDoc.docRef = alfDoc ? `${numDoc} / ${alfDoc}` : numDoc;
           }
         }
       }

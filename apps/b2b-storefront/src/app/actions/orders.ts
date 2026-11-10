@@ -227,7 +227,15 @@ export async function updateZucchettiDocRefAction(
   if (!rawInput) return { success: false, error: 'Inserisci un riferimento documento valido' };
 
   const cleanType = (docType || 'ORDCL').trim().toUpperCase();
-  const formattedRef = rawInput.replace(/^n\.\s*/i, '').trim();
+  const defaultSerie = cleanType === 'ORDIC' ? 'OIC' : 'ST';
+  let cleaned = rawInput.replace(/^n\.\s*/i, '').trim();
+  if (/^\d+$/.test(cleaned)) {
+    cleaned = `${cleaned} / ${defaultSerie}`;
+  } else if (cleaned.includes('/')) {
+    const [nPart, sPart] = cleaned.split('/').map(s => s.trim());
+    cleaned = `${nPart} / ${sPart || defaultSerie}`;
+  }
+  const formattedRef = cleaned;
 
   await prisma.b2BOrderItem.updateMany({
     where: {

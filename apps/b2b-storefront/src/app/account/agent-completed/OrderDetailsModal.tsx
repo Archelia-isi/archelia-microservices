@@ -243,25 +243,29 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   
                   {(() => {
                     const shortOrderId = order.id.slice(-6).toUpperCase();
-                    const dateFormatted = new Date(order.createdAt).toLocaleDateString('it-IT');
+                    const dateIso = new Date(order.createdAt).toISOString().split('T')[0];
+                    const [yyyy, mm, dd] = dateIso.split('-');
+                    const dateDashFormatted = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateIso;
                     const fallbackDocType = order.storeMode === 'ELMARK' ? 'ORDIC' : 'ORDCL';
                     const isReorder = mode === 'REORDER';
 
-                    const extractCleanDocNum = (rawRef?: string | null, rawSerial?: string | null) => {
-                      if (rawSerial) {
-                        const cleanS = String(rawSerial).replace(/^0+/, '');
-                        if (cleanS && (!rawRef || rawRef.startsWith('Ns. doc.'))) {
-                          const nMatch = String(rawRef || '').match(/n\.\s*([^\s]+)/i);
-                          if (nMatch && nMatch[1]) return nMatch[1];
-                          return cleanS;
-                        }
-                      }
+                    const extractCleanDocNum = (
+                      rawRef?: string | null,
+                      docType: 'ORDCL' | 'ORDIC' = 'ORDCL'
+                    ) => {
+                      const defaultSerie = docType === 'ORDIC' ? 'OIC' : 'ST';
                       const str = String(rawRef || '').trim();
-                      if (!str) return shortOrderId;
+                      if (!str) return defaultSerie;
+                      if (str.includes('/')) {
+                        const [nPart, sPart] = str.split('/').map(s => s.trim());
+                        const cleanN = nPart.replace(/^.*n\.\s*/i, '').trim();
+                        const cleanS = (sPart || defaultSerie).split(/\s+/)[0];
+                        return `${cleanN} / ${cleanS}`;
+                      }
                       const nMatch = str.match(/n\.\s*([^\s]+)/i);
                       if (nMatch && nMatch[1]) return nMatch[1];
-                      const regMatch = str.match(/Reg\.\s*#([0-9A-Za-z]+)/i);
-                      if (regMatch && regMatch[1]) return regMatch[1].replace(/^0+/, '') || regMatch[1];
+                      if (str === 'ORDIC' || str === 'OIC') return 'OIC';
+                      if (str === 'ORDCL' || str === 'ST') return 'ST';
                       return str;
                     };
 
@@ -269,7 +273,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                       ? [
                           {
                             docType: fallbackDocType as 'ORDCL' | 'ORDIC',
-                            docRef: extractCleanDocNum(order.zucchettiOrderRef),
+                            docRef: extractCleanDocNum(order.zucchettiOrderRef, fallbackDocType as 'ORDCL' | 'ORDIC'),
                             items: populatedItems,
                           },
                         ]
@@ -287,8 +291,8 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                               it.zucchettiDocRef ||
                               (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
                                 ? order.zucchettiOrderRef
-                                : shortOrderId);
-                            const docRef = extractCleanDocNum(rawRef, it.zucchettiDocSerial);
+                                : '');
+                            const docRef = extractCleanDocNum(rawRef, docType);
                             if (!map.has(docType)) {
                               map.set(docType, { docType, docRef, items: [] });
                             }
@@ -317,10 +321,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                               }`}
                             >
                               <span className="font-bold text-sm text-gray-900">
-                                Ordine Zucchetti {group.docType} n. <span className="font-mono">{group.docRef}</span>
-                              </span>
-                              <span className="text-sm font-semibold text-gray-700">
-                                Data: {dateFormatted}
+                                Riferimento in fattura: <span className="font-mono">{group.docRef}</span> del <span className="font-mono">{dateDashFormatted}</span>
                               </span>
                             </div>
                           )}
