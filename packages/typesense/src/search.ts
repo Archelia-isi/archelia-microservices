@@ -76,27 +76,122 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
   }
 }
 
-export async function getProductById(idOrSku: string) {
-  try {
-    // Prima proviamo a prenderlo direttamente per ID (metodo più veloce e sicuro per gli ID esatti)
+const productCache = new Map<string, { doc: any; expiresAt: number }>();
+const PRODUCT_CACHE_TTL_MS = 15_000;
+
+let pendingBatchKeys = new Set<string>();
+let pendingResolvers = new Map<string, Array<(doc: any) => void>>();
+let batchTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function searchWithRetry(searchParams: any, maxRetries = 3): Promise<any> {
+  let lastErr: any;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const doc = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents(idOrSku).retrieve();
-      if (doc) return doc;
-    } catch (e) {
-      // Se fallisce, potrebbe non essere l'ID ma lo SKU
+      return await typesenseClient
+        .collections(PRODUCTS_COLLECTION_NAME)
+        .documents()
+        .search(searchParams);
+    } catch (err: any) {
+      lastErr = err;
+      const status = err?.httpStatus || err?.status;
+      if ((status === 429 || status >= 500) && attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 250 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
+async function flushProductBatch() {
+  const keys = Array.from(pendingBatchKeys);
+  const resolversMap = pendingResolvers;
+  pendingBatchKeys = new Set<string>();
+  pendingResolvers = new Map<string, Array<(doc: any) => void>>();
+  batchTimer = null;
+
+  if (keys.length === 0) return;
+
+  const foundMap = new Map<string, any>();
+  const chunkSize = 80;
+
+  for (let i = 0; i < keys.length; i += chunkSize) {
+    const chunk = keys.slice(i, i + chunkSize);
+    const escapedList = chunk.map(k => `\`${k.replace(/`/g, '')}\``).join(',');
+    try {
+      const res = await searchWithRetry({
+        q: '*',
+        filter_by: `sku:=[${escapedList}] || natural_sku:=[${escapedList}]`,
+        per_page: Math.min(250, chunk.length * 2 + 10),
+      });
+      const hits = res?.hits || [];
+      for (const h of hits) {
+        const doc = h?.document;
+        if (!doc) continue;
+        if (doc.sku) foundMap.set(String(doc.sku).trim().toUpperCase(), doc);
+        if (doc.natural_sku) {
+          const ns = String(doc.natural_sku).trim().toUpperCase();
+          if (!foundMap.has(ns)) foundMap.set(ns, doc);
+        }
+        if (doc.id) foundMap.set(String(doc.id).trim().toUpperCase(), doc);
+      }
+    } catch (error) {
+      console.error('Typesense batch getProductById error:', error);
+    }
+  }
+
+  const now = Date.now();
+  for (const rawKey of keys) {
+    const upperKey = rawKey.toUpperCase();
+    let doc = foundMap.get(upperKey) || null;
+
+    if (!doc) {
+      try {
+        doc = await typesenseClient
+          .collections(PRODUCTS_COLLECTION_NAME)
+          .documents(rawKey)
+          .retrieve();
+      } catch {
+        doc = null;
+      }
     }
 
-    // Se non lo trova per ID, cerchiamo per SKU esatto
-    const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
-      q: '*',
-      filter_by: `sku:=${idOrSku} || natural_sku:=${idOrSku}`,
-      per_page: 1
-    });
-    return searchResults?.hits?.[0]?.document || null;
-  } catch (error) {
-    console.error('Typesense getProductById error:', error);
-    return null;
+    if (doc) {
+      productCache.set(upperKey, { doc, expiresAt: now + PRODUCT_CACHE_TTL_MS });
+    }
+
+    const callbacks = resolversMap.get(rawKey) || [];
+    for (const cb of callbacks) {
+      cb(doc);
+    }
   }
+}
+
+export async function getProductById(idOrSku: string) {
+  const cleanKey = String(idOrSku || '').trim();
+  if (!cleanKey) return null;
+
+  const upperKey = cleanKey.toUpperCase();
+  const cached = productCache.get(upperKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.doc;
+  }
+
+  return new Promise<any>(resolve => {
+    pendingBatchKeys.add(cleanKey);
+    const list = pendingResolvers.get(cleanKey) || [];
+    list.push(resolve);
+    pendingResolvers.set(cleanKey, list);
+
+    if (!batchTimer) {
+      batchTimer = setTimeout(() => {
+        flushProductBatch().catch(err => {
+          console.error('Typesense flushProductBatch error:', err);
+        });
+      }, 5);
+    }
+  });
 }
 
 export async function searchGuides(q: string) {
