@@ -1,9 +1,18 @@
 import { prisma } from '@archelia/b2b-database';
 import { getProductById } from '@archelia/typesense/dist/search.js';
 import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
+import { Pool } from 'pg';
 import { Agent } from 'undici';
 
 const zucchettiDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+
+let mainDbPool: Pool | null = null;
+function getMainDbPool(): Pool | null {
+  if (!mainDbPool && process.env.DATABASE_URL) {
+    mainDbPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  }
+  return mainDbPool;
+}
 
 /**
  * Codici marchio Zucchetti (e nomi brand) appartenenti all'ecosistema / catalogo del fornitore Elmark
@@ -167,8 +176,8 @@ function extractCodeAfterDot(sku: string): string {
 /**
  * Dato uno SKU salvato nell'ordine (che nel negozio Elmark è il codice puro Elmark es. "40241",
  * mentre nel negozio Izzo Distribuzione è il codice Zucchetti es. "E61.40241"),
- * trova il documento Typesense corrispondente nel catalogo Zucchetti e restituisce
- * il vero codice articolo Zucchetti (ARCODAR2) insieme ai metadati di giacenza e brand.
+ * trova il documento Typesense corrispondente nel catalogo Zucchetti e il record in elmark_processed_products,
+ * restituendo il vero codice articolo Zucchetti (ARCODAR2), le giacenze e il prezzo di acquisto Elmark.
  */
 export async function resolveZucchettiProductForOrderItem(
   rawSku: string,
@@ -181,9 +190,47 @@ export async function resolveZucchettiProductForOrderItem(
   isElmarkWorld: boolean;
   priceB2b: number;
   priceElmark: number;
+  purchasePrice: number;
 }> {
   const cleanSku = String(rawSku || '').trim();
   const upperSku = cleanSku.toUpperCase();
+  const codeAfterDot = upperSku.includes('.') ? extractCodeAfterDot(upperSku) : upperSku;
+
+  // 1. Cerca nella tabella elmark_processed_products (per ottenere il purchasePrice di acquisto e lo SKU Zucchetti)
+  let elmarkDbRow: {
+    sku: string;
+    elmarkCode: string;
+    price: number;
+    purchasePrice: number;
+    discgroup: string | null;
+  } | null = null;
+
+  try {
+    const dbPool = getMainDbPool();
+    if (dbPool) {
+      const dbRes = await dbPool.query(
+        `SELECT sku, "elmarkCode", price, "purchasePrice", discgroup
+         FROM elmark_processed_products
+         WHERE LOWER(TRIM(sku)) = LOWER($1)
+            OR LOWER(TRIM("elmarkCode")) = LOWER($1)
+            OR LOWER(TRIM("elmarkCode")) = LOWER($2)
+         LIMIT 1`,
+        [cleanSku, codeAfterDot || cleanSku]
+      );
+      if (dbRes.rows.length > 0) {
+        const row = dbRes.rows[0];
+        elmarkDbRow = {
+          sku: String(row.sku || ''),
+          elmarkCode: String(row.elmarkCode || ''),
+          price: Number(row.price || 0),
+          purchasePrice: Number(row.purchasePrice || 0),
+          discgroup: row.discgroup ? String(row.discgroup) : null,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`[ZucchettiOrders] Avviso lettura elmark_processed_products per SKU ${cleanSku}:`, err);
+  }
 
   let directProd: any = null;
   try {
@@ -194,6 +241,16 @@ export async function resolveZucchettiProductForOrderItem(
     directProd && directProd.catalog_source === 'zucchetti' ? directProd : null;
   let elmarkDoc: any =
     directProd && directProd.catalog_source === 'elmark' ? directProd : null;
+
+  // Se abbiamo trovato lo SKU Zucchetti in elmark_processed_products ma non abbiamo ancora zucchettiDoc da Typesense
+  if (!zucchettiDoc && elmarkDbRow?.sku) {
+    try {
+      const byDbSku: any = await getProductById(elmarkDbRow.sku.trim());
+      if (byDbSku && byDbSku.catalog_source === 'zucchetti') {
+        zucchettiDoc = byDbSku;
+      }
+    } catch {}
+  }
 
   // Se non abbiamo ancora il documento del catalogo Zucchetti (es. ordine dal negozio Elmark dove rawSku = "40241"),
   // cerchiamo il corrispettivo articolo Zucchetti in Typesense (catalog_source:=zucchetti)
@@ -218,10 +275,9 @@ export async function resolveZucchettiProductForOrderItem(
 
       // 2. Match esatto sul codice Elmark dopo il punto (es. "E61.40241" o "IL175. 99LED837W" per "40241" / "99LED837W")
       if (!zucchettiDoc) {
-        const targetCode = upperSku.includes('.') ? extractCodeAfterDot(upperSku) : upperSku;
         zucchettiDoc = hits.find((d: any) => {
           const dSku = String(d.sku || '').trim().toUpperCase();
-          return extractCodeAfterDot(dSku) === targetCode;
+          return extractCodeAfterDot(dSku) === codeAfterDot;
         });
       }
     } catch (err) {
@@ -230,7 +286,7 @@ export async function resolveZucchettiProductForOrderItem(
   }
 
   const refDoc = zucchettiDoc || directProd;
-  const resolvedZucchettiSku = String(zucchettiDoc?.sku || cleanSku).trim();
+  const resolvedZucchettiSku = String(zucchettiDoc?.sku || elmarkDbRow?.sku || cleanSku).trim();
 
   const rawUnit = String(refDoc?.unit || 'PZ')
     .trim()
@@ -248,29 +304,32 @@ export async function resolveZucchettiProductForOrderItem(
   const brandUpper = String(zucchettiDoc?.brand || directProd?.brand || '')
     .trim()
     .toUpperCase();
-  const discgroupUpper = String(zucchettiDoc?.discgroup || directProd?.discgroup || '')
+  const discgroupUpper = String(
+    elmarkDbRow?.discgroup || zucchettiDoc?.discgroup || directProd?.discgroup || ''
+  )
     .trim()
     .toUpperCase();
 
   // Verifica se il prodotto appartiene al Mondo Elmark (Elmark, Stellar, Zuma, TeknoLight, Sonoff, ecc.)
   let isElmarkWorld =
     storeMode === 'ELMARK' ||
+    Boolean(elmarkDbRow) ||
     Boolean(elmarkDoc) ||
     ELMARK_DISCGROUPS.has(discgroupUpper) ||
     ELMARK_WORLD_BRANDS.has(brandUpper) ||
     stockElmark > 0;
 
   if (!isElmarkWorld && resolvedZucchettiSku.includes('.')) {
-    const codeAfterDot = extractCodeAfterDot(resolvedZucchettiSku);
-    if (codeAfterDot) {
+    const resolvedAfterDot = extractCodeAfterDot(resolvedZucchettiSku);
+    if (resolvedAfterDot) {
       try {
         const elmarkCheck = await typesenseClient
           .collections(PRODUCTS_COLLECTION_NAME)
           .documents()
           .search({
-            q: codeAfterDot,
+            q: resolvedAfterDot,
             query_by: 'sku',
-            filter_by: `catalog_source:=elmark && sku:=\`${codeAfterDot.replace(/`/g, '')}\``,
+            filter_by: `catalog_source:=elmark && sku:=\`${resolvedAfterDot.replace(/`/g, '')}\``,
             per_page: 1,
           });
         if ((elmarkCheck?.hits || []).length > 0) {
@@ -284,7 +343,15 @@ export async function resolveZucchettiProductForOrderItem(
     Number(zucchettiDoc?.price_b2b) > 0
       ? Number(zucchettiDoc.price_b2b)
       : Number(zucchettiDoc?.price || directProd?.price || 0);
-  const priceElmark = Number(elmarkDoc?.price || directProd?.price || priceB2b || 0);
+  const priceElmark = Number(
+    elmarkDbRow?.price || elmarkDoc?.price || directProd?.price || priceB2b || 0
+  );
+  const purchasePrice =
+    elmarkDbRow && Number(elmarkDbRow.purchasePrice) > 0
+      ? Number(elmarkDbRow.purchasePrice)
+      : isElmarkWorld && priceB2b > 0
+        ? Number((priceB2b / 3).toFixed(4))
+        : 0;
 
   return {
     zucchettiSku: resolvedZucchettiSku,
@@ -294,6 +361,7 @@ export async function resolveZucchettiProductForOrderItem(
     isElmarkWorld,
     priceB2b,
     priceElmark,
+    purchasePrice,
   };
 }
 
@@ -358,23 +426,26 @@ ${rowsXml}
 
 /**
  * Invia un ordine B2B approvato a Zucchetti esclusivamente sull'azienda Izzo Distribuzione (A0002, flusso 00004):
- * - Negozio Izzo Distribuzione (storeMode === 'ZUCCHETTI') -> MVTIPDOC = 'ORDCL':
- *   1) Se nell'ordine ci sono SOLO prodotti del Mondo Elmark (Elmark, Stellar, ecc.):
- *      - Se tutti sono coperti dalla giacenza PR -> tutto l'ordine va su PR
- *      - Se anche uno solo sfora la giacenza PR -> tutto l'ordine va su EK (senza sdoppiamenti)
- *   2) Se nell'ordine ci sono anche prodotti NON appartenenti al Mondo Elmark (ordine misto):
- *      - Tutti i prodotti con giacenza PR sufficiente vanno su PR
- *      - I prodotti del Mondo Elmark con PR > 0 che superano la giacenza PR vengono sdoppiati (quota PR + eccedenza EK)
- *      - I prodotti del Mondo Elmark con PR = 0 vanno su EK
- * - Negozio Elmark (storeMode === 'ELMARK') -> MVTIPDOC = 'ORDIC':
- *   - Risolve sempre il codice articolo puro Elmark nel corrispettivo codice Zucchetti (ARCODAR2)
- *   - Magazzino sempre 'EK'
- * - Prezzo di listino lordo in MVPREZZO + sconti a cascata separati con segno negativo (es. 50+10 -> MVSCONT1=-50.00, MVSCONT2=-10.00)
+ * - Soglia Salva-Scaffale PR (70%): un articolo del Mondo Elmark non intacca PR se quantità > stockMain * 0.70.
+ * - Soglia Porto Franco Elmark (> 500 €): se il nostro costo di acquisto complessivo dei prodotti Elmark nell'ordine
+ *   (calcolato da elmark_processed_products.purchasePrice) supera i 500 €, tutti i prodotti Elmark passano su ORDIC.
+ * - Negozio Izzo Distribuzione (storeMode === 'ZUCCHETTI'):
+ *   1) Ordine composto SOLO da prodotti del Mondo Elmark:
+ *      - Se costo acquisto > 500 € OPPURE anche un solo articolo supera il 70% di PR -> 1 ordine ORDIC (senza magazzino) con prezzi/sconti Izzo Distribuzione
+ *      - Altrimenti -> 1 ordine ORDCL (magazzino PR) con prezzi/sconti Izzo Distribuzione
+ *   2) Ordine MISTO (prodotti non-Elmark + prodotti Mondo Elmark):
+ *      - Prodotti non-Elmark restano sempre su ORDCL (magazzino PR)
+ *      - Se costo acquisto Elmark > 500 €, tutti i prodotti Elmark vengono tolti dall'ORDCL e spostati in un secondo ordine ORDIC (senza magazzino)
+ *      - Se costo acquisto Elmark <= 500 €, i prodotti Elmark con quantità > 70% di PR vengono tolti dall'ORDCL e spostati per l'intera quantità in un secondo ordine ORDIC (senza magazzino)
+ * - Negozio Elmark (storeMode === 'ELMARK') -> 1 ordine ORDIC (senza magazzino) con prezzi/sconti Elmark.
  */
 export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
   success: boolean;
   mvSerial?: string;
   mvTipDoc?: 'ORDCL' | 'ORDIC';
+  splitOrderId?: string;
+  splitMvSerial?: string;
+  totalElmarkPurchaseCost?: number;
   discountsAcceptedByXsd?: boolean;
   rowsSent?: ZucchettiOrderRowPayload[];
   log?: string;
@@ -405,21 +476,26 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
   }
 
   const storeMode = order.storeMode === 'ELMARK' ? 'ELMARK' : 'ZUCCHETTI';
-  const mvTipDoc: 'ORDCL' | 'ORDIC' = storeMode === 'ELMARK' ? 'ORDIC' : 'ORDCL';
-  const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, storeMode);
   const dateStr = (order.createdAt || new Date()).toISOString().split('T')[0];
 
-  // Fase 1: Risolve per ogni riga il codice Zucchetti (ARCODAR2), le giacenze PR/EK e l'appartenenza al Mondo Elmark
-  const resolvedItems: Array<{
+  // Fase 1: Risolve per ogni riga il codice Zucchetti (ARCODAR2), le giacenze PR/EK, il purchasePrice Elmark e l'appartenenza al Mondo Elmark
+  interface ResolvedOrderItem {
+    itemId: string;
+    rawSku: string;
     zucchettiSku: string;
     unit: string;
     quantity: number;
     listPrice: number;
+    finalPrice: number;
+    discountString: string | null;
     discounts: number[];
     stockMain: number;
     stockElmark: number;
     isElmarkWorld: boolean;
-  }> = [];
+    purchasePrice: number;
+  }
+
+  const resolvedItems: ResolvedOrderItem[] = [];
 
   for (const item of order.items) {
     if (item.quantity <= 0) continue;
@@ -436,14 +512,19 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
     const discounts = parseCascadeDiscounts(item.discountString);
 
     resolvedItems.push({
+      itemId: item.id,
+      rawSku: item.sku,
       zucchettiSku: meta.zucchettiSku,
       unit: meta.unit,
       quantity: item.quantity,
       listPrice,
+      finalPrice: Number(item.finalPrice || listPrice),
+      discountString: item.discountString || null,
       discounts,
       stockMain: meta.stockMain,
       stockElmark: meta.stockElmark,
       isElmarkWorld: meta.isElmarkWorld,
+      purchasePrice: meta.purchasePrice,
     });
   }
 
@@ -451,101 +532,139 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
     return { success: false, error: 'Nessuna riga ordine valida da inviare a Zucchetti.' };
   }
 
-  // Fase 2: Applicazione regole magazzino (PR vs EK)
-  const rows: ZucchettiOrderRowPayload[] = [];
+  // Calcolo del nostro costo di acquisto complessivo verso Elmark (dalla tabella elmark_processed_products.purchasePrice)
+  const totalElmarkPurchaseCost = Number(
+    resolvedItems
+      .filter(it => it.isElmarkWorld)
+      .reduce((sum, it) => sum + it.purchasePrice * it.quantity, 0)
+      .toFixed(2)
+  );
+  const elmarkCostExceeds500 = totalElmarkPurchaseCost > 500;
+
+  // Un prodotto Elmark supera la capienza di sicurezza PR se la quantità richiesta è > 70% della giacenza PR
+  const exceeds70PctPr = (it: ResolvedOrderItem) => it.quantity > it.stockMain * 0.7;
+
+  interface ZucchettiDocumentPlan {
+    mvSerial: string;
+    mvTipDoc: 'ORDCL' | 'ORDIC';
+    rows: ZucchettiOrderRowPayload[];
+    items: ResolvedOrderItem[];
+  }
+
+  const documentsToSend: ZucchettiDocumentPlan[] = [];
 
   if (storeMode === 'ELMARK') {
-    // Negozio Elmark (ORDIC): causale che NON movimenta il magazzino -> nessun MVCODMAG passato
-    for (const it of resolvedItems) {
-      rows.push({
+    // Negozio Elmark: sempre 1 ordine ORDIC (senza magazzino)
+    const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, 'ELMARK');
+    documentsToSend.push({
+      mvSerial,
+      mvTipDoc: 'ORDIC',
+      items: resolvedItems,
+      rows: resolvedItems.map(it => ({
         sku: it.zucchettiSku,
         warehouse: null,
         unit: it.unit,
         quantity: it.quantity,
         listPrice: it.listPrice,
         discounts: it.discounts,
-      });
-    }
+      })),
+    });
   } else {
-    // Negozio Izzo Distribuzione (ORDCL)
+    // Negozio Izzo Distribuzione (prezzi e sconti Izzo Distribuzione)
     const allItemsAreElmarkWorld = resolvedItems.every(it => it.isElmarkWorld);
 
     if (allItemsAreElmarkWorld) {
-      // Caso A: Ordine composto SOLO da prodotti del Mondo Elmark (Elmark, Stellar, ecc.)
-      // Se tutti sono coperti da PR -> tutto in PR; se anche uno solo sfora PR -> tutto in EK!
-      const anyItemExceedsPr = resolvedItems.some(it => it.quantity > it.stockMain);
-      const targetWarehouse: 'PR' | 'EK' = anyItemExceedsPr ? 'EK' : 'PR';
+      // Caso 1: Ordine composto SOLO da prodotti del Mondo Elmark
+      const anyItemExceeds70PctPr = resolvedItems.some(exceeds70PctPr);
 
-      for (const it of resolvedItems) {
-        rows.push({
-          sku: it.zucchettiSku,
-          warehouse: targetWarehouse,
-          unit: it.unit,
-          quantity: it.quantity,
-          listPrice: it.listPrice,
-          discounts: it.discounts,
+      if (elmarkCostExceeds500 || anyItemExceeds70PctPr) {
+        // Tutto l'ordine si trasforma in ORDIC (senza magazzino) mantenendo i prezzi e sconti Izzo Distribuzione
+        const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, 'ELMARK');
+        documentsToSend.push({
+          mvSerial,
+          mvTipDoc: 'ORDIC',
+          items: resolvedItems,
+          rows: resolvedItems.map(it => ({
+            sku: it.zucchettiSku,
+            warehouse: null,
+            unit: it.unit,
+            quantity: it.quantity,
+            listPrice: it.listPrice,
+            discounts: it.discounts,
+          })),
         });
-      }
-    } else {
-      // Caso B: Ordine Misto (contiene almeno un prodotto che NON fa parte del Mondo Elmark)
-      for (const it of resolvedItems) {
-        if (!it.isElmarkWorld) {
-          // Prodotto non-Elmark: va sempre su PR
-          rows.push({
+      } else {
+        // Tutti sotto il 70% di PR e costo acquisto <= 500 € -> tutto in ORDCL su magazzino PR
+        const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, 'ZUCCHETTI');
+        documentsToSend.push({
+          mvSerial,
+          mvTipDoc: 'ORDCL',
+          items: resolvedItems,
+          rows: resolvedItems.map(it => ({
             sku: it.zucchettiSku,
             warehouse: 'PR',
             unit: it.unit,
             quantity: it.quantity,
             listPrice: it.listPrice,
             discounts: it.discounts,
-          });
+          })),
+        });
+      }
+    } else {
+      // Caso 2: Ordine MISTO (prodotti non-Elmark + prodotti Mondo Elmark)
+      const ordclItems: ResolvedOrderItem[] = [];
+      const ordicItems: ResolvedOrderItem[] = [];
+
+      for (const it of resolvedItems) {
+        if (!it.isElmarkWorld) {
+          // Prodotto non-Elmark: resta sempre nell'ordine ORDCL su magazzino PR
+          ordclItems.push(it);
+        } else if (elmarkCostExceeds500 || exceeds70PctPr(it)) {
+          // Prodotto Elmark che sfora il 70% di PR (o ordine con costo acquisto Elmark > 500 €):
+          // viene tolto dall'ordine misto ORDCL e spostato per l'intera quantità in un nuovo ordine ORDIC
+          ordicItems.push(it);
         } else {
-          // Prodotto del Mondo Elmark in ordine misto:
-          // - Se coperto da PR -> PR
-          // - Se PR = 0 -> EK
-          // - Se PR > 0 ma quantità > PR -> sdoppiato (PR + EK)
-          if (it.quantity <= it.stockMain || it.stockElmark <= 0) {
-            rows.push({
-              sku: it.zucchettiSku,
-              warehouse: 'PR',
-              unit: it.unit,
-              quantity: it.quantity,
-              listPrice: it.listPrice,
-              discounts: it.discounts,
-            });
-          } else if (it.stockMain <= 0) {
-            rows.push({
-              sku: it.zucchettiSku,
-              warehouse: 'EK',
-              unit: it.unit,
-              quantity: it.quantity,
-              listPrice: it.listPrice,
-              discounts: it.discounts,
-            });
-          } else {
-            const qtyPr = it.stockMain;
-            const qtyEk = it.quantity - it.stockMain;
-            rows.push({
-              sku: it.zucchettiSku,
-              warehouse: 'PR',
-              unit: it.unit,
-              quantity: qtyPr,
-              listPrice: it.listPrice,
-              discounts: it.discounts,
-            });
-            rows.push({
-              sku: it.zucchettiSku,
-              warehouse: 'EK',
-              unit: it.unit,
-              quantity: qtyEk,
-              listPrice: it.listPrice,
-              discounts: it.discounts,
-            });
-          }
+          // Prodotto Elmark entro il 70% di PR e sotto i 500 € di costo acquisto: resta in ORDCL su PR
+          ordclItems.push(it);
         }
+      }
+
+      if (ordclItems.length > 0) {
+        documentsToSend.push({
+          mvSerial: generateB2BZucchettiSerial(order.id, 'ZUCCHETTI'),
+          mvTipDoc: 'ORDCL',
+          items: ordclItems,
+          rows: ordclItems.map(it => ({
+            sku: it.zucchettiSku,
+            warehouse: 'PR',
+            unit: it.unit,
+            quantity: it.quantity,
+            listPrice: it.listPrice,
+            discounts: it.discounts,
+          })),
+        });
+      }
+
+      if (ordicItems.length > 0) {
+        documentsToSend.push({
+          mvSerial: generateB2BZucchettiSerial(order.id, 'ELMARK'),
+          mvTipDoc: 'ORDIC',
+          items: ordicItems,
+          rows: ordicItems.map(it => ({
+            sku: it.zucchettiSku,
+            warehouse: null,
+            unit: it.unit,
+            quantity: it.quantity,
+            listPrice: it.listPrice,
+            discounts: it.discounts,
+          })),
+        });
       }
     }
   }
+
+  const allRowsSent = documentsToSend.flatMap(d => d.rows);
+  const primaryDoc = documentsToSend[0];
 
   const baseUrl = getZucchettiBaseUrl();
   const tokenParams = new URLSearchParams();
@@ -584,7 +703,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
     };
   }
 
-  const executePost = async (xmlPayload: string) => {
+  const executePost = async (xmlPayload: string, docSerial: string) => {
     const appId = process.env.ZUCCHETTI_APPLICATION_ID || '00004';
     const importUrl = `${baseUrl}/api/${appId}/ADHOC_DOCUMENTI`;
     const bodyParams = new URLSearchParams();
@@ -626,7 +745,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
       /Errors\s*:\s*[1-9]/i.test(decodedLog);
 
     if (isError) {
-      console.error(`[ZucchettiOrders] Dettaglio tecnico errore Zucchetti (${mvSerial}):\n`, decodedLog);
+      console.error(`[ZucchettiOrders] Dettaglio tecnico errore Zucchetti (${docSerial}):\n`, decodedLog);
       return {
         ok: false,
         decodedLog,
@@ -638,75 +757,156 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
   };
 
   try {
-    const hasAnyDiscounts = rows.some(r => r.discounts.length > 0);
     let discountsAcceptedByXsd = true;
+    const logs: string[] = [];
 
-    const xmlWithDiscounts = buildAdhocDocumentiXml({
-      mvSerial,
-      mvTipDoc,
-      customerCode,
-      dateStr,
-      rows,
-      includeDiscountTags: hasAnyDiscounts,
-    });
-
-    let res = await executePost(xmlWithDiscounts);
-
-    if (
-      !res.ok &&
-      hasAnyDiscounts &&
-      res.decodedLog.includes('Invalid content was found starting with element') &&
-      res.decodedLog.includes('MVSCONT1')
-    ) {
-      console.warn(
-        `[ZucchettiOrders] Lo schema XSD 00004/ADHOC_DOCUMENTI su A0002 non espone ancora i tag <MVSCONT1..4>. Reinvio ordine ${mvSerial} (${mvTipDoc}) con MVPREZZO di listino senza tag MVSCONT.`
-      );
-      discountsAcceptedByXsd = false;
-      const xmlWithoutDiscountTags = buildAdhocDocumentiXml({
-        mvSerial,
-        mvTipDoc,
+    for (const docPlan of documentsToSend) {
+      const hasAnyDiscounts = docPlan.rows.some(r => r.discounts.length > 0);
+      const xmlWithDiscounts = buildAdhocDocumentiXml({
+        mvSerial: docPlan.mvSerial,
+        mvTipDoc: docPlan.mvTipDoc,
         customerCode,
         dateStr,
-        rows,
-        includeDiscountTags: false,
+        rows: docPlan.rows,
+        includeDiscountTags: hasAnyDiscounts,
       });
-      res = await executePost(xmlWithoutDiscountTags);
+
+      let res = await executePost(xmlWithDiscounts, docPlan.mvSerial);
+
+      if (
+        !res.ok &&
+        hasAnyDiscounts &&
+        res.decodedLog.includes('Invalid content was found starting with element') &&
+        res.decodedLog.includes('MVSCONT1')
+      ) {
+        console.warn(
+          `[ZucchettiOrders] Lo schema XSD 00004/ADHOC_DOCUMENTI su A0002 non espone ancora i tag <MVSCONT1..4>. Reinvio ordine ${docPlan.mvSerial} (${docPlan.mvTipDoc}) con MVPREZZO di listino senza tag MVSCONT.`
+        );
+        discountsAcceptedByXsd = false;
+        const xmlWithoutDiscountTags = buildAdhocDocumentiXml({
+          mvSerial: docPlan.mvSerial,
+          mvTipDoc: docPlan.mvTipDoc,
+          customerCode,
+          dateStr,
+          rows: docPlan.rows,
+          includeDiscountTags: false,
+        });
+        res = await executePost(xmlWithoutDiscountTags, docPlan.mvSerial);
+      }
+
+      if (!res.ok) {
+        console.error(
+          `[ZucchettiOrders] Errore invio ordine ${orderId} (${docPlan.mvSerial} - ${docPlan.mvTipDoc}):`,
+          res.errorMessage
+        );
+        return {
+          success: false,
+          mvSerial: docPlan.mvSerial,
+          mvTipDoc: docPlan.mvTipDoc,
+          totalElmarkPurchaseCost,
+          rowsSent: allRowsSent,
+          log: res.decodedLog,
+          error: res.errorMessage,
+        };
+      }
+
+      logs.push(res.decodedLog);
     }
 
-    if (!res.ok) {
-      console.error(`[ZucchettiOrders] Errore invio ordine ${orderId} (${mvSerial}):`, res.errorMessage);
+    // Se l'ordine misto è stato diviso in 2 documenti (ORDCL + ORDIC), separiamo anche i record nel DB B2B
+    if (documentsToSend.length === 2) {
+      const ordclPlan = documentsToSend[0];
+      const ordicPlan = documentsToSend[1];
+
+      const ordclTotalAmount = ordclPlan.items.reduce(
+        (sum, it) => sum + it.finalPrice * it.quantity,
+        0
+      );
+      const ordicTotalAmount = ordicPlan.items.reduce(
+        (sum, it) => sum + it.finalPrice * it.quantity,
+        0
+      );
+
+      const ordicItemIds = ordicPlan.items.map(it => it.itemId);
+
+      // 1. Rimuove dall'ordine originale ORDCL gli articoli spostati nell'ORDIC e aggiorna totali e riferimento
+      await prisma.b2BOrderItem.deleteMany({
+        where: { id: { in: ordicItemIds } },
+      });
+
+      await prisma.b2BOrder.update({
+        where: { id: order.id },
+        data: {
+          totalAmount: ordclTotalAmount,
+          totalIva: ordclTotalAmount * 0.22,
+          zucchettiOrderRef: ordclPlan.mvSerial,
+        },
+      });
+
+      // 2. Crea il secondo ordine B2B corrispondente al documento ORDIC inviato a Zucchetti
+      const splitOrder = await prisma.b2BOrder.create({
+        data: {
+          userId: order.userId,
+          promoProspectId: order.promoProspectId,
+          createdById: order.createdById,
+          status: order.status,
+          storeMode: order.storeMode,
+          totalAmount: ordicTotalAmount,
+          totalIva: ordicTotalAmount * 0.22,
+          zucchettiOrderRef: ordicPlan.mvSerial,
+          notes: order.notes
+            ? `${order.notes} — ORDIC Elmark`
+            : 'Ordine ORDIC (Spedizione diretta Elmark)',
+          items: {
+            create: ordicPlan.items.map(it => ({
+              sku: it.rawSku,
+              quantity: it.quantity,
+              originalPrice: it.listPrice,
+              finalPrice: it.finalPrice,
+              discountString: it.discountString,
+            })),
+          },
+        },
+      });
+
       return {
-        success: false,
-        mvSerial,
-        mvTipDoc,
-        rowsSent: rows,
-        log: res.decodedLog,
-        error: res.errorMessage,
+        success: true,
+        mvSerial: `${ordclPlan.mvSerial}, ${ordicPlan.mvSerial}`,
+        mvTipDoc: 'ORDCL',
+        splitOrderId: splitOrder.id,
+        splitMvSerial: ordicPlan.mvSerial,
+        totalElmarkPurchaseCost,
+        discountsAcceptedByXsd,
+        rowsSent: allRowsSent,
+        log: logs.join('\n'),
       };
     }
 
+    // Caso documento singolo (ORDCL oppure ORDIC)
     await prisma.b2BOrder.update({
       where: { id: order.id },
       data: {
-        zucchettiOrderRef: mvSerial,
+        zucchettiOrderRef: primaryDoc.mvSerial,
       },
     });
 
     return {
       success: true,
-      mvSerial,
-      mvTipDoc,
+      mvSerial: primaryDoc.mvSerial,
+      mvTipDoc: primaryDoc.mvTipDoc,
+      totalElmarkPurchaseCost,
       discountsAcceptedByXsd,
-      rowsSent: rows,
-      log: res.decodedLog,
+      rowsSent: allRowsSent,
+      log: logs.join('\n'),
     };
   } catch (err: any) {
     console.error(`[ZucchettiOrders] Eccezione invio ordine ${orderId}:`, err);
     return {
       success: false,
-      mvSerial,
-      mvTipDoc,
-      rowsSent: rows,
+      mvSerial: primaryDoc?.mvSerial,
+      mvTipDoc: primaryDoc?.mvTipDoc,
+      totalElmarkPurchaseCost,
+      rowsSent: allRowsSent,
       error: err.message || 'Errore imprevisto durante la comunicazione con Zucchetti.',
     };
   } finally {
