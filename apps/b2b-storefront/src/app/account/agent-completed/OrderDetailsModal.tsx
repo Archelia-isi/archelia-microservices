@@ -241,19 +241,91 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                     />
                   )}
                   
-                  <div className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm">
-                    {/* Table Header like Cart */}
-                    <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm text-gray-500 font-medium">
-                    <div className="col-span-12 sm:col-span-5">Prodotto</div>
-                    <div className="col-span-4 sm:col-span-2 text-center">Quantità</div>
-                    <div className="col-span-4 sm:col-span-3 text-right">Prezzo Unit.</div>
-                    <div className="col-span-4 sm:col-span-2 text-right">Totale</div>
-                  </div>
+                  {(() => {
+                    const shortOrderId = order.id.slice(-6).toUpperCase();
+                    const externalRef = `ORDINE WEB #${shortOrderId}`;
+                    const fallbackDocType = order.storeMode === 'ELMARK' ? 'ORDIC' : 'ORDCL';
+                    const isReorder = mode === 'REORDER';
 
-                  <div className="flex flex-col divide-y divide-gray-100">
-                    {populatedItems.map((item: any) => {
+                    const groups = isReorder
+                      ? [
+                          {
+                            docType: fallbackDocType as 'ORDCL' | 'ORDIC',
+                            docRef: order.zucchettiOrderRef || '',
+                            items: populatedItems,
+                          },
+                        ]
+                      : (() => {
+                          const map = new Map<
+                            string,
+                            { docType: 'ORDCL' | 'ORDIC'; docRef: string; items: any[] }
+                          >();
+                          for (const it of populatedItems) {
+                            const rawType = String(it.zucchettiDocType || fallbackDocType)
+                              .trim()
+                              .toUpperCase();
+                            const docType: 'ORDCL' | 'ORDIC' = rawType === 'ORDIC' ? 'ORDIC' : 'ORDCL';
+                            const docRef =
+                              it.zucchettiDocRef ||
+                              (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
+                                ? order.zucchettiOrderRef
+                                : `Ns. doc. ${docType}`);
+                            if (!map.has(docType)) {
+                              map.set(docType, { docType, docRef, items: [] });
+                            }
+                            map.get(docType)!.items.push(it);
+                          }
+                          return Array.from(map.values()).sort((a, b) =>
+                            a.docType === b.docType ? 0 : a.docType === 'ORDCL' ? -1 : 1
+                          );
+                        })();
+
+                    return groups.map((group, groupIdx) => {
+                      const isOrdic = group.docType === 'ORDIC';
+                      const groupImponibile = group.items.reduce(
+                        (sum, it) => sum + Number(it.finalPrice || 0) * Number(it.quantity || 0),
+                        0
+                      );
+                      const groupIva = groupImponibile * 0.22;
+                      const groupTotale = groupImponibile + groupIva;
+
+                      return (
+                        <div key={group.docType + groupIdx} className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                          {!isReorder && (
+                            <div
+                              className={`p-3.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                isOrdic ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-xs font-extrabold uppercase ${
+                                    isOrdic ? 'bg-amber-600 text-white' : 'bg-blue-700 text-white'
+                                  }`}
+                                >
+                                  Documento {groupIdx + 1}: {group.docType}
+                                </span>
+                                <span className="font-mono text-xs font-bold text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
+                                  {group.docRef}
+                                </span>
+                              </div>
+                              <span className="text-xs font-mono text-gray-700 bg-white/90 px-2 py-0.5 rounded border border-gray-200">
+                                Rif. esterno Zucchetti: <strong>{externalRef}</strong>
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Table Header like Cart */}
+                          <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-100 text-sm text-gray-500 font-medium">
+                            <div className="col-span-12 sm:col-span-5">Prodotto</div>
+                            <div className="col-span-4 sm:col-span-2 text-center">Quantità</div>
+                            <div className="col-span-4 sm:col-span-3 text-right">Prezzo Unit.</div>
+                            <div className="col-span-4 sm:col-span-2 text-right">Totale</div>
+                          </div>
+
+                          <div className="flex flex-col divide-y divide-gray-100">
+                            {group.items.map((item: any) => {
                       const p = item.product || { title: 'Prodotto Sconosciuto', imageUrl: '/placeholder.png', stock: 0, unit: 'PZ' };
-                      const isReorder = mode === 'REORDER';
                       
                       const qty = isReorder ? (quantities[item.id] || 0) : item.quantity;
                       
@@ -433,8 +505,30 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                         </div>
                       );
                     })}
-                  </div>
-                  </div>
+                          </div>
+
+                          {!isReorder && (
+                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+                              <span className="font-semibold text-gray-500 uppercase">
+                                Subtotale Documento {group.docType}
+                              </span>
+                              <div className="flex flex-wrap items-center gap-4 ml-auto">
+                                <span className="text-gray-600">
+                                  Imponibile: <strong>€ {groupImponibile.toFixed(2).replace('.', ',')}</strong>
+                                </span>
+                                <span className="text-gray-600">
+                                  IVA (22%): <strong>€ {groupIva.toFixed(2).replace('.', ',')}</strong>
+                                </span>
+                                <span className="font-bold text-gray-900">
+                                  Totale {group.docType}: <strong className="text-brand-main">€ {groupTotale.toFixed(2).replace('.', ',')}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>

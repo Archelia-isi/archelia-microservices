@@ -7,6 +7,7 @@ import Image from 'next/image';
 import AcceptDraftButton from '../AcceptDraftButton';
 import DeleteSentOrderButton from '../DeleteSentOrderButton';
 import OrderEditModeClient from '../OrderEditModeClient';
+import ZucchettiDocRefEditor from './ZucchettiDocRefEditor';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
 import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
 
@@ -157,6 +158,63 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     );
   }
 
+  const shortOrderId = order.id.slice(-6).toUpperCase();
+  const externalRef = `ORDINE WEB #${shortOrderId}`;
+  const dateIso = order.createdAt.toISOString().split('T')[0];
+  const [yyyy, mm, dd] = dateIso.split('-');
+  const itDateStr = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateIso;
+  const fallbackDocType = isElmark ? 'ORDIC' : 'ORDCL';
+
+  // Raggruppa le righe ordine per Documento Zucchetti generato (ORDCL vs ORDIC)
+  const docGroupsMap = new Map<
+    string,
+    {
+      docType: 'ORDCL' | 'ORDIC';
+      docRef: string;
+      docSerial: string | null;
+      items: typeof populatedItems;
+      imponibile: number;
+      iva: number;
+      totale: number;
+    }
+  >();
+
+  for (const item of populatedItems) {
+    const rawType = String((item as any).zucchettiDocType || fallbackDocType)
+      .trim()
+      .toUpperCase();
+    const docType: 'ORDCL' | 'ORDIC' = rawType === 'ORDIC' ? 'ORDIC' : 'ORDCL';
+    const itemRef =
+      (item as any).zucchettiDocRef ||
+      (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
+        ? order.zucchettiOrderRef
+        : `Ns. doc. ${docType} del ${itDateStr}`);
+    const itemSerial = (item as any).zucchettiDocSerial || null;
+
+    if (!docGroupsMap.has(docType)) {
+      docGroupsMap.set(docType, {
+        docType,
+        docRef: itemRef,
+        docSerial: itemSerial,
+        items: [],
+        imponibile: 0,
+        iva: 0,
+        totale: 0,
+      });
+    }
+
+    const grp = docGroupsMap.get(docType)!;
+    grp.items.push(item);
+    grp.imponibile += item.finalPrice * item.quantity;
+    grp.iva = grp.imponibile * 0.22;
+    grp.totale = grp.imponibile + grp.iva;
+  }
+
+  // Ordina i blocchi mostrando prima ORDCL (Magazzino PR) e poi ORDIC (Spedizione Diretta Elmark)
+  const docGroups = Array.from(docGroupsMap.values()).sort((a, b) =>
+    a.docType === b.docType ? 0 : a.docType === 'ORDCL' ? -1 : 1
+  );
+
   return (
     <div>
       <div className="mb-6">
@@ -168,17 +226,27 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-3">
-              Dettagli Ordine #{order.id.slice(-6).toUpperCase()}
+            <h1 className="text-2xl font-bold flex flex-wrap items-center gap-3">
+              Dettagli Ordine #{shortOrderId}
               <span className={`px-2 py-1 rounded text-xs font-semibold border ${statusColor} text-base`}>
                 {statusText}
               </span>
+              {docGroups.length > 1 && (
+                <span className="px-2.5 py-1 rounded text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                  Suddiviso in {docGroups.length} Documenti Zucchetti (ORDCL + ORDIC)
+                </span>
+              )}
             </h1>
             <p className="text-gray-500 mt-1">
               Data: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
             </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+              <span className="bg-gray-100 text-gray-800 font-mono font-semibold px-2 py-0.5 rounded border border-gray-200">
+                Rif. Esterno su Zucchetti: {externalRef}
+              </span>
+            </div>
             {isAgent && (order.user || order.promoProspect) && (
-              <p className="text-sm font-semibold text-gray-800 mt-1">
+              <p className="text-sm font-semibold text-gray-800 mt-2">
                 Cliente: {(order.user || order.promoProspect)?.companyName || 'Cliente'} ({order.user?.zucchettiCode ? `Cod. ${order.user.zucchettiCode}` : `In attivazione - ${order.promoProspect?.username}`})
               </p>
             )}
@@ -194,66 +262,141 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           </div>
         </div>
 
-        <div className="p-0">
-          <div className="grid grid-cols-12 gap-4 p-4 border-b border-gray-200 bg-gray-50 font-medium text-sm text-gray-500">
-            <div className="col-span-6">Prodotto</div>
-            <div className="col-span-2 text-center">Quantità</div>
-            <div className="col-span-2 text-right">Prezzo Scontato</div>
-            <div className="col-span-2 text-right">Totale</div>
-          </div>
+        {/* Elenco Prodotti suddiviso per singolo Ordine Zucchetti (ORDCL / ORDIC) */}
+        <div className="p-4 sm:p-6 bg-gray-50/60 space-y-6">
+          {docGroups.map((group, groupIdx) => {
+            const isOrdic = group.docType === 'ORDIC';
+            const headerBg = isOrdic
+              ? 'bg-amber-50 border-amber-200'
+              : 'bg-blue-50 border-blue-200';
+            const badgeStyle = isOrdic
+              ? 'bg-amber-600 text-white'
+              : 'bg-blue-700 text-white';
+            const docTitle = isOrdic
+              ? 'Ordine Fornitore / Spedizione Diretta Elmark (ORDIC)'
+              : 'Ordine Magazzino Principale PR (ORDCL)';
 
-          <div className="divide-y divide-gray-100">
-            {populatedItems.map((item) => (
-              <div key={item.id} className="grid grid-cols-12 gap-4 p-4 items-center">
-                <div className="col-span-6 flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
-                    <img src={item.product?.imageUrl || '/placeholder.png'} alt={item.product?.title || item.sku} className="object-contain w-full h-full" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900 line-clamp-2 leading-tight">
-                      {item.product?.title || 'Prodotto Sconosciuto'}
-                    </div>
-                    <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wide">CODICE PRODOTTO: <span className="font-mono">{item.sku}</span></div>
-                  </div>
-                </div>
-
-                <div className="col-span-2 text-center font-medium">
-                  {item.quantity} pz.
-                </div>
-
-                <div className="col-span-2 text-right flex flex-col items-end">
-                  {item.originalPrice > item.finalPrice && (
-                    <div className="flex items-center justify-end gap-1 mb-0.5">
-                      <span className="text-[10px] text-gray-400 line-through">
-                        € {item.originalPrice.toFixed(2).replace('.', ',')}
+            return (
+              <div
+                key={group.docType}
+                className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
+              >
+                {/* Intestazione Documento Zucchetti */}
+                <div className={`p-4 border-b ${headerBg} flex flex-col lg:flex-row lg:items-center justify-between gap-3`}>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded text-xs font-extrabold tracking-wide uppercase ${badgeStyle}`}>
+                        Documento {groupIdx + 1}: {group.docType}
                       </span>
-                      <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                        -{item.discountString ? String(item.discountString).replace(/^-/, '') : `${Math.round((1 - (item.finalPrice / item.originalPrice)) * 100)}%`}
+                      <span className="font-bold text-sm text-gray-900">
+                        {docTitle}
                       </span>
                     </div>
-                  )}
+                    <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2">
+                      <span>Rif. in Fattura / Gestionale:</span>
+                      <ZucchettiDocRefEditor
+                        orderId={order.id}
+                        docType={group.docType}
+                        currentRef={group.docRef}
+                        canEdit={isAgent || session.user.role === 'ADMIN'}
+                      />
+                    </div>
+                  </div>
 
-                  <div className="font-bold text-sm text-gray-900">
-                    € {item.finalPrice.toFixed(2).replace('.', ',')}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
+                    <span className="bg-white/90 px-2.5 py-1 rounded border border-gray-200 font-mono">
+                      Rif. esterno Zucchetti: <strong>{externalRef}</strong>
+                    </span>
+                    <span className="bg-white/90 px-2.5 py-1 rounded border border-gray-200 font-semibold">
+                      Articoli nel documento: <strong>{group.items.reduce((acc, i) => acc + i.quantity, 0)} pz.</strong>
+                    </span>
                   </div>
                 </div>
 
-                <div className="col-span-2 text-right font-bold text-brand-main">
-                  € {(item.finalPrice * item.quantity).toFixed(2).replace('.', ',')}
+                {/* Tabella Prodotti di questo Documento Zucchetti */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-200 bg-gray-50 font-medium text-xs uppercase tracking-wider text-gray-500">
+                  <div className="col-span-6">Prodotto</div>
+                  <div className="col-span-2 text-center">Quantità</div>
+                  <div className="col-span-2 text-right">Prezzo Scontato</div>
+                  <div className="col-span-2 text-right">Totale Riga</div>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {group.items.map((item) => (
+                    <div key={item.id} className="grid grid-cols-12 gap-4 p-4 items-center">
+                      <div className="col-span-6 flex items-center gap-4">
+                        <div className="w-16 h-16 bg-white border border-gray-200 rounded p-1 flex-shrink-0">
+                          <img src={item.product?.imageUrl || '/placeholder.png'} alt={item.product?.title || item.sku} className="object-contain w-full h-full" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-gray-900 line-clamp-2 leading-tight">
+                            {item.product?.title || 'Prodotto Sconosciuto'}
+                          </div>
+                          <div className="text-[10px] text-gray-500 mt-1 uppercase tracking-wide">
+                            CODICE PRODOTTO: <span className="font-mono">{item.sku}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 text-center font-medium">
+                        {item.quantity} pz.
+                      </div>
+
+                      <div className="col-span-2 text-right flex flex-col items-end">
+                        {item.originalPrice > item.finalPrice && (
+                          <div className="flex items-center justify-end gap-1 mb-0.5">
+                            <span className="text-[10px] text-gray-400 line-through">
+                              € {item.originalPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                            <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
+                              -{item.discountString ? String(item.discountString).replace(/^-/, '') : `${Math.round((1 - (item.finalPrice / item.originalPrice)) * 100)}%`}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="font-bold text-sm text-gray-900">
+                          € {item.finalPrice.toFixed(2).replace('.', ',')}
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 text-right font-bold text-brand-main">
+                        € {(item.finalPrice * item.quantity).toFixed(2).replace('.', ',')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Subtotale di questo specifico Documento Zucchetti (per riscontro immediato con la Fattura) */}
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Subtotale Documento {group.docType} ({group.docRef})
+                  </span>
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 ml-auto">
+                    <span className="text-gray-600">
+                      Imponibile {group.docType}: <strong className="text-gray-900">€ {group.imponibile.toFixed(2).replace('.', ',')}</strong>
+                    </span>
+                    <span className="text-gray-600">
+                      IVA (22%): <strong className="text-gray-900">€ {group.iva.toFixed(2).replace('.', ',')}</strong>
+                    </span>
+                    <span className="text-gray-900 font-bold">
+                      Totale {group.docType} (IVA Incl.): <strong className="text-base text-brand-main">€ {group.totale.toFixed(2).replace('.', ',')}</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
+        {/* Riepilogo Totale Complessivo Ordine Sito */}
         <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
           <div className="text-right w-full max-w-xs">
             <div className="flex justify-between items-center mb-2 text-gray-600">
-              <span>Totale Imponibile:</span>
+              <span>Totale Imponibile Ordine:</span>
               <span>€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
             </div>
             <div className="flex justify-between items-center mb-4 text-gray-600">
-              <span>IVA (22%):</span>
+              <span>IVA Complessiva (22%):</span>
               <span>€ {order.totalIva.toFixed(2).replace('.', ',')}</span>
             </div>
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">

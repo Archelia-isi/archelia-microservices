@@ -203,7 +203,74 @@ export async function getPopulatedOrderDetails(orderId: string) {
     items: populatedItems,
     elmarkDiscounts,
     genericDiscount,
-    storeMode 
+    storeMode,
+    zucchettiOrderRef: order.zucchettiOrderRef || null,
+    externalRef: `ORDINE WEB #${order.id.slice(-6).toUpperCase()}`,
+  };
+}
+
+export async function updateZucchettiDocRefAction(
+  orderId: string,
+  docType: string,
+  docNumInput: string
+) {
+  const session = await verifySession();
+  if (!session) return { success: false, error: 'Non autorizzato' };
+
+  const order = await prisma.b2BOrder.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+  if (!order) return { success: false, error: 'Ordine non trovato' };
+
+  const rawInput = String(docNumInput || '').trim();
+  if (!rawInput) return { success: false, error: 'Inserisci un riferimento documento valido' };
+
+  const dateIso = (order.createdAt || new Date()).toISOString().split('T')[0];
+  const [yyyy, mm, dd] = dateIso.split('-');
+  const itDateStr = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateIso;
+
+  const cleanType = (docType || 'ORDCL').trim().toUpperCase();
+  const formattedRef = rawInput.toLowerCase().startsWith('ns. doc')
+    ? rawInput
+    : `Ns. doc. ${cleanType} n. ${rawInput.replace(/^n\.\s*/i, '')} ${itDateStr}`;
+
+  await prisma.b2BOrderItem.updateMany({
+    where: {
+      orderId: order.id,
+      ...(docType ? { zucchettiDocType: docType } : {}),
+    },
+    data: {
+      zucchettiDocType: cleanType,
+      zucchettiDocRef: formattedRef,
+    },
+  });
+
+  const updatedItems = await prisma.b2BOrderItem.findMany({
+    where: { orderId: order.id },
+  });
+
+  const distinctRefs = Array.from(
+    new Set(updatedItems.map(it => it.zucchettiDocRef).filter(Boolean))
+  );
+  const combinedOrderRef =
+    distinctRefs.length > 0 ? distinctRefs.join(' | ') : formattedRef;
+
+  await prisma.b2BOrder.update({
+    where: { id: order.id },
+    data: {
+      zucchettiOrderRef: combinedOrderRef,
+    },
+  });
+
+  revalidatePath(`/account/orders/${order.id}`);
+  revalidatePath('/account/orders');
+  revalidatePath('/account/agent-completed');
+
+  return {
+    success: true,
+    formattedRef,
+    combinedOrderRef,
   };
 }
 

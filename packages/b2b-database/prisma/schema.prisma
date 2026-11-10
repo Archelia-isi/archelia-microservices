@@ -256,18 +256,21 @@ model B2BOrder {
 }
 
 model B2BOrderItem {
-  id              String    @id @default(cuid())
-  orderId         String
-  order           B2BOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(cuid())
+  orderId            String
+  order              B2BOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   
-  sku             String
-  quantity        Int       @default(1)
-  originalPrice   Float
-  finalPrice      Float     // Prezzo scontato finale
-  discountString  String?   // Es: "40+10" oppure "50+5"
+  sku                String
+  quantity           Int       @default(1)
+  originalPrice      Float
+  finalPrice         Float     // Prezzo scontato finale
+  discountString     String?   // Es: "40+10" oppure "50+5"
+  zucchettiDocType   String?   // Es: "ORDCL" oppure "ORDIC"
+  zucchettiDocRef    String?   // Es: "Ns. doc. ORDCL n. 120/ST 09-11-2026" o "ORDCL #0000002536 del 10-11-2026"
+  zucchettiDocSerial String?   // Seriale interno Zucchetti MVSERIAL (es. "0000002536") o MVSERIAL_K ("B2I...")
   
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@map("b2b_order_items")
 }

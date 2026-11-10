@@ -71,14 +71,34 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
               statusText = order.status;
             }
 
+            const shortOrderId = order.id.slice(-6).toUpperCase();
+            const distinctDocRefs = Array.from(
+              new Set(
+                order.items
+                  .map((it: any) => it.zucchettiDocRef)
+                  .filter(Boolean)
+              )
+            ) as string[];
+            const fallbackRefs =
+              distinctDocRefs.length > 0
+                ? distinctDocRefs
+                : order.zucchettiOrderRef
+                  ? order.zucchettiOrderRef.split(' | ').map(s => s.trim()).filter(Boolean)
+                  : [];
+
             return (
               <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-bold text-lg">Ordine #{order.id.slice(-6).toUpperCase()}</span>
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <span className="font-bold text-lg">Ordine #{shortOrderId}</span>
                     <span className={`px-2 py-1 rounded text-xs font-semibold border ${statusColor}`}>
                       {statusText}
                     </span>
+                    {fallbackRefs.length > 1 && (
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                        {fallbackRefs.length} Ordini Zucchetti (ORDCL + ORDIC)
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm text-gray-500 mb-2">
                     Effettuato il: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
@@ -86,6 +106,25 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
                   <div className="text-sm text-gray-700">
                     Prodotti: <span className="font-semibold">{order.items.reduce((acc, item) => acc + item.quantity, 0)} pz.</span>
                   </div>
+                  {fallbackRefs.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {fallbackRefs.map((refStr, idx) => {
+                        const isOrdic = refStr.includes('ORDIC');
+                        return (
+                          <span
+                            key={idx}
+                            className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${
+                              isOrdic
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : 'bg-blue-50 text-blue-800 border-blue-200'
+                            }`}
+                          >
+                            {refStr}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex flex-col items-end w-full md:w-auto gap-3">

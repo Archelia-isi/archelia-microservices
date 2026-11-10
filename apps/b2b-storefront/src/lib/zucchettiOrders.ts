@@ -385,12 +385,18 @@ export function buildAdhocDocumentiXml(params: {
   customerCode: string;
   dateStr: string;
   destinationCode?: string | null;
+  externalRef?: string | null;
   rows: ZucchettiOrderRowPayload[];
   includeDiscountTags: boolean;
 }): string {
   const destAttr =
     params.destinationCode && params.destinationCode.trim()
       ? ` MVCODDES="${escapeXml(params.destinationCode.trim())}"`
+      : '';
+
+  const extRefAttr =
+    params.externalRef && params.externalRef.trim()
+      ? ` MVNUMFAT="${escapeXml(params.externalRef.trim().substring(0, 50))}"`
       : '';
 
   const rowsXml = params.rows
@@ -421,7 +427,7 @@ export function buildAdhocDocumentiXml(params: {
     .join('\n');
 
   return `<ADHOC_DOCUMENTI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ConsolidationDate="01-01-1900" applicationId="00004">
-  <Add_ADHOC_DOCUMENTI MVCLADOC="OR" MVCODCON="${escapeXml(params.customerCode)}" MVDATDOC="${params.dateStr}" MVDATREG="${params.dateStr}" MVFLVEAC="V" MVSERIAL_K="${escapeXml(params.mvSerial)}" MVTIPDOC="${params.mvTipDoc}"${destAttr}>
+  <Add_ADHOC_DOCUMENTI MVCLADOC="OR" MVCODCON="${escapeXml(params.customerCode)}" MVDATDOC="${params.dateStr}" MVDATREG="${params.dateStr}" MVFLVEAC="V" MVSERIAL_K="${escapeXml(params.mvSerial)}" MVTIPDOC="${params.mvTipDoc}"${destAttr}${extRefAttr}>
     <BO_ADHOC_DOCUMENTI_d>
 ${rowsXml}
     </BO_ADHOC_DOCUMENTI_d>
@@ -761,9 +767,21 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
     return { ok: true, decodedLog, errorMessage: '' };
   };
 
+  const webOrderShortId = order.id.slice(-6).toUpperCase();
+  const externalRef = `ORDINE WEB #${webOrderShortId}`;
+  const [yyyy, mm, dd] = dateStr.split('-');
+  const itDateStr = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateStr;
+
   try {
     let discountsAcceptedByXsd = true;
     const logs: string[] = [];
+    const createdDocs: Array<{
+      mvSerialK: string;
+      assignedMvSerial: string;
+      mvTipDoc: 'ORDCL' | 'ORDIC';
+      docRef: string;
+      items: ResolvedOrderItem[];
+    }> = [];
 
     for (const docPlan of documentsToSend) {
       const hasAnyDiscounts = docPlan.rows.some(r => r.discounts.length > 0);
@@ -772,6 +790,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
         mvTipDoc: docPlan.mvTipDoc,
         customerCode,
         dateStr,
+        externalRef,
         rows: docPlan.rows,
         includeDiscountTags: hasAnyDiscounts,
       });
@@ -793,6 +812,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
           mvTipDoc: docPlan.mvTipDoc,
           customerCode,
           dateStr,
+          externalRef,
           rows: docPlan.rows,
           includeDiscountTags: false,
         });
@@ -816,89 +836,86 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
       }
 
       logs.push(res.decodedLog);
+
+      // Estrae il seriale interno MVSERIAL assegnato da Zucchetti (es. "0000002536")
+      const serialMatches = Array.from(res.decodedLog.matchAll(/MVSERIAL="([^"]+)"/g))
+        .map(m => m[1])
+        .filter(s => s && s !== 'CALCOLATA');
+      const assignedMvSerial = serialMatches[serialMatches.length - 1] || docPlan.mvSerial;
+
+      const defaultDocRef = `Ns. doc. ${docPlan.mvTipDoc} (Reg. #${assignedMvSerial} · Rif. ${docPlan.mvSerial}) del ${itDateStr}`;
+
+      createdDocs.push({
+        mvSerialK: docPlan.mvSerial,
+        assignedMvSerial,
+        mvTipDoc: docPlan.mvTipDoc,
+        docRef: defaultDocRef,
+        items: docPlan.items,
+      });
     }
 
-    // Se l'ordine misto è stato diviso in 2 documenti (ORDCL + ORDIC), separiamo anche i record nel DB B2B
-    if (documentsToSend.length === 2) {
-      const ordclPlan = documentsToSend[0];
-      const ordicPlan = documentsToSend[1];
-
-      const ordclTotalAmount = ordclPlan.items.reduce(
-        (sum, it) => sum + it.finalPrice * it.quantity,
-        0
-      );
-      const ordicTotalAmount = ordicPlan.items.reduce(
-        (sum, it) => sum + it.finalPrice * it.quantity,
-        0
-      );
-
-      const ordicItemIds = ordicPlan.items.map(it => it.itemId);
-
-      // 1. Rimuove dall'ordine originale ORDCL gli articoli spostati nell'ORDIC e aggiorna totali e riferimento
-      await prisma.b2BOrderItem.deleteMany({
-        where: { id: { in: ordicItemIds } },
-      });
-
-      await prisma.b2BOrder.update({
-        where: { id: order.id },
-        data: {
-          totalAmount: ordclTotalAmount,
-          totalIva: ordclTotalAmount * 0.22,
-          zucchettiOrderRef: ordclPlan.mvSerial,
+    // Verifica opzionale su SPVQRProducer/zzna_ordini se Zucchetti restituisce MVNUMDOC e MVALFDOC (es. "120/ST")
+    try {
+      const basicAuth =
+        'Basic ' +
+        Buffer.from(
+          `${process.env.ZUCCHETTI_USERNAME || 'Soapserv'}:${process.env.ZUCCHETTI_PASSWORD || 'SspSrvZ2025%%'}`
+        ).toString('base64');
+      const vqrRes = await zFetch(
+        `${baseUrl}/servlet/api/SPVQRProducer/zzna_ordini?sp_company=A0002`,
+        {
+          method: 'GET',
+          headers: { authorization: basicAuth },
         },
-      });
+        4000
+      );
+      if (vqrRes.ok) {
+        const vqrJson: any = await vqrRes.json();
+        const vqrRows: any[] = Array.isArray(vqrJson?.data) ? vqrJson.data : [];
+        for (const cDoc of createdDocs) {
+          const matchRow = vqrRows.find(
+            r => String(r.mvserial || '').trim() === cDoc.assignedMvSerial
+          );
+          if (matchRow && matchRow.mvnumdoc) {
+            const numDoc = String(matchRow.mvnumdoc).trim();
+            const alfDoc = String(matchRow.mvalfdoc || '').trim();
+            const docNumFormatted = alfDoc ? `${numDoc}/${alfDoc}` : numDoc;
+            cDoc.docRef = `Ns. doc. ${cDoc.mvTipDoc} n. ${docNumFormatted} ${itDateStr}`;
+          }
+        }
+      }
+    } catch {}
 
-      // 2. Crea il secondo ordine B2B corrispondente al documento ORDIC inviato a Zucchetti
-      const splitOrder = await prisma.b2BOrder.create({
-        data: {
-          userId: order.userId,
-          promoProspectId: order.promoProspectId,
-          createdById: order.createdById,
-          status: order.status,
-          storeMode: order.storeMode,
-          totalAmount: ordicTotalAmount,
-          totalIva: ordicTotalAmount * 0.22,
-          zucchettiOrderRef: ordicPlan.mvSerial,
-          notes: order.notes
-            ? `${order.notes} — ORDIC Elmark`
-            : 'Ordine ORDIC (Spedizione diretta Elmark)',
-          items: {
-            create: ordicPlan.items.map(it => ({
-              sku: it.rawSku,
-              quantity: it.quantity,
-              originalPrice: it.listPrice,
-              finalPrice: it.finalPrice,
-              discountString: it.discountString,
-            })),
+    // Mantiene un UNICO ordine sul sito (senza spezzare il B2BOrder) e salva su ogni riga articolo
+    // il documento Zucchetti (ORDCL oppure ORDIC) a cui appartiene, insieme al riferimento e seriale Zucchetti
+    for (const cDoc of createdDocs) {
+      const itemIds = cDoc.items.map(it => it.itemId);
+      if (itemIds.length > 0) {
+        await prisma.b2BOrderItem.updateMany({
+          where: { id: { in: itemIds } },
+          data: {
+            zucchettiDocType: cDoc.mvTipDoc,
+            zucchettiDocRef: cDoc.docRef,
+            zucchettiDocSerial: cDoc.assignedMvSerial,
           },
-        },
-      });
-
-      return {
-        success: true,
-        mvSerial: `${ordclPlan.mvSerial}, ${ordicPlan.mvSerial}`,
-        mvTipDoc: 'ORDCL',
-        splitOrderId: splitOrder.id,
-        splitMvSerial: ordicPlan.mvSerial,
-        totalElmarkPurchaseCost,
-        discountsAcceptedByXsd,
-        rowsSent: allRowsSent,
-        log: logs.join('\n'),
-      };
+        });
+      }
     }
 
-    // Caso documento singolo (ORDCL oppure ORDIC)
+    const combinedOrderRef = createdDocs.map(d => d.docRef).join(' | ');
+
     await prisma.b2BOrder.update({
       where: { id: order.id },
       data: {
-        zucchettiOrderRef: primaryDoc.mvSerial,
+        zucchettiOrderRef: combinedOrderRef,
       },
     });
 
     return {
       success: true,
-      mvSerial: primaryDoc.mvSerial,
+      mvSerial: combinedOrderRef,
       mvTipDoc: primaryDoc.mvTipDoc,
+      splitMvSerial: createdDocs.length > 1 ? createdDocs[1].docRef : undefined,
       totalElmarkPurchaseCost,
       discountsAcceptedByXsd,
       rowsSent: allRowsSent,
