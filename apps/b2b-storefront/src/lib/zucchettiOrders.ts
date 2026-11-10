@@ -339,19 +339,24 @@ export async function resolveZucchettiProductForOrderItem(
     }
   }
 
-  const priceB2b =
-    Number(zucchettiDoc?.price_b2b) > 0
-      ? Number(zucchettiDoc.price_b2b)
-      : Number(zucchettiDoc?.price || directProd?.price || 0);
-  const priceElmark = Number(
-    elmarkDbRow?.price || elmarkDoc?.price || directProd?.price || priceB2b || 0
-  );
   const purchasePrice =
     elmarkDbRow && Number(elmarkDbRow.purchasePrice) > 0
       ? Number(elmarkDbRow.purchasePrice)
-      : isElmarkWorld && priceB2b > 0
-        ? Number((priceB2b / 3).toFixed(4))
+      : isElmarkWorld && Number(zucchettiDoc?.price_b2b || 0) > 0
+        ? Number((Number(zucchettiDoc.price_b2b) / 3).toFixed(4))
         : 0;
+
+  // Per i prodotti non presenti in PR (stockMain === 0) appartenenti a Elmark,
+  // il prezzo di listino Izzo Distribuzione è sempre purchasePrice * 3
+  const priceB2b =
+    stockMain === 0 && purchasePrice > 0
+      ? Number((purchasePrice * 3).toFixed(5))
+      : Number(zucchettiDoc?.price_b2b) > 0
+        ? Number(zucchettiDoc.price_b2b)
+        : Number(zucchettiDoc?.price || directProd?.price || 0);
+  const priceElmark = Number(
+    elmarkDbRow?.price || elmarkDoc?.price || directProd?.price || priceB2b || 0
+  );
 
   return {
     zucchettiSku: resolvedZucchettiSku,

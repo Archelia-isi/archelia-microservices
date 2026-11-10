@@ -208,6 +208,27 @@ export class ZucchettiPullService {
           agg.seenEk = true;
         }
       }
+
+      // Per gli articoli non presenti in PR (stockPr === 0) appartenenti a Elmark,
+      // il prezzo di listino Izzo Distribuzione B2B è sempre purchasePrice * 3 dalla tabella elmark_processed_products
+      const elmarkRows = await prisma.elmarkProcessedProduct.findMany({
+        where: { purchasePrice: { gt: 0 } },
+        select: { sku: true, purchasePrice: true, stockEk: true }
+      });
+      const elmarkBySku = new Map(
+        elmarkRows.map(ep => [ep.sku.trim().toUpperCase(), ep])
+      );
+
+      for (const agg of skuMap.values()) {
+        if (agg.stockPr === 0) {
+          const ep = elmarkBySku.get(String(agg.baseArticle.arcodar2 || '').trim().toUpperCase());
+          if (ep && ep.purchasePrice > 0) {
+            agg.priceB2b = parseFloat((ep.purchasePrice * 3).toFixed(5));
+            agg.priceListB2b = 'ELMARK_ACQ_X3';
+            agg.stockEk = ep.stockEk;
+          }
+        }
+      }
       
       const articles = Array.from(skuMap.values());
       diagnostics.zucchettiLveCount = articles.length;
@@ -568,11 +589,18 @@ export class ZucchettiPullService {
       const filtered = articles.filter(a => LISTINI_ECOMMERCE.includes(a.licodlis) || LISTINI_B2B.includes(a.licodlis));
       
       const skusSet = new Set(filtered.map(a => a.arcodar2));
-      const existingProducts = await prisma.product.findMany({
-        where: { sku: { in: Array.from(skusSet) } },
-        select: { id: true, sku: true, price: true, priceB2b: true }
-      });
-      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price, priceB2b: p.priceB2b }]));
+      const [existingProducts, elmarkRows] = await Promise.all([
+        prisma.product.findMany({
+          where: { sku: { in: Array.from(skusSet) } },
+          select: { id: true, sku: true, price: true, priceB2b: true, stock: true }
+        }),
+        prisma.elmarkProcessedProduct.findMany({
+          where: { purchasePrice: { gt: 0 } },
+          select: { sku: true, purchasePrice: true }
+        })
+      ]);
+      const oldPriceMap = new Map(existingProducts.map(p => [p.sku, { id: p.id, price: p.price, priceB2b: p.priceB2b, stock: p.stock }]));
+      const elmarkPurchaseMap = new Map(elmarkRows.map(ep => [ep.sku.trim().toUpperCase(), ep.purchasePrice]));
 
       const skuAggregated = new Map<string, any>();
       for (const a of filtered) {
@@ -602,6 +630,17 @@ export class ZucchettiPullService {
            }
         }
         skuAggregated.set(sku, existing);
+      }
+
+      for (const u of skuAggregated.values()) {
+        const old = oldPriceMap.get(u.sku);
+        if (old && old.stock === 0) {
+          const purchasePrice = elmarkPurchaseMap.get(String(u.sku || '').trim().toUpperCase());
+          if (purchasePrice && purchasePrice > 0) {
+            u.newPriceB2b = parseFloat((purchasePrice * 3).toFixed(5));
+            u.priceListB2b = 'ELMARK_ACQ_X3';
+          }
+        }
       }
 
       const updates = Array.from(skuAggregated.values());

@@ -358,11 +358,18 @@ export async function runBulkSync() {
   console.log(`Found ${elmarkProducts.length} Elmark products to sync.`);
 
   const skuToDiscgroup = new Map<string, string>();
+  const skuToElmarkMeta = new Map<string, { purchasePrice: number; stockEk: number }>();
   for (const ep of elmarkProducts) {
     if (ep.discgroup) {
       skuToDiscgroup.set(ep.sku, ep.discgroup);
       if (ep.elmarkCode) skuToDiscgroup.set(ep.elmarkCode, ep.discgroup);
     }
+    const meta = {
+      purchasePrice: Number(ep.purchasePrice || 0),
+      stockEk: Number(ep.stockEk || 0),
+    };
+    if (ep.sku) skuToElmarkMeta.set(ep.sku.trim().toUpperCase(), meta);
+    if (ep.elmarkCode) skuToElmarkMeta.set(ep.elmarkCode.trim().toUpperCase(), meta);
   }
   
   // Transform ElmarkProducts to look like normal Products for Typesense
@@ -417,6 +424,13 @@ export async function runBulkSync() {
           promoData = promoMap.get(`gid://shopify/Product/${shopifyId}`) || promoMap.get(shopifyId);
         }
         product.discgroup = skuToDiscgroup.get(product.sku) || '';
+        if (product.catalog_source === 'zucchetti' && Number(product.stock || 0) === 0) {
+          const elmarkMeta = skuToElmarkMeta.get(String(product.sku || '').trim().toUpperCase());
+          if (elmarkMeta && elmarkMeta.purchasePrice > 0) {
+            product.priceB2b = Number((elmarkMeta.purchasePrice * 3).toFixed(5));
+            product.stockEk = elmarkMeta.stockEk;
+          }
+        }
         await syncProductToTypesense(product, promoData);
         synced++;
       } catch (e) {
