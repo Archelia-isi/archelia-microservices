@@ -14,7 +14,7 @@ function getMainDbPool(): Pool | null {
   return mainDbPool;
 }
 
-const ELMARK_DISCGROUPS = new Set(['E1', 'L', 'E2', 'F', 'C']);
+const ELMARK_DISCGROUPS = new Set(['E1', 'L', 'E2', 'F', 'C', 'ED', 'GRE']);
 
 function getZucchettiBaseUrl(): string {
   return (process.env.ZUCCHETTI_BASE_URL || 'https://infinity.immobiliareizzo.com/ahrweb').replace(/\/$/, '');
@@ -539,96 +539,56 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
       })),
     });
   } else {
-    // Negozio Izzo Distribuzione (prezzi e sconti Izzo Distribuzione)
-    const allItemsAreElmarkWorld = resolvedItems.every(it => it.isElmarkWorld);
+    // Negozio Izzo Distribuzione (prezzi e sconti Izzo Distribuzione):
+    // Se anche UN SOLO prodotto Elmark sfora il 70% di PR (oppure il costo acquisto Elmark totale > 500 €),
+    // TUTTI i prodotti Elmark dell'ordine finiscono in ORDIC (senza magazzino),
+    // mentre i prodotti non-Elmark restano in ORDCL (magazzino PR).
+    const anyElmarkExceeds70PctPr = resolvedItems.some(
+      it => it.isElmarkWorld && exceeds70PctPr(it)
+    );
+    const moveAllElmarkToOrdic = elmarkCostExceeds500 || anyElmarkExceeds70PctPr;
 
-    if (allItemsAreElmarkWorld) {
-      // Caso 1: Ordine composto SOLO da prodotti del Mondo Elmark
-      const anyItemExceeds70PctPr = resolvedItems.some(exceeds70PctPr);
+    const ordclItems: ResolvedOrderItem[] = [];
+    const ordicItems: ResolvedOrderItem[] = [];
 
-      if (elmarkCostExceeds500 || anyItemExceeds70PctPr) {
-        // Tutto l'ordine si trasforma in ORDIC (senza magazzino) mantenendo i prezzi e sconti Izzo Distribuzione
-        const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, 'ELMARK');
-        documentsToSend.push({
-          mvSerial,
-          mvTipDoc: 'ORDIC',
-          items: resolvedItems,
-          rows: resolvedItems.map(it => ({
-            sku: it.zucchettiSku,
-            warehouse: null,
-            unit: it.unit,
-            quantity: it.quantity,
-            listPrice: it.listPrice,
-            discounts: it.discounts,
-          })),
-        });
+    for (const it of resolvedItems) {
+      if (it.isElmarkWorld && moveAllElmarkToOrdic) {
+        ordicItems.push(it);
       } else {
-        // Tutti sotto il 70% di PR e costo acquisto <= 500 € -> tutto in ORDCL su magazzino PR
-        const mvSerial = order.zucchettiOrderRef || generateB2BZucchettiSerial(order.id, 'ZUCCHETTI');
-        documentsToSend.push({
-          mvSerial,
-          mvTipDoc: 'ORDCL',
-          items: resolvedItems,
-          rows: resolvedItems.map(it => ({
-            sku: it.zucchettiSku,
-            warehouse: 'PR',
-            unit: it.unit,
-            quantity: it.quantity,
-            listPrice: it.listPrice,
-            discounts: it.discounts,
-          })),
-        });
+        ordclItems.push(it);
       }
-    } else {
-      // Caso 2: Ordine MISTO (prodotti non-Elmark + prodotti Mondo Elmark)
-      const ordclItems: ResolvedOrderItem[] = [];
-      const ordicItems: ResolvedOrderItem[] = [];
+    }
 
-      for (const it of resolvedItems) {
-        if (!it.isElmarkWorld) {
-          // Prodotto non-Elmark: resta sempre nell'ordine ORDCL su magazzino PR
-          ordclItems.push(it);
-        } else if (elmarkCostExceeds500 || exceeds70PctPr(it)) {
-          // Prodotto Elmark che sfora il 70% di PR (o ordine con costo acquisto Elmark > 500 €):
-          // viene tolto dall'ordine misto ORDCL e spostato per l'intera quantità in un nuovo ordine ORDIC
-          ordicItems.push(it);
-        } else {
-          // Prodotto Elmark entro il 70% di PR e sotto i 500 € di costo acquisto: resta in ORDCL su PR
-          ordclItems.push(it);
-        }
-      }
+    if (ordclItems.length > 0) {
+      documentsToSend.push({
+        mvSerial: generateB2BZucchettiSerial(order.id, 'ZUCCHETTI'),
+        mvTipDoc: 'ORDCL',
+        items: ordclItems,
+        rows: ordclItems.map(it => ({
+          sku: it.zucchettiSku,
+          warehouse: 'PR',
+          unit: it.unit,
+          quantity: it.quantity,
+          listPrice: it.listPrice,
+          discounts: it.discounts,
+        })),
+      });
+    }
 
-      if (ordclItems.length > 0) {
-        documentsToSend.push({
-          mvSerial: generateB2BZucchettiSerial(order.id, 'ZUCCHETTI'),
-          mvTipDoc: 'ORDCL',
-          items: ordclItems,
-          rows: ordclItems.map(it => ({
-            sku: it.zucchettiSku,
-            warehouse: 'PR',
-            unit: it.unit,
-            quantity: it.quantity,
-            listPrice: it.listPrice,
-            discounts: it.discounts,
-          })),
-        });
-      }
-
-      if (ordicItems.length > 0) {
-        documentsToSend.push({
-          mvSerial: generateB2BZucchettiSerial(order.id, 'ELMARK'),
-          mvTipDoc: 'ORDIC',
-          items: ordicItems,
-          rows: ordicItems.map(it => ({
-            sku: it.zucchettiSku,
-            warehouse: null,
-            unit: it.unit,
-            quantity: it.quantity,
-            listPrice: it.listPrice,
-            discounts: it.discounts,
-          })),
-        });
-      }
+    if (ordicItems.length > 0) {
+      documentsToSend.push({
+        mvSerial: generateB2BZucchettiSerial(order.id, 'ELMARK'),
+        mvTipDoc: 'ORDIC',
+        items: ordicItems,
+        rows: ordicItems.map(it => ({
+          sku: it.zucchettiSku,
+          warehouse: null,
+          unit: it.unit,
+          quantity: it.quantity,
+          listPrice: it.listPrice,
+          discounts: it.discounts,
+        })),
+      });
     }
   }
 
@@ -859,7 +819,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
             }
           }
           if (numDoc) {
-            cDoc.docRef = alfDoc ? `${numDoc} / ${alfDoc}` : numDoc;
+            cDoc.docRef = alfDoc ? `${numDoc}/${alfDoc}` : numDoc;
           }
         }
       }

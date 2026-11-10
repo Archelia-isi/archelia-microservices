@@ -43,14 +43,14 @@ export default function ZucchettiDocRefEditor({
     <div className="flex flex-wrap items-center justify-between w-full gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-bold text-sm text-gray-900">
-          Riferimento in fattura: <span className="font-mono">{displayRef}</span> del <span className="font-mono">{dateFormatted}</span>
+          Riferimento in fattura: <span className="font-mono">{docType} n. {displayRef} {dateFormatted}</span>
         </span>
 
         {canEdit && !isEditing && (
           <button
             type="button"
             onClick={() => setIsEditing(true)}
-            title="Imposta numero documento Zucchetti (es. 13/OIC o 120/ST)"
+            title="Imposta numero documento Zucchetti (es. 13/OIC o 63/ST)"
             className="text-xs text-gray-500 hover:text-gray-900 bg-white/80 hover:bg-white border border-gray-300 px-2 py-0.5 rounded transition-colors"
           >
             Modifica n.
@@ -63,7 +63,7 @@ export default function ZucchettiDocRefEditor({
               type="text"
               value={inputVal}
               onChange={e => setInputVal(e.target.value)}
-              placeholder={docType === 'ORDIC' ? 'es. 13 / OIC' : 'es. 120 / ST'}
+              placeholder={docType === 'ORDIC' ? 'es. 13/OIC' : 'es. 63/ST'}
               className="text-xs px-2 py-1 border border-gray-200 rounded outline-none focus:border-brand-main w-28 font-mono"
             />
             <button

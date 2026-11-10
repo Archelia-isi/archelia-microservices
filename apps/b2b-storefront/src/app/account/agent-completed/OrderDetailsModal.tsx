@@ -260,7 +260,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                         const [nPart, sPart] = str.split('/').map(s => s.trim());
                         const cleanN = nPart.replace(/^.*n\.\s*/i, '').trim();
                         const cleanS = (sPart || defaultSerie).split(/\s+/)[0];
-                        return `${cleanN} / ${cleanS}`;
+                        return `${cleanN}/${cleanS}`;
                       }
                       const nMatch = str.match(/n\.\s*([^\s]+)/i);
                       if (nMatch && nMatch[1]) return nMatch[1];
@@ -321,7 +321,7 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                               }`}
                             >
                               <span className="font-bold text-sm text-gray-900">
-                                Riferimento in fattura: <span className="font-mono">{group.docRef}</span> del <span className="font-mono">{dateDashFormatted}</span>
+                                Riferimento in fattura: <span className="font-mono">{group.docType} n. {group.docRef} {dateDashFormatted}</span>
                               </span>
                             </div>
                           )}

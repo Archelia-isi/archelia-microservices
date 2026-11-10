@@ -230,10 +230,10 @@ export async function updateZucchettiDocRefAction(
   const defaultSerie = cleanType === 'ORDIC' ? 'OIC' : 'ST';
   let cleaned = rawInput.replace(/^n\.\s*/i, '').trim();
   if (/^\d+$/.test(cleaned)) {
-    cleaned = `${cleaned} / ${defaultSerie}`;
+    cleaned = `${cleaned}/${defaultSerie}`;
   } else if (cleaned.includes('/')) {
     const [nPart, sPart] = cleaned.split('/').map(s => s.trim());
-    cleaned = `${nPart} / ${sPart || defaultSerie}`;
+    cleaned = `${nPart.replace(/^.*n\.\s*/i, '').trim()}/${sPart || defaultSerie}`;
   }
   const formattedRef = cleaned;
 

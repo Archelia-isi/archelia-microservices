@@ -176,7 +176,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       const [nPart, sPart] = str.split('/').map(s => s.trim());
       const cleanN = nPart.replace(/^.*n\.\s*/i, '').trim();
       const cleanS = (sPart || defaultSerie).split(/\s+/)[0];
-      return `${cleanN} / ${cleanS}`;
+      return `${cleanN}/${cleanS}`;
     }
     const nMatch = str.match(/n\.\s*([^\s]+)/i);
     if (nMatch && nMatch[1]) return nMatch[1];
