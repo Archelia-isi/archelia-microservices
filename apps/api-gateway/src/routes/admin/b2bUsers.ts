@@ -12,6 +12,77 @@ import { log } from '@archelia/core';
 export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
+  async function computeUserFidoDetails(userId: string) {
+    const user = await b2bPrisma.b2BUser.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fido: true,
+        orders: {
+          where: { status: 'APPROVED' },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            createdAt: true,
+            storeMode: true,
+            zucchettiOrderRef: true,
+            totalAmount: true,
+            totalIva: true,
+            isPaid: true,
+            paidAt: true,
+          },
+        },
+        fidoMovements: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            amount: true,
+            note: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!user) return null;
+
+    const fidoConcesso = Math.round((Number(user.fido) || 0) * 100) / 100;
+    const unpaidOrdersGross = user.orders
+      .filter((o) => !o.isPaid)
+      .reduce((sum, o) => sum + (Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0), 0);
+    const manualPaymentsTotal = user.fidoMovements.reduce(
+      (sum, m) => sum + (Number(m.amount) || 0),
+      0
+    );
+
+    const rawUsed = unpaidOrdersGross - manualPaymentsTotal;
+    const fidoUtilizzato = Math.max(0, Math.round(rawUsed * 100) / 100);
+    const rawAvailable = fidoConcesso - fidoUtilizzato;
+    const fidoDisponibile = Math.max(0, Math.round(rawAvailable * 100) / 100);
+    const isOverFido = fidoConcesso > 0 && rawAvailable < 0;
+    const overFidoAmount = isOverFido ? Math.round(Math.abs(rawAvailable) * 100) / 100 : 0;
+    const usagePct =
+      fidoConcesso > 0 ? Math.min(100, Math.round((fidoUtilizzato / fidoConcesso) * 100)) : 0;
+
+    return {
+      fidoSummary: {
+        fidoConcesso,
+        fidoUtilizzato,
+        fidoDisponibile,
+        unpaidOrdersGross: Math.round(unpaidOrdersGross * 100) / 100,
+        manualPaymentsTotal: Math.round(manualPaymentsTotal * 100) / 100,
+        isOverFido,
+        overFidoAmount,
+        usagePct,
+      },
+      orders: user.orders.map((o) => ({
+        ...o,
+        totalGross: Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100,
+      })),
+      movements: user.fidoMovements,
+    };
+  }
+
   // --- Recupera le categorie di sconto Elmark dalla tabella dei prodotti processati ---
   app.get('/b2b-users/elmark-groups', async (request, reply) => {
     try {
@@ -112,18 +183,142 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
       where.role = role;
     }
 
-    const [users, total] = await Promise.all([
+    const [rawUsers, total] = await Promise.all([
       b2bPrisma.b2BUser.findMany({
         where,
         skip,
         take: parseInt(limit),
         orderBy: { createdAt: 'desc' },
-        include: { agent: true }
+        include: {
+          agent: true,
+          orders: {
+            where: { status: 'APPROVED', isPaid: false },
+            select: { totalAmount: true, totalIva: true }
+          },
+          fidoMovements: {
+            select: { amount: true }
+          }
+        }
       }),
       b2bPrisma.b2BUser.count({ where })
     ]);
 
+    const users = rawUsers.map((u: any) => {
+      const fidoConcesso = Math.round((Number(u.fido) || 0) * 100) / 100;
+      const unpaidOrdersGross = (u.orders || []).reduce(
+        (sum: number, o: any) => sum + (Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0),
+        0
+      );
+      const manualPaymentsTotal = (u.fidoMovements || []).reduce(
+        (sum: number, m: any) => sum + (Number(m.amount) || 0),
+        0
+      );
+      const rawUsed = unpaidOrdersGross - manualPaymentsTotal;
+      const fidoUtilizzato = Math.max(0, Math.round(rawUsed * 100) / 100);
+      const rawAvailable = fidoConcesso - fidoUtilizzato;
+      const fidoDisponibile = Math.max(0, Math.round(rawAvailable * 100) / 100);
+      const isOverFido = fidoConcesso > 0 && rawAvailable < 0;
+      const overFidoAmount = isOverFido ? Math.round(Math.abs(rawAvailable) * 100) / 100 : 0;
+      const usagePct =
+        fidoConcesso > 0 ? Math.min(100, Math.round((fidoUtilizzato / fidoConcesso) * 100)) : 0;
+
+      const { orders, fidoMovements, ...rest } = u;
+      return {
+        ...rest,
+        fidoSummary: {
+          fidoConcesso,
+          fidoUtilizzato,
+          fidoDisponibile,
+          unpaidOrdersGross: Math.round(unpaidOrdersGross * 100) / 100,
+          manualPaymentsTotal: Math.round(manualPaymentsTotal * 100) / 100,
+          isOverFido,
+          overFidoAmount,
+          usagePct,
+        },
+      };
+    });
+
     return { users, total, page: parseInt(page), limit: parseInt(limit) };
+  });
+
+  // GET /api/admin/b2b-users/:id/fido-details
+  app.get('/b2b-users/:id/fido-details', {
+    schema: {
+      params: z.object({ id: z.string() })
+    }
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const details = await computeUserFidoDetails(id);
+    if (!details) return reply.code(404).send({ error: 'Utente non trovato' });
+    return details;
+  });
+
+  // POST /api/admin/b2b-users/:id/orders/:orderId/toggle-paid
+  app.post('/b2b-users/:id/orders/:orderId/toggle-paid', {
+    schema: {
+      params: z.object({ id: z.string(), orderId: z.string() })
+    }
+  }, async (request, reply) => {
+    const { id, orderId } = request.params;
+    const order = await b2bPrisma.b2BOrder.findFirst({
+      where: { id: orderId, userId: id }
+    });
+    if (!order) return reply.code(404).send({ error: 'Ordine non trovato' });
+
+    const nextPaid = !order.isPaid;
+    await b2bPrisma.b2BOrder.update({
+      where: { id: orderId },
+      data: {
+        isPaid: nextPaid,
+        paidAt: nextPaid ? new Date() : null,
+      }
+    });
+
+    const details = await computeUserFidoDetails(id);
+    return { success: true, ...details };
+  });
+
+  // POST /api/admin/b2b-users/:id/fido-movements
+  app.post('/b2b-users/:id/fido-movements', {
+    schema: {
+      params: z.object({ id: z.string() }),
+      body: z.object({
+        amount: z.number(),
+        note: z.string().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { amount, note } = request.body;
+    if (!amount || isNaN(amount)) {
+      return reply.code(400).send({ error: 'Importo non valido' });
+    }
+
+    await b2bPrisma.b2BFidoMovement.create({
+      data: {
+        userId: id,
+        amount,
+        note: note?.trim() || null,
+      }
+    });
+
+    const details = await computeUserFidoDetails(id);
+    return { success: true, ...details };
+  });
+
+  // DELETE /api/admin/b2b-users/:id/fido-movements/:movementId
+  app.delete('/b2b-users/:id/fido-movements/:movementId', {
+    schema: {
+      params: z.object({ id: z.string(), movementId: z.string() })
+    }
+  }, async (request) => {
+    const { id, movementId } = request.params;
+    await b2bPrisma.b2BFidoMovement.deleteMany({
+      where: { id: movementId, userId: id }
+    });
+
+    const details = await computeUserFidoDetails(id);
+    return { success: true, ...details };
   });
 
   // POST /api/admin/b2b-users
@@ -374,7 +569,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
            zucchettiCode: c.ancodice || c.Ancodice || '',
            companyName: c.andescri || c.Andescri || '',
            vatNumber: c.anpariva || c.Anpariva || '',
-           fido: parseFloat(c.anvalfid || c.Anvalfid || '0'),
+           fido: 0, // Il Fido è gestito internamente da Archelia OS e non viene importato da Zucchetti
            zucchettiPriceList: '',
            customerType: typeDesc,
            discount: baseDiscount,
