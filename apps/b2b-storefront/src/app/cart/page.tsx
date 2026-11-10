@@ -81,12 +81,14 @@ export default async function CartPage() {
     evaluateTypesenseProductWithContext,
   } = await import('@/lib/discount');
   const { getPromoProspectCheckoutData } = await import('@/app/actions/promoProspects');
-  const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx, promoCheckoutData] = await Promise.all([
+  const { getClientFidoSummary } = await import('@/lib/fido');
+  const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx, promoCheckoutData, fidoSummary] = await Promise.all([
     getEffectiveDiscount(),
     getExtraAgentDiscount(),
     getEffectiveElmarkDiscounts(),
     getEffectiveClientDiscountContext(),
     getPromoProspectCheckoutData(targetUserId),
+    getClientFidoSummary(targetUserId),
   ]);
   
   const finalItems = populatedItems.map(item => {
@@ -192,6 +194,51 @@ export default async function CartPage() {
           </div>
           
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:items-end">
+            {fidoSummary?.hasFido && (() => {
+              const projectedUsed = Number((fidoSummary.fidoUtilizzato + grandTotal).toFixed(2));
+              const willExceedFido = projectedUsed > fidoSummary.fidoConcesso;
+              const projectedOver = willExceedFido
+                ? Number((projectedUsed - fidoSummary.fidoConcesso).toFixed(2))
+                : 0;
+              return (
+                <div className={`w-full mb-6 p-4 rounded-lg border text-sm ${
+                  willExceedFido || fidoSummary.isOverFido
+                    ? 'bg-red-50 border-red-200 text-red-900'
+                    : fidoSummary.usagePct >= 75
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                }`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 font-bold mb-1.5">
+                    <span>Situazione Fido Cliente</span>
+                    <span>
+                      Concesso: € {fidoSummary.fidoConcesso.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span>
+                      Impegnato attuale: <strong>€ {fidoSummary.fidoUtilizzato.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                    </span>
+                    <span>
+                      {fidoSummary.isOverFido ? (
+                        <strong className="text-red-700">
+                          Oltre fido di € {fidoSummary.overFidoAmount.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                      ) : (
+                        <>
+                          Disponibile residuo: <strong>€ {fidoSummary.fidoDisponibile.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  {willExceedFido && (
+                    <div className="mt-2 pt-2 border-t border-red-200 text-xs font-semibold text-red-800">
+                      Attenzione: con questo ordine (€ {grandTotal.toFixed(2).replace('.', ',')} IVA incl.) il fido concesso viene superato di € {projectedOver.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="w-full sm:w-80 mb-6 space-y-3">
               <div className="flex justify-between text-gray-500">
                 <span>Totale Imponibile:</span>

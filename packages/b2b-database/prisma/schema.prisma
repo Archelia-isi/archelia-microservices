@@ -50,6 +50,7 @@ model B2BUser {
   sessions           B2BSession[]
   carts              B2BCart[]
   orders             B2BOrder[]
+  fidoMovements      B2BFidoMovement[]
 
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
@@ -244,6 +245,8 @@ model B2BOrder {
   zucchettiOrderRef String?           // Riferimento o numero ordine in Zucchetti
   totalAmount       Float             @default(0)
   totalIva          Float             @default(0)
+  isPaid            Boolean           @default(false)
+  paidAt            DateTime?
   
   notes             String?
 
@@ -281,4 +284,16 @@ enum OrderStatus {
   APPROVED
   SENT_TO_ZUCCHETTI
   ERROR
+}
+
+model B2BFidoMovement {
+  id        String   @id @default(cuid())
+  userId    String
+  user      B2BUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float    @default(0)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId], map: "idx_b2b_fido_movements_user")
+  @@map("b2b_fido_movements")
 }

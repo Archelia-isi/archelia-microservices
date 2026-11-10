@@ -44,6 +44,9 @@ export default async function AccountDashboard() {
     take: 3,
   });
 
+  const { getClientFidoSummary } = await import('@/lib/fido');
+  const fidoSummary = dbUser ? await getClientFidoSummary(dbUser.id) : null;
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Bacheca Account</h1>
@@ -56,6 +59,31 @@ export default async function AccountDashboard() {
             <p><span className="font-medium text-gray-500">Ragione Sociale:</span> {user.companyName || 'Non specificato'}</p>
             <p><span className="font-medium text-gray-500">P.IVA:</span> {user.vatNumber || 'Non specificata'}</p>
             <p><span className="font-medium text-gray-500">Email:</span> {user.email || 'Non specificata'}</p>
+            {fidoSummary?.hasFido && (
+              <div className={`mt-4 p-3 rounded-lg border text-sm ${
+                fidoSummary.isOverFido
+                  ? 'bg-red-50 border-red-200 text-red-900'
+                  : fidoSummary.usagePct >= 75
+                    ? 'bg-amber-50 border-amber-200 text-amber-900'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="font-bold mb-1">Situazione Fido</div>
+                <div className="flex justify-between text-xs">
+                  <span>Fido Concesso:</span>
+                  <strong>€ {fidoSummary.fidoConcesso.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className="flex justify-between text-xs mt-0.5">
+                  <span>Impegnato:</span>
+                  <strong>€ {fidoSummary.fidoUtilizzato.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div className="flex justify-between text-xs mt-0.5 pt-1 border-t border-black/10">
+                  <span>{fidoSummary.isOverFido ? 'Oltre Fido:' : 'Disponibile Residuo:'}</span>
+                  <strong>
+                    € {(fidoSummary.isOverFido ? fidoSummary.overFidoAmount : fidoSummary.fidoDisponibile).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </strong>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

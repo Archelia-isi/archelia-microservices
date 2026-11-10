@@ -10,6 +10,7 @@ import OrderEditModeClient from '../OrderEditModeClient';
 import ZucchettiDocRefEditor from './ZucchettiDocRefEditor';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
 import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
+import { getClientFidoSummary } from '@/lib/fido';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,6 +138,14 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     };
   }));
 
+  const fidoSummary = order.userId ? await getClientFidoSummary(order.userId) : null;
+  const orderGrossTotal = (Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0);
+  const wouldExceedFido =
+    fidoSummary &&
+    fidoSummary.fidoConcesso > 0 &&
+    !isApproved &&
+    orderGrossTotal > fidoSummary.fidoDisponibile;
+
   if (isPending || isSavedOrder || (isAgent && isDraft)) {
     const isLockedByOther = await isOrderLockedForUser(order.id, session.userId, session.user.role);
     return (
@@ -146,6 +155,37 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             &larr; {backText}
           </Link>
         </div>
+        {fidoSummary && fidoSummary.fidoConcesso > 0 && (
+          <div
+            className={`mb-4 p-4 rounded-lg border flex flex-wrap items-center justify-between gap-4 text-sm ${
+              fidoSummary.isOverFido || wouldExceedFido
+                ? 'bg-red-50 border-red-200 text-red-900'
+                : fidoSummary.usagePct >= 80
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            }`}
+          >
+            <div>
+              <span className="font-bold uppercase tracking-wider text-xs block mb-0.5">
+                Situazione Fido Cliente (IVA incl.)
+              </span>
+              {wouldExceedFido && (
+                <span className="text-xs text-red-700 font-semibold">
+                  ⚠️ Attenzione: approvando questo ordine (€ {orderGrossTotal.toFixed(2)}) il cliente supererà il fido disponibile di € {(orderGrossTotal - fidoSummary.fidoDisponibile).toFixed(2)}. L&apos;invio a Zucchetti resta comunque abilitato.
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+              <span>Concesso: <strong>€ {fidoSummary.fidoConcesso.toFixed(2)}</strong></span>
+              <span>Impegnato: <strong>€ {fidoSummary.fidoUtilizzato.toFixed(2)}</strong></span>
+              <span className={fidoSummary.isOverFido ? 'text-red-700 font-bold' : 'text-emerald-700 font-bold'}>
+                {fidoSummary.isOverFido
+                  ? `Sforato: -€ ${fidoSummary.overFidoAmount.toFixed(2)}`
+                  : `Disponibile: € ${fidoSummary.fidoDisponibile.toFixed(2)}`}
+              </span>
+            </div>
+          </div>
+        )}
         <OrderEditModeClient 
           order={order} 
           populatedItems={populatedItems} 
