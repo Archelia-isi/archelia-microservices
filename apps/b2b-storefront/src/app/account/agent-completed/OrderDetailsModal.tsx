@@ -243,15 +243,33 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                   
                   {(() => {
                     const shortOrderId = order.id.slice(-6).toUpperCase();
-                    const externalRef = `ORDINE WEB #${shortOrderId}`;
+                    const dateFormatted = new Date(order.createdAt).toLocaleDateString('it-IT');
                     const fallbackDocType = order.storeMode === 'ELMARK' ? 'ORDIC' : 'ORDCL';
                     const isReorder = mode === 'REORDER';
+
+                    const extractCleanDocNum = (rawRef?: string | null, rawSerial?: string | null) => {
+                      if (rawSerial) {
+                        const cleanS = String(rawSerial).replace(/^0+/, '');
+                        if (cleanS && (!rawRef || rawRef.startsWith('Ns. doc.'))) {
+                          const nMatch = String(rawRef || '').match(/n\.\s*([^\s]+)/i);
+                          if (nMatch && nMatch[1]) return nMatch[1];
+                          return cleanS;
+                        }
+                      }
+                      const str = String(rawRef || '').trim();
+                      if (!str) return shortOrderId;
+                      const nMatch = str.match(/n\.\s*([^\s]+)/i);
+                      if (nMatch && nMatch[1]) return nMatch[1];
+                      const regMatch = str.match(/Reg\.\s*#([0-9A-Za-z]+)/i);
+                      if (regMatch && regMatch[1]) return regMatch[1].replace(/^0+/, '') || regMatch[1];
+                      return str;
+                    };
 
                     const groups = isReorder
                       ? [
                           {
                             docType: fallbackDocType as 'ORDCL' | 'ORDIC',
-                            docRef: order.zucchettiOrderRef || '',
+                            docRef: extractCleanDocNum(order.zucchettiOrderRef),
                             items: populatedItems,
                           },
                         ]
@@ -265,11 +283,12 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                               .trim()
                               .toUpperCase();
                             const docType: 'ORDCL' | 'ORDIC' = rawType === 'ORDIC' ? 'ORDIC' : 'ORDCL';
-                            const docRef =
+                            const rawRef =
                               it.zucchettiDocRef ||
                               (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
                                 ? order.zucchettiOrderRef
-                                : `Ns. doc. ${docType}`);
+                                : shortOrderId);
+                            const docRef = extractCleanDocNum(rawRef, it.zucchettiDocSerial);
                             if (!map.has(docType)) {
                               map.set(docType, { docType, docRef, items: [] });
                             }
@@ -293,24 +312,15 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                         <div key={group.docType + groupIdx} className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                           {!isReorder && (
                             <div
-                              className={`p-3.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                              className={`px-4 py-3 border-b flex items-center justify-between gap-2 ${
                                 isOrdic ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'
                               }`}
                             >
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={`px-2 py-0.5 rounded text-xs font-extrabold uppercase ${
-                                    isOrdic ? 'bg-amber-600 text-white' : 'bg-blue-700 text-white'
-                                  }`}
-                                >
-                                  Documento {groupIdx + 1}: {group.docType}
-                                </span>
-                                <span className="font-mono text-xs font-bold text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-300">
-                                  {group.docRef}
-                                </span>
-                              </div>
-                              <span className="text-xs font-mono text-gray-700 bg-white/90 px-2 py-0.5 rounded border border-gray-200">
-                                Rif. esterno Zucchetti: <strong>{externalRef}</strong>
+                              <span className="font-bold text-sm text-gray-900">
+                                Ordine Zucchetti {group.docType} n. <span className="font-mono">{group.docRef}</span>
+                              </span>
+                              <span className="text-sm font-semibold text-gray-700">
+                                Data: {dateFormatted}
                               </span>
                             </div>
                           )}
@@ -507,22 +517,17 @@ export default function OrderDetailsModal({ order }: { order: any }) {
                     })}
                           </div>
 
-                          {!isReorder && (
-                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
-                              <span className="font-semibold text-gray-500 uppercase">
-                                Subtotale Documento {group.docType}
+                          {!isReorder && groups.length > 1 && (
+                            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-end gap-4 text-xs sm:text-sm">
+                              <span className="text-gray-600">
+                                Imponibile: <strong>€ {groupImponibile.toFixed(2).replace('.', ',')}</strong>
                               </span>
-                              <div className="flex flex-wrap items-center gap-4 ml-auto">
-                                <span className="text-gray-600">
-                                  Imponibile: <strong>€ {groupImponibile.toFixed(2).replace('.', ',')}</strong>
-                                </span>
-                                <span className="text-gray-600">
-                                  IVA (22%): <strong>€ {groupIva.toFixed(2).replace('.', ',')}</strong>
-                                </span>
-                                <span className="font-bold text-gray-900">
-                                  Totale {group.docType}: <strong className="text-brand-main">€ {groupTotale.toFixed(2).replace('.', ',')}</strong>
-                                </span>
-                              </div>
+                              <span className="text-gray-600">
+                                IVA (22%): <strong>€ {groupIva.toFixed(2).replace('.', ',')}</strong>
+                              </span>
+                              <span className="font-bold text-gray-900">
+                                Totale: <strong className="text-brand-main">€ {groupTotale.toFixed(2).replace('.', ',')}</strong>
+                              </span>
                             </div>
                           )}
                         </div>

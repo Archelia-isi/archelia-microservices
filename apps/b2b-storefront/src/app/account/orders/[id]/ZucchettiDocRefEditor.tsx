@@ -8,11 +8,13 @@ export default function ZucchettiDocRefEditor({
   orderId,
   docType,
   currentRef,
+  dateFormatted,
   canEdit,
 }: {
   orderId: string;
   docType: string;
   currentRef: string;
+  dateFormatted: string;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -38,50 +40,57 @@ export default function ZucchettiDocRefEditor({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="font-mono text-xs sm:text-sm font-bold text-gray-900 bg-white px-2.5 py-1 rounded border border-gray-300 shadow-sm">
-        {displayRef}
+    <div className="flex flex-wrap items-center justify-between w-full gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-bold text-sm text-gray-900">
+          Ordine Zucchetti {docType} n. <span className="font-mono">{displayRef}</span>
+        </span>
+
+        {canEdit && !isEditing && (
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            title="Modifica numero ordine Zucchetti (es. 120/ST)"
+            className="text-xs text-gray-500 hover:text-gray-900 bg-white/80 hover:bg-white border border-gray-300 px-2 py-0.5 rounded transition-colors"
+          >
+            Modifica n.
+          </button>
+        )}
+
+        {canEdit && isEditing && (
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded border border-gray-300 shadow-sm">
+            <input
+              type="text"
+              value={inputVal}
+              onChange={e => setInputVal(e.target.value)}
+              placeholder="es. 120/ST"
+              className="text-xs px-2 py-1 border border-gray-200 rounded outline-none focus:border-brand-main w-28 font-mono"
+            />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !inputVal.trim()}
+              className="text-xs font-bold bg-brand-main text-white px-2 py-1 rounded hover:bg-brand-hover disabled:opacity-50"
+            >
+              {saving ? '...' : 'Salva'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setInputVal('');
+              }}
+              className="text-xs text-gray-500 hover:text-gray-700 px-1 py-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+
+      <span className="text-sm font-semibold text-gray-700">
+        Data: {dateFormatted}
       </span>
-
-      {canEdit && !isEditing && (
-        <button
-          type="button"
-          onClick={() => setIsEditing(true)}
-          className="text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white hover:bg-gray-100 border border-gray-300 px-2.5 py-1 rounded transition-colors"
-        >
-          Imposta N. Fattura/Ordine (es. 120/ST)
-        </button>
-      )}
-
-      {canEdit && isEditing && (
-        <div className="flex items-center gap-1.5 bg-white p-1 rounded border border-gray-300 shadow-sm">
-          <input
-            type="text"
-            value={inputVal}
-            onChange={e => setInputVal(e.target.value)}
-            placeholder="es. 120/ST"
-            className="text-xs px-2 py-1 border border-gray-200 rounded outline-none focus:border-brand-main w-32 font-mono"
-          />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !inputVal.trim()}
-            className="text-xs font-bold bg-brand-main text-white px-2.5 py-1 rounded hover:bg-brand-hover disabled:opacity-50"
-          >
-            {saving ? '...' : 'Salva'}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsEditing(false);
-              setInputVal('');
-            }}
-            className="text-xs text-gray-500 hover:text-gray-700 px-1.5 py-1"
-          >
-            Annulla
-          </button>
-        </div>
-      )}
     </div>
   );
 }

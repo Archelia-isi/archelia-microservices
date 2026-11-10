@@ -837,19 +837,18 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
 
       logs.push(res.decodedLog);
 
-      // Estrae il seriale interno MVSERIAL assegnato da Zucchetti (es. "0000002536")
+      // Estrae il seriale interno MVSERIAL assegnato da Zucchetti (es. "0000002536" -> "2536")
       const serialMatches = Array.from(res.decodedLog.matchAll(/MVSERIAL="([^"]+)"/g))
         .map(m => m[1])
         .filter(s => s && s !== 'CALCOLATA');
       const assignedMvSerial = serialMatches[serialMatches.length - 1] || docPlan.mvSerial;
-
-      const defaultDocRef = `Ns. doc. ${docPlan.mvTipDoc} (Reg. #${assignedMvSerial} · Rif. ${docPlan.mvSerial}) del ${itDateStr}`;
+      const cleanSerialNum = assignedMvSerial.replace(/^0+/, '') || assignedMvSerial;
 
       createdDocs.push({
         mvSerialK: docPlan.mvSerial,
         assignedMvSerial,
         mvTipDoc: docPlan.mvTipDoc,
-        docRef: defaultDocRef,
+        docRef: cleanSerialNum,
         items: docPlan.items,
       });
     }
@@ -879,8 +878,7 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
           if (matchRow && matchRow.mvnumdoc) {
             const numDoc = String(matchRow.mvnumdoc).trim();
             const alfDoc = String(matchRow.mvalfdoc || '').trim();
-            const docNumFormatted = alfDoc ? `${numDoc}/${alfDoc}` : numDoc;
-            cDoc.docRef = `Ns. doc. ${cDoc.mvTipDoc} n. ${docNumFormatted} ${itDateStr}`;
+            cDoc.docRef = alfDoc ? `${numDoc}/${alfDoc}` : numDoc;
           }
         }
       }

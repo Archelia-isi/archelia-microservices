@@ -226,14 +226,8 @@ export async function updateZucchettiDocRefAction(
   const rawInput = String(docNumInput || '').trim();
   if (!rawInput) return { success: false, error: 'Inserisci un riferimento documento valido' };
 
-  const dateIso = (order.createdAt || new Date()).toISOString().split('T')[0];
-  const [yyyy, mm, dd] = dateIso.split('-');
-  const itDateStr = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateIso;
-
   const cleanType = (docType || 'ORDCL').trim().toUpperCase();
-  const formattedRef = rawInput.toLowerCase().startsWith('ns. doc')
-    ? rawInput
-    : `Ns. doc. ${cleanType} n. ${rawInput.replace(/^n\.\s*/i, '')} ${itDateStr}`;
+  const formattedRef = rawInput.replace(/^n\.\s*/i, '').trim();
 
   await prisma.b2BOrderItem.updateMany({
     where: {

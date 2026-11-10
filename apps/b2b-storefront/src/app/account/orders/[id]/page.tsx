@@ -159,11 +159,26 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   }
 
   const shortOrderId = order.id.slice(-6).toUpperCase();
-  const externalRef = `ORDINE WEB #${shortOrderId}`;
-  const dateIso = order.createdAt.toISOString().split('T')[0];
-  const [yyyy, mm, dd] = dateIso.split('-');
-  const itDateStr = dd && mm && yyyy ? `${dd}-${mm}-${yyyy}` : dateIso;
+  const dateFormatted = order.createdAt.toLocaleDateString('it-IT');
   const fallbackDocType = isElmark ? 'ORDIC' : 'ORDCL';
+
+  const extractCleanDocNum = (rawRef?: string | null, rawSerial?: string | null) => {
+    if (rawSerial) {
+      const cleanS = String(rawSerial).replace(/^0+/, '');
+      if (cleanS && (!rawRef || rawRef.startsWith('Ns. doc.'))) {
+        const nMatch = String(rawRef || '').match(/n\.\s*([^\s]+)/i);
+        if (nMatch && nMatch[1]) return nMatch[1];
+        return cleanS;
+      }
+    }
+    const str = String(rawRef || '').trim();
+    if (!str) return shortOrderId;
+    const nMatch = str.match(/n\.\s*([^\s]+)/i);
+    if (nMatch && nMatch[1]) return nMatch[1];
+    const regMatch = str.match(/Reg\.\s*#([0-9A-Za-z]+)/i);
+    if (regMatch && regMatch[1]) return regMatch[1].replace(/^0+/, '') || regMatch[1];
+    return str;
+  };
 
   // Raggruppa le righe ordine per Documento Zucchetti generato (ORDCL vs ORDIC)
   const docGroupsMap = new Map<
@@ -184,17 +199,18 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
       .trim()
       .toUpperCase();
     const docType: 'ORDCL' | 'ORDIC' = rawType === 'ORDIC' ? 'ORDIC' : 'ORDCL';
-    const itemRef =
+    const itemSerial = (item as any).zucchettiDocSerial || null;
+    const rawItemRef =
       (item as any).zucchettiDocRef ||
       (order.zucchettiOrderRef && !order.zucchettiOrderRef.includes('|')
         ? order.zucchettiOrderRef
-        : `Ns. doc. ${docType} del ${itDateStr}`);
-    const itemSerial = (item as any).zucchettiDocSerial || null;
+        : shortOrderId);
+    const cleanRef = extractCleanDocNum(rawItemRef, itemSerial);
 
     if (!docGroupsMap.has(docType)) {
       docGroupsMap.set(docType, {
         docType,
-        docRef: itemRef,
+        docRef: cleanRef,
         docSerial: itemSerial,
         items: [],
         imponibile: 0,
@@ -210,7 +226,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     grp.totale = grp.imponibile + grp.iva;
   }
 
-  // Ordina i blocchi mostrando prima ORDCL (Magazzino PR) e poi ORDIC (Spedizione Diretta Elmark)
+  // Ordina i blocchi mostrando prima ORDCL e poi ORDIC
   const docGroups = Array.from(docGroupsMap.values()).sort((a, b) =>
     a.docType === b.docType ? 0 : a.docType === 'ORDCL' ? -1 : 1
   );
@@ -231,22 +247,12 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
               <span className={`px-2 py-1 rounded text-xs font-semibold border ${statusColor} text-base`}>
                 {statusText}
               </span>
-              {docGroups.length > 1 && (
-                <span className="px-2.5 py-1 rounded text-xs font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                  Suddiviso in {docGroups.length} Documenti Zucchetti (ORDCL + ORDIC)
-                </span>
-              )}
             </h1>
             <p className="text-gray-500 mt-1">
-              Data: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+              Data: {dateFormatted} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
             </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
-              <span className="bg-gray-100 text-gray-800 font-mono font-semibold px-2 py-0.5 rounded border border-gray-200">
-                Rif. Esterno su Zucchetti: {externalRef}
-              </span>
-            </div>
             {isAgent && (order.user || order.promoProspect) && (
-              <p className="text-sm font-semibold text-gray-800 mt-2">
+              <p className="text-sm font-semibold text-gray-800 mt-1">
                 Cliente: {(order.user || order.promoProspect)?.companyName || 'Cliente'} ({order.user?.zucchettiCode ? `Cod. ${order.user.zucchettiCode}` : `In attivazione - ${order.promoProspect?.username}`})
               </p>
             )}
@@ -264,53 +270,26 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
 
         {/* Elenco Prodotti suddiviso per singolo Ordine Zucchetti (ORDCL / ORDIC) */}
         <div className="p-4 sm:p-6 bg-gray-50/60 space-y-6">
-          {docGroups.map((group, groupIdx) => {
+          {docGroups.map((group) => {
             const isOrdic = group.docType === 'ORDIC';
             const headerBg = isOrdic
               ? 'bg-amber-50 border-amber-200'
               : 'bg-blue-50 border-blue-200';
-            const badgeStyle = isOrdic
-              ? 'bg-amber-600 text-white'
-              : 'bg-blue-700 text-white';
-            const docTitle = isOrdic
-              ? 'Ordine Fornitore / Spedizione Diretta Elmark (ORDIC)'
-              : 'Ordine Magazzino Principale PR (ORDCL)';
 
             return (
               <div
                 key={group.docType}
                 className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
               >
-                {/* Intestazione Documento Zucchetti */}
-                <div className={`p-4 border-b ${headerBg} flex flex-col lg:flex-row lg:items-center justify-between gap-3`}>
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`px-2.5 py-0.5 rounded text-xs font-extrabold tracking-wide uppercase ${badgeStyle}`}>
-                        Documento {groupIdx + 1}: {group.docType}
-                      </span>
-                      <span className="font-bold text-sm text-gray-900">
-                        {docTitle}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2">
-                      <span>Rif. in Fattura / Gestionale:</span>
-                      <ZucchettiDocRefEditor
-                        orderId={order.id}
-                        docType={group.docType}
-                        currentRef={group.docRef}
-                        canEdit={isAgent || session.user.role === 'ADMIN'}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-700">
-                    <span className="bg-white/90 px-2.5 py-1 rounded border border-gray-200 font-mono">
-                      Rif. esterno Zucchetti: <strong>{externalRef}</strong>
-                    </span>
-                    <span className="bg-white/90 px-2.5 py-1 rounded border border-gray-200 font-semibold">
-                      Articoli nel documento: <strong>{group.items.reduce((acc, i) => acc + i.quantity, 0)} pz.</strong>
-                    </span>
-                  </div>
+                {/* Intestazione essenziale: SOLO Numero Ordine Zucchetti e Data */}
+                <div className={`px-4 py-3 border-b ${headerBg}`}>
+                  <ZucchettiDocRefEditor
+                    orderId={order.id}
+                    docType={group.docType}
+                    currentRef={group.docRef}
+                    dateFormatted={dateFormatted}
+                    canEdit={isAgent || session.user.role === 'ADMIN'}
+                  />
                 </div>
 
                 {/* Tabella Prodotti di questo Documento Zucchetti */}
@@ -366,23 +345,19 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                   ))}
                 </div>
 
-                {/* Subtotale di questo specifico Documento Zucchetti (per riscontro immediato con la Fattura) */}
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Subtotale Documento {group.docType} ({group.docRef})
-                  </span>
-                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 ml-auto">
+                {docGroups.length > 1 && (
+                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-end gap-4 sm:gap-6 text-sm">
                     <span className="text-gray-600">
-                      Imponibile {group.docType}: <strong className="text-gray-900">€ {group.imponibile.toFixed(2).replace('.', ',')}</strong>
+                      Imponibile: <strong className="text-gray-900">€ {group.imponibile.toFixed(2).replace('.', ',')}</strong>
                     </span>
                     <span className="text-gray-600">
                       IVA (22%): <strong className="text-gray-900">€ {group.iva.toFixed(2).replace('.', ',')}</strong>
                     </span>
                     <span className="text-gray-900 font-bold">
-                      Totale {group.docType} (IVA Incl.): <strong className="text-base text-brand-main">€ {group.totale.toFixed(2).replace('.', ',')}</strong>
+                      Totale: <strong className="text-base text-brand-main">€ {group.totale.toFixed(2).replace('.', ',')}</strong>
                     </span>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -392,11 +367,11 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
         <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
           <div className="text-right w-full max-w-xs">
             <div className="flex justify-between items-center mb-2 text-gray-600">
-              <span>Totale Imponibile Ordine:</span>
+              <span>Totale Imponibile:</span>
               <span>€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
             </div>
             <div className="flex justify-between items-center mb-4 text-gray-600">
-              <span>IVA Complessiva (22%):</span>
+              <span>IVA (22%):</span>
               <span>€ {order.totalIva.toFixed(2).replace('.', ',')}</span>
             </div>
             <div className="flex justify-between items-center pt-4 border-t border-gray-300">
