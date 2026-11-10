@@ -84,6 +84,17 @@ function formatCleanZucchettiError(decodedLog: string, httpStatus?: number): str
     return 'Formato del tracciato ordine non allineato con lo schema Zucchetti.';
   }
 
+  const detailMatch = text.match(/Dettaglio tecnico \[([^\]]+)\]/i);
+  if (
+    detailMatch &&
+    detailMatch[1] &&
+    !detailMatch[1].includes('PSQLException') &&
+    !detailMatch[1].includes('SQLSTATE') &&
+    !detailMatch[1].includes('insert into')
+  ) {
+    return `Impossibile registrare l’ordine su Zucchetti: ${detailMatch[1].trim()}.`;
+  }
+
   const codeMatch = text.match(/ErrorCode="([^"@]+)/);
   if (codeMatch && codeMatch[1]) {
     return `Impossibile registrare l’ordine su Zucchetti (codice errore gestionale: ${codeMatch[1].trim()}).`;
