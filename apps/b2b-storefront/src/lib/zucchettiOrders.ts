@@ -827,15 +827,38 @@ export async function sendB2BOrderToZucchetti(orderId: string): Promise<{
           },
           4000
         );
-        if (vqrRes.ok) {
-          const vqrJson: any = await vqrRes.json();
-          const vqrRows: any[] = Array.isArray(vqrJson?.data) ? vqrJson.data : [];
-          const matchRow = vqrRows.find(
-            r => String(r.mvserial || '').trim() === cDoc.assignedMvSerial
-          ) || vqrRows[0];
-          if (matchRow && matchRow.mvnumdoc) {
-            const numDoc = String(matchRow.mvnumdoc).trim();
-            const alfDoc = String(matchRow.mvalfdoc || (cDoc.mvTipDoc === 'ORDIC' ? 'OIC' : 'ST')).trim();
+        const vqrText = await vqrRes.text();
+        if (vqrText) {
+          let numDoc = '';
+          let alfDoc = '';
+          try {
+            const vqrJson: any = JSON.parse(vqrText);
+            const vqrRows: any[] = Array.isArray(vqrJson?.data) ? vqrJson.data : [];
+            const matchRow =
+              vqrRows.find(r => String(r.mvserial || '').trim() === cDoc.assignedMvSerial) ||
+              vqrRows[0];
+            if (matchRow && matchRow.mvnumdoc) {
+              numDoc = String(matchRow.mvnumdoc).trim();
+              alfDoc = String(
+                matchRow.mvalfdoc || (cDoc.mvTipDoc === 'ORDIC' ? 'OIC' : 'ST')
+              ).trim();
+            }
+          } catch {
+            // Fallback nel caso in cui SPVQRProducer tronchi il JSON dopo mvscont4 per un campo successivo non valido
+            const numMatch = vqrText.match(/"mvnumdoc"\s*:\s*"([^"]+)"/);
+            const alfMatch = vqrText.match(/"mvalfdoc"\s*:\s*"([^"]*)"/);
+            if (numMatch && numMatch[1]) {
+              numDoc = numMatch[1].trim();
+              alfDoc = (
+                alfMatch && alfMatch[1]
+                  ? alfMatch[1]
+                  : cDoc.mvTipDoc === 'ORDIC'
+                    ? 'OIC'
+                    : 'ST'
+              ).trim();
+            }
+          }
+          if (numDoc) {
             cDoc.docRef = alfDoc ? `${numDoc} / ${alfDoc}` : numDoc;
           }
         }
