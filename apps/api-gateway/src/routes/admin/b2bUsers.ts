@@ -9,6 +9,217 @@ import * as bcrypt from 'bcryptjs';
 import { authenticate } from '../auth.js';
 import { log } from '@archelia/core';
 
+interface OrderInstallment {
+  installmentNumber: number;
+  totalInstallments: number;
+  label: string;
+  dueDateIso: string;
+  dueDateFormatted: string;
+  originalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  isPaid: boolean;
+  isOverdue: boolean;
+  isDueSoon: boolean;
+}
+
+interface GroupedDueDateItem {
+  dueDateIso: string;
+  dueDateFormatted: string;
+  totalAmount: number;
+  ordersCount: number;
+  isOverdue: boolean;
+  isDueSoon: boolean;
+  orders: Array<{
+    orderId: string;
+    shortOrderId: string;
+    orderDateFormatted: string;
+    zucchettiOrderRef?: string | null;
+    installmentLabel: string;
+    amount: number;
+  }>;
+}
+
+const PAYMENT_STEPS: Record<string, Array<{ mode: 'DAYS' | 'FM'; offset: number; shortLabel: string }>> = {
+  '30GG': [{ mode: 'DAYS', offset: 30, shortLabel: '30 gg' }],
+  '60GG': [{ mode: 'DAYS', offset: 60, shortLabel: '60 gg' }],
+  '90GG': [{ mode: 'DAYS', offset: 90, shortLabel: '90 gg' }],
+  '30_60GG': [
+    { mode: 'DAYS', offset: 30, shortLabel: '30 gg' },
+    { mode: 'DAYS', offset: 60, shortLabel: '60 gg' },
+  ],
+  '30_60_90GG': [
+    { mode: 'DAYS', offset: 30, shortLabel: '30 gg' },
+    { mode: 'DAYS', offset: 60, shortLabel: '60 gg' },
+    { mode: 'DAYS', offset: 90, shortLabel: '90 gg' },
+  ],
+  '30GG_FM': [{ mode: 'FM', offset: 1, shortLabel: '30 gg FM' }],
+  '60GG_FM': [{ mode: 'FM', offset: 2, shortLabel: '60 gg FM' }],
+  '90GG_FM': [{ mode: 'FM', offset: 3, shortLabel: '90 gg FM' }],
+  '30_60GG_FM': [
+    { mode: 'FM', offset: 1, shortLabel: '30 gg FM' },
+    { mode: 'FM', offset: 2, shortLabel: '60 gg FM' },
+  ],
+  '30_60_90GG_FM': [
+    { mode: 'FM', offset: 1, shortLabel: '30 gg FM' },
+    { mode: 'FM', offset: 2, shortLabel: '60 gg FM' },
+    { mode: 'FM', offset: 3, shortLabel: '90 gg FM' },
+  ],
+};
+
+function getRomeYMD(input: Date | string) {
+  const d = input instanceof Date ? input : new Date(input);
+  const parts = new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const year = Number(parts.find((p) => p.type === 'year')?.value || d.getUTCFullYear());
+  const month = Number(parts.find((p) => p.type === 'month')?.value || d.getUTCMonth() + 1);
+  const day = Number(parts.find((p) => p.type === 'day')?.value || d.getUTCDate());
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return {
+    year,
+    month,
+    day,
+    iso: `${year}-${mm}-${dd}`,
+    formatted: `${dd}/${mm}/${year}`,
+  };
+}
+
+function computeOrderInstallments(
+  createdAt: Date | string,
+  totalGross: number,
+  paidAmount: number,
+  isPaid: boolean,
+  paymentType?: string | null
+): OrderInstallment[] {
+  const steps = PAYMENT_STEPS[paymentType || '30GG'] || PAYMENT_STEPS['30GG'];
+  const n = steps.length;
+  const { year, month, day } = getRomeYMD(createdAt);
+  const today = getRomeYMD(new Date());
+  const todayUtcMs = Date.UTC(today.year, today.month - 1, today.day);
+
+  const totalCents = Math.max(0, Math.round((Number(totalGross) || 0) * 100));
+  const paidCents = isPaid
+    ? totalCents
+    : Math.min(totalCents, Math.max(0, Math.round((Number(paidAmount) || 0) * 100)));
+
+  const baseCents = Math.floor(totalCents / n);
+  const remainderCents = totalCents - baseCents * n;
+  let remainingPaidCents = paidCents;
+
+  return steps.map((step, idx) => {
+    const target =
+      step.mode === 'FM'
+        ? new Date(Date.UTC(year, month + step.offset, 0))
+        : new Date(Date.UTC(year, month - 1, day + step.offset));
+    const ty = target.getUTCFullYear();
+    const tm = String(target.getUTCMonth() + 1).padStart(2, '0');
+    const td = String(target.getUTCDate()).padStart(2, '0');
+    const dueDateIso = `${ty}-${tm}-${td}`;
+    const dueDateFormatted = `${td}/${tm}/${ty}`;
+
+    const origCents = idx === n - 1 ? baseCents + remainderCents : baseCents;
+    const coveredCents = Math.min(origCents, remainingPaidCents);
+    remainingPaidCents -= coveredCents;
+    const remCents = Math.max(0, origCents - coveredCents);
+    const instPaid = remCents === 0;
+
+    const targetUtcMs = Date.UTC(ty, target.getUTCMonth(), target.getUTCDate());
+    const diffDays = Math.round((targetUtcMs - todayUtcMs) / 86400000);
+
+    return {
+      installmentNumber: idx + 1,
+      totalInstallments: n,
+      label: n > 1 ? `Rata ${idx + 1}/${n} (${step.shortLabel})` : step.shortLabel,
+      dueDateIso,
+      dueDateFormatted,
+      originalAmount: origCents / 100,
+      paidAmount: coveredCents / 100,
+      remainingAmount: remCents / 100,
+      isPaid: instPaid,
+      isOverdue: !instPaid && diffDays < 0,
+      isDueSoon: !instPaid && diffDays >= 0 && diffDays <= 7,
+    };
+  });
+}
+
+function buildGroupedDueDateSchedule(
+  orders: Array<{
+    id: string;
+    createdAt: Date | string;
+    zucchettiOrderRef?: string | null;
+    isPaid: boolean;
+    installments: OrderInstallment[];
+  }>
+): GroupedDueDateItem[] {
+  const map = new Map<
+    string,
+    {
+      dueDateIso: string;
+      dueDateFormatted: string;
+      totalCents: number;
+      orderIds: Set<string>;
+      isOverdue: boolean;
+      isDueSoon: boolean;
+      orders: GroupedDueDateItem['orders'];
+    }
+  >();
+
+  for (const ord of orders) {
+    if (ord.isPaid) continue;
+    const ordDateFormatted = getRomeYMD(ord.createdAt).formatted;
+    const shortOrderId = ord.id.slice(-6).toUpperCase();
+
+    for (const inst of ord.installments || []) {
+      const remCents = Math.round((inst.remainingAmount || 0) * 100);
+      if (inst.isPaid || remCents <= 0) continue;
+
+      let group = map.get(inst.dueDateIso);
+      if (!group) {
+        group = {
+          dueDateIso: inst.dueDateIso,
+          dueDateFormatted: inst.dueDateFormatted,
+          totalCents: 0,
+          orderIds: new Set<string>(),
+          isOverdue: inst.isOverdue,
+          isDueSoon: inst.isDueSoon,
+          orders: [],
+        };
+        map.set(inst.dueDateIso, group);
+      }
+
+      group.totalCents += remCents;
+      group.orderIds.add(ord.id);
+      if (inst.isOverdue) group.isOverdue = true;
+      if (inst.isDueSoon) group.isDueSoon = true;
+      group.orders.push({
+        orderId: ord.id,
+        shortOrderId,
+        orderDateFormatted: ordDateFormatted,
+        zucchettiOrderRef: ord.zucchettiOrderRef || null,
+        installmentLabel: inst.totalInstallments > 1 ? `Rata ${inst.installmentNumber}/${inst.totalInstallments}` : 'Saldo ordine',
+        amount: remCents / 100,
+      });
+    }
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => a.dueDateIso.localeCompare(b.dueDateIso))
+    .map((g) => ({
+      dueDateIso: g.dueDateIso,
+      dueDateFormatted: g.dueDateFormatted,
+      totalAmount: g.totalCents / 100,
+      ordersCount: g.orderIds.size,
+      isOverdue: g.isOverdue,
+      isDueSoon: g.isDueSoon,
+      orders: g.orders,
+    }));
+}
+
 export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
@@ -62,7 +273,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
 
     const fidoEnabled = Boolean(user.fidoEnabled);
     const fidoConcesso = Math.round((Number(user.fido) || 0) * 100) / 100;
-    const fidoPaymentType = user.fidoPaymentType || '';
+    const fidoPaymentType = user.fidoPaymentType || (fidoEnabled ? '30GG' : '');
 
     const mappedOrders = user.orders.map((o) => {
       const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
@@ -74,15 +285,25 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
       const remainingGross = o.isPaid
         ? 0
         : Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
+      const installments = computeOrderInstallments(
+        o.createdAt,
+        totalGross,
+        paidAmount,
+        o.isPaid,
+        fidoPaymentType || '30GG'
+      );
 
       return {
         ...o,
         totalGross,
         paidAmount,
         remainingGross,
+        installments,
         movements: o.fidoMovements || [],
       };
     });
+
+    const dueSchedule = buildGroupedDueDateSchedule(mappedOrders);
 
     const unpaidOrdersGross = mappedOrders
       .filter((o) => !o.isPaid)
@@ -119,7 +340,9 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         isOverFido,
         overFidoAmount,
         usagePct,
+        nextDueDate: dueSchedule.length > 0 ? dueSchedule[0] : null,
       },
+      dueSchedule,
       orders: mappedOrders,
       movements: user.fidoMovements,
     };
@@ -236,6 +459,10 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
           orders: {
             where: { status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] }, isPaid: false },
             select: {
+              id: true,
+              createdAt: true,
+              zucchettiOrderRef: true,
+              isPaid: true,
               totalAmount: true,
               totalIva: true,
               paidAmount: true,
@@ -253,11 +480,18 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     const users = rawUsers.map((u: any) => {
       const fidoEnabled = Boolean(u.fidoEnabled);
       const fidoConcesso = Math.round((Number(u.fido) || 0) * 100) / 100;
-      const fidoPaymentType = u.fidoPaymentType || '';
+      const fidoPaymentType = u.fidoPaymentType || (fidoEnabled ? '30GG' : '');
 
       let unpaidOrdersGross = 0;
       let partialPaymentsTotal = 0;
       let remainingOrdersTotal = 0;
+      const ordersForSchedule: Array<{
+        id: string;
+        createdAt: Date | string;
+        zucchettiOrderRef?: string | null;
+        isPaid: boolean;
+        installments: OrderInstallment[];
+      }> = [];
 
       for (const o of u.orders || []) {
         const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
@@ -269,7 +503,26 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         unpaidOrdersGross += totalGross;
         partialPaymentsTotal += paidAmount;
         remainingOrdersTotal += rem;
+
+        if (fidoEnabled && rem > 0) {
+          ordersForSchedule.push({
+            id: o.id,
+            createdAt: o.createdAt,
+            zucchettiOrderRef: o.zucchettiOrderRef,
+            isPaid: Boolean(o.isPaid),
+            installments: computeOrderInstallments(
+              o.createdAt,
+              totalGross,
+              paidAmount,
+              Boolean(o.isPaid),
+              fidoPaymentType || '30GG'
+            ),
+          });
+        }
       }
+
+      const schedule = fidoEnabled ? buildGroupedDueDateSchedule(ordersForSchedule) : [];
+      const nextDueDate = schedule.length > 0 ? schedule[0] : null;
 
       const fidoUtilizzato = Math.max(0, Math.round(remainingOrdersTotal * 100) / 100);
       const effectiveFido = fidoEnabled ? fidoConcesso : 0;
@@ -296,6 +549,7 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
           isOverFido,
           overFidoAmount,
           usagePct,
+          nextDueDate,
         },
       };
     });
@@ -343,6 +597,92 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     } catch (e) {
       return reply.code(400).send({ error: 'Errore salvataggio configurazione fido' });
     }
+  });
+
+  // POST /api/admin/b2b-users/:id/pay-due-date
+  // Registra in un solo click il saldo di tutti gli ordini/rate che scadono nella data indicata (es. Fine Mese)
+  app.post('/b2b-users/:id/pay-due-date', {
+    schema: {
+      params: z.object({ id: z.string() }),
+      body: z.object({
+        dueDateIso: z.string(),
+        note: z.string().optional(),
+      }),
+    },
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { dueDateIso, note } = request.body;
+
+    const user = await b2bPrisma.b2BUser.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fidoPaymentType: true,
+        orders: {
+          where: { status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] }, isPaid: false },
+          include: { fidoMovements: true },
+        },
+      },
+    });
+
+    if (!user) return reply.code(404).send({ error: 'Utente non trovato' });
+
+    const effectivePaymentType = user.fidoPaymentType || '30GG';
+    let settledCount = 0;
+
+    for (const order of user.orders) {
+      const totalGross = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+      const prevMovSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+      const basePaid = Math.min(totalGross, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, prevMovSum) * 100) / 100));
+
+      const installments = computeOrderInstallments(
+        order.createdAt,
+        totalGross,
+        basePaid,
+        order.isPaid,
+        effectivePaymentType
+      );
+
+      const matchingAmount = installments
+        .filter((inst) => inst.dueDateIso === dueDateIso && !inst.isPaid && inst.remainingAmount > 0)
+        .reduce((sum, inst) => sum + inst.remainingAmount, 0);
+
+      const cleanAdd = Math.round(matchingAmount * 100) / 100;
+      if (cleanAdd <= 0) continue;
+
+      const dueFormatted =
+        installments.find((inst) => inst.dueDateIso === dueDateIso)?.dueDateFormatted || dueDateIso;
+
+      await b2bPrisma.b2BFidoMovement.create({
+        data: {
+          userId: id,
+          orderId: order.id,
+          amount: cleanAdd,
+          note: note?.trim() || `Saldo scadenza ${dueFormatted}`,
+        },
+      });
+
+      const newPaid = Math.min(totalGross, Math.round((basePaid + cleanAdd) * 100) / 100);
+      const nowFullyPaid = totalGross > 0 && newPaid >= totalGross - 0.009;
+
+      await b2bPrisma.b2BOrder.update({
+        where: { id: order.id },
+        data: {
+          paidAmount: nowFullyPaid ? totalGross : newPaid,
+          isPaid: nowFullyPaid,
+          paidAt: nowFullyPaid ? new Date() : null,
+        },
+      });
+
+      settledCount++;
+    }
+
+    if (settledCount === 0) {
+      return reply.code(400).send({ error: 'Nessun importo residuo trovato per questa scadenza' });
+    }
+
+    const details = await computeUserFidoDetails(id);
+    return { success: true, settledCount, ...details };
   });
 
   // POST /api/admin/b2b-users/:id/orders/:orderId/toggle-paid

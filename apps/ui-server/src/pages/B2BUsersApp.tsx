@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Trash2, Edit2, Check, Search, Wallet, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Users, Plus, Trash2, Edit2, Check, Search, Wallet, AlertTriangle, CheckCircle2, RotateCcw, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppSplashScreen from '../components/os/AppSplashScreen';
 import StickyHeader from '../components/ui/StickyHeader';
@@ -13,6 +13,37 @@ import Modal from '../components/ui/Modal';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
+interface OrderInstallment {
+  installmentNumber: number;
+  totalInstallments: number;
+  label: string;
+  dueDateIso: string;
+  dueDateFormatted: string;
+  originalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  isPaid: boolean;
+  isOverdue: boolean;
+  isDueSoon: boolean;
+}
+
+interface GroupedDueDateItem {
+  dueDateIso: string;
+  dueDateFormatted: string;
+  totalAmount: number;
+  ordersCount: number;
+  isOverdue: boolean;
+  isDueSoon: boolean;
+  orders: Array<{
+    orderId: string;
+    shortOrderId: string;
+    orderDateFormatted: string;
+    zucchettiOrderRef?: string | null;
+    installmentLabel: string;
+    amount: number;
+  }>;
+}
+
 interface FidoSummary {
   fidoEnabled: boolean;
   fidoConcesso: number;
@@ -24,6 +55,190 @@ interface FidoSummary {
   isOverFido: boolean;
   overFidoAmount: number;
   usagePct: number;
+  nextDueDate?: GroupedDueDateItem | null;
+}
+
+const FIDO_PAYMENT_STEPS: Record<string, Array<{ mode: 'DAYS' | 'FM'; offset: number; shortLabel: string }>> = {
+  '30GG': [{ mode: 'DAYS', offset: 30, shortLabel: '30 gg' }],
+  '60GG': [{ mode: 'DAYS', offset: 60, shortLabel: '60 gg' }],
+  '90GG': [{ mode: 'DAYS', offset: 90, shortLabel: '90 gg' }],
+  '30_60GG': [
+    { mode: 'DAYS', offset: 30, shortLabel: '30 gg' },
+    { mode: 'DAYS', offset: 60, shortLabel: '60 gg' },
+  ],
+  '30_60_90GG': [
+    { mode: 'DAYS', offset: 30, shortLabel: '30 gg' },
+    { mode: 'DAYS', offset: 60, shortLabel: '60 gg' },
+    { mode: 'DAYS', offset: 90, shortLabel: '90 gg' },
+  ],
+  '30GG_FM': [{ mode: 'FM', offset: 1, shortLabel: '30 gg FM' }],
+  '60GG_FM': [{ mode: 'FM', offset: 2, shortLabel: '60 gg FM' }],
+  '90GG_FM': [{ mode: 'FM', offset: 3, shortLabel: '90 gg FM' }],
+  '30_60GG_FM': [
+    { mode: 'FM', offset: 1, shortLabel: '30 gg FM' },
+    { mode: 'FM', offset: 2, shortLabel: '60 gg FM' },
+  ],
+  '30_60_90GG_FM': [
+    { mode: 'FM', offset: 1, shortLabel: '30 gg FM' },
+    { mode: 'FM', offset: 2, shortLabel: '60 gg FM' },
+    { mode: 'FM', offset: 3, shortLabel: '90 gg FM' },
+  ],
+};
+
+function getRomeYMD(input: Date | string) {
+  const d = input instanceof Date ? input : new Date(input);
+  const parts = new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const year = Number(parts.find((p) => p.type === 'year')?.value || d.getUTCFullYear());
+  const month = Number(parts.find((p) => p.type === 'month')?.value || d.getUTCMonth() + 1);
+  const day = Number(parts.find((p) => p.type === 'day')?.value || d.getUTCDate());
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return {
+    year,
+    month,
+    day,
+    iso: `${year}-${mm}-${dd}`,
+    formatted: `${dd}/${mm}/${year}`,
+  };
+}
+
+function computeOrderInstallmentsClient(
+  createdAt: string,
+  totalGross: number,
+  paidAmount: number,
+  isPaid: boolean,
+  paymentType?: string | null
+): OrderInstallment[] {
+  const steps = FIDO_PAYMENT_STEPS[paymentType || '30GG'] || FIDO_PAYMENT_STEPS['30GG'];
+  const n = steps.length;
+  const { year, month, day } = getRomeYMD(createdAt);
+  const today = getRomeYMD(new Date());
+  const todayUtcMs = Date.UTC(today.year, today.month - 1, today.day);
+
+  const totalCents = Math.max(0, Math.round((Number(totalGross) || 0) * 100));
+  const paidCents = isPaid
+    ? totalCents
+    : Math.min(totalCents, Math.max(0, Math.round((Number(paidAmount) || 0) * 100)));
+
+  const baseCents = Math.floor(totalCents / n);
+  const remainderCents = totalCents - baseCents * n;
+  let remainingPaidCents = paidCents;
+
+  return steps.map((step, idx) => {
+    const target =
+      step.mode === 'FM'
+        ? new Date(Date.UTC(year, month + step.offset, 0))
+        : new Date(Date.UTC(year, month - 1, day + step.offset));
+    const ty = target.getUTCFullYear();
+    const tm = String(target.getUTCMonth() + 1).padStart(2, '0');
+    const td = String(target.getUTCDate()).padStart(2, '0');
+    const dueDateIso = `${ty}-${tm}-${td}`;
+    const dueDateFormatted = `${td}/${tm}/${ty}`;
+
+    const origCents = idx === n - 1 ? baseCents + remainderCents : baseCents;
+    const coveredCents = Math.min(origCents, remainingPaidCents);
+    remainingPaidCents -= coveredCents;
+    const remCents = Math.max(0, origCents - coveredCents);
+    const instPaid = remCents === 0;
+
+    const targetUtcMs = Date.UTC(ty, target.getUTCMonth(), target.getUTCDate());
+    const diffDays = Math.round((targetUtcMs - todayUtcMs) / 86400000);
+
+    return {
+      installmentNumber: idx + 1,
+      totalInstallments: n,
+      label: n > 1 ? `Rata ${idx + 1}/${n} (${step.shortLabel})` : step.shortLabel,
+      dueDateIso,
+      dueDateFormatted,
+      originalAmount: origCents / 100,
+      paidAmount: coveredCents / 100,
+      remainingAmount: remCents / 100,
+      isPaid: instPaid,
+      isOverdue: !instPaid && diffDays < 0,
+      isDueSoon: !instPaid && diffDays >= 0 && diffDays <= 7,
+    };
+  });
+}
+
+function buildGroupedScheduleClient(
+  orders: Array<{
+    id: string;
+    createdAt: string;
+    zucchettiOrderRef?: string | null;
+    isPaid: boolean;
+    installments: OrderInstallment[];
+  }>
+): GroupedDueDateItem[] {
+  const map = new Map<
+    string,
+    {
+      dueDateIso: string;
+      dueDateFormatted: string;
+      totalCents: number;
+      orderIds: Set<string>;
+      isOverdue: boolean;
+      isDueSoon: boolean;
+      orders: GroupedDueDateItem['orders'];
+    }
+  >();
+
+  for (const ord of orders) {
+    if (ord.isPaid) continue;
+    const ordDateFormatted = getRomeYMD(ord.createdAt).formatted;
+    const shortOrderId = ord.id.slice(-6).toUpperCase();
+
+    for (const inst of ord.installments || []) {
+      const remCents = Math.round((inst.remainingAmount || 0) * 100);
+      if (inst.isPaid || remCents <= 0) continue;
+
+      let group = map.get(inst.dueDateIso);
+      if (!group) {
+        group = {
+          dueDateIso: inst.dueDateIso,
+          dueDateFormatted: inst.dueDateFormatted,
+          totalCents: 0,
+          orderIds: new Set<string>(),
+          isOverdue: inst.isOverdue,
+          isDueSoon: inst.isDueSoon,
+          orders: [],
+        };
+        map.set(inst.dueDateIso, group);
+      }
+
+      group.totalCents += remCents;
+      group.orderIds.add(ord.id);
+      if (inst.isOverdue) group.isOverdue = true;
+      if (inst.isDueSoon) group.isDueSoon = true;
+      group.orders.push({
+        orderId: ord.id,
+        shortOrderId,
+        orderDateFormatted: ordDateFormatted,
+        zucchettiOrderRef: ord.zucchettiOrderRef || null,
+        installmentLabel:
+          inst.totalInstallments > 1
+            ? `Rata ${inst.installmentNumber}/${inst.totalInstallments}`
+            : 'Saldo ordine',
+        amount: remCents / 100,
+      });
+    }
+  }
+
+  return Array.from(map.values())
+    .sort((a, b) => a.dueDateIso.localeCompare(b.dueDateIso))
+    .map((g) => ({
+      dueDateIso: g.dueDateIso,
+      dueDateFormatted: g.dueDateFormatted,
+      totalAmount: g.totalCents / 100,
+      ordersCount: g.orderIds.size,
+      isOverdue: g.isOverdue,
+      isDueSoon: g.isDueSoon,
+      orders: g.orders,
+    }));
 }
 
 const FIDO_PAYMENT_OPTIONS = [
@@ -449,6 +664,42 @@ export default function B2BUsersApp() {
     }
   };
 
+  const handlePayDueDate = async (dueDateIso: string, dueDateFormatted: string, totalAmount: number) => {
+    if (!editingUser) return;
+    if (
+      !confirm(
+        `Confermi il saldo dell'intera scadenza del ${dueDateFormatted} (€ ${totalAmount.toFixed(2)} IVA incl.) su tutti gli ordini inclusi?`
+      )
+    ) {
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/pay-due-date`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          dueDateIso,
+          note: `Saldo scadenza ${dueDateFormatted}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore saldo scadenza');
+      setFidoDetails({
+        fidoSummary: data.fidoSummary,
+        orders: data.orders,
+        movements: data.movements,
+      });
+      toast.success(`Scadenza ${dueDateFormatted} saldata con successo!`);
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Errore saldo scadenza');
+    }
+  };
+
   const handleEditUser = (u: any) => {
     setEditingUser(u);
     setFidoDetails(null);
@@ -590,6 +841,18 @@ export default function B2BUsersApp() {
   const liveFidoDisponibile = formData.fidoEnabled ? Math.max(0, Math.round(liveRawDisponibile * 100) / 100) : 0;
   const liveIsOverFido = Boolean(formData.fidoEnabled) && liveFidoConcesso > 0 && liveRawDisponibile < 0;
   const liveOverFidoAmount = liveIsOverFido ? Math.round(Math.abs(liveRawDisponibile) * 100) / 100 : 0;
+  const effectiveLivePaymentType = formData.fidoPaymentType || '30GG';
+  const liveOrdersWithInstallments = (fidoDetails?.orders || []).map((ord) => ({
+    ...ord,
+    installments: computeOrderInstallmentsClient(
+      ord.createdAt,
+      ord.totalGross,
+      Number(ord.paidAmount) || 0,
+      ord.isPaid,
+      effectiveLivePaymentType
+    ),
+  }));
+  const liveDueSchedule = buildGroupedScheduleClient(liveOrdersWithInstallments);
 
   return (
     <>
@@ -701,6 +964,33 @@ export default function B2BUsersApp() {
                             {isOverFido ? `Sforato: -€ ${overFidoAmount.toFixed(2)}` : `Disp: € ${fidoDisponibile.toFixed(2)}`}
                           </span>
                         </div>
+                        {fs?.nextDueDate && (
+                          <div
+                            style={{
+                              marginTop: '0.35rem',
+                              paddingTop: '0.35rem',
+                              borderTop: '1px dashed var(--color-border)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: fs.nextDueDate.isOverdue
+                                ? 'var(--color-danger, #ef4444)'
+                                : 'var(--color-text)',
+                            }}
+                          >
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Calendar size={11} />
+                              {fs.nextDueDate.isOverdue ? 'Scaduta' : 'Pross. scad.'}{' '}
+                              {fs.nextDueDate.dueDateFormatted}
+                              {fs.nextDueDate.ordersCount > 1
+                                ? ` (${fs.nextDueDate.ordersCount} ord.)`
+                                : ''}
+                            </span>
+                            <strong>€ {fs.nextDueDate.totalAmount.toFixed(2)}</strong>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
@@ -954,6 +1244,10 @@ export default function B2BUsersApp() {
                         setFormData((prev) => ({
                           ...prev,
                           fidoEnabled: e.target.checked,
+                          fidoPaymentType:
+                            e.target.checked && !prev.fidoPaymentType
+                              ? '30GG'
+                              : prev.fidoPaymentType,
                         }))
                       }
                       style={{ width: '16px', height: '16px', cursor: 'pointer' }}
@@ -978,10 +1272,15 @@ export default function B2BUsersApp() {
                         const val = e.target.value;
                         setFidoInput(val);
                         const num = parseFloat(val.replace(',', '.'));
+                        const willEnable = !isNaN(num) && num > 0;
                         setFormData((prev) => ({
                           ...prev,
                           fido: isNaN(num) ? 0 : Math.max(0, num),
-                          fidoEnabled: !isNaN(num) && num > 0 ? true : prev.fidoEnabled,
+                          fidoEnabled: willEnable ? true : prev.fidoEnabled,
+                          fidoPaymentType:
+                            willEnable && !prev.fidoPaymentType
+                              ? '30GG'
+                              : prev.fidoPaymentType,
                         }));
                       }}
                     />
@@ -1071,19 +1370,141 @@ export default function B2BUsersApp() {
                       Caricamento ordini e pagamenti...
                     </div>
                   ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {/* Scadenziario Pagamenti Raggruppato per Data (Somma Ordini Stesso Giorno / Fine Mese) */}
+                      {liveDueSchedule.length > 0 && (
+                        <div
+                          style={{
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '0.85rem',
+                            background: 'var(--color-surface-hover)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 700 }}>
+                              <Calendar size={15} />
+                              Scadenziario Pagamenti per Data ({getPaymentTypeLabel(effectiveLivePaymentType)})
+                            </div>
+                            <span style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)' }}>
+                              Gli ordini che scadono nello stesso giorno vengono sommati automaticamente
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {liveDueSchedule.map((grp) => (
+                              <div
+                                key={grp.dueDateIso}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  flexWrap: 'wrap',
+                                  padding: '0.6rem 0.75rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'var(--color-surface)',
+                                  border: `1px solid ${
+                                    grp.isOverdue
+                                      ? 'var(--color-danger, #ef4444)'
+                                      : grp.isDueSoon
+                                      ? 'var(--color-warning, #f59e0b)'
+                                      : 'var(--color-border)'
+                                  }`,
+                                }}
+                              >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                    <strong style={{ fontSize: '0.86rem' }}>
+                                      Scadenza {grp.dueDateFormatted}
+                                    </strong>
+                                    <Badge
+                                      variant={
+                                        grp.isOverdue
+                                          ? 'danger'
+                                          : grp.isDueSoon
+                                          ? 'warning'
+                                          : 'neutral'
+                                      }
+                                    >
+                                      {grp.isOverdue
+                                        ? 'SCADUTA'
+                                        : grp.isDueSoon
+                                        ? 'IN SCADENZA (≤7 gg)'
+                                        : 'Programmata'}
+                                    </Badge>
+                                    {grp.ordersCount > 1 && (
+                                      <Badge variant="primary">
+                                        Somma di {grp.ordersCount} ordini
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                                    {grp.orders.map((item, idx) => (
+                                      <span key={`${item.orderId}_${idx}`}>
+                                        <strong>#{item.shortOrderId}</strong> ({item.orderDateFormatted}
+                                        {item.installmentLabel !== 'Saldo ordine'
+                                          ? ` • ${item.installmentLabel}`
+                                          : ''}
+                                        ): € {item.amount.toFixed(2)}
+                                        {idx < grp.orders.length - 1 ? '  +' : ''}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                      Totale da pagare
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: '0.98rem',
+                                        fontWeight: 800,
+                                        color: grp.isOverdue
+                                          ? 'var(--color-danger, #ef4444)'
+                                          : 'var(--color-text)',
+                                      }}
+                                    >
+                                      € {grp.totalAmount.toFixed(2)}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="primary"
+                                    icon={<CheckCircle2 size={13} />}
+                                    onClick={() =>
+                                      handlePayDueDate(
+                                        grp.dueDateIso,
+                                        grp.dueDateFormatted,
+                                        grp.totalAmount
+                                      )
+                                    }
+                                  >
+                                    Salda Scadenza
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', background: 'var(--color-surface-hover)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                         <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>
-                          Ordini Approvati del Cliente ({fidoDetails?.orders?.length || 0}) — Gestione Saldo e Pagamento Parziale per Ordine
+                          Ordini Approvati del Cliente ({liveOrdersWithInstallments.length}) — Gestione Saldo e Pagamento Parziale per Ordine
                         </div>
                       </div>
-                      {(!fidoDetails?.orders || fidoDetails.orders.length === 0) ? (
+                      {liveOrdersWithInstallments.length === 0 ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                           Nessun ordine approvato presente per questo cliente.
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '320px', overflowY: 'auto' }}>
-                          {fidoDetails.orders.map((ord) => {
+                          {liveOrdersWithInstallments.map((ord) => {
                             const ordInput = orderPartialInputs[ord.id] || { amount: '', note: '' };
                             const paidAmt = Number(ord.paidAmount) || 0;
                             const remAmt =
@@ -1147,6 +1568,46 @@ export default function B2BUsersApp() {
                                         </>
                                       )}
                                     </div>
+                                    {!ord.isPaid && ord.installments && ord.installments.length > 0 && (
+                                      <div style={{ fontSize: '0.73rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                        <span style={{ color: 'var(--color-text-muted)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                          <Calendar size={11} />
+                                          {ord.installments.length > 1 ? 'Rate scadenza:' : 'Scadenza pagamento:'}
+                                        </span>
+                                        {ord.installments.map((inst) => (
+                                          <span
+                                            key={inst.installmentNumber}
+                                            style={{
+                                              padding: '0.1rem 0.45rem',
+                                              borderRadius: 'var(--radius-sm)',
+                                              background: 'var(--color-surface-hover)',
+                                              border: `1px solid ${
+                                                inst.isPaid
+                                                  ? 'var(--color-border)'
+                                                  : inst.isOverdue
+                                                  ? 'var(--color-danger, #ef4444)'
+                                                  : 'var(--color-border)'
+                                              }`,
+                                              color: inst.isPaid
+                                                ? 'var(--color-success, #10b981)'
+                                                : inst.isOverdue
+                                                ? 'var(--color-danger, #ef4444)'
+                                                : 'var(--color-text)',
+                                              fontWeight: 600,
+                                            }}
+                                          >
+                                            {inst.dueDateFormatted}
+                                            {ord.installments.length > 1
+                                              ? inst.isPaid
+                                                ? ' (Saldata)'
+                                                : `: € ${inst.remainingAmount.toFixed(2)}`
+                                              : inst.isOverdue
+                                              ? ' (Scaduta)'
+                                              : ''}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
@@ -1256,6 +1717,7 @@ export default function B2BUsersApp() {
                           })}
                         </div>
                       )}
+                    </div>
                     </div>
                   )
                 )}
