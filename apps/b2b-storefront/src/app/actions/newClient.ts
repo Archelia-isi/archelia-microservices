@@ -5,6 +5,7 @@ import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import * as bcrypt from 'bcryptjs';
 import { Agent } from 'undici';
+import { formatFidoPaymentType } from '@/lib/fido';
 
 const zucchettiDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
 
@@ -846,10 +847,7 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   const nazione = ((input.nazione || 'ITA').trim().toUpperCase() || 'ITA').substring(0, 3);
   const lingua = ((input.lingua || 'ITA').trim().toUpperCase() || 'ITA').substring(0, 3);
   const codicePagamento = (input.codicePagamento || '').trim().toUpperCase().substring(0, 5);
-  const gestioneFido = input.gestioneFido === 'S' ? 'S' : 'N';
-  const bloccoSuperamentoFido = input.bloccoSuperamentoFido === 'S' ? 'S' : 'N';
   const bloccoContenzioso = input.bloccoContenzioso === 'S' ? 'S' : 'N';
-  const fidoNum = parseFloat(input.importoMaxFido || '0') || 0;
   const maxOrdNum = parseFloat(input.importoMaxOrdine || '0') || 0;
 
   const appId = process.env.ZUCCHETTI_APPLICATION_ID || '00004';
@@ -891,17 +889,16 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
   if (categoriaCommerciale) baseAttrs.ANCATSCM = categoriaCommerciale.substring(0, 5);
   if (agentZucchettiCode) baseAttrs.ANCODAG1 = agentZucchettiCode.substring(0, 5);
 
-  // Attributi estesi opzionali del cliente (SDI, Fido, Nazione, Lingua)
+  // Attributi estesi opzionali del cliente (SDI, Nazione, Lingua; il Fido è gestito solo da Amministrazione su Archelia OS)
   const extendedAttrs: Record<string, string> = {
     ...baseAttrs,
     ANNAZION: nazione,
     ANCODLIN: lingua,
     CCCODEST: codiceDestinatario,
-    ANFLFIDO: gestioneFido,
-    ANFLBLVE: bloccoSuperamentoFido,
+    ANFLFIDO: 'N',
+    ANFLBLVE: 'N',
     ANFLGCON: bloccoContenzioso,
   };
-  if (fidoNum > 0) extendedAttrs.ANVALFID = fidoNum.toFixed(4);
   if (maxOrdNum > 0) extendedAttrs.ANMAXORD = maxOrdNum.toFixed(4);
 
   const buildContiXml = (attrs: Record<string, string>) => {
@@ -1037,7 +1034,8 @@ export async function createNewZucchettiClient(input: NewClientFormInput) {
       role: 'USER',
       agentId: session.userId,
       customerType: customerTypeLabel,
-      fido: fidoNum,
+      fidoEnabled: false,
+      fido: 0,
       discount: baseDiscount,
       address: fullAddress,
       city: localita,
@@ -1306,6 +1304,16 @@ export interface AgentManagedClient {
   categoriaCode: string;
   discount: number;
   fido: number;
+  fidoSummary?: {
+    hasFido: boolean;
+    fidoConcesso: number;
+    fidoPaymentLabel: string;
+    fidoUtilizzato: number;
+    fidoDisponibile: number;
+    isOverFido: boolean;
+    overFidoAmount: number;
+    usagePct: number;
+  };
   codicePagamento: string;
   isElmarkCustomer: boolean;
   elmarkDiscounts: Record<string, number>;
@@ -1415,6 +1423,20 @@ export async function getAgentClientsList(): Promise<{
         _count: {
           select: { orders: true },
         },
+        orders: {
+          where: {
+            status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] },
+            isPaid: false,
+          },
+          select: {
+            totalAmount: true,
+            totalIva: true,
+            paidAmount: true,
+            fidoMovements: {
+              select: { amount: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -1503,7 +1525,47 @@ export async function getAgentClientsList(): Promise<{
           : 'Nessuna Categoria'),
       categoriaCode: matchedCat?.code ?? '',
       discount: u.discount ?? 0,
-      fido: u.fido ?? 0,
+      fido: Boolean(u.fidoEnabled) && Number(u.fido || 0) > 0 ? Number(u.fido || 0) : 0,
+      fidoSummary: (() => {
+        const fidoEnabled = Boolean(u.fidoEnabled);
+        const fidoConcesso = fidoEnabled ? Number(u.fido || 0) : 0;
+        const fidoPaymentLabel = formatFidoPaymentType(u.fidoPaymentType);
+        if (!fidoEnabled || fidoConcesso <= 0) {
+          return {
+            hasFido: false,
+            fidoConcesso: 0,
+            fidoPaymentLabel: '',
+            fidoUtilizzato: 0,
+            fidoDisponibile: 0,
+            isOverFido: false,
+            overFidoAmount: 0,
+            usagePct: 0,
+          };
+        }
+        let remainingTotal = 0;
+        for (const o of u.orders || []) {
+          const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
+          const movSum = (o.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+          const rawPaid = Math.max(Number(o.paidAmount) || 0, movSum);
+          const paidAmount = Math.min(totalGross, Math.max(0, Math.round(rawPaid * 100) / 100));
+          remainingTotal += Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
+        }
+        const fidoUtilizzato = Math.max(0, Number(remainingTotal.toFixed(2)));
+        const fidoDisponibile = Number(Math.max(0, fidoConcesso - fidoUtilizzato).toFixed(2));
+        const isOverFido = fidoUtilizzato > fidoConcesso;
+        const overFidoAmount = isOverFido ? Number((fidoUtilizzato - fidoConcesso).toFixed(2)) : 0;
+        const usagePct = Math.round((fidoUtilizzato / fidoConcesso) * 100);
+        return {
+          hasFido: true,
+          fidoConcesso,
+          fidoPaymentLabel,
+          fidoUtilizzato,
+          fidoDisponibile,
+          isOverFido,
+          overFidoAmount,
+          usagePct,
+        };
+      })(),
       codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
       isElmarkCustomer: Boolean(u.isElmarkCustomer),
       elmarkDiscounts: u.isElmarkCustomer
@@ -1572,7 +1634,7 @@ export async function getAgentClientsList(): Promise<{
         : 'Nessuna Categoria',
       categoriaCode: matchedCat?.code || '',
       discount: matchedCat?.discount ?? 0,
-      fido: parseFloat(String(zRow?.anvalfid || zRow?.Anvalfid || '0')) || 0,
+      fido: 0,
       codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),
       isElmarkCustomer: false,
       elmarkDiscounts: {},
@@ -1595,7 +1657,7 @@ export async function getAgentClientsList(): Promise<{
 
   cachedAgentClientsByAgentId.set(session.userId, {
     data: resultData,
-    expiresAt: Date.now() + 60 * 1000,
+    expiresAt: Date.now() + 15 * 1000,
   });
 
   return resultData;
@@ -1707,7 +1769,6 @@ export async function updateAgentClient(input: UpdateAgentClientInput): Promise<
       username: cleanUsername,
       customerType: customerTypeLabel,
       discount: discountVal,
-      fido: typeof input.fido === 'number' && !isNaN(input.fido) ? input.fido : existing.fido,
       isElmarkCustomer: Boolean(input.isElmarkCustomer),
       elmarkDiscounts: finalElmarkDiscounts,
       isActive: Boolean(input.isActive),

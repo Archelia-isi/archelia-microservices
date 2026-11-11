@@ -27,7 +27,10 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
         orderBy: { id: 'asc' }
       },
       user: true,
-      promoProspect: true
+      promoProspect: true,
+      fidoMovements: {
+        select: { amount: true }
+      }
     }
   });
 
@@ -50,7 +53,10 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
           orderBy: { id: 'asc' }
         },
         user: true,
-        promoProspect: true
+        promoProspect: true,
+        fidoMovements: {
+          select: { amount: true }
+        }
       }
     });
     if (refreshed) {
@@ -139,12 +145,16 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
   }));
 
   const fidoSummary = order.userId ? await getClientFidoSummary(order.userId) : null;
-  const orderGrossTotal = (Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0);
+  const orderGrossTotal = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+  const orderMovSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  const orderPaidAmount = order.isPaid
+    ? orderGrossTotal
+    : Math.min(orderGrossTotal, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, orderMovSum) * 100) / 100));
+  const orderRemainingAmount = Math.max(0, Math.round((orderGrossTotal - orderPaidAmount) * 100) / 100);
   const wouldExceedFido =
-    fidoSummary &&
-    fidoSummary.fidoConcesso > 0 &&
+    Boolean(fidoSummary?.hasFido) &&
     !isApproved &&
-    orderGrossTotal > fidoSummary.fidoDisponibile;
+    orderGrossTotal > (fidoSummary?.fidoDisponibile || 0);
 
   if (isPending || isSavedOrder || (isAgent && isDraft)) {
     const isLockedByOther = await isOrderLockedForUser(order.id, session.userId, session.user.role);
@@ -155,7 +165,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             &larr; {backText}
           </Link>
         </div>
-        {fidoSummary && fidoSummary.fidoConcesso > 0 && (
+        {fidoSummary?.hasFido && (
           <div
             className={`mb-4 p-4 rounded-lg border flex flex-wrap items-center justify-between gap-4 text-sm ${
               fidoSummary.isOverFido || wouldExceedFido
@@ -313,6 +323,51 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             )}
           </div>
         </div>
+
+        {fidoSummary?.hasFido && (
+          <div
+            className={`px-6 py-4 border-b flex flex-wrap items-center justify-between gap-4 text-sm ${
+              fidoSummary.isOverFido
+                ? 'bg-red-50/80 border-red-200 text-red-900'
+                : fidoSummary.usagePct >= 80
+                ? 'bg-amber-50/80 border-amber-200 text-amber-900'
+                : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+            }`}
+          >
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-bold uppercase tracking-wider text-xs">
+                Situazione Fido (IVA incl.)
+                {fidoSummary.fidoPaymentLabel ? ` — Pagamento: ${fidoSummary.fidoPaymentLabel}` : ''}
+              </span>
+              {(isApproved || order.status === 'SENT_TO_ZUCCHETTI') && (
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    order.isPaid || orderRemainingAmount <= 0.009
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : orderPaidAmount > 0
+                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                  }`}
+                >
+                  {order.isPaid || orderRemainingAmount <= 0.009
+                    ? 'Ordine Saldato'
+                    : orderPaidAmount > 0
+                    ? `Acconto € ${orderPaidAmount.toFixed(2)} • Residuo € ${orderRemainingAmount.toFixed(2)}`
+                    : `Da saldare: € ${orderGrossTotal.toFixed(2)}`}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+              <span>Concesso: <strong>€ {fidoSummary.fidoConcesso.toFixed(2)}</strong></span>
+              <span>Impegnato: <strong>€ {fidoSummary.fidoUtilizzato.toFixed(2)}</strong></span>
+              <span className={fidoSummary.isOverFido ? 'text-red-700 font-bold' : 'text-emerald-700 font-bold'}>
+                {fidoSummary.isOverFido
+                  ? `Oltre Fido: -€ ${fidoSummary.overFidoAmount.toFixed(2)}`
+                  : `Disponibile: € ${fidoSummary.fidoDisponibile.toFixed(2)}`}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Elenco Prodotti suddiviso per singolo Ordine Zucchetti (ORDCL / ORDIC) */}
         <div className="p-4 sm:p-6 bg-gray-50/60 space-y-6">

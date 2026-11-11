@@ -843,6 +843,37 @@ export default function ClientsManager({
                   <span className="px-2.5 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-900 text-xs font-semibold">
                     Listino Izzo: {c.customerType} (Sconto Base {c.discount}%)
                   </span>
+                  {c.fidoSummary?.hasFido && (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-md border text-xs font-bold ${
+                        c.fidoSummary.isOverFido
+                          ? 'bg-red-50 border-red-200 text-red-800'
+                          : c.fidoSummary.usagePct >= 75
+                          ? 'bg-amber-50 border-amber-200 text-amber-900'
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      }`}
+                    >
+                      Fido: €{' '}
+                      {c.fidoSummary.fidoConcesso.toLocaleString('it-IT', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      (
+                      {c.fidoSummary.isOverFido
+                        ? `Oltre fido € ${c.fidoSummary.overFidoAmount.toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : `Disp. € ${c.fidoSummary.fidoDisponibile.toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`}
+                      )
+                      {c.fidoSummary.fidoPaymentLabel
+                        ? ` • Pagamento: ${c.fidoSummary.fidoPaymentLabel}`
+                        : ''}
+                    </span>
+                  )}
                   {c.phone && (
                     <span className="px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-700 text-xs">
                       Tel: {c.phone}
@@ -1694,6 +1725,85 @@ export default function ClientsManager({
                     )}
                   </div>
                 </div>
+
+                {/* Situazione Fido & Tipo di Pagamento (Visibile in Sola Lettura SOLO se attivo sul cliente) */}
+                {selectedClient.fidoSummary?.hasFido && (
+                  <div
+                    className={`p-4 rounded-xl border space-y-3 ${
+                      selectedClient.fidoSummary.isOverFido
+                        ? 'bg-red-50/70 border-red-200'
+                        : selectedClient.fidoSummary.usagePct >= 75
+                        ? 'bg-amber-50/70 border-amber-200'
+                        : 'bg-emerald-50/70 border-emerald-200'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-xs font-extrabold uppercase tracking-wider text-gray-900">
+                          Situazione Fido &amp; Pagamento (IVA incl.)
+                        </h3>
+                        <p className="text-[11px] text-gray-600">
+                          Dati in sola lettura gestiti dall&apos;Amministrazione.
+                        </p>
+                      </div>
+                      {selectedClient.fidoSummary.fidoPaymentLabel && (
+                        <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-xs font-extrabold text-gray-900">
+                          Tipo Pagamento: {selectedClient.fidoSummary.fidoPaymentLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-lg bg-white border border-gray-200">
+                        <div className="text-[11px] font-semibold text-gray-500 uppercase">
+                          Fido Concesso
+                        </div>
+                        <div className="text-sm font-black text-gray-900 mt-0.5">
+                          €{' '}
+                          {selectedClient.fidoSummary.fidoConcesso.toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-white border border-gray-200">
+                        <div className="text-[11px] font-semibold text-gray-500 uppercase">
+                          Fido Impegnato
+                        </div>
+                        <div className="text-sm font-black text-gray-900 mt-0.5">
+                          €{' '}
+                          {selectedClient.fidoSummary.fidoUtilizzato.toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-white border border-gray-200">
+                        <div className="text-[11px] font-semibold text-gray-500 uppercase">
+                          {selectedClient.fidoSummary.isOverFido
+                            ? 'Oltre Fido'
+                            : 'Disponibile Residuo'}
+                        </div>
+                        <div
+                          className={`text-sm font-black mt-0.5 ${
+                            selectedClient.fidoSummary.isOverFido
+                              ? 'text-red-700'
+                              : 'text-emerald-700'
+                          }`}
+                        >
+                          {selectedClient.fidoSummary.isOverFido ? '-' : ''}€{' '}
+                          {(selectedClient.fidoSummary.isOverFido
+                            ? selectedClient.fidoSummary.overFidoAmount
+                            : selectedClient.fidoSummary.fidoDisponibile
+                          ).toLocaleString('it-IT', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Sezione 4: Credenziali Portale B2B */}
                 {selectedClient.hasB2BAccount && (

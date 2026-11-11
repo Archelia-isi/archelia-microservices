@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import DeleteSentOrderButton from '../orders/DeleteSentOrderButton';
+import { formatFidoPaymentType } from '@/lib/fido';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,12 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                     {isPromoOrder && (
                       <span className="px-2.5 py-0.5 text-[11px] font-black bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-full">
                         🆕 1° ORDINE CLIENTE IN ATTIVAZIONE
+                      </span>
+                    )}
+                    {order.user?.fidoEnabled && Number(order.user?.fido || 0) > 0 && (
+                      <span className="px-2.5 py-0.5 text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full">
+                        Fido: € {Number(order.user.fido).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {order.user.fidoPaymentType ? ` • ${formatFidoPaymentType(order.user.fidoPaymentType)}` : ''}
                       </span>
                     )}
                   </div>

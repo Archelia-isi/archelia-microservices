@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import Link from 'next/link';
 import OrderDetailsModal from './OrderDetailsModal';
+import { formatFidoPaymentType } from '@/lib/fido';
 
 export default async function AgentCompletedOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -26,6 +27,7 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
     include: {
       user: true,
       items: true,
+      fidoMovements: { select: { amount: true } },
     },
     orderBy: {
       createdAt: 'desc',
@@ -64,12 +66,48 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
         </div>
       ) : (
         <div className="grid gap-4">
-          {completedOrders.map(order => (
+          {completedOrders.map(order => {
+            const hasClientFido = Boolean(order.user?.fidoEnabled && Number(order.user?.fido || 0) > 0);
+            const paymentLabel = hasClientFido ? formatFidoPaymentType(order.user?.fidoPaymentType) : '';
+            const grossTotal = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+            const movSum = (order.fidoMovements || []).reduce((s: number, m: any) => s + (Number(m.amount) || 0), 0);
+            const paidAmount = order.isPaid
+              ? grossTotal
+              : Math.min(grossTotal, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, movSum) * 100) / 100));
+            const remainingAmount = Math.max(0, Math.round((grossTotal - paidAmount) * 100) / 100);
+
+            return (
             <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <div className="text-sm text-gray-500">Ordine #{order.id.slice(-6).toUpperCase()}</div>
-                  <div className="font-bold text-gray-900 text-lg">{order.user?.companyName || `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim() || 'Cliente'}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="font-bold text-gray-900 text-lg">{order.user?.companyName || `${order.user?.firstName || ''} ${order.user?.lastName || ''}`.trim() || 'Cliente'}</div>
+                    {hasClientFido && (
+                      <>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                            order.isPaid || remainingAmount <= 0.009
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : paidAmount > 0
+                              ? 'bg-blue-50 text-blue-800 border-blue-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {order.isPaid || remainingAmount <= 0.009
+                            ? 'Saldato'
+                            : paidAmount > 0
+                            ? `Acconto € ${paidAmount.toFixed(2)} • Residuo € ${remainingAmount.toFixed(2)}`
+                            : 'Da saldare'}
+                        </span>
+                        {paymentLabel && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200">
+                            Pagamento: {paymentLabel}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user?.zucchettiCode || 'N/A'}</div>
                 </div>
                 <div className="flex flex-col sm:items-end gap-2">
@@ -96,7 +134,8 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

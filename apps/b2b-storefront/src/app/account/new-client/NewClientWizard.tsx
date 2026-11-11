@@ -545,7 +545,7 @@ export default function NewClientWizard({
           <div>
             <div className="text-sm font-bold">Step 2: Campi Aggiuntivi (Non Obbligatori)</div>
             <div className="text-xs font-normal text-gray-500">
-              Pagamenti, Fido, Sede Diversa e Parametri Contabili Zucchetti
+              Pagamenti, Sede Diversa e Parametri Contabili Zucchetti
             </div>
           </div>
         </button>
@@ -1031,7 +1031,7 @@ export default function NewClientWizard({
                   onClick={handleGoToStep2}
                   className="px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  <span>Vai allo Step 2 (Campi Facoltativi / Fido / Sede Diversa)</span>
+                  <span>Vai allo Step 2 (Campi Facoltativi / Sede Diversa)</span>
                   <span>&rarr;</span>
                 </button>
               </div>
@@ -1126,10 +1126,10 @@ export default function NewClientWizard({
               </div>
             </div>
 
-            {/* CONDIZIONI DI PAGAMENTO E FIDO FACOLTATIVE */}
+            {/* CONDIZIONI CONTABILI FACOLTATIVE ZUCCHETTI */}
             <div className="p-5 rounded-xl border border-gray-200 space-y-4">
               <h3 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-2">
-                Pagamenti e Gestione Fido (Non Obbligatori)
+                Parametri Contabili Zucchetti (Non Obbligatori)
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1152,21 +1152,6 @@ export default function NewClientWizard({
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-800 mb-1">
-                    Importo Max Fido Cliente (`ANVALFID`) €
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.importoMaxFido || ''}
-                    onChange={e => updateField('importoMaxFido', e.target.value)}
-                    placeholder="0,00"
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-1">
                     Importo Max per Ordine (`ANMAXORD`) €
                   </label>
                   <input
@@ -1178,36 +1163,6 @@ export default function NewClientWizard({
                     placeholder="0,00"
                     className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-1">
-                    Controllo Fido (`ANFLFIDO`)
-                  </label>
-                  <select
-                    value={form.gestioneFido || 'N'}
-                    onChange={e => updateField('gestioneFido', e.target.value as 'S' | 'N')}
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-                  >
-                    <option value="N">No (Default Zucchetti)</option>
-                    <option value="S">Sì</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-1">
-                    Blocco Vendite Superamento Fido (`ANFLBLVE`)
-                  </label>
-                  <select
-                    value={form.bloccoSuperamentoFido || 'N'}
-                    onChange={e => updateField('bloccoSuperamentoFido', e.target.value as 'S' | 'N')}
-                    className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-                  >
-                    <option value="N">No (Default)</option>
-                    <option value="S">Sì</option>
-                  </select>
                 </div>
 
                 <div>

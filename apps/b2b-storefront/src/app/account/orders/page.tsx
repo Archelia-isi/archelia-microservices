@@ -2,6 +2,7 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { getClientFidoSummary } from '@/lib/fido';
 
 export default async function AccountOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -11,15 +12,21 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
 
   const currentTab = searchParams.tab === 'elmark' ? 'ELMARK' : 'ZUCCHETTI';
 
-  const orders = await prisma.b2BOrder.findMany({
-    where: { 
-      OR: [{ userId: session.userId }, { promoProspectId: session.userId }],
-      status: { notIn: ['DRAFT', 'PENDING_AGENT_REVIEW'] },
-      storeMode: currentTab
-    },
-    orderBy: { createdAt: 'desc' },
-    include: { items: true }
-  });
+  const [orders, fidoSummary] = await Promise.all([
+    prisma.b2BOrder.findMany({
+      where: { 
+        OR: [{ userId: session.userId }, { promoProspectId: session.userId }],
+        status: { notIn: ['DRAFT', 'PENDING_AGENT_REVIEW'] },
+        storeMode: currentTab
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: true,
+        fidoMovements: { select: { amount: true } }
+      }
+    }),
+    getClientFidoSummary(session.userId)
+  ]);
 
   return (
     <div>
@@ -71,14 +78,45 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
               statusText = order.status;
             }
 
+            const grossTotal = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+            const movSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+            const paidAmount = order.isPaid
+              ? grossTotal
+              : Math.min(grossTotal, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, movSum) * 100) / 100));
+            const remainingAmount = Math.max(0, Math.round((grossTotal - paidAmount) * 100) / 100);
+
             return (
               <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex flex-wrap items-center gap-2.5 mb-2">
                     <span className="font-bold text-lg">Ordine #{order.id.slice(-6).toUpperCase()}</span>
                     <span className={`px-2 py-1 rounded text-xs font-semibold border ${statusColor}`}>
                       {statusText}
                     </span>
+                    {fidoSummary?.hasFido && (isApproved || order.status === 'SENT_TO_ZUCCHETTI') && (
+                      <>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold border ${
+                            order.isPaid || remainingAmount <= 0.009
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : paidAmount > 0
+                              ? 'bg-blue-50 text-blue-800 border-blue-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {order.isPaid || remainingAmount <= 0.009
+                            ? 'Saldato'
+                            : paidAmount > 0
+                            ? `Acconto € ${paidAmount.toFixed(2)} • Residuo € ${remainingAmount.toFixed(2)}`
+                            : 'Da saldare'}
+                        </span>
+                        {fidoSummary.fidoPaymentLabel && (
+                          <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            Pagamento: {fidoSummary.fidoPaymentLabel}
+                          </span>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="text-sm text-gray-500 mb-2">
                     Effettuato il: {order.createdAt.toLocaleDateString('it-IT')} {order.createdAt.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
