@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import Link from 'next/link';
 import OrderDetailsModal from './OrderDetailsModal';
-import { formatFidoPaymentType, computeOrderInstallments } from '@/lib/fido';
+import { formatFidoPaymentType } from '@/lib/fido';
 
 export default async function AgentCompletedOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -36,9 +36,18 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Ordini Conclusi</h1>
-        <p className="text-gray-500 mt-2">Storico degli ordini dei tuoi clienti inviati con successo a Zucchetti.</p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Ordini Conclusi</h1>
+          <p className="text-gray-500 mt-1">Storico degli ordini dei tuoi clienti inviati con successo a Zucchetti.</p>
+        </div>
+        <Link
+          prefetch={false}
+          href="/account/scadenziario"
+          className="self-start sm:self-auto px-4 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 text-sm font-bold transition-colors"
+        >
+          📅 Scadenziario Clienti &rarr;
+        </Link>
       </div>
 
       <div className="flex border-b border-gray-200 mb-6">
@@ -75,17 +84,6 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
               ? grossTotal
               : Math.min(grossTotal, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, movSum) * 100) / 100));
             const remainingAmount = Math.max(0, Math.round((grossTotal - paidAmount) * 100) / 100);
-            const isEffectivelyPaid = Boolean(order.isPaid) || remainingAmount <= 0.009;
-            const orderInstallments =
-              hasClientFido && !isEffectivelyPaid
-                ? computeOrderInstallments(
-                    order.createdAt,
-                    grossTotal,
-                    paidAmount,
-                    isEffectivelyPaid,
-                    order.user?.fidoPaymentType || '30GG'
-                  )
-                : [];
 
             return (
             <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -120,35 +118,6 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
                     )}
                   </div>
                   <div className="text-xs text-gray-500">Cod. Zucchetti: {order.user?.zucchettiCode || 'N/A'}</div>
-                  {hasClientFido && !isEffectivelyPaid && orderInstallments.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      <span className="text-xs font-semibold text-gray-600">
-                        {orderInstallments.length > 1 ? 'Scadenze rate:' : 'Scadenza:'}
-                      </span>
-                      {orderInstallments.map(inst => (
-                        <span
-                          key={inst.installmentNumber}
-                          className={`px-2 py-0.5 rounded text-xs font-semibold border ${
-                            inst.isPaid
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 line-through'
-                              : inst.isOverdue
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : inst.isDueSoon
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : 'bg-white text-gray-800 border-gray-200'
-                          }`}
-                        >
-                          {inst.totalInstallments > 1 ? `Rata ${inst.installmentNumber}/${inst.totalInstallments}: ` : ''}
-                          {inst.dueDateFormatted} (€{' '}
-                          {(inst.isPaid ? inst.originalAmount : inst.remainingAmount).toLocaleString('it-IT', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                          {inst.isOverdue ? ' • Scaduta' : ''})
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <div className="flex flex-col sm:items-end gap-2">
                   <div className="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full border border-green-200">

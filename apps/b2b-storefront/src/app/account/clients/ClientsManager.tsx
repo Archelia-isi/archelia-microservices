@@ -872,18 +872,6 @@ export default function ClientsManager({
                       {c.fidoSummary.fidoPaymentLabel
                         ? ` • Pagamento: ${c.fidoSummary.fidoPaymentLabel}`
                         : ''}
-                      {c.fidoSummary.dueSchedule?.[0]
-                        ? ` • ${
-                            c.fidoSummary.dueSchedule[0].isOverdue ? 'Scaduta' : 'Pross. scad.'
-                          } ${c.fidoSummary.dueSchedule[0].dueDateFormatted}: € ${c.fidoSummary.dueSchedule[0].totalAmount.toLocaleString(
-                            'it-IT',
-                            { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                          )}${
-                            c.fidoSummary.dueSchedule[0].ordersCount > 1
-                              ? ` (${c.fidoSummary.dueSchedule[0].ordersCount} ordini)`
-                              : ''
-                          }`
-                        : ''}
                     </span>
                   )}
                   {c.phone && (
@@ -1815,88 +1803,14 @@ export default function ClientsManager({
                       </div>
                     </div>
 
-                    {selectedClient.fidoSummary.dueSchedule &&
-                      selectedClient.fidoSummary.dueSchedule.length > 0 && (
-                        <div className="pt-2 border-t border-gray-200/80 space-y-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-800">
-                              Scadenziario Pagamenti (Ordini Sommati per Data)
-                            </span>
-                            <span className="text-[11px] text-gray-500">
-                              {selectedClient.fidoSummary.dueSchedule.length}{' '}
-                              {selectedClient.fidoSummary.dueSchedule.length === 1
-                                ? 'scadenza aperta'
-                                : 'scadenze aperte'}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                            {selectedClient.fidoSummary.dueSchedule.map(due => (
-                              <div
-                                key={due.dueDateIso}
-                                className="p-2.5 rounded-lg bg-white border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                              >
-                                <div className="space-y-1">
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="text-xs font-extrabold text-gray-900">
-                                      {due.dueDateFormatted}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                        due.isOverdue
-                                          ? 'bg-red-50 text-red-700 border-red-200'
-                                          : due.isDueSoon
-                                          ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                          : 'bg-blue-50 text-blue-700 border-blue-200'
-                                      }`}
-                                    >
-                                      {due.isOverdue
-                                        ? 'Scaduta'
-                                        : due.isDueSoon
-                                        ? 'In scadenza'
-                                        : 'Programmata'}
-                                    </span>
-                                    {due.ordersCount > 1 && (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-                                        {due.ordersCount} ordini sommati
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {due.orders.map((ord, idx) => (
-                                      <span
-                                        key={`${ord.orderId}-${idx}`}
-                                        className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-[11px] font-medium"
-                                      >
-                                        #{ord.shortOrderId} del {ord.orderDateFormatted} ({ord.installmentLabel}: €{' '}
-                                        {ord.amount.toLocaleString('it-IT', {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })})
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="text-[10px] font-semibold uppercase text-gray-400">
-                                    Totale del giorno
-                                  </div>
-                                  <div
-                                    className={`text-sm font-black ${
-                                      due.isOverdue ? 'text-red-700' : 'text-gray-900'
-                                    }`}
-                                  >
-                                    €{' '}
-                                    {due.totalAmount.toLocaleString('it-IT', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    <div className="pt-1 flex justify-end">
+                      <Link
+                        href={`/account/scadenziario?client=${selectedClient.id}`}
+                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-gray-50 border border-gray-300 text-xs font-extrabold text-gray-900 transition-colors"
+                      >
+                        📅 Apri Scadenziario di questo Cliente &rarr;
+                      </Link>
+                    </div>
                   </div>
                 )}
 

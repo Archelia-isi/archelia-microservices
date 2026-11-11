@@ -81,7 +81,7 @@ export default async function CartPage() {
     evaluateTypesenseProductWithContext,
   } = await import('@/lib/discount');
   const { getPromoProspectCheckoutData } = await import('@/app/actions/promoProspects');
-  const { getClientFidoSummary, computeOrderInstallments } = await import('@/lib/fido');
+  const { getClientFidoSummary } = await import('@/lib/fido');
   const [genericDiscount, extraAgentDiscount, elmarkDiscounts, discountCtx, promoCheckoutData, fidoSummary] = await Promise.all([
     getEffectiveDiscount(),
     getExtraAgentDiscount(),
@@ -200,16 +200,6 @@ export default async function CartPage() {
               const projectedOver = willExceedFido
                 ? Number((projectedUsed - fidoSummary.fidoConcesso).toFixed(2))
                 : 0;
-              const previewInstallments =
-                grandTotal > 0
-                  ? computeOrderInstallments(
-                      new Date(),
-                      grandTotal,
-                      0,
-                      false,
-                      fidoSummary.fidoPaymentType
-                    )
-                  : [];
               return (
                 <div className={`w-full mb-6 p-4 rounded-lg border text-sm ${
                   willExceedFido || fidoSummary.isOverFido
@@ -243,40 +233,6 @@ export default async function CartPage() {
                       )}
                     </span>
                   </div>
-                  {previewInstallments.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-black/10 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="font-bold">
-                        {previewInstallments.length > 1 ? 'Scadenze previste ordine:' : 'Scadenza prevista ordine:'}
-                      </span>
-                      {previewInstallments.map((inst) => {
-                        const existingDay = fidoSummary.dueSchedule.find(
-                          (g) => g.dueDateIso === inst.dueDateIso
-                        );
-                        const cumulativeTotal = existingDay
-                          ? existingDay.totalAmount + inst.remainingAmount
-                          : null;
-                        return (
-                          <span
-                            key={inst.installmentNumber}
-                            className="px-2 py-0.5 rounded bg-white/80 border border-black/10 font-semibold text-gray-900"
-                          >
-                            {inst.dueDateFormatted}: € {inst.remainingAmount.toFixed(2).replace('.', ',')}
-                            {cumulativeTotal !== null && (
-                              <span className="text-gray-600 font-normal">
-                                {' '}
-                                (totale giorno con altri ordini: €{' '}
-                                {cumulativeTotal.toLocaleString('it-IT', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                                )
-                              </span>
-                            )}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
                   {willExceedFido && (
                     <div className="mt-2 pt-2 border-t border-red-200 text-xs font-semibold text-red-800">
                       Attenzione: con questo ordine (€ {grandTotal.toFixed(2).replace('.', ',')} IVA incl.) il fido concesso viene superato di € {projectedOver.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.

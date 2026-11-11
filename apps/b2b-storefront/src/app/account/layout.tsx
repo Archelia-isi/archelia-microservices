@@ -16,6 +16,11 @@ export default async function AccountLayout({ children }: { children: React.Reac
 
   let hasSavedOrderStockChanges = false;
   let adjustedOrdersCount = 0;
+  const clientHasActiveFido =
+    session.user.role !== 'AGENT' &&
+    Boolean((session.user as any)?.fidoEnabled) &&
+    Number((session.user as any)?.fido || 0) > 0;
+
   if (session.user.role !== 'AGENT') {
     const syncRes = await syncSavedOrdersStockForUser(session.userId);
     hasSavedOrderStockChanges = syncRes.hasAnyAdjustments;
@@ -48,6 +53,12 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={false} href="/account/clients" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Clienti
                   </Link>
+                  <Link prefetch={false} href="/account/scadenziario" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
+                    <span>Scadenziario</span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 rounded">
+                      FIDO
+                    </span>
+                  </Link>
                   <Link prefetch={false} href="/account/discounts" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
                     <span>Gestione Sconti</span>
                     <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-900 rounded">
@@ -78,6 +89,14 @@ export default async function AccountLayout({ children }: { children: React.Reac
                   <Link prefetch={true} href="/account" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Bacheca
                   </Link>
+                  {clientHasActiveFido && (
+                    <Link prefetch={true} href="/account/scadenziario" className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors flex items-center justify-between">
+                      <span>Scadenziario</span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-900 rounded">
+                        FIDO
+                      </span>
+                    </Link>
+                  )}
                   <Link prefetch={true} href={`/account/orders${tabParam}`} className="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-brand-main font-medium transition-colors">
                     Ordini Conclusi
                   </Link>

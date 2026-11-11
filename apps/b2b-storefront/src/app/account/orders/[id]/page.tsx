@@ -10,7 +10,7 @@ import OrderEditModeClient from '../OrderEditModeClient';
 import ZucchettiDocRefEditor from './ZucchettiDocRefEditor';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
 import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
-import { getClientFidoSummary, computeOrderInstallments } from '@/lib/fido';
+import { getClientFidoSummary } from '@/lib/fido';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,15 +151,6 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
     ? orderGrossTotal
     : Math.min(orderGrossTotal, Math.max(0, Math.round(Math.max(Number(order.paidAmount) || 0, orderMovSum) * 100) / 100));
   const orderRemainingAmount = Math.max(0, Math.round((orderGrossTotal - orderPaidAmount) * 100) / 100);
-  const orderInstallments = fidoSummary?.hasFido
-    ? computeOrderInstallments(
-        order.createdAt,
-        orderGrossTotal,
-        orderPaidAmount,
-        Boolean(order.isPaid),
-        fidoSummary.fidoPaymentType
-      )
-    : [];
   const wouldExceedFido =
     Boolean(fidoSummary?.hasFido) &&
     !isApproved &&
@@ -204,23 +195,14 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                     ? `Sforato: -€ ${fidoSummary.overFidoAmount.toFixed(2)}`
                     : `Disponibile: € ${fidoSummary.fidoDisponibile.toFixed(2)}`}
                 </span>
+                <Link
+                  href={isAgent && order.userId ? `/account/scadenziario?client=${order.userId}` : '/account/scadenziario'}
+                  className="underline font-extrabold hover:opacity-80"
+                >
+                  Scadenziario &rarr;
+                </Link>
               </div>
             </div>
-            {orderInstallments.length > 0 && (
-              <div className="pt-2 border-t border-black/10 flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold">
-                  {orderInstallments.length > 1 ? 'Scadenze previste ordine:' : 'Scadenza prevista ordine:'}
-                </span>
-                {orderInstallments.map((inst) => (
-                  <span
-                    key={inst.installmentNumber}
-                    className="px-2 py-0.5 rounded bg-white/80 border border-black/10 font-semibold text-gray-900"
-                  >
-                    {inst.dueDateFormatted}: € {inst.remainingAmount.toFixed(2)}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         )}
         <OrderEditModeClient 
@@ -392,48 +374,14 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
                     ? `Oltre Fido: -€ ${fidoSummary.overFidoAmount.toFixed(2)}`
                     : `Disponibile: € ${fidoSummary.fidoDisponibile.toFixed(2)}`}
                 </span>
+                <Link
+                  href={isAgent && order.userId ? `/account/scadenziario?client=${order.userId}` : '/account/scadenziario'}
+                  className="underline font-extrabold hover:opacity-80"
+                >
+                  Scadenziario &rarr;
+                </Link>
               </div>
             </div>
-
-            {(isApproved || order.status === 'SENT_TO_ZUCCHETTI') &&
-              !order.isPaid &&
-              orderRemainingAmount > 0.009 &&
-              orderInstallments.length > 0 && (
-                <div className="pt-2 border-t border-black/10 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-bold">
-                    {orderInstallments.length > 1
-                      ? 'Scadenze rate di questo ordine:'
-                      : 'Scadenza pagamento ordine:'}
-                  </span>
-                  {orderInstallments.map((inst) => {
-                    const sameDayGrp = fidoSummary.dueSchedule.find(
-                      (g) => g.dueDateIso === inst.dueDateIso
-                    );
-                    return (
-                      <span
-                        key={inst.installmentNumber}
-                        className={`px-2.5 py-0.5 rounded-md border font-semibold ${
-                          inst.isPaid
-                            ? 'bg-emerald-100/70 text-emerald-800 border-emerald-300 line-through'
-                            : inst.isOverdue
-                            ? 'bg-red-100 text-red-900 border-red-300 font-bold'
-                            : 'bg-white/80 text-gray-900 border-black/10'
-                        }`}
-                      >
-                        {inst.dueDateFormatted}: € {inst.remainingAmount.toFixed(2)}
-                        {inst.isPaid ? ' (Saldata)' : inst.isOverdue ? ' (Scaduta)' : ''}
-                        {!inst.isPaid && sameDayGrp && sameDayGrp.ordersCount > 1 && (
-                          <span className="font-normal text-gray-600">
-                            {' '}
-                            (totale {sameDayGrp.ordersCount} ordini del {inst.dueDateFormatted}: €{' '}
-                            {sameDayGrp.totalAmount.toFixed(2)})
-                          </span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
           </div>
         )}
 

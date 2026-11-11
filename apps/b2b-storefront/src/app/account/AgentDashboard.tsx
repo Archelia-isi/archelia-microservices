@@ -105,6 +105,13 @@ export default async function AgentDashboard({ user }: { user: any }) {
           </Link>
           <Link
             prefetch={false}
+            href="/account/scadenziario"
+            className="px-4 py-2 text-sm font-bold rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition-colors flex items-center gap-1.5"
+          >
+            <span>📅 Scadenziario</span>
+          </Link>
+          <Link
+            prefetch={false}
             href="/account/discounts"
             className="px-4 py-2 text-sm font-bold rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 transition-colors flex items-center gap-1.5"
           >
