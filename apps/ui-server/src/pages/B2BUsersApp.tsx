@@ -14,7 +14,9 @@ import Modal from '../components/ui/Modal';
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://api-gateway-production-2ec6.up.railway.app' : 'http://localhost:3000');
 
 interface FidoSummary {
+  fidoEnabled: boolean;
   fidoConcesso: number;
+  fidoPaymentType?: string;
   fidoUtilizzato: number;
   fidoDisponibile: number;
   unpaidOrdersGross: number;
@@ -22,6 +24,26 @@ interface FidoSummary {
   isOverFido: boolean;
   overFidoAmount: number;
   usagePct: number;
+}
+
+const FIDO_PAYMENT_OPTIONS = [
+  { value: '', label: '-- Seleziona Tipo di Pagamento --' },
+  { value: '30GG', label: '30 gg' },
+  { value: '60GG', label: '60 gg' },
+  { value: '90GG', label: '90 gg' },
+  { value: '30_60GG', label: '30 / 60 gg' },
+  { value: '30_60_90GG', label: '30 / 60 / 90 gg' },
+  { value: '30GG_FM', label: '30 gg Fine Mese' },
+  { value: '60GG_FM', label: '60 gg Fine Mese' },
+  { value: '90GG_FM', label: '90 gg Fine Mese' },
+  { value: '30_60GG_FM', label: '30 / 60 gg Fine Mese' },
+  { value: '30_60_90GG_FM', label: '30 / 60 / 90 gg Fine Mese' },
+];
+
+function getPaymentTypeLabel(code?: string | null): string {
+  if (!code) return '';
+  const found = FIDO_PAYMENT_OPTIONS.find((o) => o.value === code);
+  return found ? found.label : code;
 }
 
 interface B2BUser {
@@ -39,7 +61,9 @@ interface B2BUser {
   agentId?: string;
   zucchettiPriceList?: string;
   customerType?: string;
+  fidoEnabled?: boolean;
   fido?: number;
+  fidoPaymentType?: string | null;
   fidoSummary?: FidoSummary;
   discount?: number;
   address?: string;
@@ -75,19 +99,31 @@ export default function B2BUsersApp() {
       totalAmount: number;
       totalIva: number;
       totalGross: number;
+      paidAmount: number;
+      remainingGross: number;
       isPaid: boolean;
       paidAt?: string | null;
+      movements?: Array<{
+        id: string;
+        orderId?: string | null;
+        amount: number;
+        note?: string | null;
+        createdAt: string;
+      }>;
     }>;
     movements: Array<{
       id: string;
+      orderId?: string | null;
       amount: number;
       note?: string | null;
       createdAt: string;
     }>;
   } | null>(null);
   const [isLoadingFido, setIsLoadingFido] = useState(false);
-  const [newPaymentAmount, setNewPaymentAmount] = useState('');
-  const [newPaymentNote, setNewPaymentNote] = useState('');
+  const [fidoInput, setFidoInput] = useState<string>('0');
+  const [orderPartialInputs, setOrderPartialInputs] = useState<
+    Record<string, { amount: string; note: string }>
+  >({});
   
   const defaultForm = {
     username: '',
@@ -104,7 +140,9 @@ export default function B2BUsersApp() {
     agentId: '',
     zucchettiPriceList: '',
     customerType: '',
+    fidoEnabled: false,
     fido: 0,
+    fidoPaymentType: '',
     discount: 0,
     address: '',
     city: '',
@@ -286,6 +324,44 @@ export default function B2BUsersApp() {
     }
   };
 
+  const handleSaveFidoSettings = async () => {
+    if (!editingUser) return;
+    const parsedFido = parseFloat(String(fidoInput).replace(',', '.'));
+    const cleanFido = isNaN(parsedFido) ? 0 : Math.max(0, Math.round(parsedFido * 100) / 100);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/fido-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fidoEnabled: Boolean(formData.fidoEnabled),
+          fido: cleanFido,
+          fidoPaymentType: formData.fidoPaymentType || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore salvataggio fido');
+      setFormData((prev) => ({
+        ...prev,
+        fidoEnabled: Boolean(formData.fidoEnabled),
+        fido: cleanFido,
+      }));
+      setFidoInput(String(cleanFido));
+      setFidoDetails({
+        fidoSummary: data.fidoSummary,
+        orders: data.orders,
+        movements: data.movements,
+      });
+      toast.success('Configurazione Fido e Tipo Pagamento salvati!');
+      fetchUsers();
+    } catch (e: any) {
+      toast.error(e.message || 'Errore salvataggio fido');
+    }
+  };
+
   const handleToggleOrderPaid = async (orderId: string) => {
     if (!editingUser) return;
     try {
@@ -308,45 +384,51 @@ export default function B2BUsersApp() {
     }
   };
 
-  const handleAddFidoPayment = async () => {
+  const handleAddOrderPartialPayment = async (orderId: string) => {
     if (!editingUser) return;
-    const amountNum = parseFloat(newPaymentAmount.replace(',', '.'));
-    if (!amountNum || isNaN(amountNum)) {
-      toast.error('Inserisci un importo valido in €');
+    const entry = orderPartialInputs[orderId] || { amount: '', note: '' };
+    const amountNum = parseFloat(String(entry.amount).replace(',', '.'));
+    if (!amountNum || isNaN(amountNum) || amountNum <= 0) {
+      toast.error('Inserisci un importo parziale valido in €');
       return;
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/fido-movements`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          amount: amountNum,
-          note: newPaymentNote.trim() || undefined,
-        }),
-      });
+      const res = await fetch(
+        `${API_URL}/api/admin/b2b-users/${editingUser.id}/orders/${orderId}/partial-payment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            amount: amountNum,
+            note: entry.note?.trim() || undefined,
+          }),
+        }
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Errore registrazione incasso');
+      if (!res.ok) throw new Error(data.error || 'Errore registrazione pagamento parziale');
       setFidoDetails({
         fidoSummary: data.fidoSummary,
         orders: data.orders,
         movements: data.movements,
       });
-      setNewPaymentAmount('');
-      setNewPaymentNote('');
-      toast.success('Incasso / rettifica registrato!');
+      setOrderPartialInputs((prev) => ({
+        ...prev,
+        [orderId]: { amount: '', note: '' },
+      }));
+      toast.success('Pagamento parziale registrato sull\'ordine!');
       fetchUsers();
     } catch (e: any) {
-      toast.error(e.message || 'Errore registrazione incasso');
+      toast.error(e.message || 'Errore registrazione pagamento parziale');
     }
   };
 
   const handleDeleteFidoPayment = async (movementId: string) => {
     if (!editingUser) return;
-    if (!confirm('Eliminare questa registrazione di incasso/rettifica?')) return;
+    if (!confirm('Eliminare questo pagamento parziale?')) return;
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/api/admin/b2b-users/${editingUser.id}/fido-movements/${movementId}`, {
@@ -354,13 +436,13 @@ export default function B2BUsersApp() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Errore eliminazione movimento');
+      if (!res.ok) throw new Error(data.error || 'Errore eliminazione pagamento');
       setFidoDetails({
         fidoSummary: data.fidoSummary,
         orders: data.orders,
         movements: data.movements,
       });
-      toast.success('Registrazione rimossa');
+      toast.success('Pagamento parziale rimosso');
       fetchUsers();
     } catch (e: any) {
       toast.error(e.message || 'Errore eliminazione');
@@ -370,8 +452,10 @@ export default function B2BUsersApp() {
   const handleEditUser = (u: any) => {
     setEditingUser(u);
     setFidoDetails(null);
-    setNewPaymentAmount('');
-    setNewPaymentNote('');
+    setOrderPartialInputs({});
+    const initialFido = Number(u.fido) || 0;
+    const initialFidoEnabled = u.fidoEnabled !== undefined ? Boolean(u.fidoEnabled) : initialFido > 0;
+    setFidoInput(String(initialFido));
     setFormData({
       username: u.username || '',
       email: u.email || '',
@@ -387,7 +471,9 @@ export default function B2BUsersApp() {
       agentId: u.agentId || '',
       zucchettiPriceList: u.zucchettiPriceList || '',
       customerType: u.customerType || '',
-      fido: u.fido || 0,
+      fidoEnabled: initialFidoEnabled,
+      fido: initialFido,
+      fidoPaymentType: u.fidoPaymentType || '',
       discount: u.discount || 0,
       address: u.address || '',
       city: u.city || '',
@@ -416,7 +502,13 @@ export default function B2BUsersApp() {
       : `${API_URL}/api/admin/b2b-users`;
       
     try {
-      const payload: any = { ...formData };
+      const parsedFido = parseFloat(String(fidoInput).replace(',', '.'));
+      const payload: any = {
+        ...formData,
+        fidoEnabled: Boolean(formData.fidoEnabled),
+        fido: isNaN(parsedFido) ? 0 : Math.max(0, Math.round(parsedFido * 100) / 100),
+        fidoPaymentType: formData.fidoPaymentType || null,
+      };
       if (payload.agentId === '') delete payload.agentId;
       if (payload.email === '') delete payload.email;
       if (isNaN(payload.fido)) payload.fido = 0;
@@ -462,8 +554,9 @@ export default function B2BUsersApp() {
   };
 
   const filteredUsers = users.filter((u) => {
+    const isFidoActiveForUser = Boolean(u.fidoSummary?.fidoEnabled ?? u.fidoEnabled) && (u.fidoSummary?.fidoConcesso || u.fido || 0) > 0;
     if (activeFilterTab === 'WITH_FIDO') {
-      if (u.role !== 'USER' || (u.fidoSummary?.fidoConcesso || u.fido || 0) <= 0) return false;
+      if (u.role !== 'USER' || !isFidoActiveForUser) return false;
     } else if (activeFilterTab === 'OVER_FIDO') {
       if (u.role !== 'USER' || !u.fidoSummary?.isOverFido) return false;
     } else if (activeFilterTab === 'AGENTS') {
@@ -481,14 +574,21 @@ export default function B2BUsersApp() {
   });
 
   const overFidoCount = users.filter((u) => u.role === 'USER' && u.fidoSummary?.isOverFido).length;
-  const withFidoCount = users.filter((u) => u.role === 'USER' && (u.fidoSummary?.fidoConcesso || u.fido || 0) > 0).length;
+  const withFidoCount = users.filter(
+    (u) =>
+      u.role === 'USER' &&
+      Boolean(u.fidoSummary?.fidoEnabled ?? u.fidoEnabled) &&
+      (u.fidoSummary?.fidoConcesso || u.fido || 0) > 0
+  ).length;
 
-  // Calcolo live nel modal al variare del Fido Concesso
-  const liveFidoConcesso = Math.max(0, Number(formData.fido) || 0);
+  // Calcolo live nel modal al variare del Fido Concesso e del Check Fido
+  const parsedInputFido = parseFloat(String(fidoInput).replace(',', '.'));
+  const liveFidoAmount = isNaN(parsedInputFido) ? 0 : Math.max(0, Math.round(parsedInputFido * 100) / 100);
+  const liveFidoConcesso = formData.fidoEnabled ? liveFidoAmount : 0;
   const liveFidoUtilizzato = fidoDetails?.fidoSummary?.fidoUtilizzato || 0;
   const liveRawDisponibile = liveFidoConcesso - liveFidoUtilizzato;
-  const liveFidoDisponibile = Math.max(0, Math.round(liveRawDisponibile * 100) / 100);
-  const liveIsOverFido = liveFidoConcesso > 0 && liveRawDisponibile < 0;
+  const liveFidoDisponibile = formData.fidoEnabled ? Math.max(0, Math.round(liveRawDisponibile * 100) / 100) : 0;
+  const liveIsOverFido = Boolean(formData.fidoEnabled) && liveFidoConcesso > 0 && liveRawDisponibile < 0;
   const liveOverFidoAmount = liveIsOverFido ? Math.round(Math.abs(liveRawDisponibile) * 100) / 100 : 0;
 
   return (
@@ -518,6 +618,8 @@ export default function B2BUsersApp() {
             <Button variant="primary" icon={<Plus size={16} />} onClick={() => {
               setEditingUser(null);
               setFidoDetails(null);
+              setOrderPartialInputs({});
+              setFidoInput('0');
               setFormData(defaultForm);
               setIsModalOpen(true);
             }}>
@@ -533,7 +635,9 @@ export default function B2BUsersApp() {
           <div className="users-grid">
             {filteredUsers.map(u => {
               const fs = u.fidoSummary;
-              const fidoConcesso = fs?.fidoConcesso ?? (u.fido || 0);
+              const fidoEnabled = Boolean(fs?.fidoEnabled ?? u.fidoEnabled);
+              const fidoConcesso = fidoEnabled ? (fs?.fidoConcesso ?? (u.fido || 0)) : 0;
+              const paymentLabel = getPaymentTypeLabel(fs?.fidoPaymentType || u.fidoPaymentType);
               const fidoUtilizzato = fs?.fidoUtilizzato ?? 0;
               const fidoDisponibile = fs?.fidoDisponibile ?? Math.max(0, fidoConcesso - fidoUtilizzato);
               const isOverFido = fs?.isOverFido ?? false;
@@ -572,17 +676,26 @@ export default function B2BUsersApp() {
                         <Wallet size={12} /> FIDO (IVA incl.)
                       </span>
                       <span>
-                        Concesso: <strong>€ {fidoConcesso.toFixed(2)}</strong>
+                        {fidoEnabled ? (
+                          <>Concesso: <strong>€ {fidoConcesso.toFixed(2)}</strong></>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)' }}>Non attivo</span>
+                        )}
                       </span>
                     </div>
-                    {fidoConcesso > 0 ? (
+                    {paymentLabel && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        Pagamento: {paymentLabel}
+                      </div>
+                    )}
+                    {fidoEnabled && fidoConcesso > 0 ? (
                       <>
                         <div style={{ width: '100%', height: '6px', background: 'var(--color-border)', borderRadius: '999px', overflow: 'hidden', marginBottom: '0.4rem' }}>
                           <div style={{ width: `${Math.min(100, usagePct)}%`, height: '100%', background: barColor, transition: 'width 0.3s' }} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
                           <span style={{ color: 'var(--color-text-muted)' }}>
-                            Usato: <strong>€ {fidoUtilizzato.toFixed(2)}</strong>
+                            Impegnato: <strong>€ {fidoUtilizzato.toFixed(2)}</strong>
                           </span>
                           <span style={{ fontWeight: 700, color: isOverFido ? 'var(--color-danger, #ef4444)' : 'var(--color-success, #10b981)' }}>
                             {isOverFido ? `Sforato: -€ ${overFidoAmount.toFixed(2)}` : `Disp: € ${fidoDisponibile.toFixed(2)}`}
@@ -591,7 +704,7 @@ export default function B2BUsersApp() {
                       </>
                     ) : (
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Nessun fido assegnato</span>
+                        <span>{fidoEnabled ? 'Importo fido € 0.00' : 'Fido disattivato'}</span>
                         {fidoUtilizzato > 0 && (
                           <span>Da saldare: <strong>€ {fidoUtilizzato.toFixed(2)}</strong></span>
                         )}
@@ -689,15 +802,6 @@ export default function B2BUsersApp() {
               <div style={{ flex: 1 }}><TextInput label="Tipo Cliente" value={formData.customerType} onChange={e => setFormData({...formData, customerType: e.target.value})} disabled /></div>
               <div style={{ flex: 1 }}><TextInput label="Listino Assegnato" value={formData.zucchettiPriceList} onChange={e => setFormData({...formData, zucchettiPriceList: e.target.value})} disabled /></div>
               <div style={{ flex: 1 }}><TextInput label="Sconto Applicato (%)" type="number" value={String(formData.discount)} onChange={e => setFormData({...formData, discount: parseFloat(e.target.value)})} disabled /></div>
-              <div style={{ flex: 1 }}>
-                <TextInput
-                  label="Fido Concesso (€ IVA incl.)"
-                  type="number"
-                  value={String(formData.fido ?? 0)}
-                  onChange={e => setFormData({...formData, fido: parseFloat(e.target.value) || 0})}
-                  disabled={formData.role !== 'USER'}
-                />
-              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -796,14 +900,126 @@ export default function B2BUsersApp() {
               </div>
             )}
 
-            {editingUser && formData.role === 'USER' && (
+            {formData.role === 'USER' && (
               <div style={{ padding: '1rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600 }}>
                     <Wallet size={16} /> 4. Gestione Fido &amp; Stato Pagamenti (Totale IVA Inclusa)
                   </label>
-                  {liveIsOverFido && (
-                    <Badge variant="danger">CLIENTE OLTRE FIDO (-€ {liveOverFidoAmount.toFixed(2)})</Badge>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {formData.fidoEnabled ? (
+                      <Badge variant="success">FIDO ATTIVO</Badge>
+                    ) : (
+                      <Badge variant="neutral">FIDO DISATTIVATO</Badge>
+                    )}
+                    {liveIsOverFido && (
+                      <Badge variant="danger">CLIENTE OLTRE FIDO (-€ {liveOverFidoAmount.toFixed(2)})</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Barra Configurazione Fido: Check Attivazione + Importo Fido Modificabile + Tipo di Pagamento */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: editingUser ? 'auto 1fr 1.2fr auto' : 'auto 1fr 1.2fr',
+                    gap: '0.75rem',
+                    alignItems: 'end',
+                    padding: '0.85rem',
+                    background: 'var(--color-surface-hover)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: `1px solid ${formData.fidoEnabled ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      padding: '0.55rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      background: formData.fidoEnabled ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface)',
+                      border: `1px solid ${formData.fidoEnabled ? 'var(--color-success, #10b981)' : 'var(--color-border)'}`,
+                      userSelect: 'none',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.fidoEnabled)}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          fidoEnabled: e.target.checked,
+                        }))
+                      }
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    Attiva Fido
+                  </label>
+
+                  <div>
+                    <TextInput
+                      label="Fido Concesso (€ IVA incl.)"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Es. 5000"
+                      value={fidoInput}
+                      onFocus={() => {
+                        if (fidoInput === '0') setFidoInput('');
+                      }}
+                      onBlur={() => {
+                        if (fidoInput.trim() === '') setFidoInput('0');
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFidoInput(val);
+                        const num = parseFloat(val.replace(',', '.'));
+                        setFormData((prev) => ({
+                          ...prev,
+                          fido: isNaN(num) ? 0 : Math.max(0, num),
+                          fidoEnabled: !isNaN(num) && num > 0 ? true : prev.fidoEnabled,
+                        }));
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        marginBottom: '0.35rem',
+                        color: 'var(--color-text-secondary)',
+                      }}
+                    >
+                      Tipo di Pagamento
+                    </label>
+                    <Select
+                      value={formData.fidoPaymentType || ''}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          fidoPaymentType: e.target.value,
+                        }))
+                      }
+                      options={FIDO_PAYMENT_OPTIONS}
+                    />
+                  </div>
+
+                  {editingUser && (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      icon={<Check size={15} />}
+                      onClick={handleSaveFidoSettings}
+                    >
+                      Salva Fido
+                    </Button>
                   )}
                 </div>
 
@@ -811,16 +1027,28 @@ export default function B2BUsersApp() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
                   <div style={{ padding: '0.65rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Fido Concesso</div>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.2rem' }}>€ {liveFidoConcesso.toFixed(2)}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.2rem' }}>
+                      {formData.fidoEnabled ? `€ ${liveFidoConcesso.toFixed(2)}` : 'Disattivato (€ 0.00)'}
+                    </div>
+                    {formData.fidoPaymentType && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 600, marginTop: '0.15rem' }}>
+                        {getPaymentTypeLabel(formData.fidoPaymentType)}
+                      </div>
+                    )}
                   </div>
                   <div style={{ padding: '0.65rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Ordini da Saldare (IVA incl.)</div>
                     <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.2rem' }}>
                       € {(fidoDetails?.fidoSummary?.unpaidOrdersGross || 0).toFixed(2)}
                     </div>
+                    {(fidoDetails?.fidoSummary?.manualPaymentsTotal || 0) > 0 && (
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-success, #10b981)', fontWeight: 600, marginTop: '0.15rem' }}>
+                        Acconti versati: € {(fidoDetails?.fidoSummary?.manualPaymentsTotal || 0).toFixed(2)}
+                      </div>
+                    )}
                   </div>
                   <div style={{ padding: '0.65rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Fido Impegnato</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Fido Impegnato (Residuo)</div>
                     <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.2rem' }}>€ {liveFidoUtilizzato.toFixed(2)}</div>
                   </div>
                   <div style={{ padding: '0.65rem', background: 'var(--color-surface-hover)', borderRadius: 'var(--radius-sm)', border: `1px solid ${liveIsOverFido ? 'var(--color-danger, #ef4444)' : 'var(--color-border)'}` }}>
@@ -828,143 +1056,208 @@ export default function B2BUsersApp() {
                       {liveIsOverFido ? 'Sforamento Fido' : 'Fido Disponibile'}
                     </div>
                     <div style={{ fontSize: '1rem', fontWeight: 700, marginTop: '0.2rem', color: liveIsOverFido ? 'var(--color-danger, #ef4444)' : 'var(--color-success, #10b981)' }}>
-                      {liveIsOverFido ? `-€ ${liveOverFidoAmount.toFixed(2)}` : `€ ${liveFidoDisponibile.toFixed(2)}`}
+                      {!formData.fidoEnabled
+                        ? '€ 0.00'
+                        : liveIsOverFido
+                        ? `-€ ${liveOverFidoAmount.toFixed(2)}`
+                        : `€ ${liveFidoDisponibile.toFixed(2)}`}
                     </div>
                   </div>
                 </div>
 
-                {isLoadingFido ? (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', padding: '0.5rem 0' }}>
-                    Caricamento ordini e movimenti fido...
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1rem' }}>
-                    {/* Colonna A: Ordini Approvati con Spunta Saldato / Da Saldare */}
-                    <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', background: 'var(--color-surface-hover)' }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                        Ordini Approvati del Cliente ({fidoDetails?.orders?.length || 0})
+                {editingUser && (
+                  isLoadingFido ? (
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', padding: '0.5rem 0' }}>
+                      Caricamento ordini e pagamenti...
+                    </div>
+                  ) : (
+                    <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem', background: 'var(--color-surface-hover)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>
+                          Ordini Approvati del Cliente ({fidoDetails?.orders?.length || 0}) — Gestione Saldo e Pagamento Parziale per Ordine
+                        </div>
                       </div>
                       {(!fidoDetails?.orders || fidoDetails.orders.length === 0) ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
                           Nessun ordine approvato presente per questo cliente.
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto' }}>
-                          {fidoDetails.orders.map((ord) => (
-                            <div
-                              key={ord.id}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.5rem 0.65rem',
-                                borderRadius: 'var(--radius-sm)',
-                                background: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                opacity: ord.isPaid ? 0.72 : 1,
-                              }}
-                            >
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}>
-                                  <span>#{ord.id.slice(-6).toUpperCase()}</span>
-                                  <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
-                                    ({new Date(ord.createdAt).toLocaleDateString('it-IT')})
-                                  </span>
-                                  <Badge variant={ord.isPaid ? 'success' : 'warning'}>
-                                    {ord.isPaid ? 'Saldato' : 'Da saldare'}
-                                  </Badge>
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
-                                  Totale IVA incl.: <strong style={{ color: 'var(--color-text)' }}>€ {ord.totalGross.toFixed(2)}</strong>
-                                  {ord.zucchettiOrderRef ? ` • Doc: ${ord.zucchettiOrderRef}` : ''}
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={ord.isPaid ? 'secondary' : 'primary'}
-                                icon={ord.isPaid ? <RotateCcw size={13} /> : <CheckCircle2 size={13} />}
-                                onClick={() => handleToggleOrderPaid(ord.id)}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '320px', overflowY: 'auto' }}>
+                          {fidoDetails.orders.map((ord) => {
+                            const ordInput = orderPartialInputs[ord.id] || { amount: '', note: '' };
+                            const paidAmt = Number(ord.paidAmount) || 0;
+                            const remAmt =
+                              ord.remainingGross !== undefined
+                                ? Number(ord.remainingGross)
+                                : Math.max(0, ord.totalGross - paidAmt);
+                            const isPartial = !ord.isPaid && paidAmt > 0;
+
+                            return (
+                              <div
+                                key={ord.id}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.5rem',
+                                  padding: '0.65rem 0.75rem',
+                                  borderRadius: 'var(--radius-sm)',
+                                  background: 'var(--color-surface)',
+                                  border: `1px solid ${
+                                    ord.isPaid
+                                      ? 'var(--color-border)'
+                                      : isPartial
+                                      ? 'var(--color-primary)'
+                                      : 'var(--color-border)'
+                                  }`,
+                                  opacity: ord.isPaid ? 0.78 : 1,
+                                }}
                               >
-                                {ord.isPaid ? 'Riapri' : 'Segna Saldato'}
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.82rem', fontWeight: 600, flexWrap: 'wrap' }}>
+                                      <span>#{ord.id.slice(-6).toUpperCase()}</span>
+                                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                                        ({new Date(ord.createdAt).toLocaleDateString('it-IT')})
+                                      </span>
+                                      <Badge variant={ord.isPaid ? 'success' : isPartial ? 'primary' : 'warning'}>
+                                        {ord.isPaid
+                                          ? 'Saldato'
+                                          : isPartial
+                                          ? `Parziale (Versato € ${paidAmt.toFixed(2)})`
+                                          : 'Da saldare'}
+                                      </Badge>
+                                      {ord.zucchettiOrderRef && (
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                                          Doc: {ord.zucchettiOrderRef}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', marginTop: '0.2rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                      <span>
+                                        Totale IVA incl.: <strong style={{ color: 'var(--color-text)' }}>€ {ord.totalGross.toFixed(2)}</strong>
+                                      </span>
+                                      {!ord.isPaid && paidAmt > 0 && (
+                                        <>
+                                          <span style={{ color: 'var(--color-success, #10b981)', fontWeight: 600 }}>
+                                            Acconto versato: € {paidAmt.toFixed(2)}
+                                          </span>
+                                          <span style={{ color: 'var(--color-danger, #ef4444)', fontWeight: 700 }}>
+                                            Residuo da saldare: € {remAmt.toFixed(2)}
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
 
-                    {/* Colonna B: Incassi Parziali / Rettifiche Manuali */}
-                    <div style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', background: 'var(--color-surface-hover)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                        Incassi Parziali / Acconti / Rettifiche Fido
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'flex-end' }}>
-                        <div style={{ width: '110px' }}>
-                          <TextInput
-                            label="Importo (€)"
-                            type="number"
-                            placeholder="es. 500"
-                            value={newPaymentAmount}
-                            onChange={(e) => setNewPaymentAmount(e.target.value)}
-                          />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <TextInput
-                            label="Nota (opz.)"
-                            placeholder="es. Acconto bonifico..."
-                            value={newPaymentNote}
-                            onChange={(e) => setNewPaymentNote(e.target.value)}
-                          />
-                        </div>
-                        <Button type="button" variant="primary" onClick={handleAddFidoPayment} icon={<Plus size={14} />}>
-                          Aggiungi
-                        </Button>
-                      </div>
-
-                      {fidoDetails?.movements && fidoDetails.movements.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '140px', overflowY: 'auto', marginTop: '0.25rem' }}>
-                          {fidoDetails.movements.map((mov) => (
-                            <div
-                              key={mov.id}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '0.4rem 0.6rem',
-                                borderRadius: 'var(--radius-sm)',
-                                background: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                fontSize: '0.78rem',
-                              }}
-                            >
-                              <div>
-                                <strong style={{ color: 'var(--color-success, #10b981)' }}>
-                                  + € {Number(mov.amount).toFixed(2)}
-                                </strong>
-                                {mov.note && <span style={{ marginLeft: '0.4rem' }}>• {mov.note}</span>}
-                                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
-                                  {new Date(mov.createdAt).toLocaleDateString('it-IT')}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                    {!ord.isPaid && (
+                                      <>
+                                        <div style={{ width: '130px' }}>
+                                          <TextInput
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder={`Parziale € (max ${remAmt.toFixed(2)})`}
+                                            value={ordInput.amount}
+                                            onChange={(e) =>
+                                              setOrderPartialInputs((prev) => ({
+                                                ...prev,
+                                                [ord.id]: {
+                                                  ...(prev[ord.id] || { amount: '', note: '' }),
+                                                  amount: e.target.value,
+                                                },
+                                              }))
+                                            }
+                                          />
+                                        </div>
+                                        <div style={{ width: '150px' }}>
+                                          <TextInput
+                                            placeholder="Nota (es. Bonifico)"
+                                            value={ordInput.note}
+                                            onChange={(e) =>
+                                              setOrderPartialInputs((prev) => ({
+                                                ...prev,
+                                                [ord.id]: {
+                                                  ...(prev[ord.id] || { amount: '', note: '' }),
+                                                  note: e.target.value,
+                                                },
+                                              }))
+                                            }
+                                          />
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="secondary"
+                                          icon={<Plus size={13} />}
+                                          onClick={() => handleAddOrderPartialPayment(ord.id)}
+                                        >
+                                          Acconto
+                                        </Button>
+                                      </>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant={ord.isPaid ? 'secondary' : 'primary'}
+                                      icon={ord.isPaid ? <RotateCcw size={13} /> : <CheckCircle2 size={13} />}
+                                      onClick={() => handleToggleOrderPaid(ord.id)}
+                                    >
+                                      {ord.isPaid ? 'Riapri' : 'Segna Saldato'}
+                                    </Button>
+                                  </div>
                                 </div>
+
+                                {/* Elenco acconti parziali registrati su questo specifico ordine */}
+                                {ord.movements && ord.movements.length > 0 && (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', paddingTop: '0.35rem', borderTop: '1px dashed var(--color-border)' }}>
+                                    {ord.movements.map((mov) => (
+                                      <div
+                                        key={mov.id}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.4rem',
+                                          padding: '0.2rem 0.5rem',
+                                          borderRadius: 'var(--radius-sm)',
+                                          background: 'var(--color-surface-hover)',
+                                          border: '1px solid var(--color-border)',
+                                          fontSize: '0.73rem',
+                                        }}
+                                      >
+                                        <strong style={{ color: 'var(--color-success, #10b981)' }}>
+                                          + € {Number(mov.amount).toFixed(2)}
+                                        </strong>
+                                        <span style={{ color: 'var(--color-text-muted)' }}>
+                                          ({new Date(mov.createdAt).toLocaleDateString('it-IT')})
+                                        </span>
+                                        {mov.note && <span>• {mov.note}</span>}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteFidoPayment(mov.id)}
+                                          title="Elimina pagamento parziale"
+                                          style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            color: 'var(--color-danger, #ef4444)',
+                                            cursor: 'pointer',
+                                            padding: '0 2px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                          }}
+                                        >
+                                          <Trash2 size={11} />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="danger"
-                                icon={<Trash2 size={12} />}
-                                onClick={() => handleDeleteFidoPayment(mov.id)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                          Nessun acconto o rettifica manuale registrata.
+                            );
+                          })}
                         </div>
                       )}
                     </div>
-                  </div>
+                  )
                 )}
               </div>
             )}

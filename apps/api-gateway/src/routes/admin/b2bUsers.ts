@@ -17,9 +17,11 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
       where: { id: userId },
       select: {
         id: true,
+        fidoEnabled: true,
         fido: true,
+        fidoPaymentType: true,
         orders: {
-          where: { status: 'APPROVED' },
+          where: { status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] } },
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
@@ -28,14 +30,26 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
             zucchettiOrderRef: true,
             totalAmount: true,
             totalIva: true,
+            paidAmount: true,
             isPaid: true,
             paidAt: true,
+            fidoMovements: {
+              orderBy: { createdAt: 'desc' },
+              select: {
+                id: true,
+                orderId: true,
+                amount: true,
+                note: true,
+                createdAt: true,
+              },
+            },
           },
         },
         fidoMovements: {
           orderBy: { createdAt: 'desc' },
           select: {
             id: true,
+            orderId: true,
             amount: true,
             note: true,
             createdAt: true,
@@ -46,39 +60,67 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
 
     if (!user) return null;
 
+    const fidoEnabled = Boolean(user.fidoEnabled);
     const fidoConcesso = Math.round((Number(user.fido) || 0) * 100) / 100;
-    const unpaidOrdersGross = user.orders
+    const fidoPaymentType = user.fidoPaymentType || '';
+
+    const mappedOrders = user.orders.map((o) => {
+      const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
+      const movSum = (o.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+      const rawPaid = Math.max(Number(o.paidAmount) || 0, movSum);
+      const paidAmount = o.isPaid
+        ? totalGross
+        : Math.min(totalGross, Math.max(0, Math.round(rawPaid * 100) / 100));
+      const remainingGross = o.isPaid
+        ? 0
+        : Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
+
+      return {
+        ...o,
+        totalGross,
+        paidAmount,
+        remainingGross,
+        movements: o.fidoMovements || [],
+      };
+    });
+
+    const unpaidOrdersGross = mappedOrders
       .filter((o) => !o.isPaid)
-      .reduce((sum, o) => sum + (Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0), 0);
-    const manualPaymentsTotal = user.fidoMovements.reduce(
-      (sum, m) => sum + (Number(m.amount) || 0),
-      0
+      .reduce((sum, o) => sum + o.totalGross, 0);
+    const partialPaymentsTotal = mappedOrders
+      .filter((o) => !o.isPaid)
+      .reduce((sum, o) => sum + o.paidAmount, 0);
+    const fidoUtilizzato = Math.max(
+      0,
+      Math.round(
+        mappedOrders.filter((o) => !o.isPaid).reduce((sum, o) => sum + o.remainingGross, 0) * 100
+      ) / 100
     );
 
-    const rawUsed = unpaidOrdersGross - manualPaymentsTotal;
-    const fidoUtilizzato = Math.max(0, Math.round(rawUsed * 100) / 100);
-    const rawAvailable = fidoConcesso - fidoUtilizzato;
-    const fidoDisponibile = Math.max(0, Math.round(rawAvailable * 100) / 100);
-    const isOverFido = fidoConcesso > 0 && rawAvailable < 0;
+    const effectiveFido = fidoEnabled ? fidoConcesso : 0;
+    const rawAvailable = effectiveFido - fidoUtilizzato;
+    const fidoDisponibile = fidoEnabled ? Math.max(0, Math.round(rawAvailable * 100) / 100) : 0;
+    const isOverFido = fidoEnabled && effectiveFido > 0 && rawAvailable < 0;
     const overFidoAmount = isOverFido ? Math.round(Math.abs(rawAvailable) * 100) / 100 : 0;
     const usagePct =
-      fidoConcesso > 0 ? Math.min(100, Math.round((fidoUtilizzato / fidoConcesso) * 100)) : 0;
+      fidoEnabled && effectiveFido > 0
+        ? Math.min(100, Math.round((fidoUtilizzato / effectiveFido) * 100))
+        : 0;
 
     return {
       fidoSummary: {
+        fidoEnabled,
         fidoConcesso,
+        fidoPaymentType,
         fidoUtilizzato,
         fidoDisponibile,
         unpaidOrdersGross: Math.round(unpaidOrdersGross * 100) / 100,
-        manualPaymentsTotal: Math.round(manualPaymentsTotal * 100) / 100,
+        manualPaymentsTotal: Math.round(partialPaymentsTotal * 100) / 100,
         isOverFido,
         overFidoAmount,
         usagePct,
       },
-      orders: user.orders.map((o) => ({
-        ...o,
-        totalGross: Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100,
-      })),
+      orders: mappedOrders,
       movements: user.fidoMovements,
     };
   }
@@ -192,11 +234,16 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         include: {
           agent: true,
           orders: {
-            where: { status: 'APPROVED', isPaid: false },
-            select: { totalAmount: true, totalIva: true }
+            where: { status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] }, isPaid: false },
+            select: {
+              totalAmount: true,
+              totalIva: true,
+              paidAmount: true,
+              fidoMovements: { select: { amount: true } }
+            }
           },
           fidoMovements: {
-            select: { amount: true }
+            select: { amount: true, orderId: true }
           }
         }
       }),
@@ -204,33 +251,48 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     ]);
 
     const users = rawUsers.map((u: any) => {
+      const fidoEnabled = Boolean(u.fidoEnabled);
       const fidoConcesso = Math.round((Number(u.fido) || 0) * 100) / 100;
-      const unpaidOrdersGross = (u.orders || []).reduce(
-        (sum: number, o: any) => sum + (Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0),
-        0
-      );
-      const manualPaymentsTotal = (u.fidoMovements || []).reduce(
-        (sum: number, m: any) => sum + (Number(m.amount) || 0),
-        0
-      );
-      const rawUsed = unpaidOrdersGross - manualPaymentsTotal;
-      const fidoUtilizzato = Math.max(0, Math.round(rawUsed * 100) / 100);
-      const rawAvailable = fidoConcesso - fidoUtilizzato;
-      const fidoDisponibile = Math.max(0, Math.round(rawAvailable * 100) / 100);
-      const isOverFido = fidoConcesso > 0 && rawAvailable < 0;
+      const fidoPaymentType = u.fidoPaymentType || '';
+
+      let unpaidOrdersGross = 0;
+      let partialPaymentsTotal = 0;
+      let remainingOrdersTotal = 0;
+
+      for (const o of u.orders || []) {
+        const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
+        const movSum = (o.fidoMovements || []).reduce((s: number, m: any) => s + (Number(m.amount) || 0), 0);
+        const rawPaid = Math.max(Number(o.paidAmount) || 0, movSum);
+        const paidAmount = Math.min(totalGross, Math.max(0, Math.round(rawPaid * 100) / 100));
+        const rem = Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
+
+        unpaidOrdersGross += totalGross;
+        partialPaymentsTotal += paidAmount;
+        remainingOrdersTotal += rem;
+      }
+
+      const fidoUtilizzato = Math.max(0, Math.round(remainingOrdersTotal * 100) / 100);
+      const effectiveFido = fidoEnabled ? fidoConcesso : 0;
+      const rawAvailable = effectiveFido - fidoUtilizzato;
+      const fidoDisponibile = fidoEnabled ? Math.max(0, Math.round(rawAvailable * 100) / 100) : 0;
+      const isOverFido = fidoEnabled && effectiveFido > 0 && rawAvailable < 0;
       const overFidoAmount = isOverFido ? Math.round(Math.abs(rawAvailable) * 100) / 100 : 0;
       const usagePct =
-        fidoConcesso > 0 ? Math.min(100, Math.round((fidoUtilizzato / fidoConcesso) * 100)) : 0;
+        fidoEnabled && effectiveFido > 0
+          ? Math.min(100, Math.round((fidoUtilizzato / effectiveFido) * 100))
+          : 0;
 
       const { orders, fidoMovements, ...rest } = u;
       return {
         ...rest,
         fidoSummary: {
+          fidoEnabled,
           fidoConcesso,
+          fidoPaymentType,
           fidoUtilizzato,
           fidoDisponibile,
           unpaidOrdersGross: Math.round(unpaidOrdersGross * 100) / 100,
-          manualPaymentsTotal: Math.round(manualPaymentsTotal * 100) / 100,
+          manualPaymentsTotal: Math.round(partialPaymentsTotal * 100) / 100,
           isOverFido,
           overFidoAmount,
           usagePct,
@@ -253,6 +315,36 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     return details;
   });
 
+  // POST /api/admin/b2b-users/:id/fido-settings
+  app.post('/b2b-users/:id/fido-settings', {
+    schema: {
+      params: z.object({ id: z.string() }),
+      body: z.object({
+        fidoEnabled: z.boolean(),
+        fido: z.number(),
+        fidoPaymentType: z.string().nullable().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const { fidoEnabled, fido, fidoPaymentType } = request.body;
+
+    try {
+      const user = await b2bPrisma.b2BUser.update({
+        where: { id },
+        data: {
+          fidoEnabled,
+          fido: Math.max(0, Math.round((Number(fido) || 0) * 100) / 100),
+          fidoPaymentType: fidoPaymentType || null,
+        }
+      });
+      const details = await computeUserFidoDetails(id);
+      return { success: true, user, ...details };
+    } catch (e) {
+      return reply.code(400).send({ error: 'Errore salvataggio configurazione fido' });
+    }
+  });
+
   // POST /api/admin/b2b-users/:id/orders/:orderId/toggle-paid
   app.post('/b2b-users/:id/orders/:orderId/toggle-paid', {
     schema: {
@@ -261,16 +353,80 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { id, orderId } = request.params;
     const order = await b2bPrisma.b2BOrder.findFirst({
-      where: { id: orderId, userId: id }
+      where: { id: orderId, userId: id },
+      include: { fidoMovements: true }
     });
     if (!order) return reply.code(404).send({ error: 'Ordine non trovato' });
 
+    const totalGross = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
     const nextPaid = !order.isPaid;
+
+    let nextPaidAmount = 0;
+    if (nextPaid) {
+      nextPaidAmount = totalGross;
+    } else {
+      const movSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+      nextPaidAmount = movSum < totalGross ? Math.round(movSum * 100) / 100 : 0;
+    }
+
     await b2bPrisma.b2BOrder.update({
       where: { id: orderId },
       data: {
         isPaid: nextPaid,
         paidAt: nextPaid ? new Date() : null,
+        paidAmount: nextPaidAmount,
+      }
+    });
+
+    const details = await computeUserFidoDetails(id);
+    return { success: true, ...details };
+  });
+
+  // POST /api/admin/b2b-users/:id/orders/:orderId/partial-payment
+  app.post('/b2b-users/:id/orders/:orderId/partial-payment', {
+    schema: {
+      params: z.object({ id: z.string(), orderId: z.string() }),
+      body: z.object({
+        amount: z.number(),
+        note: z.string().optional(),
+      })
+    }
+  }, async (request, reply) => {
+    const { id, orderId } = request.params;
+    const { amount, note } = request.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return reply.code(400).send({ error: 'Inserisci un importo parziale maggiore di 0 €' });
+    }
+
+    const order = await b2bPrisma.b2BOrder.findFirst({
+      where: { id: orderId, userId: id },
+      include: { fidoMovements: true }
+    });
+    if (!order) return reply.code(404).send({ error: 'Ordine non trovato' });
+
+    const totalGross = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+    const cleanAmount = Math.round(amount * 100) / 100;
+
+    await b2bPrisma.b2BFidoMovement.create({
+      data: {
+        userId: id,
+        orderId,
+        amount: cleanAmount,
+        note: note?.trim() || null,
+      }
+    });
+
+    const prevMovSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+    const basePaid = Math.max(Number(order.paidAmount) || 0, prevMovSum);
+    const newPaid = Math.min(totalGross, Math.round((basePaid + cleanAmount) * 100) / 100);
+    const nowFullyPaid = totalGross > 0 && newPaid >= totalGross - 0.009;
+
+    await b2bPrisma.b2BOrder.update({
+      where: { id: orderId },
+      data: {
+        paidAmount: nowFullyPaid ? totalGross : newPaid,
+        isPaid: nowFullyPaid,
+        paidAt: nowFullyPaid ? new Date() : null,
       }
     });
 
@@ -283,24 +439,49 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     schema: {
       params: z.object({ id: z.string() }),
       body: z.object({
+        orderId: z.string().optional(),
         amount: z.number(),
         note: z.string().optional(),
       })
     }
   }, async (request, reply) => {
     const { id } = request.params;
-    const { amount, note } = request.body;
-    if (!amount || isNaN(amount)) {
+    const { orderId, amount, note } = request.body;
+    if (!amount || isNaN(amount) || amount <= 0) {
       return reply.code(400).send({ error: 'Importo non valido' });
     }
+
+    const cleanAmount = Math.round(amount * 100) / 100;
 
     await b2bPrisma.b2BFidoMovement.create({
       data: {
         userId: id,
-        amount,
+        orderId: orderId || null,
+        amount: cleanAmount,
         note: note?.trim() || null,
       }
     });
+
+    if (orderId) {
+      const order = await b2bPrisma.b2BOrder.findFirst({
+        where: { id: orderId, userId: id },
+        include: { fidoMovements: true }
+      });
+      if (order) {
+        const totalGross = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+        const movSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+        const newPaid = Math.min(totalGross, Math.round(movSum * 100) / 100);
+        const nowFullyPaid = totalGross > 0 && newPaid >= totalGross - 0.009;
+        await b2bPrisma.b2BOrder.update({
+          where: { id: orderId },
+          data: {
+            paidAmount: nowFullyPaid ? totalGross : newPaid,
+            isPaid: nowFullyPaid,
+            paidAt: nowFullyPaid ? new Date() : null,
+          }
+        });
+      }
+    }
 
     const details = await computeUserFidoDetails(id);
     return { success: true, ...details };
@@ -313,9 +494,34 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
     }
   }, async (request) => {
     const { id, movementId } = request.params;
+    const mov = await b2bPrisma.b2BFidoMovement.findFirst({
+      where: { id: movementId, userId: id }
+    });
+
     await b2bPrisma.b2BFidoMovement.deleteMany({
       where: { id: movementId, userId: id }
     });
+
+    if (mov?.orderId) {
+      const order = await b2bPrisma.b2BOrder.findFirst({
+        where: { id: mov.orderId, userId: id },
+        include: { fidoMovements: true }
+      });
+      if (order) {
+        const totalGross = Math.round(((Number(order.totalAmount) || 0) + (Number(order.totalIva) || 0)) * 100) / 100;
+        const movSum = (order.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+        const newPaid = Math.min(totalGross, Math.max(0, Math.round(movSum * 100) / 100));
+        const nowFullyPaid = totalGross > 0 && newPaid >= totalGross - 0.009;
+        await b2bPrisma.b2BOrder.update({
+          where: { id: order.id },
+          data: {
+            paidAmount: nowFullyPaid ? totalGross : newPaid,
+            isPaid: nowFullyPaid,
+            paidAt: nowFullyPaid ? order.paidAt || new Date() : null,
+          }
+        });
+      }
+    }
 
     const details = await computeUserFidoDetails(id);
     return { success: true, ...details };
@@ -337,7 +543,9 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         agentId: z.string().optional(),
         zucchettiPriceList: z.string().optional(),
         customerType: z.string().optional(),
+        fidoEnabled: z.boolean().optional().default(false),
         fido: z.number().optional(),
+        fidoPaymentType: z.string().nullable().optional(),
         discount: z.number().optional(),
         address: z.string().optional(),
         city: z.string().optional(),
@@ -392,7 +600,9 @@ export async function adminB2BUsersRoutes(fastify: FastifyInstance) {
         agentId: z.string().optional(),
         zucchettiPriceList: z.string().optional(),
         customerType: z.string().optional(),
+        fidoEnabled: z.boolean().optional(),
         fido: z.number().optional(),
+        fidoPaymentType: z.string().nullable().optional(),
         discount: z.number().optional(),
         address: z.string().optional(),
         city: z.string().optional(),
