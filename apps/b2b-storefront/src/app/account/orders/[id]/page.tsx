@@ -168,6 +168,7 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             <div>
               <span className="font-bold uppercase tracking-wider text-xs block mb-0.5">
                 Situazione Fido Cliente (IVA incl.)
+                {fidoSummary.fidoPaymentLabel ? ` — Pagamento: ${fidoSummary.fidoPaymentLabel}` : ''}
               </span>
               {wouldExceedFido && (
                 <span className="text-xs text-red-700 font-semibold">

@@ -209,7 +209,10 @@ export default async function CartPage() {
                       : 'bg-emerald-50 border-emerald-200 text-emerald-900'
                 }`}>
                   <div className="flex flex-wrap items-center justify-between gap-2 font-bold mb-1.5">
-                    <span>Situazione Fido Cliente</span>
+                    <span>
+                      Situazione Fido Cliente
+                      {fidoSummary.fidoPaymentLabel ? ` (${fidoSummary.fidoPaymentLabel})` : ''}
+                    </span>
                     <span>
                       Concesso: € {fidoSummary.fidoConcesso.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>

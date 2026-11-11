@@ -34,7 +34,9 @@ model B2BUser {
   
   zucchettiPriceList String?
   customerType       String?
+  fidoEnabled        Boolean      @default(false)
   fido               Float?
+  fidoPaymentType    String?
   discount           Float        @default(0)
   
   address            String?
@@ -245,12 +247,14 @@ model B2BOrder {
   zucchettiOrderRef String?           // Riferimento o numero ordine in Zucchetti
   totalAmount       Float             @default(0)
   totalIva          Float             @default(0)
+  paidAmount        Float             @default(0)
   isPaid            Boolean           @default(false)
   paidAt            DateTime?
   
   notes             String?
 
   items             B2BOrderItem[]
+  fidoMovements     B2BFidoMovement[]
 
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -287,13 +291,16 @@ enum OrderStatus {
 }
 
 model B2BFidoMovement {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      B2BUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount    Float    @default(0)
+  user      B2BUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     B2BOrder? @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount    Float     @default(0)
   note      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId], map: "idx_b2b_fido_movements_user")
+  @@index([orderId], map: "idx_b2b_fido_movements_order")
   @@map("b2b_fido_movements")
 }

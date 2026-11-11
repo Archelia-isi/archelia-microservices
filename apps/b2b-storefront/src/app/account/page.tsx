@@ -67,7 +67,14 @@ export default async function AccountDashboard() {
                     ? 'bg-amber-50 border-amber-200 text-amber-900'
                     : 'bg-emerald-50 border-emerald-200 text-emerald-900'
               }`}>
-                <div className="font-bold mb-1">Situazione Fido</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold">Situazione Fido</span>
+                  {fidoSummary.fidoPaymentLabel && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/70 border border-black/10">
+                      Pagamento: {fidoSummary.fidoPaymentLabel}
+                    </span>
+                  )}
+                </div>
                 <div className="flex justify-between text-xs">
                   <span>Fido Concesso:</span>
                   <strong>€ {fidoSummary.fidoConcesso.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
