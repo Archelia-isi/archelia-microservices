@@ -413,7 +413,7 @@ export async function generateOrderPdfOnServer(params: {
     filePrefix = 'Ordine_Inviato';
   } else if (isApproved) {
     docMainTitle = "CONFERMA D'ORDINE B2B";
-    statusLabel = 'Approvato / Inviato a Zucchetti';
+    statusLabel = 'Approvato';
     filePrefix = 'Conferma_Ordine';
   } else if (order.status === 'ERROR') {
     docMainTitle = 'RIEPILOGO ORDINE B2B';
@@ -428,11 +428,6 @@ export async function generateOrderPdfOnServer(params: {
     owner?.username ||
     'Cliente B2B';
   const vatNumber = owner?.vatNumber || owner?.fiscalCode || '-';
-  const customerCode = order.user?.zucchettiCode
-    ? order.user.zucchettiCode
-    : order.promoProspect
-    ? `In attivazione (${order.promoProspect.username})`
-    : '-';
   const addressParts = [
     owner?.address ? `${owner.address}${owner?.streetNumber ? ` ${owner.streetNumber}` : ''}` : '',
     [owner?.zip, owner?.city, owner?.province ? `(${owner.province})` : '']
@@ -675,7 +670,7 @@ export async function generateOrderPdfOnServer(params: {
           '0.25 0.29 0.35',
           LEFT + 10,
           clientLineY,
-          `P.IVA / CF: ${vatNumber}   |   Cod.: ${customerCode}`
+          `P.IVA / CF: ${vatNumber}`
         )
       );
       const addrLines = wrapTextLines(fullAddress, 46, 1);
