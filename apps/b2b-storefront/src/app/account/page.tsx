@@ -89,6 +89,56 @@ export default async function AccountDashboard() {
                     € {(fidoSummary.isOverFido ? fidoSummary.overFidoAmount : fidoSummary.fidoDisponibile).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </strong>
                 </div>
+
+                {fidoSummary.dueSchedule && fidoSummary.dueSchedule.length > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-black/10 space-y-1.5">
+                    <div className="text-[11px] font-extrabold uppercase tracking-wider opacity-85">
+                      Scadenze Pagamenti (Sommate per Data)
+                    </div>
+                    {fidoSummary.dueSchedule.map((grp) => (
+                      <div
+                        key={grp.dueDateIso}
+                        className={`p-2 rounded border text-xs flex flex-col gap-0.5 ${
+                          grp.isOverdue
+                            ? 'bg-red-100/80 border-red-300 text-red-950'
+                            : 'bg-white/80 border-black/10 text-gray-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold flex items-center gap-1.5 flex-wrap">
+                            <span>Scadenza {grp.dueDateFormatted}</span>
+                            {grp.isOverdue && (
+                              <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[10px] font-extrabold uppercase">
+                                Scaduta
+                              </span>
+                            )}
+                            {!grp.isOverdue && grp.isDueSoon && (
+                              <span className="px-1.5 py-0.2 rounded bg-amber-500 text-black text-[10px] font-extrabold uppercase">
+                                In scadenza
+                              </span>
+                            )}
+                            {grp.ordersCount > 1 && (
+                              <span className="text-[11px] font-semibold text-gray-600">
+                                ({grp.ordersCount} ordini sommati)
+                              </span>
+                            )}
+                          </span>
+                          <strong className="text-sm font-black shrink-0">
+                            € {grp.totalAmount.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </strong>
+                        </div>
+                        <div className="text-[11px] text-gray-600">
+                          {grp.orders.map((o, idx) => (
+                            <span key={`${o.orderId}_${idx}`}>
+                              #{o.shortOrderId} (€ {o.amount.toFixed(2).replace('.', ',')})
+                              {idx < grp.orders.length - 1 ? ' + ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -5,7 +5,12 @@ import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import * as bcrypt from 'bcryptjs';
 import { Agent } from 'undici';
-import { formatFidoPaymentType } from '@/lib/fido';
+import {
+  formatFidoPaymentType,
+  computeOrderInstallments,
+  buildGroupedDueDateSchedule,
+  type GroupedDueDateItem,
+} from '@/lib/fidoSchedule';
 
 const zucchettiDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
 
@@ -1313,6 +1318,7 @@ export interface AgentManagedClient {
     isOverFido: boolean;
     overFidoAmount: number;
     usagePct: number;
+    dueSchedule: GroupedDueDateItem[];
   };
   codicePagamento: string;
   isElmarkCustomer: boolean;
@@ -1429,6 +1435,10 @@ export async function getAgentClientsList(): Promise<{
             isPaid: false,
           },
           select: {
+            id: true,
+            createdAt: true,
+            zucchettiOrderRef: true,
+            isPaid: true,
             totalAmount: true,
             totalIva: true,
             paidAmount: true,
@@ -1436,6 +1446,7 @@ export async function getAgentClientsList(): Promise<{
               select: { amount: true },
             },
           },
+          orderBy: { createdAt: 'asc' },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -1529,7 +1540,6 @@ export async function getAgentClientsList(): Promise<{
       fidoSummary: (() => {
         const fidoEnabled = Boolean(u.fidoEnabled);
         const fidoConcesso = fidoEnabled ? Number(u.fido || 0) : 0;
-        const fidoPaymentLabel = formatFidoPaymentType(u.fidoPaymentType);
         if (!fidoEnabled || fidoConcesso <= 0) {
           return {
             hasFido: false,
@@ -1540,16 +1550,35 @@ export async function getAgentClientsList(): Promise<{
             isOverFido: false,
             overFidoAmount: 0,
             usagePct: 0,
+            dueSchedule: [],
           };
         }
+        const effectivePaymentType = u.fidoPaymentType || '30GG';
+        const fidoPaymentLabel = formatFidoPaymentType(effectivePaymentType);
         let remainingTotal = 0;
-        for (const o of u.orders || []) {
+        const ordersForSchedule = (u.orders || []).map(o => {
           const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
           const movSum = (o.fidoMovements || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
           const rawPaid = Math.max(Number(o.paidAmount) || 0, movSum);
           const paidAmount = Math.min(totalGross, Math.max(0, Math.round(rawPaid * 100) / 100));
-          remainingTotal += Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
-        }
+          const rem = Math.max(0, Math.round((totalGross - paidAmount) * 100) / 100);
+          remainingTotal += rem;
+          const isEffectivelyPaid = Boolean(o.isPaid) || rem <= 0.009;
+          return {
+            id: o.id,
+            createdAt: o.createdAt,
+            zucchettiOrderRef: o.zucchettiOrderRef,
+            isPaid: isEffectivelyPaid,
+            installments: computeOrderInstallments(
+              o.createdAt,
+              totalGross,
+              paidAmount,
+              isEffectivelyPaid,
+              effectivePaymentType
+            ),
+          };
+        });
+        const dueSchedule = buildGroupedDueDateSchedule(ordersForSchedule);
         const fidoUtilizzato = Math.max(0, Number(remainingTotal.toFixed(2)));
         const fidoDisponibile = Number(Math.max(0, fidoConcesso - fidoUtilizzato).toFixed(2));
         const isOverFido = fidoUtilizzato > fidoConcesso;
@@ -1564,6 +1593,7 @@ export async function getAgentClientsList(): Promise<{
           isOverFido,
           overFidoAmount,
           usagePct,
+          dueSchedule,
         };
       })(),
       codicePagamento: String(zRow?.ancodpag || zRow?.Ancodpag || '').trim(),

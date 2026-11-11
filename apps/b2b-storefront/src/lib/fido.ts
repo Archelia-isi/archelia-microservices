@@ -1,4 +1,18 @@
 import { prisma } from '@archelia/b2b-database';
+import {
+  OrderInstallment,
+  GroupedDueDateItem,
+  formatFidoPaymentType,
+  computeOrderInstallments,
+  buildGroupedDueDateSchedule,
+} from './fidoSchedule';
+
+export {
+  formatFidoPaymentType,
+  computeOrderInstallments,
+  buildGroupedDueDateSchedule,
+};
+export type { OrderInstallment, GroupedDueDateItem };
 
 export interface ClientFidoSummary {
   hasFido: boolean;
@@ -12,24 +26,7 @@ export interface ClientFidoSummary {
   isOverFido: boolean;
   overFidoAmount: number;
   usagePct: number;
-}
-
-const PAYMENT_TYPE_LABELS: Record<string, string> = {
-  '30GG': '30 gg',
-  '60GG': '60 gg',
-  '90GG': '90 gg',
-  '30_60GG': '30 / 60 gg',
-  '30_60_90GG': '30 / 60 / 90 gg',
-  '30GG_FM': '30 gg Fine Mese',
-  '60GG_FM': '60 gg Fine Mese',
-  '90GG_FM': '90 gg Fine Mese',
-  '30_60GG_FM': '30 / 60 gg Fine Mese',
-  '30_60_90GG_FM': '30 / 60 / 90 gg Fine Mese',
-};
-
-export function formatFidoPaymentType(code?: string | null): string {
-  if (!code) return '';
-  return PAYMENT_TYPE_LABELS[code] || code;
+  dueSchedule: GroupedDueDateItem[];
 }
 
 export async function getClientFidoSummary(userId?: string | null): Promise<ClientFidoSummary | null> {
@@ -51,15 +48,13 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
 
     const fidoEnabled = Boolean(user.fidoEnabled);
     const fidoConcesso = fidoEnabled ? Number(user.fido || 0) : 0;
-    const fidoPaymentType = user.fidoPaymentType || '';
-    const fidoPaymentLabel = formatFidoPaymentType(fidoPaymentType);
 
     if (!fidoEnabled || fidoConcesso <= 0) {
       return {
         hasFido: false,
         fidoConcesso: 0,
-        fidoPaymentType,
-        fidoPaymentLabel,
+        fidoPaymentType: '',
+        fidoPaymentLabel: '',
         fidoUtilizzato: 0,
         fidoDisponibile: 0,
         unpaidOrdersTotal: 0,
@@ -67,8 +62,12 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
         isOverFido: false,
         overFidoAmount: 0,
         usagePct: 0,
+        dueSchedule: [],
       };
     }
+
+    const fidoPaymentType = user.fidoPaymentType || '30GG';
+    const fidoPaymentLabel = formatFidoPaymentType(fidoPaymentType);
 
     const unpaidOrders = await prisma.b2BOrder.findMany({
       where: {
@@ -76,7 +75,12 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
         status: { in: ['APPROVED', 'SENT_TO_ZUCCHETTI'] },
         isPaid: false,
       },
+      orderBy: { createdAt: 'asc' },
       select: {
+        id: true,
+        createdAt: true,
+        zucchettiOrderRef: true,
+        isPaid: true,
         totalAmount: true,
         totalIva: true,
         paidAmount: true,
@@ -89,6 +93,13 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
     let unpaidOrdersTotal = 0;
     let partialPaymentsTotal = 0;
     let remainingTotal = 0;
+    const ordersForSchedule: Array<{
+      id: string;
+      createdAt: Date;
+      zucchettiOrderRef?: string | null;
+      isPaid: boolean;
+      installments: OrderInstallment[];
+    }> = [];
 
     for (const o of unpaidOrders) {
       const totalGross = Math.round(((Number(o.totalAmount) || 0) + (Number(o.totalIva) || 0)) * 100) / 100;
@@ -100,7 +111,25 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
       unpaidOrdersTotal += totalGross;
       partialPaymentsTotal += paidAmount;
       remainingTotal += rem;
+
+      if (rem > 0) {
+        ordersForSchedule.push({
+          id: o.id,
+          createdAt: o.createdAt,
+          zucchettiOrderRef: o.zucchettiOrderRef,
+          isPaid: Boolean(o.isPaid),
+          installments: computeOrderInstallments(
+            o.createdAt,
+            totalGross,
+            paidAmount,
+            Boolean(o.isPaid),
+            fidoPaymentType
+          ),
+        });
+      }
     }
+
+    const dueSchedule = buildGroupedDueDateSchedule(ordersForSchedule);
 
     const fidoUtilizzato = Math.max(0, Number(remainingTotal.toFixed(2)));
     const fidoDisponibile = Number(Math.max(0, fidoConcesso - fidoUtilizzato).toFixed(2));
@@ -120,6 +149,7 @@ export async function getClientFidoSummary(userId?: string | null): Promise<Clie
       isOverFido,
       overFidoAmount,
       usagePct,
+      dueSchedule,
     };
   } catch (err) {
     console.warn('[Fido] Errore calcolo riepilogo fido:', err);
