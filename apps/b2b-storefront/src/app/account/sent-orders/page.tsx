@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import AcceptDraftButton from '../orders/AcceptDraftButton';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,7 +106,8 @@ export default async function AccountSentOrdersPage({ searchParams }: { searchPa
                     <span className="font-bold text-xl text-gray-900">€ {quote.totalAmount.toFixed(2).replace('.', ',')}</span>
                   </div>
                   
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    <DownloadOrderPdfButton orderId={quote.id} />
                     <Link prefetch={true} 
                       href={`/account/orders/${quote.id}`}
                       className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex-1 md:flex-none"

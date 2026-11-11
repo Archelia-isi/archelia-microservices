@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { parseSavedOrderStockMeta } from '@/lib/savedOrdersStock';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default async function AccountDashboard() {
   const session = await verifySession();
@@ -178,7 +179,8 @@ export default async function AccountDashboard() {
                     <div className="text-right font-bold">€ {(order.totalAmount + order.totalIva).toFixed(2)}</div>
                     <div className={`text-right text-sm ${statusColor}`}>{statusText}</div>
                   </div>
-                  <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DownloadOrderPdfButton orderId={order.id} />
                     <Link prefetch={true} href={`/account/orders/${order.id}`} className="inline-block px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded text-sm font-medium transition-colors">
                       Dettagli
                     </Link>

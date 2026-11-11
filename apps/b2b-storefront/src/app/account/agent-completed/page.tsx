@@ -6,6 +6,7 @@ import { it } from 'date-fns/locale';
 import Link from 'next/link';
 import OrderDetailsModal from './OrderDetailsModal';
 import { formatFidoPaymentType } from '@/lib/fido';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default async function AgentCompletedOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -130,7 +131,10 @@ export default async function AgentCompletedOrdersPage({ searchParams }: { searc
               </div>
               
               <div className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <OrderDetailsModal order={order} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <OrderDetailsModal order={order} />
+                  <DownloadOrderPdfButton orderId={order.id} />
+                </div>
                 <div className="flex gap-8 text-sm">
                   <div>
                     <span className="text-gray-500 block">Articoli:</span>

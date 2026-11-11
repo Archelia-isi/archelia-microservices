@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import DeleteSentOrderButton from '../orders/DeleteSentOrderButton';
 import { formatFidoPaymentType } from '@/lib/fido';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,6 +123,7 @@ export default async function AgentOrdersPage({ searchParams }: { searchParams: 
                 </div>
                 
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                  <DownloadOrderPdfButton orderId={order.id} />
                   <DeleteSentOrderButton orderId={order.id} redirectUrl={null} label="Elimina" />
 
                   <Link 

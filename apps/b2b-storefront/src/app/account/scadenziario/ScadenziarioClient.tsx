@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { GroupedDueDateItem, OrderInstallment } from '@/lib/fidoSchedule';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export interface ClientOrderScheduleRow {
   id: string;
@@ -356,8 +357,11 @@ function UserScadenziarioView({
                             {ord.installmentLabel}
                           </span>
                         </div>
-                        <div className="text-sm font-extrabold text-gray-900 sm:text-right">
-                          € {formatEuro(ord.amount)}
+                        <div className="flex items-center gap-2.5 sm:text-right">
+                          <span className="text-sm font-extrabold text-gray-900">
+                            € {formatEuro(ord.amount)}
+                          </span>
+                          <DownloadOrderPdfButton orderId={ord.orderId} variant="compact" label="PDF" />
                         </div>
                       </div>
                     ))}
@@ -455,7 +459,8 @@ function UserScadenziarioView({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm sm:text-right">
+                      <div className="flex flex-wrap items-center gap-4 text-sm sm:text-right">
+                        <DownloadOrderPdfButton orderId={ord.id} variant="compact" />
                         <div>
                           <span className="text-xs text-gray-400 block">Totale IVA incl.</span>
                           <span className="font-bold text-gray-900">€ {formatEuro(ord.totalGross)}</span>
@@ -882,8 +887,11 @@ function AgentScadenziarioView({ clients, initialClientId = '' }: AgentModeProps
                               {ord.installmentLabel}
                             </span>
                           </div>
-                          <div className="text-sm font-extrabold text-gray-900 sm:text-right">
-                            € {formatEuro(ord.amount)}
+                          <div className="flex items-center gap-2.5 sm:text-right">
+                            <span className="text-sm font-extrabold text-gray-900">
+                              € {formatEuro(ord.amount)}
+                            </span>
+                            <DownloadOrderPdfButton orderId={ord.orderId} variant="compact" label="PDF" />
                           </div>
                         </div>
                       ))}
@@ -998,14 +1006,24 @@ function AgentScadenziarioView({ clients, initialClientId = '' }: AgentModeProps
                               </div>
                               <div className="flex flex-wrap gap-1.5">
                                 {due.orders.map((o, idx) => (
-                                  <Link
+                                  <div
                                     key={`${o.orderId}-${idx}`}
-                                    href={`/account/orders/${o.orderId}`}
-                                    className="px-2 py-0.5 rounded bg-white hover:bg-gray-100 border border-gray-200 text-xs font-medium text-gray-800 transition-colors"
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-white border border-gray-200 text-xs font-medium text-gray-800"
                                   >
-                                    <strong>#{o.shortOrderId}</strong> ({o.orderDateFormatted} •{' '}
-                                    {o.installmentLabel}): <strong>€ {formatEuro(o.amount)}</strong>
-                                  </Link>
+                                    <Link
+                                      href={`/account/orders/${o.orderId}`}
+                                      className="hover:text-brand-hover hover:underline"
+                                    >
+                                      <strong>#{o.shortOrderId}</strong> ({o.orderDateFormatted} •{' '}
+                                      {o.installmentLabel}): <strong>€ {formatEuro(o.amount)}</strong>
+                                    </Link>
+                                    <DownloadOrderPdfButton
+                                      orderId={o.orderId}
+                                      variant="compact"
+                                      label="PDF"
+                                      className="!px-1.5 !py-0.5 !text-[10px]"
+                                    />
+                                  </div>
                                 ))}
                               </div>
                             </div>

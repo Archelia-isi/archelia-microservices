@@ -3,6 +3,7 @@ import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getClientFidoSummary } from '@/lib/fido';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default async function AccountOrdersPage({ searchParams }: { searchParams: { tab?: string } }) {
   const session = await verifySession();
@@ -143,7 +144,8 @@ export default async function AccountOrdersPage({ searchParams }: { searchParams
                     <span className="font-bold text-xl text-gray-900">€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
                   </div>
                   
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    <DownloadOrderPdfButton orderId={order.id} />
                     <Link prefetch={true} 
                       href={`/account/orders/${order.id}`}
                       className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex-1 md:flex-none"

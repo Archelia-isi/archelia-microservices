@@ -2,6 +2,7 @@ import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import Link from 'next/link';
 import DeleteSentOrderButton from './orders/DeleteSentOrderButton';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default async function AgentDashboard({ user }: { user: any }) {
   // Fetch clients assigned to this agent
@@ -163,7 +164,8 @@ export default async function AgentDashboard({ user }: { user: any }) {
                       <div className="font-bold text-lg text-gray-900">€ {(order.totalAmount + order.totalIva).toFixed(2).replace('.', ',')}</div>
                       <div className="text-sm text-yellow-600 font-medium">{order.status === 'DRAFT' ? 'In Pausa' : 'Da Revisionare'}</div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <DownloadOrderPdfButton orderId={order.id} variant="compact" label="Scarica PDF" />
                       <DeleteSentOrderButton orderId={order.id} redirectUrl={null} label="Elimina" />
                       <Link prefetch={true} href={`/account/orders/${order.id}`} className="inline-block px-4 py-2 bg-black hover:bg-brand-main hover:text-black text-white rounded text-sm font-bold transition-colors">
                         Riprendi
@@ -257,7 +259,8 @@ export default async function AgentDashboard({ user }: { user: any }) {
                   <div className="text-xs text-gray-500 mb-2">#{order.id.slice(-6).toUpperCase()}</div>
                   <div className="flex justify-between items-end gap-2">
                     <div className="font-bold">€ {(order.totalAmount + order.totalIva).toFixed(2).replace('.', ',')}</div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <DownloadOrderPdfButton orderId={order.id} variant="compact" label="PDF" />
                       {order.status !== 'APPROVED' && (
                         <DeleteSentOrderButton orderId={order.id} redirectUrl={null} label="Elimina" compact />
                       )}

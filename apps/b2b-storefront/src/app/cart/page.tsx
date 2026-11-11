@@ -10,6 +10,7 @@ import AgentExtraDiscount from '../../components/AgentExtraDiscount';
 import CheckoutButtons from '../../components/CheckoutButtons';
 import { cookies } from 'next/headers';
 import { getTargetUserId, getCartQuery } from '../actions/cart';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,22 +129,27 @@ export default async function CartPage() {
   return (
     <div className="max-w-4xl mx-auto py-8">
       {cartQuery.status === 'REVIEW' && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded shadow-sm flex justify-between items-center">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
             <h3 className="text-yellow-800 font-bold">Modalità Revisione Attiva</h3>
             <p className="text-sm text-yellow-700">Stai revisionando l&apos;ordine #{cartQuery.linkedOrderId?.slice(-6).toUpperCase()}. Le modifiche che farai al carrello si applicheranno a questo ordine.</p>
           </div>
-          <form action={async () => {
-            'use server';
-            const { redirect } = await import('next/navigation');
-            const { endOrderReviewSession } = await import('@/app/actions/agent');
-            const res = await endOrderReviewSession();
-            redirect(res.returnUrl || '/account/agent-orders');
-          }}>
-            <button type="submit" className="text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-4 py-2 rounded transition-colors">
-              Annulla Revisione
-            </button>
-          </form>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {cartQuery.linkedOrderId && (
+              <DownloadOrderPdfButton orderId={cartQuery.linkedOrderId} variant="outline" />
+            )}
+            <form action={async () => {
+              'use server';
+              const { redirect } = await import('next/navigation');
+              const { endOrderReviewSession } = await import('@/app/actions/agent');
+              const res = await endOrderReviewSession();
+              redirect(res.returnUrl || '/account/agent-orders');
+            }}>
+              <button type="submit" className="text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-800 font-medium px-4 py-2 rounded transition-colors">
+                Annulla Revisione
+              </button>
+            </form>
+          </div>
         </div>
       )}
 

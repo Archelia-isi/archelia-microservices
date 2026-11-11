@@ -9,6 +9,7 @@ import {
   regeneratePromoProspectPasswordAction,
 } from '@/app/actions/promoProspects';
 import { startOrderReview } from '@/app/actions/agent';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default function PromoProspectsClient({
   initialContacted,
@@ -432,14 +433,17 @@ export default function PromoProspectsClient({
                                     </strong>
                                   </div>
                                 </div>
-                                <button
-                                  type="button"
-                                  disabled={isPending}
-                                  onClick={() => handleReviewFirstOrder(ord.id)}
-                                  className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0"
-                                >
-                                  Revisiona & Approva 1° Ordine
-                                </button>
+                                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                                  <DownloadOrderPdfButton orderId={ord.id} variant="compact" label="PDF" />
+                                  <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() => handleReviewFirstOrder(ord.id)}
+                                    className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shrink-0"
+                                  >
+                                    Revisiona & Approva 1° Ordine
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

@@ -11,6 +11,7 @@ import ZucchettiDocRefEditor from './ZucchettiDocRefEditor';
 import { isOrderLockedForUser } from '@/app/actions/orderLock';
 import { syncSavedOrdersStockForUser } from '@/app/actions/savedOrderStock';
 import { getClientFidoSummary } from '@/lib/fido';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -322,7 +323,8 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
             )}
           </div>
 
-          <div className="flex-shrink-0 flex items-center gap-3">
+          <div className="flex-shrink-0 flex flex-wrap items-center gap-3">
+            <DownloadOrderPdfButton orderId={order.id} />
             {isAgent && !isApproved && (
               <DeleteSentOrderButton orderId={order.id} redirectUrl={backLink} />
             )}

@@ -9,6 +9,7 @@ import QuantityInput from './QuantityInput';
 import SendSavedOrderButton from './SendSavedOrderButton';
 import { getAvailableStock } from '@/lib/stock';
 import { parseSavedOrderStockMeta } from '@/lib/savedOrdersStock';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default function OrderEditModeClient({ 
   order, 
@@ -144,7 +145,8 @@ export default function OrderEditModeClient({
           )}
         </div>
 
-        <div className="flex-shrink-0 flex items-center gap-3">
+        <div className="flex-shrink-0 flex flex-wrap items-center gap-3">
+          <DownloadOrderPdfButton orderId={order.id} />
           {!isEditing ? (
             <>
               <DeleteSentOrderButton 

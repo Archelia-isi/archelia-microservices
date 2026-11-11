@@ -7,6 +7,7 @@ import SendSavedOrderButton from '../orders/SendSavedOrderButton';
 import DeleteSentOrderButton from '../orders/DeleteSentOrderButton';
 import { syncSavedOrdersStockForUser, syncSavedOrdersStockForAgent } from '@/app/actions/savedOrderStock';
 import { parseSavedOrderStockMeta } from '@/lib/savedOrdersStock';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,6 +142,7 @@ export default async function AccountSavedOrdersPage({ searchParams }: { searchP
                     </div>
 
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
+                      <DownloadOrderPdfButton orderId={order.id} />
                       <DeleteSentOrderButton orderId={order.id} redirectUrl={null} label="Elimina" />
 
                       <Link
@@ -288,7 +290,8 @@ export default async function AccountSavedOrdersPage({ searchParams }: { searchP
                     <span className="font-bold text-xl text-gray-900">€ {order.totalAmount.toFixed(2).replace('.', ',')}</span>
                   </div>
                   
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                    <DownloadOrderPdfButton orderId={order.id} />
                     <Link prefetch={true} 
                       href={`/account/orders/${order.id}`}
                       className="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors text-center flex-1 md:flex-none"

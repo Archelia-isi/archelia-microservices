@@ -7,6 +7,7 @@ import { duplicateOrderToCart, createDraftFromOrder, getPopulatedOrderDetails } 
 import Link from 'next/link';
 
 import QuickAddReorder from './QuickAddReorder';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default function OrderDetailsModal({ order }: { order: any }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -542,12 +543,15 @@ export default function OrderDetailsModal({ order }: { order: any }) {
             {/* Footer */}
             <div className="p-4 sm:p-6 border-t border-gray-200 bg-white flex flex-col sm:flex-row justify-end gap-3 shrink-0">
               {mode === 'VIEW' ? (
-                <button 
-                  onClick={startReorder}
-                  className="px-6 py-2.5 bg-black text-white rounded font-bold hover:bg-brand-main hover:text-black transition-colors shadow-sm"
-                >
-                  Avvia Riordino
-                </button>
+                <div className="flex flex-wrap items-center justify-end gap-3 w-full">
+                  <DownloadOrderPdfButton orderId={order.id} variant="outline" />
+                  <button 
+                    onClick={startReorder}
+                    className="px-6 py-2.5 bg-black text-white rounded font-bold hover:bg-brand-main hover:text-black transition-colors shadow-sm"
+                  >
+                    Avvia Riordino
+                  </button>
+                </div>
               ) : (
                 <>
                   <button 

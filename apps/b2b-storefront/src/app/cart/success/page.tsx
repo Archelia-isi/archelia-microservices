@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { verifySession } from '@/lib/session';
+import DownloadOrderPdfButton from '@/components/DownloadOrderPdfButton';
 
 export default async function CartSuccessPage({
   searchParams
@@ -66,7 +67,14 @@ export default async function CartSuccessPage({
         )}
 
         {/* Pulsanti Azione */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center">
+          {searchParams.orderId && (
+            <DownloadOrderPdfButton
+              orderId={searchParams.orderId}
+              variant="primary"
+              label="Scarica PDF Ordine"
+            />
+          )}
           <Link
             prefetch={true}
             href={
