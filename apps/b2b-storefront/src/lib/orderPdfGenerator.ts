@@ -282,6 +282,43 @@ function formatMoneyIt(val: number): string {
   });
 }
 
+function formatPctIt(val: number): string {
+  const rounded = Math.round((Number(val) || 0) * 100) / 100;
+  return Number.isInteger(rounded)
+    ? String(rounded)
+    : rounded.toLocaleString('it-IT', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 2,
+      });
+}
+
+/**
+ * Estrae i singoli sconti in cascata da discountString (es. "50+10%" -> [50, 10],
+ * "40% + 5% Extra" -> [40, 5], "50%" -> [50]).
+ */
+function parsePdfCascadeDiscounts(discountString?: string | null): number[] {
+  if (!discountString) return [];
+  const cleaned = String(discountString)
+    .replace(/extra/gi, '')
+    .replace(/%/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+  if (!cleaned) return [];
+
+  const parts = cleaned.split('+');
+  const discounts: number[] = [];
+  for (const part of parts) {
+    const normalized = part.replace(/^-+/, '').replace(',', '.').trim();
+    if (!normalized) continue;
+    const val = Number(normalized);
+    if (Number.isFinite(val) && val > 0 && val < 100) {
+      discounts.push(Number(val.toFixed(2)));
+    }
+    if (discounts.length >= 4) break;
+  }
+  return discounts;
+}
+
 function formatRomeDateTime(input: Date | string): {
   dateSlash: string;
   dateDash: string;
@@ -365,7 +402,7 @@ export async function generateOrderPdfOnServer(params: {
     return { status: 'FORBIDDEN', error: 'Non autorizzato a scaricare questo ordine.' };
   }
 
-  // Arricchimento nomi articoli tramite Typesense (con fallback sicuro su SKU)
+  // Arricchimento nomi articoli tramite Typesense e analisi sconti (singolo vs cascata es. 50+10%)
   const populatedItems = await Promise.all(
     order.items.map(async (item) => {
       let title = item.sku;
@@ -378,12 +415,44 @@ export async function generateOrderPdfOnServer(params: {
       } catch {
         // Fallback sul codice articolo se Typesense non risponde
       }
+
+      const origPrice = Number(item.originalPrice) || 0;
+      const netPrice = Number(item.finalPrice) || 0;
+      const hasDiscount = origPrice > netPrice + 0.004;
+      const cascadeDiscounts = parsePdfCascadeDiscounts(item.discountString);
+
+      let baseDiscountLabel = '-';
+      let extraDiscountLabel = '-';
+      let hasExtraDiscount = false;
+
+      if (hasDiscount) {
+        if (cascadeDiscounts.length >= 2) {
+          baseDiscountLabel = `-${formatPctIt(cascadeDiscounts[0])}%`;
+          extraDiscountLabel = `-${cascadeDiscounts.slice(1).map(formatPctIt).join('+')}%`;
+          hasExtraDiscount = true;
+        } else if (cascadeDiscounts.length === 1) {
+          baseDiscountLabel = `-${formatPctIt(cascadeDiscounts[0])}%`;
+        } else if (origPrice > 0) {
+          const pct = Math.round((1 - netPrice / origPrice) * 100);
+          baseDiscountLabel = pct > 0 ? `-${pct}%` : '-';
+        }
+      }
+
       return {
         ...item,
         productTitle: title,
+        hasDiscount,
+        hasExtraDiscount,
+        baseDiscountLabel,
+        extraDiscountLabel,
       };
     })
   );
+
+  // Se almeno una riga dell'ordine possiede uno sconto aggiuntivo (es. 50+10%),
+  // viene attivato il formato tabella a 8 colonne con "SC. EXTRA";
+  // in caso contrario resta il formato standard a 7 colonne senza lasciare alcuna traccia.
+  const hasOrderExtraDiscount = populatedItems.some((it) => it.hasExtraDiscount);
 
   const shortOrderId = order.id.slice(-6).toUpperCase();
   const { dateSlash, dateDash, timeStr } = formatRomeDateTime(order.createdAt);
@@ -567,6 +636,17 @@ export async function generateOrderPdfOnServer(params: {
   let currentCmds: string[] = [];
   let cursorY = 0;
 
+  // Layout colonne dinamico:
+  // - Formato 1 (standard 7 colonne, zero traccia sconto extra): usato se nessuna riga ha sconto aggiuntivo
+  // - Formato 2 (8 colonne con "SC. EXTRA"): attivato automaticamente se almeno una riga ha es. 50+10%
+  const colDescX = hasOrderExtraDiscount ? LEFT + 96 : LEFT + 98;
+  const colDescMaxChars = hasOrderExtraDiscount ? 31 : 39;
+  const colQtyRightX = hasOrderExtraDiscount ? LEFT + 288 : LEFT + 334;
+  const colListRightX = hasOrderExtraDiscount ? LEFT + 340 : LEFT + 392;
+  const colDiscRightX = hasOrderExtraDiscount ? LEFT + 382 : LEFT + 436;
+  const colExtraDiscRightX = LEFT + 434;
+  const colNetRightX = LEFT + 482;
+
   const drawTableHeader = (cmds: string[], topY: number): number => {
     const h = 21;
     const bottomY = topY - h;
@@ -575,11 +655,14 @@ export async function generateOrderPdfOnServer(params: {
 
     const textY = bottomY + 6.5;
     cmds.push(drawLeftText('/F2', 7.5, '1 1 1', LEFT + 6, textY, 'CODICE'));
-    cmds.push(drawLeftText('/F2', 7.5, '1 1 1', LEFT + 98, textY, 'DESCRIZIONE ARTICOLO'));
-    cmds.push(drawRightText('/F2', 7.5, '1 1 1', LEFT + 334, textY, "Q.TA'"));
-    cmds.push(drawRightText('/F2', 7.5, '1 1 1', LEFT + 392, textY, 'LISTINO'));
-    cmds.push(drawRightText('/F2', 7.5, '1 1 1', LEFT + 436, textY, 'SCONTO'));
-    cmds.push(drawRightText('/F2', 7.5, '1 1 1', LEFT + 482, textY, 'NETTO'));
+    cmds.push(drawLeftText('/F2', 7.5, '1 1 1', colDescX, textY, 'DESCRIZIONE ARTICOLO'));
+    cmds.push(drawRightText('/F2', 7.5, '1 1 1', colQtyRightX, textY, "Q.TA'"));
+    cmds.push(drawRightText('/F2', 7.5, '1 1 1', colListRightX, textY, 'LISTINO'));
+    cmds.push(drawRightText('/F2', 7.5, '1 1 1', colDiscRightX, textY, 'SCONTO'));
+    if (hasOrderExtraDiscount) {
+      cmds.push(drawRightText('/F2', 7.5, '1 0.88 0.45', colExtraDiscRightX, textY, 'SC. EXTRA'));
+    }
+    cmds.push(drawRightText('/F2', 7.5, '1 1 1', colNetRightX, textY, 'NETTO'));
     cmds.push(drawRightText('/F2', 7.5, '1 1 1', RIGHT - 6, textY, 'TOTALE'));
     return bottomY;
   };
@@ -834,7 +917,7 @@ export async function generateOrderPdfOnServer(params: {
         const cleanDesc = item.productTitle
           .replace(new RegExp(`\\s*-\\s*${item.sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), '')
           .trim();
-        const descLines = wrapTextLines(cleanDesc || item.sku, 39, 2);
+        const descLines = wrapTextLines(cleanDesc || item.sku, colDescMaxChars, 2);
         const rowH = descLines.length > 1 ? 30 : 22;
 
         if (cursorY - rowH < BOTTOM_LIMIT + 10) {
@@ -857,18 +940,7 @@ export async function generateOrderPdfOnServer(params: {
         const netPrice = Number(item.finalPrice) || 0;
         const qty = Number(item.quantity) || 0;
         const lineTotal = netPrice * qty;
-        const hasDiscount = origPrice > netPrice + 0.004;
-
-        let discLabel = '-';
-        if (hasDiscount) {
-          if (item.discountString && String(item.discountString).trim()) {
-            const cleanD = String(item.discountString).trim().replace(/^-/, '');
-            discLabel = cleanD.includes('%') ? `-${cleanD}` : `-${cleanD}%`;
-          } else if (origPrice > 0) {
-            const pct = Math.round((1 - netPrice / origPrice) * 100);
-            discLabel = pct > 0 ? `-${pct}%` : '-';
-          }
-        }
+        const hasBaseDisc = item.baseDiscountLabel !== '-';
 
         const midY = descLines.length > 1 ? rowBottomY + 17 : rowBottomY + 7.5;
 
@@ -887,10 +959,10 @@ export async function generateOrderPdfOnServer(params: {
         // Descrizione (1 o 2 righe)
         if (descLines.length > 1) {
           currentCmds.push(
-            drawLeftText('/F1', 8, '0.12 0.15 0.20', LEFT + 98, rowBottomY + 18, descLines[0])
+            drawLeftText('/F1', 8, '0.12 0.15 0.20', colDescX, rowBottomY + 18, descLines[0])
           );
           currentCmds.push(
-            drawLeftText('/F1', 7.8, '0.32 0.36 0.42', LEFT + 98, rowBottomY + 7.5, descLines[1])
+            drawLeftText('/F1', 7.8, '0.32 0.36 0.42', colDescX, rowBottomY + 7.5, descLines[1])
           );
         } else {
           currentCmds.push(
@@ -898,7 +970,7 @@ export async function generateOrderPdfOnServer(params: {
               '/F1',
               8,
               '0.12 0.15 0.20',
-              LEFT + 98,
+              colDescX,
               rowBottomY + 7.5,
               descLines[0] || item.sku
             )
@@ -907,7 +979,7 @@ export async function generateOrderPdfOnServer(params: {
 
         // Quantità
         currentCmds.push(
-          drawRightText('/F2', 8.2, '0.08 0.10 0.15', LEFT + 334, midY, `${qty} pz`)
+          drawRightText('/F2', 8.2, '0.08 0.10 0.15', colQtyRightX, midY, `${qty} pz`)
         );
 
         // Listino
@@ -915,28 +987,42 @@ export async function generateOrderPdfOnServer(params: {
           drawRightText(
             '/F1',
             7.8,
-            hasDiscount ? '0.45 0.49 0.55' : '0.20 0.24 0.30',
-            LEFT + 392,
+            item.hasDiscount ? '0.45 0.49 0.55' : '0.20 0.24 0.30',
+            colListRightX,
             midY,
             origPrice > 0 ? `€ ${formatMoneyIt(origPrice)}` : '-'
           )
         );
 
-        // Sconto
+        // Sconto Base
         currentCmds.push(
           drawRightText(
-            hasDiscount ? '/F2' : '/F1',
+            hasBaseDisc ? '/F2' : '/F1',
             7.5,
-            hasDiscount ? '0.78 0.14 0.14' : '0.55 0.58 0.62',
-            LEFT + 436,
+            hasBaseDisc ? '0.78 0.14 0.14' : '0.55 0.58 0.62',
+            colDiscRightX,
             midY,
-            discLabel
+            item.baseDiscountLabel
           )
         );
 
+        // Sconto Aggiuntivo / Extra (presente SOLO nel Formato 2 quando almeno una riga dell'ordine lo possiede)
+        if (hasOrderExtraDiscount) {
+          currentCmds.push(
+            drawRightText(
+              item.hasExtraDiscount ? '/F2' : '/F1',
+              7.5,
+              item.hasExtraDiscount ? '0.76 0.34 0.04' : '0.55 0.58 0.62',
+              colExtraDiscRightX,
+              midY,
+              item.extraDiscountLabel
+            )
+          );
+        }
+
         // Netto unitario
         currentCmds.push(
-          drawRightText('/F2', 8.2, '0.08 0.10 0.15', LEFT + 482, midY, `€ ${formatMoneyIt(netPrice)}`)
+          drawRightText('/F2', 8.2, '0.08 0.10 0.15', colNetRightX, midY, `€ ${formatMoneyIt(netPrice)}`)
         );
 
         // Totale riga
