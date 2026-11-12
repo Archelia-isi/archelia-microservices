@@ -2020,6 +2020,11 @@ export default function DiscountsManagerClient({
                               🌐 TUTTO IL CATALOGO
                             </span>
                           )}
+                          {rule.targetType === 'ALL_2GG' && (
+                            <span className="px-2.5 py-0.5 text-[11px] font-extrabold rounded bg-amber-500 text-black">
+                              ⚡ SOLO PRONTA CONSEGNA 2GG
+                            </span>
+                          )}
                           {rule.targetSkus.map(sku => {
                             const meta = rule.targetProductsMeta?.find(
                               m => m.sku.toUpperCase() === sku.toUpperCase()

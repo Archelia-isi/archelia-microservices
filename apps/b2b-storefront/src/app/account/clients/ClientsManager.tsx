@@ -216,6 +216,7 @@ export default function ClientsManager({
 
   const formatRuleTargetSummary = (rule: AgentDiscountRule): string => {
     if (rule.targetType === 'ALL_CATALOG') return 'Tutto il Catalogo';
+    if (rule.targetType === 'ALL_2GG') return 'Solo Pronta Consegna 2gg';
     const parts: string[] = [];
     if (rule.targetSkus?.length) {
       parts.push(

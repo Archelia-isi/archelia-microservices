@@ -6,6 +6,7 @@ export type DiscountClientScope =
 
 export type DiscountTargetType =
   | 'ALL_CATALOG'
+  | 'ALL_2GG'
   | 'PRODUCTS'
   | 'BRAND'
   | 'PRODUCT_GROUP'
@@ -72,6 +73,8 @@ export interface ProductDiscountInput {
   listPrice: number;
   catalogSource?: string;
   discgroup?: string;
+  stockMain?: number | null;
+  is2ggAvailable?: boolean | null;
 }
 
 export interface ClientDiscountMatchContext {
@@ -292,9 +295,17 @@ export function scoreRuleForProduct(
     }
   }
 
-  // 2. Se la regola è su TUTTO IL CATALOGO
+  // 2. Se la regola è su TUTTO IL CATALOGO o SOLO PRONTA CONSEGNA 2GG
   if (rule.targetType === 'ALL_CATALOG') {
     return clientScore + 1;
+  }
+
+  if (rule.targetType === 'ALL_2GG') {
+    const is2gg =
+      product.is2ggAvailable !== undefined && product.is2ggAvailable !== null
+        ? Boolean(product.is2ggAvailable)
+        : Number(product.stockMain ?? 0) > 0;
+    return is2gg ? clientScore + 5 : -1;
   }
 
   // 3. Verifica target prodotto specifici

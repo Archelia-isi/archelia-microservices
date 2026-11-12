@@ -242,6 +242,7 @@ export function evaluateTypesenseProductWithContext(
         : Number(ctx.extraAgentDiscount || 0)
       : 0;
 
+  const stockMainVal = Number(doc.stock_main ?? doc.stockMain ?? 0);
   const evaluated = evaluateProductDiscountWithRules(
     {
       sku: String(doc.sku || ''),
@@ -252,6 +253,8 @@ export function evaluateTypesenseProductWithContext(
       listPrice: originalPriceB2b,
       catalogSource: storeMode === 'ELMARK' ? 'elmark' : 'zucchetti',
       discgroup: dGroup,
+      stockMain: stockMainVal,
+      is2ggAvailable: storeMode === 'ZUCCHETTI' ? stockMainVal > 0 : false,
     },
     effectiveBase,
     ctx.rules,
@@ -289,7 +292,8 @@ export async function fetchRuleTargetedProductsForCarousel(
       r.isActive &&
       !isDiscountRuleExpired(r) &&
       r.discountValue > 0 &&
-      r.targetType !== 'ALL_CATALOG'
+      r.targetType !== 'ALL_CATALOG' &&
+      r.targetType !== 'ALL_2GG'
   );
   if (activeSpecificRules.length === 0) {
     return [];

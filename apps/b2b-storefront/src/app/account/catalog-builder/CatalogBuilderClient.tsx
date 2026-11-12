@@ -601,6 +601,8 @@ export default function CatalogBuilderClient({
         listPrice: Number(product.listPrice || 0),
         catalogSource: product.catalogSource,
         discgroup: product.discgroup,
+        stockMain: Number(product.stockMain || 0),
+        is2ggAvailable: Number(product.stockMain || 0) > 0,
       },
       Number(baseDiscount || 0),
       discountRules || [],
