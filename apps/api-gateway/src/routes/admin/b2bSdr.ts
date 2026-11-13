@@ -1063,9 +1063,16 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           companyName: prospect.companyName,
           city: prospect.city,
           province: prospect.province,
+          region: prospect.region,
+          website: prospect.website,
+          atecoCode: prospect.atecoCode,
           categoryCluster: clusterCfg.cluster,
           brandsDetected: prospect.brandsDetected,
           decisionMaker: unpackedMeta.decisionMaker,
+          richMetadata:
+            prospect.richMetadata && typeof prospect.richMetadata === 'object'
+              ? (prospect.richMetadata as any)
+              : null,
           username: promoProspect.username,
           tempPasswordPlain,
           baseDiscount: baseDiscountNum,
@@ -2516,6 +2523,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         city?: string;
         province?: string;
         categoryCluster?: string;
+        useRealProspect?: boolean;
+        prospectId?: number;
       };
 
       const config =
@@ -2524,6 +2533,110 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const resolvedAgent = await resolveSdrAgent(
         config.defaultAgentId || config.defaultAgentCode
       );
+
+      let sampledRealProspect: any | null = null;
+      if (body.prospectId && Number(body.prospectId) > 0) {
+        sampledRealProspect = await sdrPrisma.sdrProspect.findUnique({
+          where: { id: Number(body.prospectId) },
+        });
+      } else if (body.useRealProspect) {
+        const whereClause: any = {
+          section: 'Email_Pronta',
+        };
+        if (body.commercialCategory === 'IST' || body.commercialCategory === 'RIV') {
+          whereClause.commercialCategory = body.commercialCategory;
+        }
+        if (body.categoryCluster && body.categoryCluster !== 'ALL') {
+          whereClause.categoryCluster = body.categoryCluster;
+        }
+        // Preferiamo un campione misto (75% con sito web per mostrare la personalizzazione completa, 25% qualsiasi)
+        const preferWeb = Math.random() < 0.75;
+        const pool = await sdrPrisma.sdrProspect.findMany({
+          where: preferWeb ? { ...whereClause, website: { not: null } } : whereClause,
+          take: 80,
+          orderBy: { leadScore: 'desc' },
+        });
+        const finalPool =
+          pool.length > 0
+            ? pool
+            : await sdrPrisma.sdrProspect.findMany({
+                where: whereClause,
+                take: 60,
+                orderBy: { id: 'desc' },
+              });
+        if (finalPool.length > 0) {
+          sampledRealProspect = finalPool[Math.floor(Math.random() * finalPool.length)];
+        }
+      }
+
+      if (sampledRealProspect) {
+        const clusterCfg = resolveClusterConfig(sampledRealProspect.categoryCluster);
+        const isRiv =
+          sampledRealProspect.commercialCategory === 'RIV' ||
+          clusterCfg.commercialCategory === 'RIV';
+        const baseDiscount = isRiv ? 50 : 40;
+        const extraFirstPurchasePct = isRiv
+          ? Number(config.rivExtraDiscountPct || 10)
+          : Number(config.istExtraDiscountPct || 10);
+        const formula = `${baseDiscount}% + ${extraFirstPurchasePct}%`;
+        const unpackedMeta = unpackProspectRichData(sampledRealProspect);
+        const provSuffix = sampledRealProspect.province
+          ? `.${String(sampledRealProspect.province).toLowerCase()}`
+          : '';
+
+        const preview = await generateCombinatorialOutreachEmail(
+          {
+            prospectId: sampledRealProspect.id,
+            companyName: sampledRealProspect.companyName,
+            city: sampledRealProspect.city,
+            province: sampledRealProspect.province,
+            region: sampledRealProspect.region,
+            website: sampledRealProspect.website,
+            atecoCode: sampledRealProspect.atecoCode,
+            categoryCluster: clusterCfg.cluster,
+            brandsDetected: sampledRealProspect.brandsDetected,
+            decisionMaker: unpackedMeta.decisionMaker,
+            richMetadata:
+              sampledRealProspect.richMetadata &&
+              typeof sampledRealProspect.richMetadata === 'object'
+                ? (sampledRealProspect.richMetadata as any)
+                : null,
+            username: normalizeBaseUsername(sampledRealProspect.companyName) + provSuffix,
+            tempPasswordPlain: 'Izzo!8Kx4P2',
+            baseDiscount,
+            extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
+            offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
+            minOrderAmountText: config.minOrderAmountText,
+            freeShippingText: config.freeShippingText,
+            paymentTermsText: config.paymentTermsText,
+            customCommercialNotes: config.customCommercialNotes,
+            smartCatalogUrl: 'https://www.izzodistribuzione.it/offerta/demo-presentazione',
+            agentName: resolvedAgent.name,
+            agentCode: resolvedAgent.code,
+            agentEmail: resolvedAgent.email,
+            agentPhone: resolvedAgent.phone,
+          },
+          {
+            forceTemplateCode:
+              body.templateCode && body.templateCode !== 'RANDOM' ? body.templateCode : null,
+            isPreview: true,
+          }
+        );
+
+        return reply.send({
+          success: true,
+          preview,
+          sampledProspect: {
+            id: sampledRealProspect.id,
+            rawCompanyName: sampledRealProspect.companyName,
+            city: sampledRealProspect.city,
+            province: sampledRealProspect.province,
+            commercialCategory: isRiv ? 'RIV' : 'IST',
+            categoryCluster: clusterCfg.cluster,
+            website: sampledRealProspect.website,
+          },
+        });
+      }
 
       const isRiv = body.commercialCategory === 'RIV';
       const baseDiscount = isRiv ? 50 : 40;
@@ -2547,7 +2660,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           brandsDetected: isRiv
             ? 'Elmark, Vimar, Gewiss, Beghelli'
             : 'Vimar, BTicino, Elmark, Finder',
-          username: normalizeBaseUsername(companyName) + '.na',
+          username: normalizeBaseUsername(companyName) + `.${province.toLowerCase()}`,
           tempPasswordPlain: 'Izzo!8Kx4P2',
           baseDiscount,
           extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
@@ -2572,6 +2685,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         preview,
+        sampledProspect: null,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -2886,9 +3000,16 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           companyName: prospect.companyName,
           city: prospect.city,
           province: prospect.province,
+          region: prospect.region,
+          website: prospect.website,
+          atecoCode: prospect.atecoCode,
           categoryCluster: clusterCfg.cluster,
           brandsDetected: prospect.brandsDetected,
           decisionMaker: unpackedMeta.decisionMaker,
+          richMetadata:
+            prospect.richMetadata && typeof prospect.richMetadata === 'object'
+              ? (prospect.richMetadata as any)
+              : null,
           username: usernameToUse,
           tempPasswordPlain: passwordToUse,
           baseDiscount: baseDiscountNum,
@@ -3026,13 +3147,20 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const trackingToken = d.trackingToken || generateTrackingToken();
         const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
 
+        const unpackedMeta = unpackProspectRichData(p);
         const tailored = await generateCombinatorialOutreachEmail({
           prospectId: p.id,
           companyName: p.companyName,
           city: p.city,
           province: p.province,
+          region: p.region,
+          website: p.website,
+          atecoCode: p.atecoCode,
           categoryCluster: clusterCfg.cluster,
           brandsDetected: p.brandsDetected,
+          decisionMaker: unpackedMeta.decisionMaker,
+          richMetadata:
+            p.richMetadata && typeof p.richMetadata === 'object' ? (p.richMetadata as any) : null,
           username: promo.username,
           tempPasswordPlain: promo.tempPassword,
           baseDiscount: baseDiscountNum,

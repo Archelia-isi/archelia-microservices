@@ -479,9 +479,13 @@ export interface BuildOutreachEmailInput {
   companyName: string;
   city?: string | null;
   province?: string | null;
+  region?: string | null;
+  website?: string | null;
+  atecoCode?: string | null;
   categoryCluster?: string | null;
-  brandsDetected?: string | null;
+  brandsDetected?: string | string[] | null;
   decisionMaker?: string | null;
+  richMetadata?: Record<string, any> | null;
   username: string;
   tempPasswordPlain: string;
   baseDiscount: number;
@@ -503,6 +507,7 @@ import {
   type CombinatorialEmailResult,
 } from './combinatorialEngine';
 
+export * from './prospectPersonalizer';
 export * from './combinatorialDictionary';
 export * from './combinatorialTemplates';
 export * from './combinatorialEngine';

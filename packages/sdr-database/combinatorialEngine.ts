@@ -10,6 +10,10 @@ import {
   type HtmlLayoutVariant,
   type SeedEmailTemplate,
 } from './combinatorialTemplates';
+import {
+  composeProspectIntelligence,
+  type ProspectIntelligenceSummary,
+} from './prospectPersonalizer';
 
 export interface ActiveEmailTemplateRecord {
   id?: number;
@@ -51,6 +55,18 @@ export interface CombinatorialEmailResult {
   htmlLayoutVariant: HtmlLayoutVariant;
   tokensReplacedCount: number;
   replacedTokensPreview: ReplacedTokenTrace[];
+  prospectIntelligence?: {
+    companyClean: string;
+    decisionMaker: string | null;
+    domain: string | null;
+    areaLabel: string;
+    cluster: string;
+    specializations: string[];
+    detectedBrands: string[];
+    civilBrandMatched: string | null;
+    foundationYear: string | null;
+    certifications: string | null;
+  };
 }
 
 export interface GenerateCombinatorialOptions {
@@ -107,7 +123,7 @@ function buildFallbackLibrary(): CachedLibrary {
 /**
  * Popola in modo idempotente le 100 email madri e i 108 gruppi di parole dinamiche nel DB SDR.
  * Con `overwriteDefaults: true` riallinea tutte le 100 Email Madri (targetCategory = ALL)
- * e tutti i 108 gruppi lessicali ufficiali alla versione istituzionale di Izzo Distribuzione S.r.l.
+ * e tutti i 108 gruppi lessicali ufficiali di Izzo Distribuzione S.r.l.
  */
 export async function seedCombinatorialLibraryInDb(options?: {
   syncMissing?: boolean;
@@ -266,7 +282,6 @@ async function loadCombinatorialLibraryFromDb(): Promise<CachedLibrary> {
       }
     }
 
-    // Garantisce copertura anche di eventuali token standard non ancora presenti
     for (const fallbackTk of DEFAULT_SYNONYM_TOKENS) {
       const key = fallbackTk.tokenKey.toUpperCase();
       if (!tokensMap.has(key)) {
@@ -301,7 +316,6 @@ export function computeCombinatorialStats(
   const avgVariants =
     activeTokens.length > 0 ? totalVariantsCount / activeTokens.length : 1;
 
-  // Media prudenziale: ~20 slot dinamici sostituiti per singola email
   const slotsPerEmail = Math.min(20, activeTokens.length);
   const log10Combinations =
     activeTemplates > 0 && avgVariants > 1
@@ -442,46 +456,46 @@ function polishBodyTypography(rawBody: string): string {
 function sanitizeExternalCopy(raw?: string | null, fallback = ''): string {
   const txt = String(raw || '').trim();
   if (!txt) return fallback;
-  return txt
-    .replace(/\(?\s*(?:linea\s*)?(?:solo\s*)?(?:pronta\s+consegna\s*)?2gg\s*\)?/gi, '')
-    .replace(/\(?\s*7gg\s*\)?/gi, '')
-    .replace(/\b24\/48\s*(?:h|ore)\b/gi, '')
-    .replace(/con\s+garanzia\s+di\s+evasione[^.,;]*/gi, '')
-    .replace(/\(\s*Cod\.[^)]*\)/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([,.;:])/g, '$1')
-    .trim() || fallback;
+  return (
+    txt
+      .replace(/\(?\s*(?:linea\s*)?(?:solo\s*)?(?:pronta\s+consegna\s*)?2gg\s*\)?/gi, '')
+      .replace(/\(?\s*7gg\s*\)?/gi, '')
+      .replace(/\b24\/48\s*(?:h|ore)\b/gi, '')
+      .replace(/con\s+garanzia\s+di\s+evasione[^.,;]*/gi, '')
+      .replace(/\(\s*Cod\.[^)]*\)/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.;:])/g, '$1')
+      .trim() || fallback
+  );
 }
 
 function renderCredentialsPlainBlock(vars: {
   boxTitle: string;
-  companyName: string;
+  isReseller: boolean;
   discountFormulaLabel: string;
-  effectiveNetPct: number;
   loginUrl: string;
   labelUsername: string;
   username: string;
   labelPassword: string;
   tempPasswordPlain: string;
   minOrderAmountText: string;
-  freeShippingText: string;
   smartCatalogUrl?: string | null;
   customCommercialNotes?: string | null;
-  agentDisplayName: string;
 }): string {
+  const conditionLine = vars.isReseller
+    ? `listino rivendita ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`
+    : `sconto riservato ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`;
+
   const rows = [
-    `--- ${vars.boxTitle} (${vars.companyName.toUpperCase()}) ---`,
-    `• Nota di trasparenza: accesso gratuito e senza alcun impegno, attivato solo per Vostra comodità`,
-    `• Portale B2B riservato: ${vars.loginUrl}`,
-    `• ${vars.labelUsername}: ${vars.username}`,
-    `• ${vars.labelPassword}: ${vars.tempPasswordPlain}`,
-    `• Sconto di benvenuto 1° ordine: ${vars.discountFormulaLabel} in cascata (${vars.effectiveNetPct}% netto da listino)`,
-    `• Condizioni d'ordine: ${vars.minOrderAmountText} — ${vars.freeShippingText}`,
-    `• Referente commerciale: ${vars.agentDisplayName}`,
+    `${vars.boxTitle}:`,
+    `- Portale B2B: ${vars.loginUrl}`,
+    `- ${vars.labelUsername}: ${vars.username}`,
+    `- ${vars.labelPassword}: ${vars.tempPasswordPlain}`,
     vars.smartCatalogUrl
-      ? `• Catalistino illustrativo PDF: ${vars.smartCatalogUrl}`
+      ? `- Estratto Catalistino PDF: ${vars.smartCatalogUrl}`
       : '',
-    vars.customCommercialNotes ? `• Nota commerciale: ${vars.customCommercialNotes}` : '',
+    `- Condizione 1° ordine: ${conditionLine}`,
+    vars.customCommercialNotes ? `- Nota commerciale: ${vars.customCommercialNotes}` : '',
   ].filter(Boolean);
 
   return rows.join('\n');
@@ -493,22 +507,24 @@ function renderCredentialsHtmlBlock(
     boxTitle: string;
     ctaLabel: string;
     companyName: string;
+    isReseller: boolean;
     discountFormulaLabel: string;
-    effectiveNetPct: number;
     loginUrl: string;
     labelUsername: string;
     username: string;
     labelPassword: string;
     tempPasswordPlain: string;
     minOrderAmountText: string;
-    freeShippingText: string;
     smartCatalogUrl?: string | null;
     customCommercialNotes?: string | null;
-    agentDisplayName: string;
   }
 ): string {
+  const conditionLine = vars.isReseller
+    ? `listino rivendita ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`
+    : `sconto riservato ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`;
+
   const ctaHtml = vars.smartCatalogUrl
-    ? `<div style="margin: 14px 0 4px 0;">
+    ? `<div style="margin: 12px 0 2px 0;">
         <a href="${escapeHtml(vars.smartCatalogUrl)}" target="_blank" rel="noopener" style="display: inline-block; background: ${
           variant === 'accent_stripe'
             ? '#1e3a8a'
@@ -517,65 +533,60 @@ function renderCredentialsHtmlBlock(
               : variant === 'compact_memo'
                 ? '#334155'
                 : '#0f172a'
-        }; color: #ffffff; font-weight: 600; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; letter-spacing: 0.1px;">
+        }; color: #ffffff; font-weight: 600; text-decoration: none; padding: 9px 16px; border-radius: 5px; font-size: 13px;">
           ${escapeHtml(vars.ctaLabel)}
         </a>
       </div>`
     : '';
 
   if (variant === 'plain_personal') {
-    return `<div style="margin: 16px 0; padding: 12px 16px; border-left: 3px solid #334155; background: #f8fafc;">
-      <div style="font-weight: 700; color: #0f172a; margin-bottom: 3px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-      <div style="font-size: 12.5px; color: #475569; margin-bottom: 8px;">Attivate gratuitamente e senza alcun impegno, solo per Vostra comodità di consultazione</div>
-      <div>• <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
+    return `<div style="margin: 16px 0; padding: 12px 16px; border-left: 3px solid #334155; background: #f8fafc; font-size: 13.8px; line-height: 1.65;">
+      <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)}:</div>
+      <div>• <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
       <div>• <strong>${escapeHtml(vars.labelUsername)}:</strong> <code>${escapeHtml(vars.username)}</code></div>
       <div>• <strong>${escapeHtml(vars.labelPassword)}:</strong> <code>${escapeHtml(vars.tempPasswordPlain)}</code></div>
-      <div>• <strong>Sconto di benvenuto 1° ordine:</strong> ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto da listino)</div>
-      <div>• <strong>Condizioni d’ordine:</strong> ${escapeHtml(vars.minOrderAmountText)} — ${escapeHtml(vars.freeShippingText)}</div>
-      ${vars.customCommercialNotes ? `<div>• <strong>Nota commerciale:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
-      ${ctaHtml}
+      ${vars.smartCatalogUrl ? `<div>• <strong>Estratto Catalistino PDF:</strong> <a href="${escapeHtml(vars.smartCatalogUrl)}" style="color: #0f172a;">${escapeHtml(vars.smartCatalogUrl)}</a></div>` : ''}
+      <div>• <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
+      ${vars.customCommercialNotes ? `<div>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
     </div>`;
   }
 
   if (variant === 'compact_memo') {
     return `<div style="margin: 15px 0; padding: 14px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
-      <div style="font-size: 11.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.45px; margin-bottom: 4px;">${escapeHtml(vars.boxTitle)}</div>
-      <div style="font-size: 12.5px; color: #475569; margin-bottom: 8px;">Accesso provvisorio gratuito e non vincolante preparato per la consultazione di ${escapeHtml(vars.companyName)}</div>
-      <div style="font-size: 13.5px; line-height: 1.6;">
-        <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e293b; font-weight: 700;">www.izzodistribuzione.it/login</a><br/>
+      <div style="font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
+      <div style="font-size: 13.5px; line-height: 1.65;">
+        <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e293b; font-weight: 600;">www.izzodistribuzione.it/login</a><br/>
         <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code> &nbsp;|&nbsp;
         <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code><br/>
-        <strong>Benvenuto 1° ordine:</strong> ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto) • <span style="color:#475569;font-size:12.5px;">${escapeHtml(vars.minOrderAmountText)}</span>
+        <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}
       </div>
       ${ctaHtml}
     </div>`;
   }
 
   if (variant === 'accent_stripe') {
-    return `<div style="margin: 18px 0; border: 1px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 6px; padding: 16px; background: #f8fafc;">
-      <div style="font-weight: 700; color: #1e3a8a; font-size: 14px; margin-bottom: 3px;">${escapeHtml(vars.boxTitle)}</div>
-      <div style="font-size: 12.5px; color: #475569; margin-bottom: 10px;">Credenziali provvisorie gratuite e senza impegno predisposte per Vostra comodità</div>
-      <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e3a8a; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
-      <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
-      <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
-      <div style="margin-top: 8px; font-size: 13px; color: #334155;"><strong>Sconto di benvenuto 1° ordine:</strong> ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto da listino)</div>
-      <div style="margin-top: 4px; font-size: 12.5px; color: #475569;">${escapeHtml(vars.minOrderAmountText)} • ${escapeHtml(vars.freeShippingText)} • Ref. ${escapeHtml(vars.agentDisplayName)}</div>
+    return `<div style="margin: 16px 0; border: 1px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 6px; padding: 15px 16px; background: #f8fafc; font-size: 13.8px; line-height: 1.65;">
+      <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)}</div>
+      <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e3a8a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
+      <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
+      <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
+      <div><strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
+      ${vars.customCommercialNotes ? `<div><strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
       ${ctaHtml}
     </div>`;
   }
 
   if (variant === 'clean_table') {
-    return `<div style="margin: 18px 0;">
+    return `<div style="margin: 16px 0;">
       <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13.5px;">
         <tr style="background: #f1f5f9;">
-          <td colspan="2" style="padding: 9px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">
+          <td colspan="2" style="padding: 8px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">
             ${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}
-            <div style="font-weight: 400; font-size: 12px; color: #475569; margin-top: 2px;">Accesso provvisorio gratuito e senza impegno, attivato solo per Vostra comodità</div>
           </td>
         </tr>
         <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 40%;">Portale B2B</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 700;">www.izzodistribuzione.it/login</a></td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 36%;">Portale B2B</td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 600;">www.izzodistribuzione.it/login</a></td>
         </tr>
         <tr>
           <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${escapeHtml(vars.labelUsername)}</td>
@@ -586,12 +597,8 @@ function renderCredentialsHtmlBlock(
           <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><code>${escapeHtml(vars.tempPasswordPlain)}</code></td>
         </tr>
         <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">Sconto di benvenuto 1° ordine</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #166534;">${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto da listino)</td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 12px; color: #475569;">Condizioni d’ordine</td>
-          <td style="padding: 7px 12px; color: #334155;">${escapeHtml(vars.minOrderAmountText)} • ${escapeHtml(vars.freeShippingText)}</td>
+          <td style="padding: 7px 12px; color: #475569;">Condizione 1° ordine</td>
+          <td style="padding: 7px 12px; color: #0f172a; font-weight: 600;">${escapeHtml(conditionLine)}</td>
         </tr>
       </table>
       ${ctaHtml}
@@ -599,21 +606,59 @@ function renderCredentialsHtmlBlock(
   }
 
   // Default: executive_card
-  return `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #166534; border-radius: 6px; padding: 16px; margin: 18px 0;">
-    <div style="font-weight: 700; color: #166534; font-size: 14px; margin-bottom: 3px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-    <div style="font-size: 12.5px; color: #475569; margin-bottom: 10px;">Credenziali provvisorie gratuite e senza alcun impegno, attivate unicamente per Vostra comodità di consultazione</div>
-    <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
-    <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
-    <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
-    <div style="margin-top: 10px; font-size: 13px; color: #334155;">
-      • <strong>Sconto di benvenuto 1° ordine:</strong> <strong>${escapeHtml(vars.discountFormulaLabel)}</strong> (${vars.effectiveNetPct}% netto da listino)<br/>
-      • <strong>Minimo d’ordine:</strong> ${escapeHtml(vars.minOrderAmountText)}<br/>
-      • <strong>Spedizione:</strong> ${escapeHtml(vars.freeShippingText)}<br/>
-      • <strong>Referente commerciale:</strong> ${escapeHtml(vars.agentDisplayName)}
-      ${vars.customCommercialNotes ? `<br/>• <strong>Nota commerciale:</strong> ${escapeHtml(vars.customCommercialNotes)}` : ''}
-    </div>
+  return `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0f172a; border-radius: 6px; padding: 15px 16px; margin: 16px 0; font-size: 13.8px; line-height: 1.65;">
+    <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
+    <div>• <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
+    <div>• <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
+    <div>• <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
+    <div>• <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
+    ${vars.customCommercialNotes ? `<div>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
     ${ctaHtml}
   </div>`;
+}
+
+function formatTextBlockToHtml(blockText: string): string {
+  const lines = blockText.split('\n').map((l) => l.trim()).filter(Boolean);
+  const allBullets = lines.length > 0 && lines.every((l) => /^[-•]\s+/.test(l));
+  if (allBullets) {
+    const items = lines
+      .map((l) => {
+        const content = escapeHtml(l.replace(/^[-•]\s+/, '')).replace(
+          /\*\*([^*]+)\*\*/g,
+          '<strong>$1</strong>'
+        );
+        return `<li style="margin-bottom: 6px;">${content}</li>`;
+      })
+      .join('\n');
+    return `<ul style="margin: 8px 0 14px 0; padding-left: 20px;">\n${items}\n</ul>`;
+  }
+
+  // Blocco misto intro + elenco puntato nello stesso paragrafo
+  const firstBulletIdx = lines.findIndex((l) => /^[-•]\s+/.test(l));
+  if (firstBulletIdx > 0) {
+    const introLines = lines.slice(0, firstBulletIdx);
+    const bulletLines = lines.slice(firstBulletIdx);
+    if (bulletLines.every((l) => /^[-•]\s+/.test(l))) {
+      const introHtml = escapeHtml(introLines.join('\n'))
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br/>');
+      const items = bulletLines
+        .map((l) => {
+          const content = escapeHtml(l.replace(/^[-•]\s+/, '')).replace(
+            /\*\*([^*]+)\*\*/g,
+            '<strong>$1</strong>'
+          );
+          return `<li style="margin-bottom: 6px;">${content}</li>`;
+        })
+        .join('\n');
+      return `<p style="margin: 0 0 8px 0;">${introHtml}</p>\n<ul style="margin: 4px 0 14px 0; padding-left: 20px;">\n${items}\n</ul>`;
+    }
+  }
+
+  const formatted = escapeHtml(blockText)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>');
+  return `<p style="margin: 0 0 12px 0;">${formatted}</p>`;
 }
 
 function executeCombinatorialSynthesis(
@@ -632,8 +677,10 @@ function executeCombinatorialSynthesis(
       ? { val: Math.abs(Math.floor(options.deterministicSeed)) || 1 }
       : null;
 
-  // 1. Tutte e 100 le Email Madri sono universali per qualsiasi tipologia di cliente B2B:
-  // le discriminanti dinamiche sono i 108 gruppi di parole/frasi e i parametri cliente.
+  const intel: ProspectIntelligenceSummary = composeProspectIntelligence(input, (len) =>
+    pickIndex(len, seedCursor)
+  );
+
   let chosenTemplate: ActiveEmailTemplateRecord | undefined;
   if (options?.forceTemplateCode) {
     chosenTemplate = library.templates.find(
@@ -641,8 +688,10 @@ function executeCombinatorialSynthesis(
     );
   }
   if (!chosenTemplate) {
-    const pool = library.templates.length > 0 ? library.templates : buildFallbackLibrary().templates;
-    chosenTemplate = pool[pickIndex(pool.length, seedCursor)] || buildFallbackLibrary().templates[0];
+    const pool =
+      library.templates.length > 0 ? library.templates : buildFallbackLibrary().templates;
+    chosenTemplate =
+      pool[pickIndex(pool.length, seedCursor)] || buildFallbackLibrary().templates[0];
   }
 
   const replacedTraces: ReplacedTokenTrace[] = [];
@@ -676,7 +725,6 @@ function executeCombinatorialSynthesis(
     });
   };
 
-  // Elementi strutturali dinamici (anche etichette box, bottone CTA, firma e opt-out cambiano sempre)
   const boxTitle = drawTokenValue('TITOLO_BOX_OFFERTA');
   const ctaLabel = drawTokenValue('CTA_BOTTONE_PDF');
   const labelUsername = drawTokenValue('LABEL_USERNAME');
@@ -684,11 +732,11 @@ function executeCombinatorialSynthesis(
   const firmaReparto = drawTokenValue('REPARTO_FIRMA');
   const optOutNote = drawTokenValue('NOTA_LEGALE_OPTOUT');
 
-  const cityClean = (input.city || '').trim();
-  const provClean = (input.province || '').trim();
+  const cityClean = intel.cityClean;
+  const provClean = intel.provinceClean;
   const cityLabel = cityClean
     ? `${cityClean}${provClean ? ` (${provClean})` : ''}`
-    : 'la Vostra zona operativa';
+    : 'la Vostra area operativa';
   const cityParen = cityClean ? ` (${cityClean})` : '';
 
   const rawAgentName = (input.agentName || '').trim();
@@ -713,42 +761,38 @@ function executeCombinatorialSynthesis(
 
   const cleanOfferTitle = sanitizeExternalCopy(
     input.offerTitle,
-    'Invito conoscitivo e sconto di benvenuto sul primo ordine'
+    'Presentazione fornitore B2B e condizione primo ordine'
   );
   const cleanMinOrderText = sanitizeExternalCopy(
     input.minOrderAmountText,
-    "Nessun minimo d'ordine"
+    "senza minimo d'ordine"
   );
   const cleanFreeShippingText = sanitizeExternalCopy(
     input.freeShippingText,
-    'Spedizione curata e tracciata in tutta Italia'
+    'spedizione tracciata in tutta Italia'
   );
   const cleanCustomNotes = input.customCommercialNotes
     ? sanitizeExternalCopy(input.customCommercialNotes, '')
     : null;
 
-  const brandsNote = input.brandsDetected
-    ? `Nel catalogo illustrativo potrete inoltre visionare una selezione delle principali famiglie merceologiche affini alla Vostra attività (${sanitizeExternalCopy(
-        input.brandsDetected
-          .split(',')
-          .slice(0, 4)
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .join(', ')
-      )}), già valorizzate con i prezzi netti B2B riservati.`
-    : `All’interno del catalogo illustrativo abbiamo raccolto una selezione ordinata delle linee più richieste (${catCfg.recommendedFamily}), con prezzi netti B2B già riservati.`;
-
   const loginUrl = `https://www.izzodistribuzione.it/login?u=${encodeURIComponent(input.username)}`;
 
   const resolveClientVariables = (txt: string, credentialsPlaceholder: string): string => {
     const map: Record<string, string> = {
-      COMPANY_NAME: input.companyName,
+      COMPANY_NAME: intel.companyClean,
+      SALUTO_PERSONALIZZATO: intel.salutoPersonalizzato,
+      INTESTAZIONE_OGGETTO: intel.intestazioneOggetto,
+      FRASE_CONTESTO_DB: intel.fraseContestoDb,
+      INCISO_CONTESTO_DB: intel.incisoContestoDb,
+      SCOPO_FORNITURA_SETTORE: intel.scopoFornituraSettore,
+      LINEE_PRODOTTI_IZZO: intel.lineeProdottiIzzo,
+      CHIUSURA_SETTORE: intel.chiusuraSettore,
       CITY: cityLabel,
       CITY_PAREN: cityParen,
       PROVINCE: provClean || 'IT',
       SECTOR_SHORT: catCfg.shortLabel,
       RECOMMENDED_FAMILY: catCfg.recommendedFamily,
-      BRANDS_NOTE: brandsNote,
+      BRANDS_NOTE: intel.lineeProdottiIzzo,
       DISCOUNT_FORMULA: discountFormulaLabel,
       BASE_DISCOUNT: String(input.baseDiscount),
       EXTRA_DISCOUNT: String(input.extraFirstPurchasePct),
@@ -756,7 +800,10 @@ function executeCombinatorialSynthesis(
       OFFER_TITLE: cleanOfferTitle,
       MIN_ORDER_TEXT: cleanMinOrderText,
       SHIPPING_TEXT: cleanFreeShippingText,
-      PAYMENT_TERMS_TEXT: sanitizeExternalCopy(input.paymentTermsText, 'Bonifico / Carta / PayPal'),
+      PAYMENT_TERMS_TEXT: sanitizeExternalCopy(
+        input.paymentTermsText,
+        'Condizioni B2B riservate'
+      ),
       LOGIN_URL: loginUrl,
       USERNAME: input.username,
       TEMP_PASSWORD: input.tempPasswordPlain,
@@ -772,11 +819,13 @@ function executeCombinatorialSynthesis(
     });
   };
 
-  // 2. Sintesi Oggetto (sostituisce prima [TOKEN] e poi {VARIABILI})
+  // Sintesi Oggetto
   const rawSubjectWithTokens = replaceDynamicTokens(chosenTemplate.subjectTemplate);
-  const resolvedSubject = polishSubjectTypography(resolveClientVariables(rawSubjectWithTokens, ''));
+  const resolvedSubject = polishSubjectTypography(
+    resolveClientVariables(rawSubjectWithTokens, '')
+  );
 
-  // 3. Sintesi Corpo Email
+  // Sintesi Corpo
   let rawBodyTemplate = chosenTemplate.bodyTemplate;
   if (!rawBodyTemplate.includes('{CREDENTIALS_BLOCK}')) {
     rawBodyTemplate = `${rawBodyTemplate.trim()}\n\n{CREDENTIALS_BLOCK}`;
@@ -785,19 +834,16 @@ function executeCombinatorialSynthesis(
 
   const plainCredentials = renderCredentialsPlainBlock({
     boxTitle,
-    companyName: input.companyName,
+    isReseller: intel.isReseller,
     discountFormulaLabel,
-    effectiveNetPct,
     loginUrl,
     labelUsername,
     username: input.username,
     labelPassword,
     tempPasswordPlain: input.tempPasswordPlain,
     minOrderAmountText: cleanMinOrderText,
-    freeShippingText: cleanFreeShippingText,
     smartCatalogUrl: input.smartCatalogUrl,
     customCommercialNotes: cleanCustomNotes,
-    agentDisplayName,
   });
 
   const resolvedBodyCore = polishBodyTypography(
@@ -808,8 +854,7 @@ function executeCombinatorialSynthesis(
     '',
     agentDisplayName,
     `${firmaReparto} — Izzo Distribuzione S.r.l.`,
-    `Tel / WhatsApp: ${agentPhoneFinal}`,
-    `Email: ${agentEmailFinal}`,
+    `Tel / WhatsApp: ${agentPhoneFinal} — Email: ${agentEmailFinal}`,
     `Portale B2B: https://www.izzodistribuzione.it`,
     `Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049`,
     '',
@@ -818,7 +863,7 @@ function executeCombinatorialSynthesis(
 
   const bodyText = `${resolvedBodyCore}\n${signaturePlainLines.join('\n')}`;
 
-  // 4. Sintesi HTML con 5 layout istituzionali differenti per azzerare il fingerprint DOM
+  // Sintesi HTML con 5 layout istituzionali
   const layoutVariant = (
     ['executive_card', 'plain_personal', 'compact_memo', 'accent_stripe', 'clean_table'].includes(
       chosenTemplate.htmlLayoutVariant
@@ -835,19 +880,17 @@ function executeCombinatorialSynthesis(
   const htmlCredentials = renderCredentialsHtmlBlock(layoutVariant, {
     boxTitle,
     ctaLabel,
-    companyName: input.companyName,
+    companyName: intel.companyClean,
+    isReseller: intel.isReseller,
     discountFormulaLabel,
-    effectiveNetPct,
     loginUrl,
     labelUsername,
     username: input.username,
     labelPassword,
     tempPasswordPlain: input.tempPasswordPlain,
     minOrderAmountText: cleanMinOrderText,
-    freeShippingText: cleanFreeShippingText,
     smartCatalogUrl: input.smartCatalogUrl,
     customCommercialNotes: cleanCustomNotes,
-    agentDisplayName,
   });
 
   const htmlParagraphs = bodyForHtmlCore
@@ -861,29 +904,23 @@ function executeCombinatorialSynthesis(
         return parts
           .map((part, idx) => {
             const pClean = part.trim();
-            const pHtml = pClean
-              ? `<p style="margin: 0 0 12px 0;">${escapeHtml(pClean).replace(/\n/g, '<br/>')}</p>`
-              : '';
+            const pHtml = pClean ? formatTextBlockToHtml(pClean) : '';
             return idx < parts.length - 1 ? `${pHtml}${htmlCredentials}` : pHtml;
           })
           .join('\n');
       }
-      const formatted = escapeHtml(trimmed)
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br/>');
-      return `<p style="margin: 0 0 12px 0;">${formatted}</p>`;
+      return formatTextBlockToHtml(trimmed);
     })
     .filter(Boolean)
     .join('\n');
 
-  const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #0f172a; line-height: 1.6; max-width: 650px; font-size: 14.5px;">
+  const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #0f172a; line-height: 1.62; max-width: 650px; font-size: 14.5px;">
   ${htmlParagraphs}
   <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; font-size: 13.5px; line-height: 1.55; color: #1e293b;">
     <strong style="color: #0f172a; font-size: 14.5px;">${escapeHtml(agentDisplayName)}</strong><br/>
     <span>${escapeHtml(firmaReparto)} — <strong>Izzo Distribuzione S.r.l.</strong></span><br/>
-    <span>Tel / WhatsApp: <a href="tel:${escapeHtml(agentPhoneFinal.replace(/\s+/g, ''))}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentPhoneFinal)}</a></span><br/>
-    <span>Email: <a href="mailto:${escapeHtml(agentEmailFinal)}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentEmailFinal)}</a></span><br/>
-    <span>Portale B2B: <a href="https://www.izzodistribuzione.it" target="_blank" rel="noopener" style="color: #166534; font-weight: 600; text-decoration: none;">https://www.izzodistribuzione.it</a></span><br/>
+    <span>Tel / WhatsApp: <a href="tel:${escapeHtml(agentPhoneFinal.replace(/\s+/g, ''))}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentPhoneFinal)}</a> — Email: <a href="mailto:${escapeHtml(agentEmailFinal)}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentEmailFinal)}</a></span><br/>
+    <span>Portale B2B: <a href="https://www.izzodistribuzione.it" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600; text-decoration: none;">https://www.izzodistribuzione.it</a></span><br/>
     <span style="display: inline-block; margin-top: 4px; font-size: 12px; color: #475569;">Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049</span>
   </div>
   <p style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 11.5px; color: #64748b;">
@@ -891,7 +928,6 @@ function executeCombinatorialSynthesis(
   </p>
 </div>`;
 
-  // Rimuove eventuali markdown ** residui dal plain text
   const cleanPlainText = bodyText.replace(/\*\*([^*]+)\*\*/g, '$1');
 
   return {
@@ -905,19 +941,71 @@ function executeCombinatorialSynthesis(
     htmlLayoutVariant: layoutVariant,
     tokensReplacedCount: replacedTraces.length,
     replacedTokensPreview: replacedTraces,
+    prospectIntelligence: {
+      companyClean: intel.companyClean,
+      decisionMaker: intel.decisionMakerClean,
+      domain: intel.domainClean,
+      areaLabel: intel.areaLabel,
+      cluster: intel.cluster,
+      specializations: intel.specializations,
+      detectedBrands: intel.detectedBrands,
+      civilBrandMatched: intel.civilBrandMatched,
+      foundationYear: intel.foundationYear,
+      certifications: intel.certificationsLabel,
+    },
     chosenTemplateId: chosenTemplate.id,
   };
 }
 
 /**
- * Motore Combinatorio Principale DB-backed (100 Email Madri × 108 Gruppi di Parole Dinamiche).
+ * Motore Combinatorio Principale DB-backed (100 Email Madri × 108 Gruppi di Parole Dinamiche + Intelligence DB Prospect).
+ * Se `prospectId` corrisponde a un lead reale nel DB e mancano `website`/`richMetadata` in input,
+ * li idrata automaticamente dalla tabella `sdr_prospects`.
  */
 export async function generateCombinatorialOutreachEmail(
   input: BuildOutreachEmailInput,
   options?: GenerateCombinatorialOptions
 ): Promise<CombinatorialEmailResult> {
+  let enrichedInput: BuildOutreachEmailInput = input;
+
+  if (
+    input.prospectId &&
+    input.prospectId > 0 &&
+    input.prospectId < 900000 &&
+    (input.website === undefined || input.richMetadata === undefined)
+  ) {
+    try {
+      const dbRow = await sdrPrisma.sdrProspect.findUnique({
+        where: { id: input.prospectId },
+        select: {
+          website: true,
+          region: true,
+          atecoCode: true,
+          brandsDetected: true,
+          richMetadata: true,
+        },
+      });
+      if (dbRow) {
+        enrichedInput = {
+          ...input,
+          website: input.website ?? dbRow.website,
+          region: input.region ?? dbRow.region,
+          atecoCode: input.atecoCode ?? dbRow.atecoCode,
+          brandsDetected: input.brandsDetected ?? dbRow.brandsDetected,
+          richMetadata:
+            input.richMetadata ??
+            (dbRow.richMetadata && typeof dbRow.richMetadata === 'object'
+              ? (dbRow.richMetadata as Record<string, any>)
+              : null),
+        };
+      }
+    } catch {
+      // Fallback silenzioso ai dati passati in input
+    }
+  }
+
   const library = await loadCombinatorialLibraryFromDb();
-  const result = executeCombinatorialSynthesis(library, input, options);
+  const result = executeCombinatorialSynthesis(library, enrichedInput, options);
 
   if (!options?.isPreview && result.chosenTemplateId) {
     sdrPrisma.sdrEmailTemplate
@@ -931,9 +1019,6 @@ export async function generateCombinatorialOutreachEmail(
   return result;
 }
 
-/**
- * Wrapper sincrono retrocompatibile che utilizza comunque tutti i 100 modelli e i 108 gruppi di parole.
- */
 export function generateCombinatorialOutreachEmailSync(
   input: BuildOutreachEmailInput,
   options?: GenerateCombinatorialOptions

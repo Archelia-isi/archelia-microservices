@@ -33,60 +33,63 @@ interface SdrCombinatorialStudioPanelProps {
 }
 
 const ANGLE_LABELS: Record<string, string> = {
-  Presentazione_Fornitore: '🤝 Presentazione Fornitore & Invito a Conoscerci',
-  Valutazione_Listino_B2B: '📊 Valutazione Trasparente Listino & Prezzi Netti',
-  Credenziali_Comodita: '🔑 Credenziali Provvisorie Gratuite per Comodità',
-  Sconto_Benvenuto_Prova: '🎁 Sconto di Benvenuto 1° Ordine Senza Impegno',
-  Catalogo_Illustrativo_PDF: '📄 Catalistino Illustrativo PDF Riservato',
-  Gamma_Tecnica_Completa: '⚙️ Gamma Elettrico, LED, Quadristica & Fissaggio',
-  Presentazione_Referente: '👤 Contatto Umano Diretto col Referente B2B',
-  Fornitore_Alternativo: '🏢 Fornitore Alternativo da Affiancare in Libertà',
-  Nota_Conoscitiva_Breve: '📋 Nota Conoscitiva Breve & Discreta',
-  Supporto_Aziende_Territorio: '📍 Supporto & Preventivi per le Aziende del Territorio',
+  Presentazione_Fornitore: '🏢 Presentazione Istituzionale Da Azienda ad Azienda',
+  Valutazione_Listino_B2B: '📊 Ufficio Acquisti & Trasparenza Prezzi Netti',
+  Credenziali_Comodita: '🔑 Accesso Riservato B2B per Consultazione Autonoma',
+  Sconto_Benvenuto_Prova: '📐 Condizioni Riservate sul Primo Ordine di Prova',
+  Catalogo_Illustrativo_PDF: '📄 Prospetto Tecnico PDF & Portale B2B',
+  Gamma_Tecnica_Completa: '⚙️ Gamma Tecnica, Marchi & Compatibilità Installativa',
+  Presentazione_Referente: '👤 Filo Diretto col Referente Commerciale B2B',
+  Fornitore_Alternativo: '🔄 Secondo Fornitore Indipendente a Supporto Acquisti',
+  Nota_Conoscitiva_Breve: '📋 Nota Esecutiva Sintetica ad Alta Leggibilità',
+  Supporto_Aziende_Territorio: '📍 Logistica Nazionale & Quotazioni su Commessa',
 };
 
 const LAYOUT_LABELS: Record<string, string> = {
-  executive_card: 'Card Istituzionale Sobria',
+  executive_card: 'Scheda Tecnica Sobria',
   plain_personal: 'Stile Lettera Diretta',
-  compact_memo: 'Riquadro Compatto Ardesia',
+  compact_memo: 'Prospetto Compatto Ardesia',
   accent_stripe: 'Fascia Istituzionale Blu Navy',
-  clean_table: 'Tabella Chiara Ufficio Acquisti',
+  clean_table: 'Tabella Ufficio Acquisti',
 };
 
 const TOKEN_CATEGORY_LABELS: Record<string, string> = {
-  '01_Saluti_Apertura': '1. Saluti Cortesi & Invito a Valutarci come Fornitore',
-  '02_Oggetto_Email': '2. Oggetti Chiari di Presentazione Fornitore B2B',
-  '03_Presentazione_Azienda': '3. Presentazione Izzo Distribuzione S.r.l.',
-  '04_Contesto_Cliente': '4. Riferimenti a Settore, Prodotti e Lavoro Quotidiano',
-  '05_Offerta_Sconti': '5. Sconto di Benvenuto 1° Ordine & Trasparenza Prezzi',
-  '06_Magazzino_Consegna': '6. Pronta Disponibilità & Cura nelle Spedizioni',
-  '07_Portale_Credenziali': '7. Credenziali Provvisorie Gratuite per Comodità & PDF',
-  '08_Referente_Supporto': '8. Referente Umano Diretto & Preventivi Senza Impegno',
-  '09_Chiusura_Saluti': '9. Saluti Finali Cortesi & Nota Informativa B2B',
+  '01_Saluti_Apertura': '1. Intestazioni & Aperture Sobrie Da Azienda ad Azienda',
+  '02_Oggetto_Email': '2. Oggetti Istituzionali & Tecnici B2B',
+  '03_Presentazione_Azienda': '3. Identità Izzo Distribuzione S.r.l.',
+  '04_Contesto_Cliente': '4. Contesto Operativo Impiantisti, Quadristi & Rivendite',
+  '05_Offerta_Sconti': '5. Condizioni Riservate 1° Ordine & Confronto Netti',
+  '06_Magazzino_Consegna': '6. Continuità di Fornitura & Logistica Nazionale',
+  '07_Portale_Credenziali': '7. Accesso Riservato Non Vincolante & Prospetto PDF',
+  '08_Referente_Supporto': '8. Referente Commerciale Diretto & Preventivi su Lista',
+  '09_Chiusura_Saluti': '9. Formule di Congedo Esecutive B2B',
 };
 
 const QUICK_HELP_TOKENS = [
   '[SALUTO_AZIENDA]',
-  '[APERTURA_BREVE]',
+  '[SALUTO_UFFICIO]',
   '[VERBO_CONTATTARE]',
   '[IDENTITA_IZZO]',
+  '[QUALIFICA_DISTRIBUTORE]',
   '[ABBIAMO_ATTIVATO]',
   '[LE_CREDENZIALI]',
-  '[ACCESSO_SENZA_IMPEGNO]',
   '[IL_CATALISTINO_PDF]',
   '[IL_DOPPIO_SCONTO]',
-  '[ZERO_MINIMO_ORDINE]',
   '[FRASE_DISPONIBILITA]',
   '[SALUTO_CHIUSURA]',
 ];
 
 const QUICK_CLIENT_VARS = [
+  '{SALUTO_PERSONALIZZATO}',
+  '{INTESTAZIONE_OGGETTO}',
+  '{FRASE_CONTESTO_DB}',
+  '{INCISO_CONTESTO_DB}',
+  '{LINEE_PRODOTTI_IZZO}',
+  '{SCOPO_FORNITURA_SETTORE}',
+  '{CHIUSURA_SETTORE}',
   '{COMPANY_NAME}',
   '{CITY}',
   '{DISCOUNT_FORMULA}',
-  '{NET_DISCOUNT_PCT}',
-  '{SECTOR_SHORT}',
-  '{AGENT_NAME}',
   '{CREDENTIALS_BLOCK}',
 ];
 
@@ -103,10 +106,12 @@ export default function SdrCombinatorialStudioPanel({
   const [tokens, setTokens] = useState<any[]>([]);
 
   // Simulatore state
+  const [simUseRealDb, setSimUseRealDb] = useState<boolean>(true);
+  const [simSampledProspect, setSimSampledProspect] = useState<any | null>(null);
   const [simCompany, setSimCompany] = useState('Elettroimpianti Rossi S.r.l.');
   const [simCity, setSimCity] = useState('Napoli');
   const [simProvince, setSimProvince] = useState('NA');
-  const [simCategory, setSimCategory] = useState<'IST' | 'RIV'>('IST');
+  const [simCategory, setSimCategory] = useState<'ALL' | 'IST' | 'RIV'>('ALL');
   const [simTemplateCode, setSimTemplateCode] = useState<string>('RANDOM');
   const [simLoading, setSimLoading] = useState(false);
   const [simPreview, setSimPreview] = useState<any | null>(null);
@@ -147,16 +152,21 @@ export default function SdrCombinatorialStudioPanel({
     }
   };
 
-  const runSimulation = async (overrideTemplateCode?: string) => {
+  const runSimulation = async (
+    overrideTemplateCode?: string,
+    overrideUseRealDb?: boolean
+  ) => {
     try {
       setSimLoading(true);
       const chosenCode = overrideTemplateCode ?? simTemplateCode;
+      const useReal = overrideUseRealDb ?? simUseRealDb;
       const res = await fetch(`${apiUrl}/api/admin/sdr/combinatorial/preview`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
           templateCode: chosenCode === 'RANDOM' ? null : chosenCode,
-          commercialCategory: simCategory,
+          commercialCategory: simCategory === 'ALL' ? undefined : simCategory,
+          useRealProspect: useReal,
           companyName: simCompany,
           city: simCity,
           province: simProvince,
@@ -165,6 +175,7 @@ export default function SdrCombinatorialStudioPanel({
       const data = await res.json();
       if (data.success && data.preview) {
         setSimPreview(data.preview);
+        setSimSampledProspect(data.sampledProspect || null);
       } else {
         toast.error(data.error || 'Impossibile generare la simulazione');
       }
@@ -177,7 +188,7 @@ export default function SdrCombinatorialStudioPanel({
 
   useEffect(() => {
     fetchOverview();
-    runSimulation('RANDOM');
+    runSimulation('RANDOM', true);
   }, []);
 
   const handleSyncDefaults = async () => {
@@ -215,8 +226,8 @@ export default function SdrCombinatorialStudioPanel({
       targetCategory: 'ALL',
       htmlLayoutVariant: 'executive_card',
       subjectTemplate:
-        '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
-      bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},\n\n[APERTURA_BREVE] e invitarVi a valutarci liberamente come fornitore B2B. Siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI].\n\nUnicamente per Vostra comodità, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].\n\n{CREDENTIALS_BLOCK}\n\n[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].\n\n[SALUTO_CHIUSURA]`,
+        '[OGG_TIPO_DOC] per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+      bodyTemplate: `{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB}\n\n[VERBO_CONTATTARE] **Izzo Distribuzione S.r.l.**, [QUALIFICA_DISTRIBUTORE], per sottoporre alla Vostra valutazione una linea di fornitura diretta {SCOPO_FORNITURA_SETTORE}:\n{LINEE_PRODOTTI_IZZO}\n\nPer consultare autonomamente listini netti e disponibilità effettive, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] insieme a [IL_CATALISTINO_PDF]:\n\n{CREDENTIALS_BLOCK}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]`,
       isActive: true,
     });
   };
@@ -467,21 +478,39 @@ export default function SdrCombinatorialStudioPanel({
             >
               <div>
                 <div style={{ fontWeight: 800, fontSize: '14.5px' }}>
-                  🎲 Simulatore in Tempo Reale — Prova l&apos;Unicità delle Email
+                  🎲 Simulatore in Tempo Reale — Personalizzazione DB + 100×108 Combinazioni
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                  Ogni volta che clicchi il pulsante, il sistema pesca una delle 100 Email Madri e sostituisce al volo decine di parole dal vocabolario dinamico.
+                  Il motore legge in automatico i dati reali dal database (sito web, titolare, specializzazioni, marchi, storico, settore), pesca 1 delle 100 Email Madri e sostituisce decine di blocchi lessicali.
                 </div>
               </div>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Shuffle size={14} />}
-                onClick={() => runSimulation()}
-                disabled={simLoading}
-              >
-                {simLoading ? 'Generazione...' : '🎲 Genera Nuova Combinazione Casuale'}
-              </Button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button
+                  variant={simUseRealDb ? 'success' : 'secondary'}
+                  size="sm"
+                  onClick={() => {
+                    const next = !simUseRealDb;
+                    setSimUseRealDb(next);
+                    runSimulation(undefined, next);
+                  }}
+                  disabled={simLoading}
+                >
+                  {simUseRealDb ? '🎯 Sorgente: Aziende Vere del DB' : '✏️ Sorgente: Dati Manuali'}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<Shuffle size={14} />}
+                  onClick={() => runSimulation()}
+                  disabled={simLoading}
+                >
+                  {simLoading
+                    ? 'Generazione...'
+                    : simUseRealDb
+                    ? '🎲 Pesca Azienda Vera & Genera Combinazione'
+                    : '🎲 Genera Nuova Combinazione'}
+                </Button>
+              </div>
             </div>
 
             <div
@@ -491,21 +520,25 @@ export default function SdrCombinatorialStudioPanel({
                 gap: '10px',
               }}
             >
-              <TextInput
-                label="Azienda Cliente di Prova"
-                value={simCompany}
-                onChange={(e) => setSimCompany(e.target.value)}
-              />
-              <TextInput
-                label="Città"
-                value={simCity}
-                onChange={(e) => setSimCity(e.target.value)}
-              />
-              <TextInput
-                label="Provincia (Sigla)"
-                value={simProvince}
-                onChange={(e) => setSimProvince(e.target.value.toUpperCase().slice(0, 2))}
-              />
+              {!simUseRealDb && (
+                <>
+                  <TextInput
+                    label="Azienda Cliente di Prova"
+                    value={simCompany}
+                    onChange={(e) => setSimCompany(e.target.value)}
+                  />
+                  <TextInput
+                    label="Città"
+                    value={simCity}
+                    onChange={(e) => setSimCity(e.target.value)}
+                  />
+                  <TextInput
+                    label="Provincia (Sigla)"
+                    value={simProvince}
+                    onChange={(e) => setSimProvince(e.target.value.toUpperCase().slice(0, 2))}
+                  />
+                </>
+              )}
               <div>
                 <label
                   style={{
@@ -516,14 +549,15 @@ export default function SdrCombinatorialStudioPanel({
                     marginBottom: '4px',
                   }}
                 >
-                  LISTINO COMMERCIALE
+                  FILTRO LISTINO COMMERCIALE
                 </label>
                 <Select
                   value={simCategory}
-                  onChange={(e) => setSimCategory(e.target.value as 'IST' | 'RIV')}
+                  onChange={(e) => setSimCategory(e.target.value as 'ALL' | 'IST' | 'RIV')}
                   options={[
-                    { value: 'IST', label: 'IST — Installatori (40% + 10%)' },
-                    { value: 'RIV', label: 'RIV — Rivenditori (50% + 10%)' },
+                    { value: 'ALL', label: 'Tutti i Profili B2B (Installatori + Rivendite)' },
+                    { value: 'IST', label: 'Solo Installatori & Tecnici (40% + 10%)' },
+                    { value: 'RIV', label: 'Solo Rivenditori & Ferramenta (50% + 10%)' },
                   ]}
                 />
               </div>
@@ -555,6 +589,75 @@ export default function SdrCombinatorialStudioPanel({
                 />
               </div>
             </div>
+
+            {simPreview?.prospectIntelligence && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  alignItems: 'center',
+                  fontSize: '12px',
+                }}
+              >
+                <span style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                  🧠 Segnali DB letti in automatico:
+                </span>
+                <Badge variant="primary" size="sm">
+                  🏢 {simPreview.prospectIntelligence.companyClean}
+                </Badge>
+                {simSampledProspect?.city && (
+                  <Badge variant="neutral" size="sm">
+                    📍 {simSampledProspect.city}
+                    {simSampledProspect.province ? ` (${simSampledProspect.province})` : ''}
+                  </Badge>
+                )}
+                <Badge variant="neutral" size="sm">
+                  ⚙️ {simPreview.prospectIntelligence.cluster}
+                </Badge>
+                {simPreview.prospectIntelligence.domain ? (
+                  <Badge variant="success" size="sm">
+                    🌐 {simPreview.prospectIntelligence.domain}
+                  </Badge>
+                ) : (
+                  <Badge variant="neutral" size="sm">
+                    🌐 Senza sito (Fallback Territorio/Settore attivo)
+                  </Badge>
+                )}
+                {simPreview.prospectIntelligence.decisionMaker && (
+                  <Badge variant="warning" size="sm">
+                    👤 Titolare: {simPreview.prospectIntelligence.decisionMaker}
+                  </Badge>
+                )}
+                {simPreview.prospectIntelligence.foundationYear && (
+                  <Badge variant="neutral" size="sm">
+                    🏛️ Dal {simPreview.prospectIntelligence.foundationYear}
+                  </Badge>
+                )}
+                {simPreview.prospectIntelligence.certifications && (
+                  <Badge variant="success" size="sm">
+                    🏅 {simPreview.prospectIntelligence.certifications}
+                  </Badge>
+                )}
+                {simPreview.prospectIntelligence.civilBrandMatched && (
+                  <Badge variant="primary" size="sm">
+                    🔌 Compatibilità {simPreview.prospectIntelligence.civilBrandMatched}
+                  </Badge>
+                )}
+                {(simPreview.prospectIntelligence.specializations || []).map(
+                  (sp: string, i: number) => (
+                    <Badge key={i} variant="neutral" size="sm">
+                      🔹 {sp}
+                    </Badge>
+                  )
+                )}
+              </div>
+            )}
           </GlassPanel>
 
           {simPreview && (

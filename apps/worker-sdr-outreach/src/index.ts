@@ -687,13 +687,23 @@ export async function prepareOutreachPackageForProspect(
   const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
   const smartUrls = buildSmartOfferUrls(trackingToken);
 
+  const richMetaObj =
+    prospect.richMetadata && typeof prospect.richMetadata === 'object'
+      ? (prospect.richMetadata as Record<string, any>)
+      : null;
+
   const tailored = await generateCombinatorialOutreachEmail({
     prospectId: prospect.id,
     companyName: prospect.companyName,
     city: prospect.city,
     province: prospect.province,
+    region: prospect.region,
+    website: prospect.website,
+    atecoCode: prospect.atecoCode,
     categoryCluster: clusterCfg.cluster,
     brandsDetected: prospect.brandsDetected,
+    decisionMaker: richMetaObj?.decision_maker || null,
+    richMetadata: richMetaObj,
     username: promo.username,
     tempPasswordPlain: tempPassword,
     baseDiscount,
