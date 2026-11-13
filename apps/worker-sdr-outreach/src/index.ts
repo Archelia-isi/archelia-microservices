@@ -463,16 +463,16 @@ export async function prepareOutreachPackageForProspect(
       ? Number(configRow?.rivExtraDiscountPct ?? 10)
       : Number(configRow?.istExtraDiscountPct ?? 10);
   const discountFormulaLabel = `${baseDiscount}% + ${extraDiscountPct}%`;
-  const catalistinoTitle = `Catalistino Riservato a ${prospect.companyName}`;
-  const catalistinoSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
+  const catalistinoTitle = `Catalistino B2B Riservato — ${prospect.companyName}`;
+  const catalistinoSubtitle = `Condizioni riservate di prima fornitura — Parametro ${discountFormulaLabel}`;
   const minOrderAmountText =
-    configRow?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto";
+    configRow?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura';
   const freeShippingText =
     configRow?.freeShippingText ||
-    'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)';
+    'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)';
   const paymentTermsText =
     configRow?.paymentTermsText ||
-    `Condizioni B2B riservate con referente dedicato ${resolvedAgent.name}`;
+    `Condizioni B2B riservate con referente assegnato ${resolvedAgent.name}`;
   const attachCatalogPdf = configRow?.attachCatalogPdf ?? true;
 
   let promo = await b2bPrisma.b2BPromoProspect.findFirst({

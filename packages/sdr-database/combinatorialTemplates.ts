@@ -16,47 +16,48 @@ export interface SeedEmailTemplate {
 }
 
 /**
- * 100 Modelli di Email "Madri" completamente differenti tra loro per struttura,
- * taglio commerciale, lunghezza, ordine degli argomenti e oggetto.
- * Ciascuna email innesta decine di [TOKEN] pescati dinamicamente dal database delle 108 parole.
+ * 100 Modelli di Email "Madri" Universali (T001 - T100) — Izzo Distribuzione S.r.l.
+ * Tutte le 100 email sono valide per qualsiasi tipologia di cliente B2B (targetCategory: 'ALL').
+ * Stile: Commerciale nella proposta di valore, Istituzionale e Autorevole nella forma (zero tono pubblicitario).
+ * Le discriminanti dinamiche sono affidate ai 108 gruppi di parole ([TOKEN]) pescati dal database.
  */
 export const DEFAULT_EMAIL_TEMPLATES: SeedEmailTemplate[] = [
   // ==========================================================================
-  // GRUPPO 1 (T001 - T010): UFFICIO ACQUISTI & CONFRONTO RAPIDO NETTI
+  // GRUPPO 1 (T001 - T010): DIREZIONE & UFFICIO ACQUISTI
   // ==========================================================================
   {
     code: 'T001',
-    name: 'Ufficio Acquisti — Confronto Diretto Netti 2gg',
+    name: 'Ufficio Acquisti — Accreditamento e Confronto Analitico Netti',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — {DISCOUNT_FORMULA} ([OGG_RAPIDITA])',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[ATTACCO_UFFICIO_ACQUISTI] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI].
+[ATTACCO_UFFICIO_ACQUISTI] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] nel comparto [SETTORI_MERCEOLOGICI].
 
-Per [SUPPORTARE_LAVORO] {COMPANY_NAME}, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF], abbinato a [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Al fine di [SUPPORTARE_LAVORO] {COMPANY_NAME}, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF], associando alla Vostra anagrafica [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[CONNETTIVO_AGGIUNTA] su [IL_PORTALE_B2B] [CONSENTE_DI] [CONFRONTARE_NETTI] [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
+[CONNETTIVO_AGGIUNTA] l’accesso a [IL_PORTALE_B2B] [CONSENTE_DI] [CONFRONTARE_NETTI] [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA]: [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA], [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T002',
-    name: 'Ufficio Acquisti — Nota Sintetica 30 Secondi',
+    name: 'Ufficio Acquisti — Nota Informativa Sintetica sulle Condizioni',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{COMPANY_NAME}{CITY_PAREN}: [OGG_APPROCCIO_SOFT] ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | {COMPANY_NAME}{CITY_PAREN} — [OGG_APPROCCIO_SOFT]',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] per lasciare al Vostro reparto acquisti un riferimento [AGGETTIVO_SOLIDO_M] sulle forniture [IN_PRONTA_CONSEGNA].
+[APERTURA_BREVE] per sottoporre al Vostro Ufficio Acquisti un riferimento [AGGETTIVO_SOLIDO_M] relativo alle forniture [IN_PRONTA_CONSEGNA].
 
-Da [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA] [VANTAGGIO_DIRETTO]. Per presentarci coi numeri anziché con le parole, [ABBIAMO_ATTIVATO] [CANALE_RISERVATO] con sconto {DISCOUNT_FORMULA} (netto effettivo {NET_DISCOUNT_PCT}% da listino) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
+Presso [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA] [VANTAGGIO_DIRETTO]. Per consentire un riscontro oggettivo sulle nostre condizioni, [ABBIAMO_ATTIVATO] [CANALE_RISERVATO] con parametro {DISCOUNT_FORMULA} (pari al {NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
@@ -66,95 +67,97 @@ Da [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA] [VANTAGGIO_DIRETTO]. Per presentarci co
   },
   {
     code: 'T003',
-    name: 'Ufficio Acquisti — Parametro di Verifica Fornitori',
+    name: 'Ufficio Acquisti — Verifica Giacenza Fisica e Quotazione Netta',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} | [OGG_TIPO_DOC] ({DISCOUNT_FORMULA} su Stock 2gg)',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} | [OGG_RAPIDITA] ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-chi gestisce gli acquisti [PER_IL_COMPARTO] {SECTOR_SHORT} ha spesso bisogno di verificare al volo due aspetti: [STOCK_REALE] e prezzo netto reale.
+nella qualificazione dei fornitori [PER_IL_COMPARTO] {SECTOR_SHORT} assumono rilievo primario due indicatori: [STOCK_REALE] e trasparenza del prezzo netto.
 
-Come [QUALIFICA_DISTRIBUTORE] ([IDENTITA_IZZO]), [METTIAMO_A_DISPOSIZIONE] {COMPANY_NAME} [LE_CREDENZIALI] per verificare [AVVERBIO_LIBERAMENTE] entrambi i parametri su {RECOMMENDED_FAMILY}, [TRASPARENZA_PREZZI].
+In qualità di [QUALIFICA_DISTRIBUTORE], da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [LE_CREDENZIALI] intestate a {COMPANY_NAME} per verificare [AVVERBIO_LIBERAMENTE] entrambi gli aspetti sulle linee {RECOMMENDED_FAMILY}, [TRASPARENZA_PREZZI].
 
 {CREDENTIALS_BLOCK}
 
-[CONNETTIVO_PRATICO] lo sconto {DISCOUNT_FORMULA} è [APPLICAZIONE_CARRELLO] [ZERO_MINIMO_ORDINE], [DOPO_PRIMO_ORDINE].
+[CONNETTIVO_PRATICO] la condizione {DISCOUNT_FORMULA} risulta [APPLICAZIONE_CARRELLO] [ZERO_MINIMO_ORDINE], [DOPO_PRIMO_ORDINE].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T004',
-    name: 'Ufficio Acquisti — Doppia Colonna Listino e Netto',
+    name: 'Ufficio Acquisti — Prospetto Comparativo Listino Ufficiale e Netto',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Quotazioni nette {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_RAPIDITA]',
+    subjectTemplate: 'Prospetto quotazioni nette ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-spesso i cataloghi dei fornitori obbligano a lunghe richieste di preventivo solo per conoscere il netto reale. In [IDENTITA_IZZO] abbiamo scelto l’approccio opposto: [ABBIAMO_PREPARATO] per Voi [IL_CATALISTINO_PDF] [TRASPARENZA_PREZZI].
+per agevolare un esame immediato dei parametri economici senza attese amministrative, [IDENTITA_IZZO] ha adottato un criterio di piena trasparenza documentale: [ABBIAMO_PREPARATO] per la Vostra società [IL_CATALISTINO_PDF] [TRASPARENZA_PREZZI].
 
-[INVITO_CLIC_PDF] [PUO_VISIONARE] [GAMMA_SELEZIONATA] [ARTICOLI_ALTA_ROTAZIONE] [CLAUSOLA_SOLO_2GG], già calcolata con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+[INVITO_CLIC_PDF] [PUO_VISIONARE] [GAMMA_SELEZIONATA] [ARTICOLI_ALTA_ROTAZIONE] [CLAUSOLA_SOLO_2GG], già valorizzata con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
 
 {CREDENTIALS_BLOCK}
 
 {BRANDS_NOTE}
 
-[AIUTO_PRIMA_LISTA]. [SALUTO_CHIUSURA]`,
+[AIUTO_PRIMA_LISTA].
+
+[SALUTO_CHIUSURA]`,
   },
   {
     code: 'T005',
-    name: 'Ufficio Acquisti — Riduzione Costo Distinta',
+    name: 'Ufficio Acquisti — Ottimizzazione dei Costi di Approvvigionamento',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — Comunicazione riservata a {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] una leva immediata [DIFESA_COMPETITIVITA].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] uno strumento concreto [DIFESA_COMPETITIVITA].
 
-Sulle referenze [ARTICOLI_ALTA_ROTAZIONE] presenti in [NOSTRO_DEPOSITO] ([SETTORI_MERCEOLOGICI]), [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} una condizione d’ingresso pari a {DISCOUNT_FORMULA} in cascata [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
+Sulle referenze [ARTICOLI_ALTA_ROTAZIONE] disponibili presso [NOSTRO_DEPOSITO] ([SETTORI_MERCEOLOGICI]), [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} il parametro {DISCOUNT_FORMULA} in cascata [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-È [IMPATTO_SCONTO] [SENSO_DELLA_PROVA], con [TEMPI_RESA] e [CURA_IMBALLO].
+Si tratta di [IMPATTO_SCONTO] [SENSO_DELLA_PROVA], assistito da [TEMPI_RESA] e [CURA_IMBALLO].
 
-Per qualsiasi confronto su singole voci di spesa [COME_RISPONDERE].
+Per qualsiasi approfondimento sulle singole famiglie merceologiche è possibile riscontrare [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T006',
-    name: 'Ufficio Acquisti — Zero Attese Preventivo',
+    name: 'Ufficio Acquisti — Consultazione Immediata Senza Tempi di Attesa',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accesso B2B immediato e [OGG_TIPO_DOC] — {COMPANY_NAME}',
+    subjectTemplate: 'Abilitazione portale B2B e [OGG_TIPO_DOC] — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-quante volte capita di attendere ore o giorni una quotazione per materiale che serve subito? Con [IL_PORTALE_B2B] di [IDENTITA_IZZO] abbiamo voluto eliminare questo collo di bottiglia per [TARGET_PROFESSIONALE].
+nella gestione corrente degli acquisti tecnici la possibilità di verificare istantaneamente disponibilità e costo finito riduce sensibilmente gli oneri operativi. Attraverso [IL_PORTALE_B2B], [IDENTITA_IZZO] garantisce questo standard a [TARGET_PROFESSIONALE].
 
-Abbiamo già associato alla Vostra ragione sociale [LE_CREDENZIALI]: entrando [TROVA_ATTIVO] lo sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e può [FUNZIONI_PORTALE] ed eventualmente [ORDINARE_AUTONOMIA].
+In sede di accreditamento [ABBIAMO_ATTIVATO] [LE_CREDENZIALI]: accedendo, il Vostro ufficio [TROVA_ATTIVO] il parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e può [FUNZIONI_PORTALE] nonché [ORDINARE_AUTONOMIA].
 
 {CREDENTIALS_BLOCK}
 
-[QUOTAZIONI_SU_COMMESSA]. [FRASE_DISPONIBILITA] [OPZIONE_TELEFONATA].
+[QUOTAZIONI_SU_COMMESSA]. [FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T007',
-    name: 'Ufficio Acquisti — Scheda Fornitore Abilitato',
+    name: 'Ufficio Acquisti — Notifica di Apertura Posizione Fornitore B2B',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Abilitazione listino B2B {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Apertura posizione B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-Vi informiamo con piacere che presso [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] [COPERTURA_ITALIA]) [ABBIAMO_ATTIVATO] la scheda fornitura riservata alla Vostra azienda, calibrata per il settore {SECTOR_SHORT}.
+con la presente informiamo che presso [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] operante [COPERTURA_ITALIA]) [ABBIAMO_ATTIVATO] la scheda anagrafica riservata alla Vostra azienda, profilata per il comparto {SECTOR_SHORT}.
 
-Il profilo include [IL_CATALISTINO_PDF] scaricabile subito e l’extra agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [INCISO_SENZA_VINCOLO].
+L’abilitazione comprende [IL_CATALISTINO_PDF] immediatamente consultabile e [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [INCISO_SENZA_VINCOLO].
 
 {CREDENTIALS_BLOCK}
 
@@ -165,242 +168,241 @@ Il profilo include [IL_CATALISTINO_PDF] scaricabile subito e l’extra agevolazi
   },
   {
     code: 'T008',
-    name: 'Ufficio Acquisti — Benchmark Prezzi Materiale Tecnico',
+    name: 'Ufficio Acquisti — Parametro di Riferimento per Verifiche Periodiche',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Verifica netti B2B ({DISCOUNT_FORMULA}) per {COMPANY_NAME} — [OGG_RAPIDITA]',
+    subjectTemplate: 'Riferimenti listino B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_RAPIDITA]',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anche quando si hanno già fornitori consolidati, disporre di un listino aggiornato [AFFIDABILITA_DATO_STOCK] aiuta sempre a comprare meglio.
+anche in presenza di canali di fornitura già consolidati, disporre di un ulteriore riferimento accreditato [AFFIDABILITA_DATO_STOCK] rappresenta un utile strumento di controllo per la Direzione Acquisti.
 
-Per questo da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] studiato per {COMPANY_NAME} ({CITY}), dove [PUO_VISIONARE] e [PUO_SCARICARE_PDF] i nostri migliori articoli 2gg scontati al {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) per il Vostro 1° ordine.
+A tal fine, da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] in favore di {COMPANY_NAME}{CITY_PAREN}, attraverso cui [PUO_VISIONARE] e [PUO_SCARICARE_PDF] le principali referenze 2gg valorizzate con la condizione {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) per la prima fornitura.
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]: verifichi pure 3 o 4 articoli che acquistate ogni settimana per misurare la differenza.
+[ACCESSO_SENZA_IMPEGNO].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T009',
-    name: 'Ufficio Acquisti — Trasparenza Stock + Prezzo Netto',
+    name: 'Ufficio Acquisti — Allineamento tra Condizione Economica e Giacenza',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] ({NET_DISCOUNT_PCT}% netto 1° ordine) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] ({NET_DISCOUNT_PCT}% netto 1ª fornitura) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-in [IDENTITA_IZZO] sappiamo che uno sconto alto serve a poco se poi il materiale non è realmente disponibile. Perciò [FILOSOFIA_OPERATIVA].
+nell’esperienza degli approvvigionamenti professionali una scontistica favorevole risulta realmente efficace solo se sostenuta da disponibilità immediata di magazzino. Per tale ragione in [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA].
 
-Abbiamo legato il Vostro trattamento di benvenuto ({DISCOUNT_FORMULA} in cascata, pari al {NET_DISCOUNT_PCT}% netto) proprio [CLAUSOLA_SOLO_2GG], così da unire [IMPATTO_SCONTO] e [VALORE_PUNTUALITA].
+Abbiamo pertanto associato la condizione riservata a {COMPANY_NAME} ({DISCOUNT_FORMULA} in cascata, pari al {NET_DISCOUNT_PCT}% netto) specificamente [CLAUSOLA_SOLO_2GG], coniugando [IMPATTO_SCONTO] e [VALORE_PUNTUALITA].
 
 {CREDENTIALS_BLOCK}
 
 {BRANDS_NOTE}
 
-Per qualsiasi domanda [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
+Per ogni eventuale verifica è possibile rispondere [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T010',
-    name: 'Ufficio Acquisti — Invito Verifica Veloce su 5 Codici',
+    name: 'Ufficio Acquisti — Riscontro Analitico su Articoli Ricorrenti',
     angleGroup: 'Ufficio_Acquisti',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Proposta pratica per {COMPANY_NAME}: [OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — [OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[APERTURA_BREVE]: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI].
+[APERTURA_BREVE] da parte di [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per il settore [SETTORI_MERCEOLOGICI].
 
-Le lascio qui sotto [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] già scontato al {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]).
+Riportiamo di seguito [LE_CREDENZIALI] e l’accesso a [IL_CATALISTINO_PDF] già valorizzato col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]).
 
 {CREDENTIALS_BLOCK}
 
-[AIUTO_PRIMA_LISTA]: vedrà subito sia la rapidità di risposta sia [RAPPORTO_QUALITA_PREZZO] delle nostre linee [IN_PRONTA_CONSEGNA].
+[AIUTO_PRIMA_LISTA], riscontrando direttamente sia la celerità del nostro ufficio sia le linee [RAPPORTO_QUALITA_PREZZO] disponibili [IN_PRONTA_CONSEGNA].
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 2 (T011 - T020): URGENZA CANTIERE & CONSEGNA RAPIDA 24/48H (2GG)
+  // GRUPPO 2 (T011 - T020): CONTINUITÀ LOGISTICA & PRONTA CONSEGNA 24/48H
   // ==========================================================================
   {
     code: 'T011',
-    name: 'Urgenza 24/48h — Zero Fermi Lavoro in Cantiere',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Evasione 24/48h da Polo Centrale',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_NAME}: [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_RAPIDITA] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
 [ATTACCO_CANTIERE] [EVITARE_DISAGI].
 
-Da [IDENTITA_IZZO] serviamo [COPERTURA_ITALIA] [TARGET_PROFESSIONALE] partendo direttamente da [NOSTRO_DEPOSITO], [AFFIDABILITA_DATO_STOCK] e [TEMPI_RESA] [DESTINAZIONE_FLESSIBILE].
+Attraverso [NOSTRO_DEPOSITO], [IDENTITA_IZZO] serve [COPERTURA_ITALIA] [TARGET_PROFESSIONALE] assicurando forniture [AFFIDABILITA_DATO_STOCK] e [TEMPI_RESA] [DESTINAZIONE_FLESSIBILE].
 
-Per farVi provare questa rapidità fin dalla prima esigenza, [ABBIAMO_PREPARATO] per {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Per consentire una verifica diretta del nostro standard logistico, [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[CERTEZZA_EVASIONE], con [CURA_IMBALLO]. [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+Operiamo [CERTEZZA_EVASIONE], garantendo [CURA_IMBALLO]. [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T012',
-    name: 'Urgenza 24/48h — Consegna Diretta anche sul Luogo Lavori',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Flessibilità di Recapito Operativo',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Materiale pronto in 24/48h [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Sconto {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Servizio logistico 24/48h [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Condizioni {DISCOUNT_FORMULA}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[QUANDO_SERVE_SUBITO], poter contare su [NOSTRO_DEPOSITO] con partenza veloce fa risparmiare ore preziose ai tecnici sul campo.
+[QUANDO_SERVE_SUBITO], poter fare affidamento su [NOSTRO_DEPOSITO] con partenza immediata consente una gestione ordinata delle attività programmate.
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] perché [ABBIAMO_ATTIVATO] per la Vostra azienda [CANALE_RISERVATO] dedicato agli articoli [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [DESTINAZIONE_FLESSIBILE].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per comunicare che [ABBIAMO_ATTIVATO] a nome della Vostra società [CANALE_RISERVATO] dedicato alle referenze [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [DESTINAZIONE_FLESSIBILE].
 
 {CREDENTIALS_BLOCK}
 
-Sul primo ordine [TROVA_ATTIVO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [APPLICAZIONE_CARRELLO].
+Sulla prima fornitura l’anagrafica [TROVA_ATTIVO] il parametro {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [APPLICAZIONE_CARRELLO].
 
-[INVITO_MORBIDO_CATALISTINO] basta un clic sul pulsante sopra o una risposta diretta a questa mail.
+[INVITO_MORBIDO_CATALISTINO]
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T013',
-    name: 'Urgenza 24/48h — La Certezza dello Stock Fisico Reale',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Separazione Rigorosa Circuito 2gg',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Stock reale 2gg e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: 'Disponibilità verificata 2gg e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-il problema più frequente negli acquisti online B2B è ordinare merce data per disponibile e scoprire dopo giorni che deve ancora arrivare dal produttore.
+uno degli aspetti più critici negli approvvigionamenti B2B consiste nel distinguere la reale giacenza fisica dai materiali soggetti a riordino presso il produttore.
 
-In [IDENTITA_IZZO] abbiamo separato nettamente la linea **Pronta Consegna 2gg**: tutto ciò che vede in [IL_CATALISTINO_PDF] ha [STOCK_REALE] in [NOSTRO_DEPOSITO] e parte con [TEMPI_RESA], [CERTEZZA_EVASIONE].
+Sulla piattaforma di [IDENTITA_IZZO] il circuito **Pronta Consegna 2gg** identifica esclusivamente codici con [STOCK_REALE] presso [NOSTRO_DEPOSITO], gestiti con [TEMPI_RESA] [CERTEZZA_EVASIONE].
 
 {CREDENTIALS_BLOCK}
 
-[CONNETTIVO_AGGIUNTA] per il 1° ordine di {COMPANY_NAME} abbiamo abbinato {DISCOUNT_FORMULA} in cascata [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
+[CONNETTIVO_AGGIUNTA] per la prima fornitura di {COMPANY_NAME} [ABBIAMO_ATTIVATO] la condizione {DISCOUNT_FORMULA} in cascata [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T014',
-    name: 'Urgenza 24/48h — Magazzino Esterno Pronto a 2 Giorni',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Estensione Operativa del Magazzino Aziendale',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Un deposito 24/48h già scontato ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Polo logistico 24/48h e condizioni {DISCOUNT_FORMULA} — Riservato a {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-immagini di poter contare su migliaia di articoli elettrici, LED e tecnici pronti a partire in 24/48h [VANTAGGIO_ZERO_SCORTE].
+disporre di un ampio assortimento elettrico, illuminotecnico e tecnico evadibile in 24/48 ore permette di pianificare gli acquisti [VANTAGGIO_ZERO_SCORTE].
 
-È esattamente il servizio che [IDENTITA_IZZO] offre a {COMPANY_NAME} ({CITY}): [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] con extra condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+È questa l’impostazione di servizio che [IDENTITA_IZZO] riserva a {COMPANY_NAME}{CITY_PAREN}: [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] abbinati a [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Quando capita un’integrazione urgente o una commessa rapida, ha già tutto pronto e attivo.
+[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 
-[FRASE_DISPONIBILITA] [OPZIONE_TELEFONATA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T015',
-    name: 'Urgenza 24/48h — Rifornimento Veloce Squadre e Furgoni',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Approvvigionamento Regolare Materiali Ricorrenti',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — Rifornimenti 24/48h per {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — Linea 24/48h per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-per tenere sempre operativi tecnici, furgoni e cantieri sui materiali [ARTICOLI_ALTA_ROTAZIONE], [IDENTITA_IZZO] ha strutturato una linea rapida 2gg su [SETTORI_MERCEOLOGICI], [FLUSSO_RAPIDO].
+per garantire regolarità di rifornimento sulle referenze [ARTICOLI_ALTA_ROTAZIONE], [IDENTITA_IZZO] ha strutturato una linea dedicata su [SETTORI_MERCEOLOGICI], gestita [FLUSSO_RAPIDO].
 
-Per {COMPANY_NAME} [ABBIAMO_SELEZIONATO] i codici più richiesti [PER_IL_COMPARTO] {SECTOR_SHORT} all’interno di [IL_CATALISTINO_PDF], applicando [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+Per {COMPANY_NAME} [ABBIAMO_SELEZIONATO] gli articoli di maggior rilievo [PER_IL_COMPARTO] {SECTOR_SHORT} all’interno di [IL_CATALISTINO_PDF], applicando [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
 
 {CREDENTIALS_BLOCK}
 
-[CURA_IMBALLO] e [ZERO_MINIMO_ORDINE] rendono semplicissimo anche un primo test veloce.
+Standard elevati di [CURA_IMBALLO] e [ZERO_MINIMO_ORDINE] consentono una verifica immediata e priva di vincoli.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T016',
-    name: 'Urgenza 24/48h — Quando sulla Piazza Locale Manca un Codice',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Copertura Rapida dei Fabbisogni Immediati',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '{COMPANY_NAME}: [OGG_RAPIDITA] e sconto {DISCOUNT_FORMULA} già attivi',
+    subjectTemplate: '{COMPANY_NAME} — Abilitazione [OGG_RAPIDITA] e parametro {DISCOUNT_FORMULA}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-capita spesso che al banco locale manchi la quantità necessaria di un proiettore, di una protezione modulare o di un accessorio d’installazione proprio [QUANDO_SERVE_SUBITO].
+nelle forniture tecniche si verificano frequentemente esigenze di integrazione rapida su apparecchiature di protezione, corpi illuminanti o materiali complementari [QUANDO_SERVE_SUBITO].
 
-Tenere a portata di mano l’accesso a [IDENTITA_IZZO] Le permette di verificare in 10 secondi la [STOCK_REALE] in [NOSTRO_DEPOSITO] e ricevere tutto con [TEMPI_RESA], godendo sul 1° ordine dello sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+Disporre di un accesso già accreditato presso [IDENTITA_IZZO] consente ai Vostri uffici di riscontrare istantaneamente la [STOCK_REALE] in [NOSTRO_DEPOSITO] e ricevere la merce con [TEMPI_RESA], beneficiando sulla prima fornitura del parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Conservi pure queste credenziali: al primo imprevisto di fornitura Le faranno risparmiare tempo e margine.
+Le credenziali riportate restano stabilmente attive a nome della Vostra società per ogni futura necessità.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T017',
-    name: 'Urgenza 24/48h — Dal Clic alla Consegna in 2 Giorni',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Protocollo Operativo a Due Giorni Lavorativi',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Forniture B2B in 48h [OGG_PER_AZIENDA] {COMPANY_NAME} | Sconto {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Accreditamento logistica 24/48h [OGG_PER_AZIENDA] {COMPANY_NAME} | {DISCOUNT_FORMULA}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO], realtà logistica B2B [ESPERIENZA_SERVIZIO].
+[VERBO_CONTATTARE] [IDENTITA_IZZO], organizzazione distributiva B2B [ESPERIENZA_SERVIZIO].
 
-Abbiamo riservato alla Vostra azienda un pacchetto di benvenuto molto concreto:
-1) [IL_CATALISTINO_PDF] focalizzato esclusivamente su articoli con partenza immediata;
+Riepiloghiamo i tre elementi dell’abilitazione predisposta a favore della Vostra ragione sociale:
+1) [IL_CATALISTINO_PDF] relativo alle referenze con partenza immediata da deposito;
 2) [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG];
-3) [ZERO_MINIMO_ORDINE] e [TEMPI_RESA] [COPERTURA_ITALIA].
+3) [ZERO_MINIMO_ORDINE] con [TEMPI_RESA] [COPERTURA_ITALIA].
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA]: [COME_RISPONDERE].
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T018',
-    name: 'Urgenza 24/48h — Continuità di Cantiere Garantita',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Affidabilità dei Tempi di Resa',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_RAPIDITA] ({DISCOUNT_FORMULA} 1° ordine) — Riservato a {COMPANY_NAME}',
+    subjectTemplate: '[OGG_RAPIDITA] ({DISCOUNT_FORMULA} 1ª fornitura) — Posizione {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-chiudere un lavoro nei tempi concordati col committente dipende per metà dalla squadra e per metà da [VALORE_PUNTUALITA] dei fornitori.
+il rispetto delle programmazioni aziendali dipende in misura rilevante da [VALORE_PUNTUALITA] assicurata dai propri partner di fornitura.
 
-Da [IDENTITA_IZZO] presidiamo ogni giorno le scorte di {RECOMMENDED_FAMILY} [RICAMBIO_COSTANTE], così da garantire a realtà come {COMPANY_NAME} [CONTESTO_ZONA] {CITY} una fornitura [AGGETTIVO_VELOCE_F] e [CONFORMITA_QUALITA].
+In [IDENTITA_IZZO] presidiamo quotidianamente le disponibilità di {RECOMMENDED_FAMILY} [RICAMBIO_COSTANTE], garantendo alle aziende strutturate come {COMPANY_NAME} [CONTESTO_ZONA] {CITY} un’evasione [AGGETTIVO_VELOCE_F] e prodotti [CONFORMITA_QUALITA].
 
 {CREDENTIALS_BLOCK}
 
-Provi pure a sfogliare [IL_CATALISTINO_PDF]: ogni prezzo netto tiene già conto dello sconto {DISCOUNT_FORMULA} attivo sul Vostro primo acquisto 2gg.
+All’interno di [IL_CATALISTINO_PDF] ciascuna voce espone già il valore netto derivante dal parametro {DISCOUNT_FORMULA} attivo sul primo ordine 2gg.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T019',
-    name: 'Urgenza 24/48h — Ordini la Sera, Parte dal Deposito',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Operatività Digitale H24 e Presa in Carico Prioritaria',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Sportello B2B h24 + [OGG_RAPIDITA] ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Piattaforma B2B h24 e [OGG_RAPIDITA] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-spesso la lista del materiale mancante esce a fine giornata, quando i grossisti di zona hanno già chiuso. Su [IL_PORTALE_B2B] di [IDENTITA_IZZO] può controllare scorte e [ORDINARE_AUTONOMIA] anche la sera dall’ufficio o dal telefono, con [FLUSSO_RAPIDO] il mattino seguente.
+la pianificazione degli acquisti richiede spesso di verificare disponibilità e costi anche al di fuori dei consueti orari di sportello. Tramite [IL_PORTALE_B2B] è possibile controllare le scorte e [ORDINARE_AUTONOMIA], attivando l’evasione [FLUSSO_RAPIDO].
 
-Per darVi il benvenuto [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] con extra sconto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+A tale scopo [ABBIAMO_ATTIVATO] per {COMPANY_NAME} [LE_CREDENZIALI] complete della condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -409,116 +411,116 @@ Per darVi il benvenuto [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] con extra sconto {DIS
   },
   {
     code: 'T020',
-    name: 'Urgenza 24/48h — Velocità Logistica + Referente Umano',
-    angleGroup: 'Urgenza_Cantiere_24_48h',
+    name: 'Continuità Logistica — Sinergia tra Piattaforma Digitale e Referente Assegnato',
+    angleGroup: 'Continuità_Logistica_24_48h',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}: linea veloce 2gg ({DISCOUNT_FORMULA}) + referente diretto',
+    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Servizio 2gg ({DISCOUNT_FORMULA}) e referente assegnato',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-unire la velocità di un e-commerce B2B [AFFIDABILITA_DATO_STOCK] alla presenza di un [TITOLO_REFERENTE] ({AGENT_NAME}) è il modo migliore per risolvere forniture urgenti senza errori.
+coniugare l’efficienza di una piattaforma B2B [AFFIDABILITA_DATO_STOCK] con l’assistenza di un [TITOLO_REFERENTE] ({AGENT_NAME}) consente di gestire ogni fornitura con precisione amministrativa e logistica.
 
-Presso [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} sia [IL_CATALISTINO_PDF] sia l’utenza già scontata al {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [DESTINAZIONE_FLESSIBILE].
+Presso [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} sia [IL_CATALISTINO_PDF] sia l’utenza abilitata col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [DESTINAZIONE_FLESSIBILE].
 
 {CREDENTIALS_BLOCK}
 
-Per verificare al volo grandi quantità o urgenze particolari [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
+Per verifiche su quantitativi specifici o forniture urgenti è attivo il contatto diretto [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 3 (T021 - T030): VANTAGGIO ECONOMICO DOPPIO SCONTO & ZERO MINIMO
+  // GRUPPO 3 (T021 - T030): CONDIZIONI ECONOMICHE QUADRO & PRIMA FORNITURA
   // ==========================================================================
   {
     code: 'T021',
-    name: 'Doppio Sconto — Spiegazione Chiara Cascata (40+10 / 50+10)',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Struttura dello Sconto in Cascata',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Sconto in cascata {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: 'Parametri economici B2B {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-per far conoscere concretamente la convenienza di [IDENTITA_IZZO] alle aziende [CONTESTO_ZONA] {CITY}, abbiamo scelto di investire direttamente sul Vostro primo ordine.
+nell’accreditare la nostra struttura presso le realtà professionali [CONTESTO_ZONA] {CITY}, in [IDENTITA_IZZO] privilegiamo condizioni economiche immediatamente riscontrabili fin dalla prima fornitura.
 
-Oltre al listino B2B professionale ({BASE_DISCOUNT}%), [ABBIAMO_ATTIVATO] per {COMPANY_NAME} un ulteriore +{EXTRA_DISCOUNT}% extra in cascata (pari al **{NET_DISCOUNT_PCT}% di sconto netto effettivo** da listino) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
+In aggiunta al listino B2B di categoria ({BASE_DISCOUNT}%), [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} un’ulteriore agevolazione del +{EXTRA_DISCOUNT}% in cascata (pari al **{NET_DISCOUNT_PCT}% di sconto netto effettivo** da listino ufficiale) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[CONNETTIVO_AGGIUNTA] l’agevolazione vale [ZERO_MINIMO_ORDINE] ed è [APPLICAZIONE_CARRELLO], [DOPO_PRIMO_ORDINE].
+[CONNETTIVO_AGGIUNTA] tale condizione opera [ZERO_MINIMO_ORDINE] ed è [APPLICAZIONE_CARRELLO], [DOPO_PRIMO_ORDINE].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T022',
-    name: 'Doppio Sconto — Prova Senza Minimo d’Ordine',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Prima Fornitura Conoscitiva Senza Minimo d’Ordine',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Nessun minimo d’ordine + Sconto {DISCOUNT_FORMULA} (2gg) per {COMPANY_NAME}',
+    subjectTemplate: 'Abilitazione B2B senza minimo d’ordine ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-quando si prova un nuovo fornitore B2B è giusto voler iniziare con cautela, magari su una piccola fornitura, senza essere costretti a grandi importi.
+nella valutazione iniziale di un nuovo fornitore B2B è prassi corretta poter effettuare una prima verifica operativa senza vincoli di fatturato minimo.
 
-Proprio per questo in [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} un’offerta d’ingresso [ZERO_MINIMO_ORDINE], ma con [IL_DOPPIO_SCONTO] massimo {DISCOUNT_FORMULA} attivo fin dal primo euro [CLAUSOLA_SOLO_2GG].
+In quest’ottica, [IDENTITA_IZZO] ha formalizzato per {COMPANY_NAME} una condizione d’ingresso [ZERO_MINIMO_ORDINE], mantenendo integralmente attivo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Così può testare [CURA_IMBALLO], [VALORE_PUNTUALITA] e qualità di [SETTORI_MERCEOLOGICI] [INCISO_SENZA_VINCOLO].
+Ciò consente alla Vostra struttura di riscontrare direttamente [CURA_IMBALLO], [VALORE_PUNTUALITA] e standard qualitativo su [SETTORI_MERCEOLOGICI] [INCISO_SENZA_VINCOLO].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T023',
-    name: 'Doppio Sconto — Più Margine sui Vostri Preventivi',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Tutela della Marginalità Operativa',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_FORMULA_PROMO] {DISCOUNT_FORMULA} — Riservato a {COMPANY_NAME}',
+    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — Posizione riservata a {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in un mercato dove ogni punto percentuale d’acquisto incide sull’utile finale, comprare con uno sconto {DISCOUNT_FORMULA} in cascata [CONSENTE_DI] recuperare subito marginalità preziosa.
+in uno scenario di mercato che richiede attento controllo dei costi diretti, accedere a condizioni d’acquisto {DISCOUNT_FORMULA} in cascata [CONSENTE_DI] consolidare la marginalità operativa aziendale.
 
-Da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] {COMPANY_NAME} questa condizione [AGGETTIVO_RISERVATA_F] [SUL_PRIMO_ACQUISTO] su tutte le referenze [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [VANTAGGIO_DIRETTO].
+Da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] questa quotazione [AGGETTIVO_RISERVATA_F] per {COMPANY_NAME} [SUL_PRIMO_ACQUISTO] sull’intero perimetro [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [VANTAGGIO_DIRETTO].
 
 {CREDENTIALS_BLOCK}
 
-[INVITO_CLIC_PDF] [PUO_VISIONARE] i netti già ricalcolati e [CONFRONTARE_NETTI] con estrema rapidità.
+[INVITO_CLIC_PDF] [PUO_VISIONARE] i prezzi netti già determinati e [CONFRONTARE_NETTI] con immediatezza.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T024',
-    name: 'Doppio Sconto — Automatico a Carrello Senza Coupon',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Parametrizzazione Nativa sull’Anagrafica Cliente',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Profilo {COMPANY_NAME} attivo: {DISCOUNT_FORMULA} automatico su Pronta Consegna 2gg',
+    subjectTemplate: 'Anagrafica {COMPANY_NAME} abilitata — Parametro {DISCOUNT_FORMULA} su Linea 2gg',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE]: niente codici sconto da ricordare né richieste da attendere. Sul profilo B2B che [IDENTITA_IZZO] ha predisposto per {COMPANY_NAME}, la regola {DISCOUNT_FORMULA} è [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG].
+[APERTURA_BREVE] per confermare che sul profilo B2B aperto da [IDENTITA_IZZO] a nome di {COMPANY_NAME} la condizione {DISCOUNT_FORMULA} è [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG], senza necessità di inserire codici manuali.
 
 {CREDENTIALS_BLOCK}
 
-Le basta entrare con [LE_CREDENZIALI] qui sopra (o aprire [IL_CATALISTINO_PDF]) per vedere ogni articolo 2gg già scontato al {NET_DISCOUNT_PCT}% netto, [ZERO_MINIMO_ORDINE].
+Autenticandosi con [LE_CREDENZIALI] sopra indicate — o consultando [IL_CATALISTINO_PDF] — ogni referenza 2gg espone già il netto riservato ({NET_DISCOUNT_PCT}% da listino), [ZERO_MINIMO_ORDINE].
 
-Per qualunque supporto [COME_RISPONDERE].
+Per qualsiasi chiarimento è possibile rispondere [COME_RISPONDERE].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T025',
-    name: 'Doppio Sconto — Investiamo Noi sul Primo Ordine di Prova',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Accreditamento Diretto per Operatori di Settore',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Offerta benvenuto {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Condizioni di accreditamento B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anziché spendere in pubblicità generica, in [IDENTITA_IZZO] preferiamo trasferire un vantaggio economico diretto sul primo acquisto delle aziende del settore {SECTOR_SHORT} che desideriamo farci conoscere.
+nello sviluppo dei rapporti commerciali con gli operatori qualificati del comparto {SECTOR_SHORT}, [IDENTITA_IZZO] adotta una politica di accreditamento diretto basata su condizioni economiche verificabili fin dal primo ordine.
 
-Per {COMPANY_NAME} questo si traduce in uno sconto effettivo {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], accompagnato da [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
+Per {COMPANY_NAME} tale impostazione prevede il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], corredato da [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
 
 {CREDENTIALS_BLOCK}
 
@@ -529,73 +531,73 @@ Per {COMPANY_NAME} questo si traduce in uno sconto effettivo {DISCOUNT_FORMULA} 
   },
   {
     code: 'T026',
-    name: 'Doppio Sconto — Convenienza da Grosso Volume anche sul Singolo Collo',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Accesso a Parametri Direzionali Senza Impegni Annui',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Condizioni da grande volume ({DISCOUNT_FORMULA}) anche sul 1° ordine — {COMPANY_NAME}',
+    subjectTemplate: 'Parametri direzionali ({DISCOUNT_FORMULA}) attivi per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-di solito le scontistiche più spinte vengono concesse solo a fronte di grossi impegni annuali. Con la formula 1° Acquisto di [IDENTITA_IZZO], {COMPANY_NAME} accede subito a {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE] su tutto lo stock [IN_PRONTA_CONSEGNA].
+normalmente i livelli di sconto più elevati nella distribuzione tecnica sono subordinati a impegni di volume annuali. Attraverso il protocollo di primo accreditamento di [IDENTITA_IZZO], {COMPANY_NAME} accede direttamente al parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE] sulle linee [IN_PRONTA_CONSEGNA].
 
 {CREDENTIALS_BLOCK}
 
-È un modo trasparente per permetterVi di [CONFRONTARE_NETTI] su [SETTORI_MERCEOLOGICI] e testare [TEMPI_RESA], [DOPO_PRIMO_ORDINE].
+La procedura è finalizzata a consentirVi di [CONFRONTARE_NETTI] su [SETTORI_MERCEOLOGICI] e verificare sul campo [TEMPI_RESA], [DOPO_PRIMO_ORDINE].
 
-[FRASE_DISPONIBILITA] [OPZIONE_TELEFONATA].
+[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T027',
-    name: 'Doppio Sconto — Focus Risparmio Immediato Materiali di Consumo',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Incidenza Economica sui Materiali a Consumo Ricorrente',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Risparmio netto {DISCOUNT_FORMULA} sui materiali 2gg per {COMPANY_NAME}',
+    subjectTemplate: 'Quotazioni riservate {DISCOUNT_FORMULA} su referenze 2gg — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-sui materiali [ARTICOLI_ALTA_ROTAZIONE] — quelli che si ricomprano decine di volte l’anno — ottenere un +{EXTRA_DISCOUNT}% extra sopra il listino {BASE_DISCOUNT}% genera un risparmio immediato e concreto.
+sulle forniture [ARTICOLI_ALTA_ROTAZIONE] l’applicazione di un ulteriore +{EXTRA_DISCOUNT}% in cascata oltre allo sconto base B2B ({BASE_DISCOUNT}%) determina un beneficio economico immediato e misurabile.
 
-Come [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} esattamente questa opportunità [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [IMPIEGO_PRATICO].
+Da [IDENTITA_IZZO] [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} esattamente questa configurazione [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], per referenze utili [IMPIEGO_PRATICO].
 
 {CREDENTIALS_BLOCK}
 
-Sfogli pure [IL_CATALISTINO_PDF] quando ha cinque minuti: siamo certi che troverà diversi articoli di utilizzo immediato a un netto davvero interessante.
+La consultazione di [IL_CATALISTINO_PDF] permette di verificare con precisione i valori netti dedicati alla Vostra società.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T028',
-    name: 'Doppio Sconto — Condizione Attiva Subito, Senza Scadenze Stressanti',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Validità Stabile senza Scadenze Pressanti',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] + Sconto {DISCOUNT_FORMULA} già registrato per {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] e condizione {DISCOUNT_FORMULA} registrata per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-le scrivo da [IDENTITA_IZZO] per confermarLe che la regola promozionale {DISCOUNT_FORMULA} riservata al 1° acquisto di {COMPANY_NAME} è già stata caricata sul Vostro codice cliente e rimane pronta per quando avrete la prossima necessità di rifornimento [IN_PRONTA_CONSEGNA].
+comunichiamo da parte di [IDENTITA_IZZO] che l’agevolazione {DISCOUNT_FORMULA} riservata alla prima fornitura di {COMPANY_NAME} è stata regolarmente registrata sulla Vostra anagrafica e rimarrà disponibile per il Vostro prossimo fabbisogno [IN_PRONTA_CONSEGNA].
 
 {CREDENTIALS_BLOCK}
 
-Intanto [PUO_VISIONARE] e [PUO_SCARICARE_PDF] [IL_CATALISTINO_PDF], così da avere già i netti sottomano al momento opportuno, [INCISO_SENZA_VINCOLO].
+Nel frattempo [PUO_VISIONARE] e [PUO_SCARICARE_PDF] [IL_CATALISTINO_PDF], conservando i riferimenti a disposizione dei Vostri uffici [INCISO_SENZA_VINCOLO].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T029',
-    name: 'Doppio Sconto — Chiarezza Commerciale al 100%',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Prospetto Sintetico dei Patti Commerciali',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Riepilogo condizioni B2B {DISCOUNT_FORMULA} (Solo 2gg) — {COMPANY_NAME}',
+    subjectTemplate: 'Quadro condizioni commerciali B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-ci piace lavorare con patti chiari e verificabili in un istante:
-• Chi siamo: [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI];
-• Cosa abbiamo attivato per {COMPANY_NAME}: sconto {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO];
-• Dove si applica: [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE];
-• Dopo il 1° ordine: resta attivo il listino B2B {BASE_DISCOUNT}%, [DOPO_PRIMO_ORDINE].
+riepiloghiamo in modo lineare i termini della posizione commerciale aperta a Vostro nome:
+• Società fornitrice: [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI];
+• Parametro 1ª fornitura per {COMPANY_NAME}: sconto {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto da listino);
+• Perimetro applicativo: [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE];
+• Regime ordinario successivo: mantenimento del listino professionale {BASE_DISCOUNT}%, [DOPO_PRIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
@@ -604,39 +606,39 @@ ci piace lavorare con patti chiari e verificabili in un istante:
   },
   {
     code: 'T030',
-    name: 'Doppio Sconto — Un Primo Carrello che Ripaga Subito',
-    angleGroup: 'Vantaggio_Doppio_Sconto',
+    name: 'Condizioni Quadro — Efficienza Economica e Logistica Integrata',
+    angleGroup: 'Condizioni_Quadro_Riservate',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{COMPANY_NAME}: attivo extra sconto {DISCOUNT_FORMULA} su [OGG_RAPIDITA]',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Parametri B2B {DISCOUNT_FORMULA} attivi per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [CANALE_RISERVATO] già pronto all’uso, pensato [VANTAGGIO_MARGINE].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [CANALE_RISERVATO] già operativo, strutturato [VANTAGGIO_MARGINE].
 
-All’interno di [IL_CATALISTINO_PDF] [ABBIAMO_SELEZIONATO] per Voi le migliori opportunità [IN_PRONTA_CONSEGNA] per {RECOMMENDED_FAMILY}, tutte coperte dallo sconto 1° ordine {DISCOUNT_FORMULA}.
+All’interno di [IL_CATALISTINO_PDF] [ABBIAMO_SELEZIONATO] le principali referenze [IN_PRONTA_CONSEGNA] relative a {RECOMMENDED_FAMILY}, tutte valorizzate col parametro riservato {DISCOUNT_FORMULA} sulla prima fornitura.
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Per ogni richiesta diretta mi trova in risposta a questa email.
+[ACCESSO_SENZA_IMPEGNO]. Per ogni approfondimento siamo reperibili [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 4 (T031 - T040): LETTERA PERSONALE DEL REFERENTE DEDICATO
+  // GRUPPO 4 (T031 - T040): NOTA UFFICIALE DEL REFERENTE COMMERCIALE ASSEGNATO
   // ==========================================================================
   {
     code: 'T031',
-    name: 'Referente Personale — Presentazione Diretta Daniele Savoia',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Comunicazione di Presa in Carico Anagrafica',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) per {COMPANY_NAME} — {AGENT_NAME}',
+    subjectTemplate: 'Assegnazione referente B2B e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-mi chiamo {AGENT_NAME} e sono il Vostro [TITOLO_REFERENTE] in [IDENTITA_IZZO]. Le scrivo personalmente perché seguo le aziende del comparto {SECTOR_SHORT} [CONTESTO_ZONA] {CITY}.
+la presente per comunicarVi che, nell’ambito dell’organizzazione commerciale di [IDENTITA_IZZO], la posizione relativa a {COMPANY_NAME}{CITY_PAREN} è affidata al sottoscritto {AGENT_NAME} in qualità di [TITOLO_REFERENTE].
 
-So bene quanto sia fastidioso avere a che fare con portali anonimi dove non risponde mai nessuno: per questo, oltre ad averVi attivato [IL_PORTALE_B2B] con sconto 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], ci tenevo a lasciarVi il mio contatto diretto.
+Riteniamo essenziale affiancare agli strumenti digitali un riferimento personale certo: pertanto, oltre ad aver abilitato [IL_PORTALE_B2B] con condizione riservata {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], Vi lascio i miei recapiti diretti per ogni esigenza operativa.
 
 {CREDENTIALS_BLOCK}
 
@@ -647,274 +649,273 @@ So bene quanto sia fastidioso avere a che fare con portali anonimi dove non risp
   },
   {
     code: 'T032',
-    name: 'Referente Personale — Un Interlocutore Unico per Ogni Esigenza',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Interlocutore Unico per Forniture e Quotazioni',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Riferimento diretto B2B e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: 'Riferimento commerciale diretto e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-sono {AGENT_NAME} di [IDENTITA_IZZO]. Vi contatto per mettermi a disposizione come referente unico della Vostra azienda per le forniture di [SETTORI_MERCEOLOGICI] [IN_PRONTA_CONSEGNA].
+scrivo in qualità di referente assegnato ({AGENT_NAME}) presso [IDENTITA_IZZO], a disposizione della Vostra struttura per la gestione delle forniture di [SETTORI_MERCEOLOGICI] [IN_PRONTA_CONSEGNA].
 
-Per iniziare col piede giusto ho già fatto abilitare sul Vostro profilo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]) e generato [IL_CATALISTINO_PDF] intestato a {COMPANY_NAME}:
+Contestualmente all’apertura anagrafica, [ABBIAMO_ATTIVATO] sul Vostro profilo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]) ed elaborato [IL_CATALISTINO_PDF] intestato a {COMPANY_NAME}:
 
 {CREDENTIALS_BLOCK}
 
-Qualsiasi dubbio abbia su caratteristiche tecniche, imballi o disponibilità su quantità, [COME_RISPONDERE] [OPZIONE_TELEFONATA].
+Per verifiche tecniche, disponibilità su lotti o condizioni dedicate potete contattarmi [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T033',
-    name: 'Referente Personale — Proposta di Quotare una Prima Lista',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Doppia Modalità di Consultazione o Quotazione Assistita',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '{COMPANY_NAME}: posso quotarVi una prima lista con sconto {DISCOUNT_FORMULA}?',
+    subjectTemplate: 'Supporto commerciale B2B e condizioni {DISCOUNT_FORMULA} — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-sono {AGENT_NAME} ([REPARTO_FIRMA] — [IDENTITA_IZZO]). So che durante la giornata lavorativa non sempre c’è il tempo di mettersi a cercare codici su un portale nuovo.
+come referente B2B ({AGENT_NAME} — [IDENTITA_IZZO]), desidero agevolare al massimo la consultazione delle nostre condizioni da parte dei Vostri uffici, mettendo a disposizione due modalità operative:
 
-Perciò Le propongo due strade semplicissime:
-• se preferisce fare in autonomia, qui sotto trova [IL_CATALISTINO_PDF] e [LE_CREDENZIALI] già attive col {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG];
-• se invece ha poco tempo, risponda pure a questa mail con 4 o 5 articoli che acquistate abitualmente e preparo io stesso il prospetto netto scontato per {COMPANY_NAME}.
+• **Consultazione autonoma**: tramite il riquadro sottostante sono già accessibili [IL_CATALISTINO_PDF] e [LE_CREDENZIALI] con parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG];
+• **Quotazione assistita**: qualora preferiste inviare in risposta un elenco sintetico di articoli di uso ricorrente, provvederò personalmente a trasmetterVi il relativo prospetto netto riservato a {COMPANY_NAME}.
 
 {CREDENTIALS_BLOCK}
 
-In entrambi i casi sarà un piacere mostrarLe la nostra rapidità.
+Resto a completa disposizione per entrambe le soluzioni.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T034',
-    name: 'Referente Personale — Tono Cordiale da Consulente B2B',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Presidio Dedicato per gli Operatori del Territorio',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Un cordiale contatto da {AGENT_NAME} — [OGG_TIPO_DOC] per {COMPANY_NAME}',
+    subjectTemplate: 'Comunicazione da {AGENT_NAME} (Izzo Distribuzione S.r.l.) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-Le scrivo con piacere dalla sede commerciale di [IDENTITA_IZZO]. Seguendo da vicino gli operatori professionali di {CITY}{CITY_PAREN}, ho predisposto personalmente per la Vostra realtà [CANALE_RISERVATO] focalizzato su {RECOMMENDED_FAMILY}.
+dalla Direzione Commerciale di [IDENTITA_IZZO] seguo direttamente i rapporti con le aziende professionali attive su {CITY}. In tale veste ho curato la predisposizione per la Vostra società di [CANALE_RISERVATO] focalizzato su {RECOMMENDED_FAMILY}.
 
-Ho incluso [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE], così che possiate testare [AVVERBIO_LIBERAMENTE] sia i nostri prodotti sia [TEMPI_RESA].
+Il profilo comprende [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE], affinché possiate valutare [AVVERBIO_LIBERAMENTE] sia la qualità della gamma sia [TEMPI_RESA].
 
 {CREDENTIALS_BLOCK}
 
 {BRANDS_NOTE}
 
-Mi consideri fin d’ora a disposizione diretta: [COME_RISPONDERE].
+Per ogni riscontro diretto sono reperibile [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T035',
-    name: 'Referente Personale — Zero Call Center, Risposta Immediata',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Gestione Diretta Senza Filtri Automatici',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Filo diretto B2B + Sconto {DISCOUNT_FORMULA} (2gg) — {COMPANY_NAME}',
+    subjectTemplate: 'Canale diretto B2B e condizioni {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] uniamo la comodità di ordinare online h24 su [IL_PORTALE_B2B] alla tranquillità di avere una persona vera ({AGENT_NAME}, Cod. {AGENT_CODE}) sempre raggiungibile, [CONTATTO_UMANO_VERO].
+l’organizzazione di [IDENTITA_IZZO] affianca all’operatività h24 di [IL_PORTALE_B2B] la presenza costante di un referente dedicato ({AGENT_NAME}, Cod. {AGENT_CODE}), [CONTATTO_UMANO_VERO].
 
-Le invio qui sotto [LE_CREDENZIALI] riservate a {COMPANY_NAME} e il collegamento a [IL_CATALISTINO_PDF], dove vede già applicato lo sconto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
+Trasmetto qui di seguito [LE_CREDENZIALI] assegnate a {COMPANY_NAME} e l’accesso a [IL_CATALISTINO_PDF], già valorizzato col parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-Quando vuole fare una prova, anche minima, sono qui per seguirLa personalmente dal clic fino allo scarico merce.
+Rimango a disposizione per seguire personalmente ogni Vostra richiesta informativa o di fornitura.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T036',
-    name: 'Referente Personale — Affiancamento Tecnico e Commerciale',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Assistenza Tecnica e Commerciale Dedicata',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}: referente dedicato e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Referente B2B e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-sono {AGENT_NAME}, referente B2B di [IDENTITA_IZZO]. Nel nostro mestiere non conta solo il prezzo: conta avere dall’altra parte qualcuno che capisca al volo un codice tecnico, verifichi i colli in magazzino e rispetti le urgenze.
+nella gestione delle forniture tecniche per aziende strutturate è fondamentale disporre di un interlocutore che presidi direttamente codici, giacenze di magazzino e tempistiche di spedizione.
 
-Con questo spirito [ABBIAMO_PREPARATO] per {COMPANY_NAME} [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF] e attivato la scontistica speciale {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Con questa impostazione, per conto di [IDENTITA_IZZO] ({AGENT_NAME}) [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF] e abilitato la condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[QUOTAZIONI_SU_COMMESSA]. Non esiti a scrivermi direttamente in risposta per qualsiasi necessità.
+[QUOTAZIONI_SU_COMMESSA]. Per qualsiasi esigenza potete fare riferimento diretto alla presente comunicazione.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T037',
-    name: 'Referente Personale — Nota Breve dopo Preparazione Catalogo',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Trasmissione Prospetto Valorizzato',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Ho preparato il Catalistino 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Trasmissione prospetto riservato 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE]: sono {AGENT_NAME} di [IDENTITA_IZZO]. Ho appena generato il prospetto riservato a {COMPANY_NAME} con gli articoli [IN_PRONTA_CONSEGNA] più adatti al settore {SECTOR_SHORT} e lo sconto 1° ordine {DISCOUNT_FORMULA} già calcolato su ogni riga.
+[APERTURA_BREVE] a cura di {AGENT_NAME} ([IDENTITA_IZZO]): abbiamo emesso il prospetto riservato a {COMPANY_NAME} relativo agli articoli [IN_PRONTA_CONSEGNA] d’interesse per il comparto {SECTOR_SHORT}, con applicazione del parametro {DISCOUNT_FORMULA} sulla prima fornitura.
 
 {CREDENTIALS_BLOCK}
 
-[INVITO_MORBIDO_CATALISTINO] se trova qualche linea interessante o desidera una verifica su altri articoli a catalogo, [COME_RISPONDERE].
+[INVITO_MORBIDO_CATALISTINO] Per approfondimenti su specifiche linee o ulteriori referenze a catalogo sono contattabile [COME_RISPONDERE].
 
-Buon lavoro e [SALUTO_CHIUSURA]`,
+[SALUTO_CHIUSURA]`,
   },
   {
     code: 'T038',
-    name: 'Referente Personale — Invito a Conoscerci Senza Fretta',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Accreditamento Istituzionale Senza Vincoli',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Piacere di presentarci a {COMPANY_NAME} — [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Accreditamento commerciale B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-mi presento volentieri: sono {AGENT_NAME} e curo i rapporti con le aziende professionali per [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI].
+in qualità di responsabile commerciale B2B ({AGENT_NAME}) per [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI], desidero sottoporre alla Vostra Direzione i riferimenti dell’utenza riservata aperta a Vostro nome.
 
-Senza alcuna fretta e [INCISO_SENZA_VINCOLO], desideravo lasciarVi i riferimenti del profilo B2B che abbiamo aperto per {COMPANY_NAME}, comprensivo dell’agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+L’abilitazione, predisposta [INCISO_SENZA_VINCOLO], include l’agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
 [PROMESSA_FIDUCIA]
-Per qualunque confronto, anche telefonico, mi trova sempre disponibile.
+Resto a disposizione per ogni eventuale colloquio conoscitivo.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T039',
-    name: 'Referente Personale — Supporto al Primo Login e Scelta Articoli',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Codice Agente Associato per Gestione Prioritaria',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Credenziali B2B e supporto diretto per {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Credenziali B2B e assistenza diretta ({AGENT_NAME}) per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-Le scrive {AGENT_NAME} da [IDENTITA_IZZO]. Ho associato il mio codice agente ({AGENT_CODE}) all’anagrafica riservata di {COMPANY_NAME} affinché abbiate sempre assistenza prioritaria sia sulle spedizioni 24/48h sia sulle offerte a volume.
+comunico di aver associato il mio codice referente ({AGENT_CODE} — {AGENT_NAME}) all’anagrafica di {COMPANY_NAME} presso [IDENTITA_IZZO], al fine di garantire gestione prioritaria sia sulle spedizioni 24/48h sia sulle richieste di quotazione dedicata.
 
-Qui di seguito trova [LE_CREDENZIALI] ([NOTA_CAMBIO_PASSWORD]) e il pulsante per aprire subito [IL_CATALISTINO_PDF] col {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+Di seguito si riportano [LE_CREDENZIALI] ([NOTA_CAMBIO_PASSWORD]) e il collegamento per consultare [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Se ha piacere di verificare insieme una fornitura imminente, basta un cenno in risposta.
+[ACCESSO_SENZA_IMPEGNO].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T040',
-    name: 'Referente Personale — Concretezza e Rispetto del Tempo',
-    angleGroup: 'Referente_Personale',
+    name: 'Referente Assegnato — Sintesi Direzionale in Tre Punti',
+    angleGroup: 'Referente_Direzionale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{AGENT_NAME} (Izzo B2B) — Listino 2gg {DISCOUNT_FORMULA} per {COMPANY_NAME}',
+    subjectTemplate: 'Rif. {AGENT_NAME} | Izzo Distribuzione S.r.l. — Posizione B2B {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-rispetto molto il tempo di chi lavora, quindi le lascio solo ciò che può esserLe concretamente utile da subito:
-1) un catalogo reale di prodotti pronti in 24/48h in [NOSTRO_DEPOSITO];
-2) uno sconto effettivo {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) sul 1° ordine 2gg [ZERO_MINIMO_ORDINE];
-3) il mio contatto diretto ({AGENT_NAME}) per ogni esigenza tecnica o commerciale.
+nel pieno rispetto delle Vostre tempistiche operative, riepilogo i tre elementi essenziali attivati da [IDENTITA_IZZO] a favore della Vostra società:
+1) accesso diretto alle disponibilità reali 24/48h presenti presso [NOSTRO_DEPOSITO];
+2) condizione riservata {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) sulla prima fornitura 2gg [ZERO_MINIMO_ORDINE];
+3) riferimento commerciale diretto ({AGENT_NAME}) per supporto tecnico e quotazioni.
 
 {CREDENTIALS_BLOCK}
 
-Grazie per l’attenzione e buon lavoro a tutto lo staff di {COMPANY_NAME}.
+Ringraziando per la cortese attenzione, porgo a tutta la struttura di {COMPANY_NAME}
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 5 (T041 - T050): FOCUS CATALISTINO PDF SFOGLIABILE & SMART LINK
+  // GRUPPO 5 (T041 - T050): TRASMISSIONE PROSPETTO LISTINO PDF RISERVATO
   // ==========================================================================
   {
     code: 'T041',
-    name: 'Catalistino PDF — Sfoglia Subito da PC o Smartphone',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Consultazione Diretta Senza Obbligo Preliminare di Login',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: '[OGG_TIPO_DOC] pronto da sfogliare [OGG_PER_AZIENDA] {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_TIPO_DOC] in formato PDF [OGG_PER_AZIENDA] {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-per farVi consultare le nostre migliori proposte [IN_PRONTA_CONSEGNA] senza nemmeno dover fare prima il login, in [IDENTITA_IZZO] [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] intestato direttamente a {COMPANY_NAME}.
+al fine di consentire un esame immediato delle referenze [IN_PRONTA_CONSEGNA] anche prima dell’accesso al portale, [IDENTITA_IZZO] ha elaborato [IL_CATALISTINO_PDF] intestato a {COMPANY_NAME}.
 
-[INVITO_CLIC_PDF] [PUO_VISIONARE] l’anteprima interattiva e [PUO_SCARICARE_PDF], [DETTAGLIO_CONTENUTO_PDF] con formula {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+[INVITO_CLIC_PDF] [PUO_VISIONARE] il documento integrale e [PUO_SCARICARE_PDF], [DETTAGLIO_CONTENUTO_PDF] secondo il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
 
 {CREDENTIALS_BLOCK}
 
-Quando individua gli articoli di Suo interesse, entra su [IL_PORTALE_B2B] con [LE_CREDENZIALI] e trova gli stessi identici netti [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG].
+Qualora intendeste procedere con un ordine, autenticandosi su [IL_PORTALE_B2B] mediante [LE_CREDENZIALI] riscontrerete i medesimi valori netti [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T042',
-    name: 'Catalistino PDF — Prontuario Prezzi da Tenere sulla Scrivania',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Prontuario Prezzi per l’Ufficio Acquisti e Preventivazione',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
     subjectTemplate: 'Prontuario PDF Pronta Consegna 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-molti responsabili acquisti e titolari preferiscono avere un documento PDF ordinato da aprire al volo quando devono quotare un lavoro o confrontare un prezzo.
+nell’attività di preventivazione e controllo costi risulta particolarmente funzionale disporre di un prospetto PDF ordinato, consultabile rapidamente dai referenti interni.
 
-Per questo [IDENTITA_IZZO] ha generato su misura per {COMPANY_NAME} [IL_CATALISTINO_PDF] dedicato a {RECOMMENDED_FAMILY}, [OLTRE_AL_PDF].
+A tale scopo [IDENTITA_IZZO] ha predisposto per {COMPANY_NAME} [IL_CATALISTINO_PDF] relativo alle famiglie {RECOMMENDED_FAMILY}, [OLTRE_AL_PDF].
 
 {CREDENTIALS_BLOCK}
 
-Ogni voce del PDF riflette [STOCK_REALE] in [NOSTRO_DEPOSITO] e lo sconto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) valido sul Vostro primo acquisto 2gg [ZERO_MINIMO_ORDINE].
+Ogni articolo inserito nel documento rispecchia [STOCK_REALE] presso [NOSTRO_DEPOSITO] ed espone la quotazione netta {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) valida sulla prima fornitura 2gg [ZERO_MINIMO_ORDINE].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T043',
-    name: 'Catalistino PDF — Selezione Mirata per il Vostro Settore',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Estratto Selezionato per Comparto Operativo',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Selezione PDF {SECTOR_SHORT} ({DISCOUNT_FORMULA} 2gg) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: 'Estratto listino PDF {SECTOR_SHORT} ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anziché inviarVi un catalogo dispersivo di diecimila pagine, da [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] dentro [IL_CATALISTINO_PDF] solo [GAMMA_SELEZIONATA] [PER_IL_COMPARTO] {SECTOR_SHORT} realmente disponibili per spedizione in 24/48h.
+per offrire uno strumento di consultazione mirato ed essenziale, in [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] all’interno di [IL_CATALISTINO_PDF] esclusivamente [GAMMA_SELEZIONATA] [PER_IL_COMPARTO] {SECTOR_SHORT} con effettiva partenza in 24/48 ore.
 
 {BRANDS_NOTE}
 
 {CREDENTIALS_BLOCK}
 
-Aprendo il documento vede subito foto, codice, prezzo di listino e netto finito col {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]. E sul sito trova poi migliaia di altri codici complementari!
+Il prospetto riporta per ciascun codice immagine, descrizione tecnica, listino ufficiale e prezzo netto calcolato col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [OLTRE_AL_PDF].
 
 [FRASE_DISPONIBILITA] [COME_RISPONDERE].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T044',
-    name: 'Catalistino PDF — Consultazione Immediata in Un Clic',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Notifica di Emissione Fascicolo Commerciale',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Il Catalistino 2gg riservato a {COMPANY_NAME} è pronto ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Emissione prospetto PDF riservato a {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI]): è pronto online [IL_CATALISTINO_PDF] riservato alla Vostra azienda con sconto 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+[APERTURA_BREVE] da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI]): è disponibile online [IL_CATALISTINO_PDF] riservato alla Vostra ragione sociale, valorizzato con la condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[INVITO_MORBIDO_CATALISTINO] può sfogliarlo subito dal browser oppure salvarlo in PDF, [INCISO_SENZA_VINCOLO].
+[INVITO_MORBIDO_CATALISTINO] La consultazione e l’archiviazione del documento avvengono [INCISO_SENZA_VINCOLO].
 
-Per qualsiasi richiesta diretta sono a disposizione ({AGENT_NAME}).
+Per ogni approfondimento resta attivo il referente assegnato ({AGENT_NAME}).
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T045',
-    name: 'Catalistino PDF — Dal PDF al Carrello B2B in Due Minuti',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Integrazione tra Documento PDF e Piattaforma B2B',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_TIPO_DOC] + Accesso B2B {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_TIPO_DOC] e credenziali portale B2B — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-abbiamo reso semplicissimo valutare le condizioni B2B di [IDENTITA_IZZO]:
-• **Passo 1**: apre [IL_CATALISTINO_PDF] dal link riservato e controlla in un colpo d’occhio qualità della gamma e prezzi netti ({DISCOUNT_FORMULA});
-• **Passo 2**: quando trova ciò che Le serve, entra su [IL_PORTALE_B2B] con [LE_CREDENZIALI] e conferma in autonomia con [TEMPI_RESA] [ZERO_MINIMO_ORDINE].
+la procedura di accreditamento predisposta da [IDENTITA_IZZO] consente una verifica lineare in due passaggi:
+• **Consultazione documentale**: apertura immediata di [IL_CATALISTINO_PDF] per esaminare gamma tecnica e quotazioni nette riservate ({DISCOUNT_FORMULA});
+• **Operatività a portale**: utilizzo di [LE_CREDENZIALI] su [IL_PORTALE_B2B] per verificare le giacenze aggiornate e gestire eventuali forniture con [TEMPI_RESA] [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
@@ -924,113 +925,113 @@ abbiamo reso semplicissimo valutare le condizioni B2B di [IDENTITA_IZZO]:
   },
   {
     code: 'T046',
-    name: 'Catalistino PDF — Giacenze Verificate + Doppio Riferimento Prezzo',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Valorizzazione Netta Già Calcolata su Ogni Riga',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Listino PDF con prezzi netti ({DISCOUNT_FORMULA}) dedicato a {COMPANY_NAME}',
+    subjectTemplate: 'Documentazione PDF con prezzi netti calcolati ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [IL_CATALISTINO_PDF] aggiornato sulle disponibilità odierne di [NOSTRO_DEPOSITO].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [IL_CATALISTINO_PDF] allineato alle disponibilità attuali di [NOSTRO_DEPOSITO].
 
-A differenza dei listini tradizionali dove bisogna calcolare gli sconti a mano, nel Vostro PDF ogni articolo mostra già il netto reale scontato al {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO], valido [CLAUSOLA_SOLO_2GG].
+Per semplificare il lavoro di analisi dei Vostri uffici, ciascuna referenza inclusa nel PDF espone già il prezzo netto finito derivante dal parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO], applicabile [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[CONFORMITA_QUALITA] e [CURA_IMBALLO] completano il servizio su ogni spedizione.
+Prodotti [CONFORMITA_QUALITA] e procedure di [CURA_IMBALLO] caratterizzano ogni spedizione effettuata.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T047',
-    name: 'Catalistino PDF — Utile Anche per Quotare Veloce ai Vostri Clienti',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Supporto per Preventivazione Rapida Interna',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Strumento rapido per i preventivi di {COMPANY_NAME}: [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Prospetto prezzi B2B per l’ufficio tecnico/acquisti di {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-avere sottomano [IL_CATALISTINO_PDF] di [IDENTITA_IZZO] è comodissimo anche quando deve preparare al volo un preventivo per un Suo cliente: vede immediatamente sia il prezzo di listino pubblico sia il Suo costo netto finito ({DISCOUNT_FORMULA} sul 1° ordine 2gg), con la certezza di ricevere la merce in 24/48h.
+disporre in archivio di [IL_CATALISTINO_PDF] emesso da [IDENTITA_IZZO] agevola anche l’elaborazione rapida dei Vostri preventivi: ogni scheda riporta congiuntamente il listino ufficiale e il costo netto riservato ({DISCOUNT_FORMULA} sulla prima fornitura 2gg), con garanzia di evasione in 24/48 ore.
 
 {CREDENTIALS_BLOCK}
 
-[OLTRE_AL_PDF], entrando su [IL_PORTALE_B2B] può [FUNZIONI_PORTALE].
+Contemplando referenze [OLTRE_AL_PDF], l’accesso a [IL_PORTALE_B2B] permette in ogni momento di [FUNZIONI_PORTALE].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T048',
-    name: 'Catalistino PDF — Aggiornato sullo Stock Pronta Consegna',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Riepilogo Disponibilità Immediate di Magazzino',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '{COMPANY_NAME}{CITY_PAREN} — Estratto PDF Pronta Consegna 24/48h ({DISCOUNT_FORMULA})',
+    subjectTemplate: '{COMPANY_NAME}{CITY_PAREN} — Prospetto disponibilità 24/48h ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-da [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA]. Per mostrarVi concretamente cosa è pronto a partire oggi stesso da [NOSTRO_DEPOSITO], [ABBIAMO_PREPARATO] un estratto PDF dedicato a {COMPANY_NAME} con le referenze più richieste in ambito {SECTOR_SHORT}.
+in [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA]. Al fine di documentare puntualmente le referenze pronte alla spedizione presso [NOSTRO_DEPOSITO], [ABBIAMO_PREPARATO] un prospetto PDF dedicato a {COMPANY_NAME} calibrato sul comparto {SECTOR_SHORT}.
 
 {CREDENTIALS_BLOCK}
 
-Sul Vostro primo acquisto tutta la linea 2gg gode in automatico di {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
+Sulla prima fornitura l’intera selezione 2gg beneficia automaticamente della condizione {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
 
-Per informazioni o offerte su volumi [COME_RISPONDERE].
+Per richieste specifiche o quotazioni a volume siamo operativi [COME_RISPONDERE].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T049',
-    name: 'Catalistino PDF — Visionabile Senza Registrazioni Lunghe',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Pre-Accreditamento Completo Senza Formalità',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Nessun modulo da compilare: [OGG_TIPO_DOC] già attivo per {COMPANY_NAME}',
+    subjectTemplate: 'Pre-accreditamento B2B e listino PDF riservato — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-sappiamo quanto sia scomodo dover compilare lunghi moduli di registrazione prima ancora di sapere se i prezzi di un distributore sono competitivi.
+per evitare ai Vostri uffici iter preliminari di registrazione prima ancora di aver valutato listini e disponibilità, [IDENTITA_IZZO] ha completato internamente il pre-accreditamento anagrafico a favore di {COMPANY_NAME}.
 
-Per questo in [IDENTITA_IZZO] abbiamo fatto tutto noi in anticipo per {COMPANY_NAME}: [IL_CATALISTINO_PDF] è già pronto da aprire in un clic e [LE_CREDENZIALI] con sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] sono già attive.
+Di conseguenza, sia [IL_CATALISTINO_PDF] sia [LE_CREDENZIALI] con parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] risultano già immediatamente fruibili:
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Mi trova sempre disponibile come Vostro referente ({AGENT_NAME}).
+[ACCESSO_SENZA_IMPEGNO]. Il referente assegnato ({AGENT_NAME}) rimane a disposizione.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T050',
-    name: 'Catalistino PDF — Panoramica Luce, Elettrico e Cantiere 2gg',
-    angleGroup: 'Catalistino_PDF_Diretto',
+    name: 'Documentazione PDF — Quadro Generale Comparti Elettrico, LED e Tecnico',
+    angleGroup: 'Documentazione_Listino_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Catalogo 2gg ({DISCOUNT_FORMULA}) riservato a {COMPANY_NAME} — Izzo Distribuzione B2B',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Documentazione 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] per inviarVi il collegamento diretto a [IL_CATALISTINO_PDF] predisposto per la Vostra struttura, [DETTAGLIO_LUCE_LED] e [DETTAGLIO_ELETTRICO_QUADRO], tutto rigorosamente [IN_PRONTA_CONSEGNA].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per trasmettere l’accesso a [IL_CATALISTINO_PDF] predisposto per la Vostra società, comprensivo delle linee [DETTAGLIO_LUCE_LED] e [DETTAGLIO_ELETTRICO_QUADRO], tutte gestite [IN_PRONTA_CONSEGNA].
 
 {CREDENTIALS_BLOCK}
 
-Lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] è già attivo sul profilo [ZERO_MINIMO_ORDINE].
+La condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] è già associata al profilo [ZERO_MINIMO_ORDINE].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 6 (T051 - T060): TAGLIO TECNICO IMPIANTISTICO & COMMESSE (IST)
+  // GRUPPO 6 (T051 - T060): QUALIFICAZIONE GAMMA TECNICA, CONFORMITÀ & ASSORTIMENTO (UNIVERSALE)
   // ==========================================================================
   {
     code: 'T051',
-    name: 'Tecnico Impiantisti — Quadri, Protezioni DIN e Illuminazione Tecnica',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Completezza Merceologica e Conformità Certificata',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Forniture impianti {SECTOR_SHORT} 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Forniture professionali {SECTOR_SHORT} 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-nelle installazioni professionali e nei cablaggi [DETTAGLIO_ELETTRICO_QUADRO], avere disponibilità immediata a prezzo netto certo permette di chiudere le commesse senza intoppi e con maggior margine.
+nella selezione di un fornitore B2B per apparecchiature elettriche e sistemi illuminotecnici [DETTAGLIO_ELETTRICO_QUADRO], la certezza della conformità normativa e della pronta giacenza incide direttamente sull’efficienza aziendale.
 
-Come [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} un accesso B2B specifico per installatori e imprese, con sconto 1° ordine {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG].
+Da [IDENTITA_IZZO] [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} una posizione B2B completa di parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
@@ -1041,112 +1042,112 @@ Come [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} un accesso B2B speci
   },
   {
     code: 'T052',
-    name: 'Tecnico Impiantisti — Supporto su Distinte Cantiere e Manutenzioni',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Affidabilità per Approvvigionamenti Programmati e Correnti',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}: materiali da installazione in 2gg ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Assortimento tecnico 2gg ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[ATTACCO_CANTIERE] disporre di un fornitore [AGGETTIVO_SOLIDO_M] [IMPIEGO_PRATICO].
+[ATTACCO_CANTIERE] avvalersi di un partner distributivo [AGGETTIVO_SOLIDO_M] per forniture utili [IMPIEGO_PRATICO].
 
-Da [IDENTITA_IZZO] seguiamo gli specialisti in {SECTOR_SHORT} [CONTESTO_ZONA] {CITY} con una linea rapida da [NOSTRO_DEPOSITO] ({RECOMMENDED_FAMILY}), [CONFORMITA_QUALITA]. Sul Vostro 1° acquisto 2gg è già attivo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE]:
+In [IDENTITA_IZZO] affianchiamo gli operatori qualificati di ambito {SECTOR_SHORT} [CONTESTO_ZONA] {CITY} mediante spedizioni dirette da [NOSTRO_DEPOSITO] ({RECOMMENDED_FAMILY}), con articoli [CONFORMITA_QUALITA]. Sulla prima fornitura 2gg risulta già operativa [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-Se avete una distinta lavori da quotare a breve, [COME_RISPONDERE]: Vi preparo un riscontro rapido su misura.
+Per sottoporre eventuali distinte materiali a quotazione dedicata è sufficiente scrivere [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T053',
-    name: 'Tecnico Impiantisti — Efficienza LED e Componentistica Certificata',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Sistemi LED ad Alta Efficienza e Componentistica',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Illuminotecnica e modulare 24/48h ({DISCOUNT_FORMULA}) — Riservato {COMPANY_NAME}',
+    subjectTemplate: 'Sistemi illuminotecnici ed elettrotecnica 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-per le Vostre realizzazioni e riqualificazioni impiantistiche, [IDENTITA_IZZO] mette a disposizione una gamma pronta in 24/48h [DETTAGLIO_LUCE_LED], [EQUIVALENZA_TECNICA].
+a supporto delle forniture tecniche della Vostra organizzazione, [IDENTITA_IZZO] rende disponibile con evasione 24/48h un assortimento strutturato [DETTAGLIO_LUCE_LED], [EQUIVALENZA_TECNICA].
 
-Abbiamo generato per {COMPANY_NAME} [IL_CATALISTINO_PDF] già ricalcolato con la formula {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Abbiamo formalizzato a nome di {COMPANY_NAME} [IL_CATALISTINO_PDF] già calcolato secondo la formula {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[DESTINAZIONE_FLESSIBILE] e [CURA_IMBALLO] Vi consentono di ricevere tutto direttamente dove operano i tecnici.
+Modalità di [DESTINAZIONE_FLESSIBILE] e standard di [CURA_IMBALLO] assicurano una gestione logistica puntuale.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T054',
-    name: 'Tecnico Impiantisti — Competitività nei Preventivi Chiavi in Mano',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Sostenibilità Economica delle Forniture Dirette',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Più margine sulle commesse di {COMPANY_NAME}: listino 2gg {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Efficienza costi d’acquisto per {COMPANY_NAME} — Listino 2gg {DISCOUNT_FORMULA}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-oggi per aggiudicarsi una commessa impiantistica o edile serve essere competitivi sul preventivo finale senza ridurre il proprio utile. Acquistare direttamente da [IDENTITA_IZZO] [VANTAGGIO_DIRETTO] [CONSENTE_DI] abbassare subito il costo dei materiali.
+coniugare standard qualitativi certificati e contenimento dei costi d’acquisto richiede canali distributivi snelli. Operare direttamente con [IDENTITA_IZZO] [VANTAGGIO_DIRETTO] [CONSENTE_DI] ottimizzare sensibilmente il valore netto delle forniture.
 
-Per la prima fornitura di {COMPANY_NAME} [ABBIAMO_ATTIVATO] {DISCOUNT_FORMULA} in cascata [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
+Per il primo ordine di {COMPANY_NAME} [ABBIAMO_ATTIVATO] il parametro {DISCOUNT_FORMULA} in cascata [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-Su [IL_PORTALE_B2B] può [FUNZIONI_PORTALE] in qualunque momento.
+Tramite [IL_PORTALE_B2B] i Vostri referenti possono [FUNZIONI_PORTALE] in completa autonomia.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T055',
-    name: 'Tecnico Impiantisti — Scorta Furgone e Interventi Rapidi',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Presidio Continuativo sui Codici ad Alta Rotazione',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Riassortimento tecnico 24/48h ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Reintegro rapido referenze tecniche 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-magnetotermici, differenziali, alimentatori, scatole stagne, proiettori e minuteria sono i codici che finiscono sempre nel momento meno opportuno.
+protezioni modulari, alimentatori, contenitori stagni, proiettori LED, componentistica di distribuzione e accessori tecnici costituiscono referenze essenziali la cui disponibilità non può subire interruzioni.
 
-Con l’account B2B [IDENTITA_IZZO] già attivo per {COMPANY_NAME}, riordina in due minuti da [NOSTRO_DEPOSITO] con sconto 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
+Con l’utenza B2B [IDENTITA_IZZO] già abilitata per {COMPANY_NAME}, l’approvvigionamento da [NOSTRO_DEPOSITO] avviene con parametro 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Per verifiche tecniche risponda pure direttamente a me ({AGENT_NAME}).
+[ACCESSO_SENZA_IMPEGNO]. Per chiarimenti tecnici resta attivo il riferimento diretto ({AGENT_NAME}).
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T056',
-    name: 'Tecnico Impiantisti — Focus Quadristica, Automazione e Protezione',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Componentistica Elettrotecnica, Protezione e Illuminazione',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Componentistica quadro e impianto 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Disponibilità centrale 2gg ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] per presentarVi la nostra disponibilità immediata su componentistica elettrotecnica, protezione, comando e illuminazione industriale dedicata a chi opera in ambito {SECTOR_SHORT}.
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per portare a conoscenza della Vostra struttura la disponibilità immediata sulle linee di protezione, distribuzione elettrica, comando e illuminazione professionale rivolte agli operatori del settore {SECTOR_SHORT}.
 
-All’interno di [IL_CATALISTINO_PDF] trova una selezione pronta a partire da [NOSTRO_DEPOSITO], su cui {COMPANY_NAME} gode automaticamente di {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+All’interno di [IL_CATALISTINO_PDF] sono raccolte le principali referenze pronte in [NOSTRO_DEPOSITO], sulle quali {COMPANY_NAME} beneficia del parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-[CONFORMITA_QUALITA]. Resto a disposizione per schede tecniche o quotazioni dedicate.
+Tutti i prodotti proposti risultano [CONFORMITA_QUALITA]. Restiamo a disposizione per schede tecniche e quotazioni dedicate.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T057',
-    name: 'Tecnico Impiantisti — Forniture Cantiere Senza Ritardi',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Logistica Protetta e Consegna su Sede o Destinazione Operativa',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Consegna rapida in sede o cantiere ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Servizio di recapito diretto 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-quando avete una squadra fuori sede, anche farsi recapitare direttamente in cantiere quadri, corpi illuminanti e materiale elettrico in 24/48h fa risparmiare viaggi e mezze giornate.
+nella pianificazione logistica aziendale la possibilità di ricevere apparecchiature elettriche e corpi illuminanti in 24/48h direttamente presso l’indirizzo operativo prescelto riduce tempi e costi di movimentazione interna.
 
-In [IDENTITA_IZZO] gestiamo quotidianamente spedizioni [DESTINAZIONE_FLESSIBILE] con [CURA_IMBALLO]. Per il 1° ordine di {COMPANY_NAME} [ABBIAMO_ATTIVATO] lo sconto riservato {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+In [IDENTITA_IZZO] gestiamo regolarmente spedizioni [DESTINAZIONE_FLESSIBILE] assicurando [CURA_IMBALLO]. Per la prima fornitura di {COMPANY_NAME} [ABBIAMO_ATTIVATO] la condizione riservata {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1155,171 +1156,171 @@ In [IDENTITA_IZZO] gestiamo quotidianamente spedizioni [DESTINAZIONE_FLESSIBILE]
   },
   {
     code: 'T058',
-    name: 'Tecnico Impiantisti — Alternative Pronte ad Alta Marginalità',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Linee Professionali ad Elevata Competitività Economica',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] per installatori e imprese ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] per operatori professionali ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
 {BRANDS_NOTE}
 
-Proprio per affiancare il lavoro tecnico di {COMPANY_NAME}, in [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] linee [RAPPORTO_QUALITA_PREZZO] tutte [IN_PRONTA_CONSEGNA], attivando sul Vostro primo carrello il trattamento {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
+Al fine di supportare con efficacia gli approvvigionamenti di {COMPANY_NAME}, in [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] linee professionali [RAPPORTO_QUALITA_PREZZO] tutte [IN_PRONTA_CONSEGNA], associando alla prima fornitura il trattamento {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Dia uno sguardo a [IL_CATALISTINO_PDF]: i netti parlano da soli.
+La consultazione di [IL_CATALISTINO_PDF] offre riscontro immediato sui valori netti riservati.
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T059',
-    name: 'Tecnico Impiantisti — Riferimento per Fotovoltaico, Clima e Sicurezza',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Unico Polo Distributivo per Più Famiglie Tecnologiche',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Materiale elettrico e complementi tecnici 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Fornitura integrata elettrico, LED e dotazioni 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-chi realizza impianti tecnologici ({SECTOR_SHORT}) ha costante bisogno di protezioni, carpenterie stagne, alimentazione, illuminazione LED e accessori di cablaggio subito disponibili.
+le aziende attive nel comparto {SECTOR_SHORT} necessitano quotidianamente di concentrare in forniture rapide e coordinate protezioni modulari, carpenterie stagne, alimentazione, illuminazione LED e accessori tecnici [DETTAGLIO_BANCO_FERRAMENTA].
 
-Presso [IDENTITA_IZZO] trova tutto raggruppato in un unico deposito 24/48h, con [LE_CREDENZIALI] già abilitate per {COMPANY_NAME} allo sconto 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+Presso [IDENTITA_IZZO] tali famiglie sono disponibili in un unico polo logistico 24/48h, con [LE_CREDENZIALI] già abilitate a nome di {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[DOPO_PRIMO_ORDINE]. Per qualsiasi esigenza specifica [COME_RISPONDERE].
+[DOPO_PRIMO_ORDINE]. Per richieste specifiche siamo contattabili [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T060',
-    name: 'Tecnico Impiantisti — Dal Progetto alla Fornitura Veloce',
-    angleGroup: 'Tecnico_Impiantistico',
-    targetCategory: 'IST',
+    name: 'Gamma Tecnica — Continuità dalla Preventivazione all’Evasione Ordine',
+    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{COMPANY_NAME}{CITY_PAREN}: listino tecnico 24/48h ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Listino riservato 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] da {AGENT_NAME} ([IDENTITA_IZZO]). Abbiamo predisposto per la Vostra struttura tecnica [IL_CATALISTINO_PDF] su {RECOMMENDED_FAMILY}, con extra sconto {DISCOUNT_FORMULA} attivo sul 1° ordine [CLAUSOLA_SOLO_2GG].
+[APERTURA_BREVE] a nome di {AGENT_NAME} ([IDENTITA_IZZO]). Abbiamo predisposto per la Vostra organizzazione [IL_CATALISTINO_PDF] focalizzato su {RECOMMENDED_FAMILY}, con condizione riservata {DISCOUNT_FORMULA} operativa sul primo ordine [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Sia per piccoli riordini veloci [ZERO_MINIMO_ORDINE] sia per commesse complete, conta sul mio supporto diretto.
+Sia per forniture contenute [ZERO_MINIMO_ORDINE] sia per approvvigionamenti strutturati, confermiamo la nostra piena assistenza diretta.
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 7 (T061 - T070): TAGLIO BANCO VENDITA, FERRAMENTA & RIVENDITE (RIV)
+  // GRUPPO 7 (T061 - T070): ACCREDITAMENTO ANAGRAFICA B2B & ROTAZIONE SCORTE (UNIVERSALE)
   // ==========================================================================
   {
     code: 'T061',
-    name: 'Rivendita & Banco — Alta Rotazione e Ricarico Netto (50% + Extra)',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Ottimizzazione Rotazione e Marginalità d’Acquisto',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Listino Rivenditori {DISCOUNT_FORMULA} (Pronta Consegna 2gg) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    subjectTemplate: 'Accreditamento listino B2B {DISCOUNT_FORMULA} (Pronta Consegna 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[ATTACCO_RIVENDITA] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per rivendite edili/elettriche, ferramenta e showroom illuminazione.
+[ATTACCO_RIVENDITA] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per il settore [SETTORI_MERCEOLOGICI].
 
-Sappiamo che al banco contano due fattori: **comprare bene** e **riassortire in 48 ore senza riempire inutilmente il magazzino**. Per {COMPANY_NAME} [ABBIAMO_ATTIVATO] il listino Rivenditori con condizione speciale {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Nelle organizzazioni B2B moderne risultano determinanti due fattori: **acquistare a condizioni nette competitive** e **riapprovvigionare in 24/48 ore evitando immobilizzi superflui**. A favore di {COMPANY_NAME} [ABBIAMO_ATTIVATO] il profilo aziendale con parametro riservato {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-All’interno di [IL_CATALISTINO_PDF] trova [DETTAGLIO_BANCO_FERRAMENTA] e [DETTAGLIO_LUCE_LED], [ZERO_MINIMO_ORDINE].
+All’interno di [IL_CATALISTINO_PDF] sono presenti referenze [DETTAGLIO_BANCO_FERRAMENTA] e [DETTAGLIO_LUCE_LED], acquistabili [ZERO_MINIMO_ORDINE].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T062',
-    name: 'Rivendita & Banco — Riassortimento in 24/48h Zero Immobilizzo',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Gestione Snella dello Stock Aziendale',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Riassortimento banco in 24/48h ({DISCOUNT_FORMULA}) — Riservato a {COMPANY_NAME}',
+    subjectTemplate: 'Gestione snella approvvigionamenti 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-oggi immobilizzare capitale in grossi stock fermi a scaffale non conviene a nessuna rivendita. Grazie a [NOSTRO_DEPOSITO] di [IDENTITA_IZZO], {COMPANY_NAME} può riordinare con [TEMPI_RESA] solo ciò che gira davvero, [VANTAGGIO_ZERO_SCORTE].
+contenere l’immobilizzo di capitale in magazzino mantenendo intatta la rapidità operativa rappresenta una leva gestionale di primario interesse. Attraverso [NOSTRO_DEPOSITO] di [IDENTITA_IZZO], {COMPANY_NAME} può approvvigionare con [TEMPI_RESA] i materiali effettivamente richiesti, [VANTAGGIO_ZERO_SCORTE].
 
-Per il Vostro primo riassortimento di prova [ABBIAMO_PREPARATO] [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
+Per la prima fornitura conoscitiva [ABBIAMO_PREPARATO] [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-[DOPO_PRIMO_ORDINE]. Mi scriva pure in risposta per qualsiasi linea espositiva o richiesta a cartone.
+[DOPO_PRIMO_ORDINE]. Per richieste su confezionamenti multipli o lotti dedicati siamo a disposizione [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T063',
-    name: 'Rivendita & Banco — Prodotti da Banco ad Alto Smercio Giornaliero',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Referenze ad Elevata Movimentazione Giornaliera',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] Rivendite ({DISCOUNT_FORMULA}) per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-artigiani, manutentori e clienti privati chiedono ogni giorno al banco sorgenti LED, proiettori, multiprese, adattatori, magnetotermici e materiale elettrico pronto all’uso.
+sorgenti e corpi illuminanti LED, proiettori professionali, protezioni modulari, quadri, multiprese e componentistica elettrica costituiscono articoli di impiego costante in ogni realtà operativa del settore {SECTOR_SHORT}.
 
-In [IL_CATALISTINO_PDF] che [IDENTITA_IZZO] ha predisposto per {COMPANY_NAME}, trova esattamente queste referenze [ARTICOLI_ALTA_ROTAZIONE] già scontate al {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+All’interno di [IL_CATALISTINO_PDF] predisposto da [IDENTITA_IZZO] per {COMPANY_NAME}, tali referenze [ARTICOLI_ALTA_ROTAZIONE] sono già valorizzate col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Confezioni curate, [CONFORMITA_QUALITA] e ottimo margine di rivendita fin dal primo pezzo.
+Standard [CONFORMITA_QUALITA] e quotazioni nette chiare sostengono l’efficienza di ogni ordine.
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T064',
-    name: 'Rivendita & Banco — Showroom & Illuminazione Decorativa/Tecnica 2gg',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Posizione Profilata e Spedizione Celere',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Condizioni Rivenditore {DISCOUNT_FORMULA} su Luce ed Elettrico 2gg — {COMPANY_NAME}',
+    subjectTemplate: 'Posizione commerciale B2B {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-sono {AGENT_NAME} di [IDENTITA_IZZO]. Per realtà commerciali come {COMPANY_NAME} ({CITY}) [ABBIAMO_PREPARATO] un profilo Rivenditore dedicato che unisce ampia scelta su {RECOMMENDED_FAMILY} e spedizione veloce in 24/48h quando un cliente finale ha fretta di ritirare.
+a nome di [IDENTITA_IZZO] ({AGENT_NAME}), comunichiamo di aver configurato per {COMPANY_NAME}{CITY_PAREN} una posizione B2B dedicata che coniuga ampiezza di gamma su {RECOMMENDED_FAMILY} ed evasione rapida in 24/48 ore lavorative.
 
-Sul primo ordine di benvenuto gode del {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto) su tutto lo stock 2gg [ZERO_MINIMO_ORDINE]:
+Sulla prima fornitura l’anagrafica beneficia del parametro {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto) sull’intero assortimento 2gg [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-Sfogli pure [IL_CATALISTINO_PDF] anche insieme ai colleghi del banco vendita: resto a disposizione per ogni informazione.
+La documentazione in [IL_CATALISTINO_PDF] resta a disposizione dei Vostri referenti interni per ogni valutazione.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T065',
-    name: 'Rivendita & Banco — Prova Libera Anche su Pochi Pezzi da Esposizione',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Verifica Qualitativa Senza Vincoli Quantitativi',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Zero minimo d’ordine per Rivendite + Sconto {DISCOUNT_FORMULA} — {COMPANY_NAME}',
+    subjectTemplate: 'Abilitazione listino B2B senza minimo d’ordine ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-molti grossisti impongono minimi d’ordine elevati prima di applicare lo sconto rivenditore. In [IDENTITA_IZZO] vogliamo farVi toccare con mano presentazione, packaging e velocità: per questo {COMPANY_NAME} ha già attivo il {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] **senza alcun minimo d’ordine**.
+spesso i canali all’ingrosso subordinano l’applicazione delle migliori condizioni al superamento di soglie minime elevate. Per consentire una verifica diretta della qualità dei prodotti e dell’efficienza logistica, presso [IDENTITA_IZZO] l’anagrafica di {COMPANY_NAME} dispone già del parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Può fare anche una piccola campionatura da banco e riceverla in 24/48h con [CURA_IMBALLO].
+Anche un primo approvvigionamento mirato viene evaso in 24/48h con [CURA_IMBALLO].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T066',
-    name: 'Rivendita & Banco — Integrare il Reparto Elettrico e LED con Facilità',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Continuità di Approvvigionamento sul Comparto Elettrico e LED',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Potenziamento reparto elettrico/LED 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Canale distributivo 2gg ({DISCOUNT_FORMULA}) abilitato per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-ampliare o rifornire il reparto elettrico e illuminotecnico con un partner B2B che spedisce in 24/48h permette di non dire mai "no" al cliente che entra in negozio cercando un codice specifico.
+affiancare alla propria organizzazione un partner distributivo B2B in grado di spedire in 24/48 ore consente di rispondere con tempestività a qualsiasi richiesta tecnica o commessa urgente.
 
-Con [IL_PORTALE_B2B] di [IDENTITA_IZZO], il banco di {COMPANY_NAME} vede in tempo reale giacenze 2gg e prezzo netto rivenditore ({DISCOUNT_FORMULA} sul 1° ordine):
+Attraverso [IL_PORTALE_B2B], i referenti di {COMPANY_NAME} visualizzano in tempo reale disponibilità 2gg e quotazione netta riservata ({DISCOUNT_FORMULA} sulla prima fornitura):
 
 {CREDENTIALS_BLOCK}
 
@@ -1328,38 +1329,38 @@ Con [IL_PORTALE_B2B] di [IDENTITA_IZZO], il banco di {COMPANY_NAME} vede in temp
   },
   {
     code: 'T067',
-    name: 'Rivendita & Banco — Marginalità Primaria fin dal Primo Ingresso',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Parametro Netto Effettivo di Fascia Primaria',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Netto Rivenditore {NET_DISCOUNT_PCT}% (1° ordine 2gg) riservato a {COMPANY_NAME}',
+    subjectTemplate: 'Quotazione netta riservata ({NET_DISCOUNT_PCT}% da listino su 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-comprare con sconto {DISCOUNT_FORMULA} in cascata significa partire subito con uno sconto netto del **{NET_DISCOUNT_PCT}% da listino** su articoli ad altissima rotazione [CLAUSOLA_SOLO_2GG].
+operare con una condizione {DISCOUNT_FORMULA} in cascata determina sulla prima fornitura uno sconto netto effettivo pari al **{NET_DISCOUNT_PCT}% rispetto al listino ufficiale** [CLAUSOLA_SOLO_2GG].
 
-È la proposta riservata che [IDENTITA_IZZO] dedica a {COMPANY_NAME} per inaugure un rapporto di fornitura snello, veloce e profittevole:
+È il parametro istituzionale di benvenuto che [IDENTITA_IZZO] ha deliberato a favore di {COMPANY_NAME} per avviare un rapporto di fornitura trasparente e continuativo:
 
 {CREDENTIALS_BLOCK}
 
-[INVITO_CLIC_PDF] [PUO_VISIONARE] subito i prezzi netti articolo per articolo.
+[INVITO_CLIC_PDF] [PUO_VISIONARE] analiticamente le quotazioni nette per singola referenza.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T068',
-    name: 'Rivendita & Banco — Listino Chiaro per Banco e Ufficio Acquisti',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Conferma Ufficiale di Abilitazione Anagrafica',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Abilitazione Listino RIV {DISCOUNT_FORMULA} — {COMPANY_NAME}',
+    subjectTemplate: 'Conferma abilitazione anagrafica B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-confermiamo l’abilitazione del profilo **RIV (Rivenditore B2B)** a nome di {COMPANY_NAME} sulla piattaforma [IDENTITA_IZZO].
+confermiamo la regolare abilitazione della posizione anagrafica B2B intestata a {COMPANY_NAME} sulla piattaforma di [IDENTITA_IZZO].
 
-Il profilo include:
-• Sconto base Rivenditore {BASE_DISCOUNT}% + Extra {EXTRA_DISCOUNT}% sul 1° acquisto [CLAUSOLA_SOLO_2GG];
-• [IL_CATALISTINO_PDF] già calcolato coi Vostri netti;
-• [TEMPI_RESA] e referente dedicato ({AGENT_NAME}).
+Il profilo comprende i seguenti parametri operativi:
+• Sconto B2B di categoria {BASE_DISCOUNT}% + agevolazione {EXTRA_DISCOUNT}% in cascata [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG];
+• [IL_CATALISTINO_PDF] già valorizzato coi prezzi netti dedicati;
+• [TEMPI_RESA] e referente commerciale assegnato ({AGENT_NAME}).
 
 {CREDENTIALS_BLOCK}
 
@@ -1368,16 +1369,16 @@ Il profilo include:
   },
   {
     code: 'T069',
-    name: 'Rivendita & Banco — Continuità di Scaffale Garantita',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Regolarità di Rifornimento da Deposito Centrale',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Rifornimenti rapidi 2gg per il punto vendita {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Approvvigionamenti rapidi 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-evitare i "buchi a scaffale" sui prodotti più venduti senza appesantire le giacenze è la chiave di una rivendita moderna. Da [IDENTITA_IZZO] manteniamo scorte profonde in [NOSTRO_DEPOSITO] [RICAMBIO_COSTANTE] proprio per servire i rivenditori in 24/48h.
+garantire continuità di disponibilità sui materiali più richiesti senza appesantire i costi fissi di stoccaggio richiede un polo distributivo puntuale. In [IDENTITA_IZZO] manteniamo scorte strutturate presso [NOSTRO_DEPOSITO] [RICAMBIO_COSTANTE] per servire le aziende accreditate in 24/48 ore.
 
-Qui sotto trova [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] di {COMPANY_NAME} con lo sconto {DISCOUNT_FORMULA} attivo sul 1° ordine 2gg:
+Riportiamo di seguito [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] predisposti per {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} attivo sul primo ordine 2gg:
 
 {CREDENTIALS_BLOCK}
 
@@ -1386,95 +1387,95 @@ Qui sotto trova [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] di {COMPANY_NAME} con lo
   },
   {
     code: 'T070',
-    name: 'Rivendita & Banco — Proposta Snella per Ferramenta e Ingrosso',
-    angleGroup: 'Banco_Rivendita_Rotazione',
-    targetCategory: 'RIV',
+    name: 'Accreditamento B2B — Comunicazione di Servizio per la Direzione',
+    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{COMPANY_NAME}: Catalistino Rivenditori 2gg ({DISCOUNT_FORMULA}) pronto',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Prospetto B2B 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] da [IDENTITA_IZZO]: abbiamo generato per il Vostro punto vendita [IL_CATALISTINO_PDF] con sconto Rivenditore {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE].
+[APERTURA_BREVE] da [IDENTITA_IZZO]: abbiamo emesso a favore della Vostra società [IL_CATALISTINO_PDF] con condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Quando ha un minuto tra un cliente e l’altro, dia uno sguardo ai netti: per qualsiasi info sono a disposizione diretta ({AGENT_NAME}).
+Per ogni esigenza informativa o commerciale rimane a disposizione il referente assegnato ({AGENT_NAME}).
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 8 (T071 - T080): SECONDO FORNITORE AGILE / CANALE PARALLELO
+  // GRUPPO 8 (T071 - T080): AFFIANCAMENTO FORNITORI & CANALE B2B PARALLELO
   // ==========================================================================
   {
     code: 'T071',
-    name: 'Secondo Fornitore — Rispetto dei Fornitori Storici + Alternativa 2gg',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Affiancamento Rispettoso ai Fornitori Storici',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Un canale B2B agile in più per {COMPANY_NAME} ({DISCOUNT_FORMULA} su 2gg)',
+    subjectTemplate: 'Accreditamento secondo canale B2B ({DISCOUNT_FORMULA} su 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-sappiamo perfettamente che un’azienda strutturata come la Vostra ha già i propri fornitori storici di fiducia, e non Vi scriviamo con la pretesa di sostituirli dall’oggi al domani.
+siamo consapevoli che una realtà strutturata come la Vostra dispone già di fornitori consolidati, e la presente comunicazione non intende in alcun modo interferire con gli equilibri esistenti.
 
-Il nostro obiettivo in [IDENTITA_IZZO] è offrirVi un **secondo canale B2B agile**, già pronto e attivo [RUOLO_SECONDO_CANALE]. Per renderlo subito vantaggioso [ABBIAMO_ATTIVATO] sul 1° ordine di {COMPANY_NAME} lo sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+L’intento di [IDENTITA_IZZO] è mettere formalmente a Vostra disposizione un canale distributivo B2B già accreditato [RUOLO_SECONDO_CANALE]. Per renderne immediatamente apprezzabile l’utilizzo, [ABBIAMO_ATTIVATO] sulla prima fornitura di {COMPANY_NAME} il parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-Lo tenga pure tra i preferiti: alla prima urgenza 24/48h o verifica prezzi Le tornerà utilissimo.
+I riferimenti restano attivi a disposizione del Vostro Ufficio Acquisti per ogni futura verifica comparativa o esigenza 24/48h.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T072',
-    name: 'Secondo Fornitore — Piano B Immediato per Urgenze e Margini',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Continuità di Approvvigionamento Senza Burocrazia',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Canale parallelo Pronta Consegna 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Canale di fornitura complementare 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-ogni responsabile acquisti sa quanto sia prezioso avere un "piano B" già codificato e scontato quando il fornitore abituale ha tempi lunghi o prezzi rigidi su una commessa.
+nella gestione professionale degli acquisti disporre di un ulteriore fornitore già codificato e con condizioni chiare tutela l’azienda qualora sui canali abituali si registrino allungamenti dei tempi di consegna o rigidità di listino.
 
-In [IDENTITA_IZZO] abbiamo già fatto tutta la parte burocratica per {COMPANY_NAME}: [LE_CREDENZIALI] sono attive, [IL_CATALISTINO_PDF] è pronto e lo sconto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] resta a Vostra disposizione [ZERO_MINIMO_ORDINE].
+Presso [IDENTITA_IZZO] l’iter amministrativo per {COMPANY_NAME} è già stato perfezionato: [LE_CREDENZIALI] sono attive, [IL_CATALISTINO_PDF] è consultabile e il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] è operativo [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-[INCISO_SENZA_VINCOLO] e [DOPO_PRIMO_ORDINE].
+Il tutto [INCISO_SENZA_VINCOLO] e [DOPO_PRIMO_ORDINE].
 
 [FRASE_DISPONIBILITA] ({AGENT_NAME}).
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T073',
-    name: 'Secondo Fornitore — Confrontare Non Costa Nulla',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Valutazione Comparativa Trasparente',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Confronto libero listino 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Prospetto comparativo listino 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-confrontare un secondo listino B2B non costa nulla, richiede due minuti e spesso riserva ottime sorprese sui margini d’acquisto.
+esaminare un secondo listino B2B accreditato rappresenta una buona prassi gestionale che richiede pochi minuti e consente spesso di individuare interessanti margini di ottimizzazione sui costi d’acquisto.
 
-Da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] {COMPANY_NAME} [IL_CATALISTINO_PDF] su {RECOMMENDED_FAMILY} con sconto 1° ordine {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
+A tal fine, da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] relativo a {RECOMMENDED_FAMILY} con parametro 1ª fornitura {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG] riservato a {COMPANY_NAME}:
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Se poi vorrà metterci alla prova anche su un piccolo ordine, spediamo in 24/48h!
+[ACCESSO_SENZA_IMPEGNO], con piena operatività di spedizione in 24/48 ore lavorative.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T074',
-    name: 'Secondo Fornitore — Nessun Contratto, Solo Servizio Quando Serve',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Zero Obblighi Contrattuali o Volumi Minimi Annui',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Profilo B2B senza vincoli ({DISCOUNT_FORMULA} 1° ordine) — {COMPANY_NAME}',
+    subjectTemplate: 'Posizione B2B esente da vincoli ({DISCOUNT_FORMULA} 1ª fornitura) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-molti operatori apprezzano [IDENTITA_IZZO] proprio per la libertà operativa: nessun budget annuo richiesto, zero costi di iscrizione, [ZERO_MINIMO_ORDINE] e [STOCK_REALE] in 24/48h quando serve davvero.
+numerosi operatori professionali scelgono di mantenere attiva una posizione presso [IDENTITA_IZZO] per la linearità delle condizioni applicate: nessun obbligo di volume annuo, zero oneri di tenuta conto, [ZERO_MINIMO_ORDINE] e [STOCK_REALE] evadibile in 24/48h.
 
-Abbiamo già configurato questa posizione per {COMPANY_NAME} ({CITY}) includendo l’extra agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Abbiamo formalizzato tale configurazione a nome di {COMPANY_NAME}{CITY_PAREN} comprensiva dell’agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1485,55 +1486,55 @@ Abbiamo già configurato questa posizione per {COMPANY_NAME} ({CITY}) includendo
   },
   {
     code: 'T075',
-    name: 'Secondo Fornitore — Affiancare Senza Invadere',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Approccio Discreto e Istituzionale',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Un punto d’appoggio B2B in più per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Riferimenti di accesso magazzino B2B 24/48h — {COMPANY_NAME}{CITY_PAREN}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-Le scrivo con discrezione da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI]). Il nostro intento è semplicemente lasciarVi le chiavi di accesso al nostro magazzino 2gg, così che le abbiate già pronte al momento del bisogno.
+trasmettiamo con la massima discrezione da parte di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI]) le credenziali di accesso al nostro polo logistico 2gg, affinché siano già disponibili presso i Vostri uffici in caso di necessità.
 
-Sul primo utilizzo {COMPANY_NAME} beneficia automaticamente di {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+Al primo utilizzo {COMPANY_NAME} usufruirà automaticamente della condizione {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-Non riceverà telefonate insistenti: resto io ({AGENT_NAME}) a Vostra disposizione solo quando sarete Voi a voler approfondire.
+Nel rispetto della Vostra operatività non seguiranno solleciti telefonici: il referente assegnato ({AGENT_NAME}) rimane a disposizione qualora desideraste approfondire.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T076',
-    name: 'Secondo Fornitore — Quando Serve Merce che Altrove è in Ordine',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Supporto sulle Carenze Temporanee di Mercato',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
     subjectTemplate: 'Disponibilità immediata 2gg ({DISCOUNT_FORMULA}) a supporto di {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anche i migliori fornitori locali non possono avere sempre tutto in casa nello stesso momento. È proprio in quelle occasioni che [NOSTRO_DEPOSITO] di [IDENTITA_IZZO] diventa un alleato prezioso per {COMPANY_NAME}.
+anche nelle catene di fornitura più efficienti possono verificarsi temporanee indisponibilità su specifici codici tecnici. In tali circostanze [NOSTRO_DEPOSITO] di [IDENTITA_IZZO] costituisce un concreto supporto operativo per {COMPANY_NAME}.
 
-Con il profilo che [ABBIAMO_ATTIVATO] qui sotto, controlla in tempo reale i pezzi pronti 2gg e ordina col doppio sconto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO]:
+Tramite l’utenza che [ABBIAMO_ATTIVATO] qui di seguito è possibile verificare in tempo reale i quantitativi pronti 2gg e perfezionare l’ordine col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO]:
 
 {CREDENTIALS_BLOCK}
 
-[TEMPI_RESA] [COPERTURA_ITALIA].
+Garantiamo [TEMPI_RESA] [COPERTURA_ITALIA].
 
 [FRASE_DISPONIBILITA] [COME_RISPONDERE].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T077',
-    name: 'Secondo Fornitore — Testare su Una Singola Esigenza',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Verifica Operativa su una Singola Fornitura',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Metta alla prova il nostro deposito 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Accreditamento fornitura di verifica 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-il modo più sincero per valutare un nuovo distributore B2B è provarlo su una singola esigenza concreta: un pacco urgente, un confronto su dieci lampade o su qualche componente da quadro.
+la valutazione più attendibile di un distributore B2B scaturisce sempre dal riscontro diretto su una prima fornitura concreta, anche di entità contenuta, verificando precisione documentale, integrità dei colli e rispetto delle tempistiche.
 
-Per agevolare proprio questo primo test, [IDENTITA_IZZO] ha riservato a {COMPANY_NAME} lo sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE] e [IL_CATALISTINO_PDF] già pronto:
+Proprio per agevolare tale verifica, [IDENTITA_IZZO] ha associato a {COMPANY_NAME} la condizione {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE] unitamente a [IL_CATALISTINO_PDF]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1542,16 +1543,16 @@ Per agevolare proprio questo primo test, [IDENTITA_IZZO] ha riservato a {COMPANY
   },
   {
     code: 'T078',
-    name: 'Secondo Fornitore — Doppia Fonte = Maggiore Potere d’Acquisto',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Diversificazione Qualificata delle Fonti d’Acquisto',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Ottimizzazione acquisti {SECTOR_SHORT} ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Diversificazione fornitori B2B {SECTOR_SHORT} ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-diversificare le fonti d’approvvigionamento sui materiali [ARTICOLI_ALTA_ROTAZIONE] permette a ogni impresa strutturata di spuntare condizioni migliori e non fermarsi mai per carenza stock.
+affiancare più fonti qualificate di approvvigionamento sulle referenze [ARTICOLI_ALTA_ROTAZIONE] consente alle aziende strutturate di migliorare i parametri medi d’acquisto e garantire continuità esecutiva.
 
-A questo scopo [IDENTITA_IZZO] mette a disposizione di {COMPANY_NAME} [CANALE_RISERVATO] con listino 1° acquisto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
+In quest’ottica [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [CANALE_RISERVATO] intestato a {COMPANY_NAME} con quotazione 1ª fornitura {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1560,104 +1561,104 @@ A questo scopo [IDENTITA_IZZO] mette a disposizione di {COMPANY_NAME} [CANALE_RI
   },
   {
     code: 'T079',
-    name: 'Secondo Fornitore — Credenziali Pronte da Archiviare in Ufficio',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Comunicazione da Archiviare per l’Ufficio Acquisti',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Da conservare per l’ufficio acquisti di {COMPANY_NAME}: accesso 2gg ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Riferimenti B2B da archiviare per l’Ufficio Acquisti di {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anche se oggi stesso non aveste acquisti in programma, Le consiglio di conservare questa email o inoltrarla a chi segue gli ordini in {COMPANY_NAME}: contiene [LE_CREDENZIALI] già attive per [IDENTITA_IZZO] e [IL_CATALISTINO_PDF] scontato al {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+qualora nell’immediato non aveste approvvigionamenti in programma, suggeriamo di conservare la presente nota o inoltrarla al referente acquisti di {COMPANY_NAME}: riporta [LE_CREDENZIALI] già abilitate presso [IDENTITA_IZZO] e l’accesso a [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Alla prima necessità di materiale elettrico, illuminazione LED o ferramenta in 24/48h, avrete già tutto pronto in un clic!
+Alla prima esigenza di materiale elettrico, illuminazione LED o forniture tecniche in 24/48 ore disporrete già di una posizione immediatamente operativa.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T080',
-    name: 'Secondo Fornitore — Approccio Consulenziale Aperto',
-    angleGroup: 'Secondo_Fornitore_Parallelo',
+    name: 'Canale Complementare — Collaborazione Flessibile Orientata al Servizio',
+    angleGroup: 'Canale_Fornitura_Complementare',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Collaborazione B2B flessibile ({DISCOUNT_FORMULA} 2gg) per {COMPANY_NAME}',
+    subjectTemplate: 'Rapporto di fornitura B2B flessibile ({DISCOUNT_FORMULA} su 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-da [IDENTITA_IZZO] lavoriamo ogni giorno per offrire a realtà come la Vostra un’alternativa [AGGETTIVO_VELOCE_F], trasparente e conveniente su {RECOMMENDED_FAMILY}.
+in [IDENTITA_IZZO] operiamo per offrire alle aziende del territorio una soluzione distributiva [AGGETTIVO_VELOCE_F], trasparente e competitiva sulle linee {RECOMMENDED_FAMILY}.
 
-Abbiamo predisposto per {COMPANY_NAME} sia il documento PDF di consultazione immediata sia l’utenza B2B con sconto benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Abbiamo pertanto predisposto per {COMPANY_NAME} sia la documentazione PDF di consultazione immediata sia l’utenza B2B con condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA] [OPZIONE_TELEFONATA].
+[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 9 (T081 - T090): MEMO ESECUTIVO ULTRA-BREVE (SMARTPHONE FRIENDLY)
+  // GRUPPO 9 (T081 - T090): COMUNICAZIONE ESECUTIVA SINTETICA ALLA DIREZIONE
   // ==========================================================================
   {
     code: 'T081',
-    name: 'Memo Breve — 4 Punti Essenziali Lettura Rapida',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Prospetto Essenziale di Abilitazione',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '{COMPANY_NAME}: attivo sconto {DISCOUNT_FORMULA} Pronta Consegna 2gg',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Abilitazione B2B {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-una nota velocissima da [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]): abbiamo attivato la Vostra posizione B2B con queste condizioni immediate:
+trasmettiamo in forma sintetica da parte di [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]) i riferimenti della posizione B2B attivata a nome della Vostra società:
 
 {CREDENTIALS_BLOCK}
 
-Zero minimi, merce reale in 24/48h e referente umano diretto ({AGENT_NAME}).
+Condizioni operative: [ZERO_MINIMO_ORDINE], disponibilità reale 24/48h e referente commerciale assegnato ({AGENT_NAME}).
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T082',
-    name: 'Memo Breve — Flash Offerta 1° Acquisto Solo 2gg',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Trasmissione Parametri Prima Fornitura 2gg',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
     subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-Le trasmetto in forma sintetica i riferimenti riservati che [IDENTITA_IZZO] ha abilitato per il Vostro 1° acquisto [CLAUSOLA_SOLO_2GG] ({NET_DISCOUNT_PCT}% netto effettivo da listino):
+comunichiamo in estrema sintesi i parametri riservati che [IDENTITA_IZZO] ha associato alla Vostra ragione sociale per la prima fornitura [CLAUSOLA_SOLO_2GG] ({NET_DISCOUNT_PCT}% di sconto netto effettivo da listino):
 
 {CREDENTIALS_BLOCK}
 
-Il Catalistino PDF si apre subito anche da cellulare dal pulsante dedicato. Per ogni info basta rispondere a questa mail.
+Il prospetto PDF è immediatamente consultabile dal collegamento dedicato. Per qualsiasi chiarimento è attivo il riscontro diretto a questa email.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T083',
-    name: 'Memo Breve — Diretto per Chi Legge dal Cantiere',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Comunicazione Rapida alla Direzione Operativa',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Credenziali B2B 24/48h ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Credenziali B2B e listino 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-so che spesso si legge la posta al volo dal telefono, quindi vado dritto al sodo: sono {AGENT_NAME} di [IDENTITA_IZZO] e ho preparato per {COMPANY_NAME} il listino Pronta Consegna 2gg scontato al {DISCOUNT_FORMULA} sul primo ordine [ZERO_MINIMO_ORDINE].
+per agevolare una lettura immediata anche in mobilità, riepilogo a nome di [IDENTITA_IZZO] ({AGENT_NAME}) l’abilitazione predisposta per {COMPANY_NAME} sul listino Pronta Consegna 2gg col parametro {DISCOUNT_FORMULA} sulla prima fornitura [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-Quando Le serve materiale veloce, è già tutto attivo!
+L’utenza e il prospetto PDF restano stabilmente attivi a disposizione della Vostra struttura.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T084',
-    name: 'Memo Breve — Scheda Attivazione Istantanea',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Notifica Ufficiale di Attivazione Utenza',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Attivazione utenza B2B {COMPANY_NAME} — Sconto {DISCOUNT_FORMULA} (2gg)',
+    subjectTemplate: 'Attivazione utenza B2B {COMPANY_NAME} — Parametro {DISCOUNT_FORMULA} (Linea 2gg)',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-presso [IDENTITA_IZZO] è attiva da oggi l’utenza B2B riservata a {COMPANY_NAME} ({SECTOR_SHORT}) con doppio sconto benvenuto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
+informiamo che presso [IDENTITA_IZZO] risulta attiva da data odierna l’utenza B2B riservata a {COMPANY_NAME} ({SECTOR_SHORT}), configurata con condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1666,123 +1667,123 @@ presso [IDENTITA_IZZO] è attiva da oggi l’utenza B2B riservata a {COMPANY_NAM
   },
   {
     code: 'T085',
-    name: 'Memo Breve — Link PDF + Login Pronti all’Uso',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Quadro Unificato Documentazione PDF e Accesso Portale',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'PDF Prezzi Netti + Login B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Documentazione PDF e accesso B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-abbiamo riunito in un’unica scheda qui sotto sia [IL_CATALISTINO_PDF] sia [LE_CREDENZIALI] di [IDENTITA_IZZO] per {COMPANY_NAME}, con extra sconto {DISCOUNT_FORMULA} già calcolato sulla Pronta Consegna 2gg:
+abbiamo riunito nel prospetto sottostante sia [IL_CATALISTINO_PDF] sia [LE_CREDENZIALI] emesse da [IDENTITA_IZZO] a favore di {COMPANY_NAME}, con parametro riservato {DISCOUNT_FORMULA} già calcolato sulla linea Pronta Consegna 2gg:
 
 {CREDENTIALS_BLOCK}
 
-Resto a disposizione diretta per qualsiasi necessità ({AGENT_NAME}).
+Il referente assegnato ({AGENT_NAME}) resta a diretta disposizione per ogni approfondimento.
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T086',
-    name: 'Memo Breve — Tre Vantaggi Secchi per il Primo Ordine',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Riepilogo Puntuale Condizioni Abilitate',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: '3 vantaggi B2B attivi per {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Riepilogo condizioni B2B attivate per {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-per presentarVi il servizio logistico di [IDENTITA_IZZO] abbiamo attivato per {COMPANY_NAME}:
-• **{DISCOUNT_FORMULA} in cascata** sul 1° ordine [CLAUSOLA_SOLO_2GG];
-• **Zero minimo d’ordine** e spedizione rapida 24/48h;
-• **Catalistino PDF riservato** consultabile subito.
+nell’accreditare il servizio distributivo di [IDENTITA_IZZO], confermiamo i parametri abilitati a favore di {COMPANY_NAME}:
+• **Parametro {DISCOUNT_FORMULA} in cascata** sulla prima fornitura [CLAUSOLA_SOLO_2GG];
+• **Assenza di minimo d’ordine** ed evasione rapida in 24/48h;
+• **Documentazione PDF riservata** immediatamente consultabile.
 
 {CREDENTIALS_BLOCK}
 
-Buon lavoro e [SALUTO_CHIUSURA]`,
+[SALUTO_CHIUSURA]`,
   },
   {
     code: 'T087',
-    name: 'Memo Breve — Nota Operativa Reparto Commerciale',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Trasmissione Formale Ufficio Commerciale',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Rif. {COMPANY_NAME}{CITY_PAREN} — Listino 2gg ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Rif. anagrafica {COMPANY_NAME}{CITY_PAREN} — Listino 2gg ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in allegato logico al link sottostante trasmettiamo [IL_CATALISTINO_PDF] emesso da [IDENTITA_IZZO] per la Vostra ragione sociale, completo di credenziali portale e scontistica 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+tramite il collegamento riportato nel riquadro seguente trasmettiamo [IL_CATALISTINO_PDF] emesso da [IDENTITA_IZZO] per la Vostra ragione sociale, completo di credenziali di autenticazione B2B e parametro 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
 
 {CREDENTIALS_BLOCK}
 
-Per preventivi su lista o informazioni risponda pure a questa comunicazione.
+Per quotazioni su distinta o chiarimenti amministrativi potete rispondere direttamente alla presente.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T088',
-    name: 'Memo Breve — Invito a Verificare un Solo Articolo',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Riscontro Rapido sui Codici di Maggior Consumo',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Provi a verificare anche un solo prezzo 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Verifica quotazioni nette 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-non Le chiedo lunghi confronti: quando ha 60 secondi apra [IL_CATALISTINO_PDF] di [IDENTITA_IZZO] qui sotto e guardi il netto finito col {DISCOUNT_FORMULA} su due o tre articoli che comprate ogni mese.
+per una verifica rapida ed essenziale delle nostre condizioni, è sufficiente aprire [IL_CATALISTINO_PDF] di [IDENTITA_IZZO] dal riquadro sottostante ed esaminare il prezzo netto finito ({DISCOUNT_FORMULA}) sulle referenze di Vostro più frequente utilizzo:
 
 {CREDENTIALS_BLOCK}
 
-Se il prezzo e la consegna 24/48h La convincono, ha già Username e Password pronti!
+L’utenza riportata consente in ogni momento la consultazione integrale del portale e delle giacenze 24/48h.
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T089',
-    name: 'Memo Breve — Riepilogo Pulito Senza Giri di Parole',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Sintesi Istituzionale Direzione Commerciale',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Offerta 1° acquisto {DISCOUNT_FORMULA} (Stock 2gg) — {COMPANY_NAME}',
+    subjectTemplate: 'Condizioni riservate prima fornitura {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] B2B) [CONNETTIVO_SINTESI]
+da parte di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) [CONNETTIVO_SINTESI]
 
 {CREDENTIALS_BLOCK}
 
-Tutta la merce inclusa nello sconto {DISCOUNT_FORMULA} parte da [NOSTRO_DEPOSITO] in 24/48h, [ZERO_MINIMO_ORDINE].
+Tutte le referenze soggette al parametro {DISCOUNT_FORMULA} vengono spedite da [NOSTRO_DEPOSITO] in 24/48 ore lavorative, [ZERO_MINIMO_ORDINE].
 
 [FRASE_DISPONIBILITA] ({AGENT_NAME}).
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T090',
-    name: 'Memo Breve — Contatto Veloce con Firma Diretta',
-    angleGroup: 'Memo_Esecutivo_Breve',
+    name: 'Nota Esecutiva — Invio Riferimenti Diretti Referente e Portale',
+    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Da {AGENT_NAME} per {COMPANY_NAME} — Catalistino 2gg ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Comunicazione {AGENT_NAME} per {COMPANY_NAME} — Prospetto 2gg ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-Le lascio in due righe il collegamento a [IL_CATALISTINO_PDF] e l’accesso al portale [IDENTITA_IZZO] già abilitato per {COMPANY_NAME} con lo sconto 1° acquisto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+trasmetto in forma sintetica il collegamento a [IL_CATALISTINO_PDF] e i parametri di accesso al portale di [IDENTITA_IZZO] abilitati a favore di {COMPANY_NAME} con condizione 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-Per qualsiasi necessità mi scriva pure in risposta ([CONTATTO_UMANO_VERO]).
+Per ogni necessità operativa potete fare riferimento diretto al sottoscritto ([CONTATTO_UMANO_VERO]).
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 10 (T091 - T100): PRESIDIO TERRITORIALE & PARTNERSHIP B2B
+  // GRUPPO 10 (T091 - T100): PRESIDIO TERRITORIALE & PARTNERSHIP B2B CONTINUATIVA
   // ==========================================================================
   {
     code: 'T091',
-    name: 'Territorio & Partnership — Servire con Rapidità le Aziende della Zona',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Potenziamento Servizio Diretto sull’Area',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Forniture B2B 24/48h su {CITY} — Condizioni {DISCOUNT_FORMULA} per {COMPANY_NAME}',
+    subjectTemplate: 'Servizio forniture B2B 24/48h su {CITY} — Posizione riservata a {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-stiamo potenziando il servizio diretto di [IDENTITA_IZZO] a supporto degli operatori professionali [CONTESTO_ZONA] {CITY}{CITY_PAREN} attivi nel settore {SECTOR_SHORT}.
+nell’ambito del potenziamento del servizio distributivo diretto di [IDENTITA_IZZO] a favore degli operatori qualificati [CONTESTO_ZONA] {CITY} attivi nel comparto {SECTOR_SHORT}, abbiamo riservato una specifica abilitazione alla Vostra società.
 
-Per presentarci in modo concreto alla Vostra azienda, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] sulle linee {RECOMMENDED_FAMILY} e attivato lo sconto speciale {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], con [TEMPI_RESA] direttamente presso la Vostra sede di {CITY}.
+Nello specifico [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] relativo alle linee {RECOMMENDED_FAMILY} e attivato il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], garantendo [TEMPI_RESA] presso la Vostra sede di {CITY}.
 
 {CREDENTIALS_BLOCK}
 
@@ -1791,16 +1792,16 @@ Per presentarci in modo concreto alla Vostra azienda, [ABBIAMO_PREPARATO] [IL_CA
   },
   {
     code: 'T092',
-    name: 'Territorio & Partnership — Logistica Nazionale con Attenzione Locale',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Capacità Logistica Nazionale e Referente Dedicato',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}: [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
+    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-il nostro obiettivo in [IDENTITA_IZZO] è portare alle aziende dinamiche [CONTESTO_ZONA] {CITY} tutta la profondità di stock di un grande polo logistico 24/48h, mantenendo però il rapporto umano e diretto di un referente dedicato ({AGENT_NAME}).
+il modello operativo di [IDENTITA_IZZO] è strutturato per mettere a disposizione delle aziende [CONTESTO_ZONA] {CITY} la profondità di stock di un polo logistico centrale 24/48h, affiancata dalla continuità relazionale di un referente dedicato ({AGENT_NAME}).
 
-Per inaugurare questa conoscenza [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Per avviare tale collaborazione [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1811,16 +1812,16 @@ Per inaugurare questa conoscenza [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} [
   },
   {
     code: 'T093',
-    name: 'Territorio & Partnership — Costruire un Rapporto Continuativo e Serio',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Impostazione Orientata a Rapporti B2B Stabili',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Proposta di collaborazione B2B ({DISCOUNT_FORMULA} 2gg) — {COMPANY_NAME}',
+    subjectTemplate: 'Accreditamento partnership di fornitura B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] non cerchiamo la vendita occasionale fine a sé stessa, ma relazioni B2B continuative con aziende serie [PER_IL_COMPARTO] {SECTOR_SHORT}.
+la politica commerciale di [IDENTITA_IZZO] è orientata alla costruzione di rapporti di fornitura B2B continuativi e qualificati con le realtà strutturate [PER_IL_COMPARTO] {SECTOR_SHORT}.
 
-Sappiamo però che la fiducia va conquistata sul campo: per questo [METTIAMO_A_DISPOSIZIONE] {COMPANY_NAME} una prima fornitura [ZERO_MINIMO_ORDINE] con sconto potenziato {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], accompagnata da [IL_CATALISTINO_PDF] trasparente al centesimo.
+Consapevoli che ogni collaborazione solida nasce da una verifica concreta sul campo, [METTIAMO_A_DISPOSIZIONE] una prima fornitura [ZERO_MINIMO_ORDINE] assistita dal parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e da [IL_CATALISTINO_PDF] dedicato a {COMPANY_NAME}.
 
 {CREDENTIALS_BLOCK}
 
@@ -1829,35 +1830,35 @@ Sappiamo però che la fiducia va conquistata sul campo: per questo [METTIAMO_A_D
   },
   {
     code: 'T094',
-    name: 'Territorio & Partnership — Consegne Veloci su Sede e Cantieri Provinciali',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Collegamenti Giornalieri Corriere Espresso sulla Provincia',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Copertura 24/48h per {COMPANY_NAME}{CITY_PAREN} | Sconto {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Copertura logistica 24/48h per {COMPANY_NAME}{CITY_PAREN} | Condizioni {DISCOUNT_FORMULA}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-grazie ai flussi giornalieri con corrieri espressi da [NOSTRO_DEPOSITO], serviamo regolarmente in 24/48h tutta l’area di {CITY}{CITY_PAREN}, [DESTINAZIONE_FLESSIBILE].
+attraverso partenze giornaliere da [NOSTRO_DEPOSITO] con corrieri espressi nazionali, [IDENTITA_IZZO] presidia regolarmente con consegne in 24/48h l’area di {CITY}, operando [DESTINAZIONE_FLESSIBILE].
 
-Per {COMPANY_NAME} [ABBIAMO_PREPARATO] un pacchetto di attivazione immediata su [SETTORI_MERCEOLOGICI] con formula {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+A favore di {COMPANY_NAME} [ABBIAMO_PREPARATO] una posizione immediatamente operativa su [SETTORI_MERCEOLOGICI] col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
-[CERTEZZA_EVASIONE] e [CURA_IMBALLO]. Per ogni informazione [COME_RISPONDERE].
+Operiamo [CERTEZZA_EVASIONE] e con rigorosa [CURA_IMBALLO]. Per ogni informazione siamo contattabili [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T095',
-    name: 'Territorio & Partnership — Invito alle Realtà Qualificate del Comparto',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Comunicazione Riservata agli Operatori Qualificati',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Invito B2B riservato a {COMPANY_NAME} — Listino 2gg {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Accreditamento riservato operatori B2B — {COMPANY_NAME} ({DISCOUNT_FORMULA})',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-selezionando gli operatori qualificati di {SECTOR_SHORT} attivi su {CITY}, abbiamo avuto il piacere di individuare {COMPANY_NAME} e di predisporre una proposta d’ingresso dedicata sulla piattaforma [IDENTITA_IZZO].
+nell’ambito dell’accreditamento degli operatori professionali del comparto {SECTOR_SHORT} presenti su {CITY}, la Direzione Commerciale di [IDENTITA_IZZO] ha predisposto una posizione riservata intestata a {COMPANY_NAME}.
 
-Aprendo il prospetto riservato qui sotto [PUO_VISIONARE] [IL_CATALISTINO_PDF] già scontato al {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e utilizzare [LE_CREDENZIALI] [INCISO_SENZA_VINCOLO]:
+Tramite il quadro riepilogativo sottostante [PUO_VISIONARE] [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e utilizzare [LE_CREDENZIALI] [INCISO_SENZA_VINCOLO]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1866,34 +1867,34 @@ Aprendo il prospetto riservato qui sotto [PUO_VISIONARE] [IL_CATALISTINO_PDF] gi
   },
   {
     code: 'T096',
-    name: 'Territorio & Partnership — Un Partner Solido per Crescere Insieme',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Continuità di Stock e Assistenza nel Tempo',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Partner distributivo 24/48h per {COMPANY_NAME}: attivo {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Partner distributivo B2B 24/48h per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-avere alle spalle un [QUALIFICA_DISTRIBUTORE] come [IDENTITA_IZZO] significa poter contare tutto l’anno su [STOCK_REALE], prezzi chiari e un referente ({AGENT_NAME}) pronto a supportarVi su {RECOMMENDED_FAMILY}.
+collaborare con una [QUALIFICA_DISTRIBUTORE] quale [IDENTITA_IZZO] consente di fare affidamento tutto l’anno su [STOCK_REALE], listini trasparenti e un referente dedicato ({AGENT_NAME}) a supporto degli acquisti su {RECOMMENDED_FAMILY}.
 
-Iniziare è immediato e privo di qualsiasi vincolo: sul 1° ordine 2gg {COMPANY_NAME} ha già attivo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+L’attivazione non prevede alcun vincolo: sulla prima fornitura 2gg {COMPANY_NAME} dispone già di [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA] [OPZIONE_TELEFONATA].
+[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T097',
-    name: 'Territorio & Partnership — Efficienza Digitale + Valori Tradizionali',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Innovazione Digitale B2B e Serietà Commerciale',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Serietà commerciale e Pronta Consegna 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Organizzazione B2B e Pronta Consegna 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] abbiamo investito in tecnologia per darVi un portale B2B veloce e [IL_CATALISTINO_PDF] sempre aggiornato, ma conserviamo i valori del commercio tradizionale: parola data sui tempi, merce controllata e contatto umano diretto.
+in [IDENTITA_IZZO] affianchiamo a un’infrastruttura digitale B2B evoluta e a [IL_CATALISTINO_PDF] in costante aggiornamento i principi cardine della distribuzione professionale: rispetto rigoroso delle tempistiche concordate, controllo qualità in spedizione e rapporto diretto col referente.
 
-Con questo spirito dedichiamo a {COMPANY_NAME} ({CITY}) lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Con questa impostazione dedichiamo a {COMPANY_NAME}{CITY_PAREN} la condizione di primo accreditamento {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
 
 {CREDENTIALS_BLOCK}
 
@@ -1902,33 +1903,33 @@ Con questo spirito dedichiamo a {COMPANY_NAME} ({CITY}) lo sconto di benvenuto {
   },
   {
     code: 'T098',
-    name: 'Territorio & Partnership — Supporto Dedicato alle Imprese della Provincia',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Riferimento Provinciale Area Clienti Direzionali',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Linea B2B {CITY} ({DISCOUNT_FORMULA} 1° ordine 2gg) — {COMPANY_NAME}',
+    subjectTemplate: 'Area Clienti B2B {CITY} ({DISCOUNT_FORMULA} 1ª fornitura) — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-sono {AGENT_NAME} e seguo per [IDENTITA_IZZO] lo sviluppo dei clienti professionali nella Vostra provincia. Ho attivato per {COMPANY_NAME} il profilo B2B con extra sconto {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [ZERO_MINIMO_ORDINE]:
+in qualità di referente ({AGENT_NAME}) incaricato da [IDENTITA_IZZO] per i rapporti con le aziende professionali della Vostra area provinciale, confermo l’abilitazione del profilo B2B di {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [ZERO_MINIMO_ORDINE]:
 
 {CREDENTIALS_BLOCK}
 
-Sfogli pure [IL_CATALISTINO_PDF] con comodità: se possiamo esserVi utili anche su una prima fornitura veloce, mi trova subito qui in risposta.
+La documentazione contenuta in [IL_CATALISTINO_PDF] è immediatamente scaricabile; per qualsiasi riscontro operativo resto direttamente reperibile [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T099',
-    name: 'Territorio & Partnership — Vantaggio Immediato + Continuità nel Tempo',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Condizioni di Primo Impianto e Regime Ordinario B2B',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Condizioni B2B riservate a {COMPANY_NAME} — Primo ordine {DISCOUNT_FORMULA} + Listino {BASE_DISCOUNT}%',
+    subjectTemplate: 'Parametri B2B riservati a {COMPANY_NAME} — 1ª fornitura {DISCOUNT_FORMULA} e Listino {BASE_DISCOUNT}%',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-la proposta che [IDENTITA_IZZO] ha strutturato per {COMPANY_NAME} guarda sia all’immediato sia al lungo periodo:
-• **Subito sul 1° acquisto**: sconto potenziato {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE];
-• **Sui riacquisti successivi**: mantenimento del listino professionale {BASE_DISCOUNT}% e offerte dedicate [PER_IL_COMPARTO] {SECTOR_SHORT}.
+l’accreditamento predisposto da [IDENTITA_IZZO] a favore di {COMPANY_NAME} definisce condizioni chiare sia per la verifica iniziale sia per la gestione ordinaria successiva:
+• **Prima fornitura conoscitiva**: applicazione del parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE];
+• **Forniture successive**: mantenimento stabile del listino professionale {BASE_DISCOUNT}% e quotazioni dedicate [PER_IL_COMPARTO] {SECTOR_SHORT}.
 
 {CREDENTIALS_BLOCK}
 
@@ -1938,23 +1939,20 @@ la proposta che [IDENTITA_IZZO] ha strutturato per {COMPANY_NAME} guarda sia all
   },
   {
     code: 'T100',
-    name: 'Territorio & Partnership — Benvenuto Ufficiale nel Network B2B Izzo',
-    angleGroup: 'Presidio_Territoriale',
+    name: 'Sviluppo Territoriale — Comunicazione Ufficiale di Accreditamento al Portale B2B',
+    angleGroup: 'Sviluppo_Rete_Territoriale',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Benvenuto B2B per {COMPANY_NAME}: [OGG_TIPO_DOC] e Sconto {DISCOUNT_FORMULA}',
+    subjectTemplate: 'Comunicazione ufficiale di accreditamento B2B — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-siamo lieti di trasmetterVi i riferimenti completi dell’apertura canale B2B presso [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]) predisposta a nome di {COMPANY_NAME}.
+con la presente la Direzione Commerciale di [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]) trasmette i riferimenti ufficiali relativi all’apertura della posizione B2B intestata a {COMPANY_NAME}.
 
-Tutto è già pronto per permetterVi di consultare [IL_CATALISTINO_PDF] e usufruire sul Vostro primo ordine dello sconto riservato {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], con [TEMPI_RESA] [COPERTURA_ITALIA]:
+L’anagrafica è già pienamente abilitata per la consultazione di [IL_CATALISTINO_PDF] e per l’applicazione sulla prima fornitura del parametro riservato {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], con [TEMPI_RESA] [COPERTURA_ITALIA]:
 
 {CREDENTIALS_BLOCK}
 
-[PROMESSA_FIDUCIA]
-[FRASE_DISPONIBILITA] ({AGENT_NAME} — [CONTATTO_UMANO_VERO]).
-
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
 ];
-

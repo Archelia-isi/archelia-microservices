@@ -33,50 +33,50 @@ interface SdrCombinatorialStudioPanelProps {
 }
 
 const ANGLE_LABELS: Record<string, string> = {
-  Ufficio_Acquisti: '🏢 Ufficio Acquisti & Forniture',
-  Urgenza_Cantiere_24_48h: '⚡ Urgenza Cantiere & Consegna 24/48h',
-  Vantaggio_Doppio_Sconto: '💰 Doppio Sconto 1° Acquisto',
-  Referente_Personale: '👤 Presentazione Diretta Referente',
-  Catalistino_PDF_Diretto: '📄 Invio Catalistino PDF Riservato',
-  Tecnico_Impiantistico: '🔧 Taglio Tecnico Impiantisti (IST)',
-  Banco_Rivendita_Rotazione: '🏪 Taglio Banco & Rivendite (RIV)',
-  Secondo_Fornitore_Parallelo: '🤝 Secondo Fornitore Senza Vincoli',
-  Memo_Esecutivo_Breve: '⏱️ Messaggio Breve Diretto al Titolare',
-  Presidio_Territoriale: '📍 Presidio Territoriale & Logistica',
+  Ufficio_Acquisti: '🏢 Ufficio Acquisti & Approvvigionamenti',
+  Continuità_Logistica_24_48h: '🚚 Continuità Logistica & Evasione 24/48h',
+  Condizioni_Quadro_Riservate: '📑 Condizioni Quadro & Sconto 1ª Fornitura',
+  Referente_Direzionale: '👤 Presentazione Diretta Referente B2B',
+  Documentazione_Listino_PDF: '📄 Trasmissione Prospetto & Listino PDF',
+  Qualificazione_Gamma_Tecnica: '⚙️ Qualificazione Gamma & Copertura Tecnica',
+  Accreditamento_Anagrafica_B2B: '🔐 Accreditamento Anagrafica & Portale B2B',
+  Canale_Fornitura_Complementare: '🤝 Canale di Fornitura Complementare',
+  Comunicazione_Esecutiva_Sintetica: '📋 Nota Esecutiva Sintetica Direzione',
+  Sviluppo_Rete_Territoriale: '📍 Presidio & Sviluppo Rete Territoriale',
 };
 
 const LAYOUT_LABELS: Record<string, string> = {
-  executive_card: 'Card Istituzionale Verde',
-  plain_personal: 'Stile Email Personale Diretta',
-  compact_memo: 'Box Memo Compatto Ambra',
-  accent_stripe: 'Fascia Blu Commerciale',
+  executive_card: 'Card Istituzionale Esecutiva',
+  plain_personal: 'Stile Lettera Direzionale Sobria',
+  compact_memo: 'Prospetto Memo Compatto Ardesia',
+  accent_stripe: 'Fascia Istituzionale Blu Navy',
   clean_table: 'Tabella Tecnica Ufficio Acquisti',
 };
 
 const TOKEN_CATEGORY_LABELS: Record<string, string> = {
-  '01_Saluti_Apertura': '1. Saluti Iniziali (es. Gentilissima / Spettabile)',
-  '02_Oggetto_Email': '2. Parole per Oggetto Email',
-  '03_Presentazione_Azienda': '3. Presentazione Izzo Distribuzione',
-  '04_Contesto_Cliente': '4. Riferimenti ad Azienda, Cantiere e Banco',
-  '05_Offerta_Sconti': '5. Sconti, Prezzi Netti e Vantaggi',
-  '06_Magazzino_Consegna': '6. Pronta Consegna 2gg e Spedizione 24/48h',
-  '07_Portale_Credenziali': '7. Portale B2B, Username, Password e PDF',
-  '08_Referente_Supporto': '8. Referente Dedicato e Contatto Umano',
-  '09_Chiusura_Saluti': '9. Frasi di Chiusura, Saluti Finali e Privacy',
+  '01_Saluti_Apertura': '1. Formule di Saluto Istituzionale (es. Spettabile / Gentilissima)',
+  '02_Oggetto_Email': '2. Lessico Istituzionale per Oggetto Email',
+  '03_Presentazione_Azienda': '3. Identità Societaria Izzo Distribuzione S.r.l.',
+  '04_Contesto_Cliente': '4. Riferimenti ad Azienda, Operatività e Approvvigionamenti',
+  '05_Offerta_Sconti': '5. Inquadramento Commerciale, Sconti e Condizioni 1ª Fornitura',
+  '06_Magazzino_Consegna': '6. Polo Logistico Centrale 2gg ed Evasione 24/48h',
+  '07_Portale_Credenziali': '7. Portale B2B Accreditato, Credenziali e Prospetto PDF',
+  '08_Referente_Supporto': '8. Referente Commerciale Assegnato e Assistenza',
+  '09_Chiusura_Saluti': '9. Formule di Congedo Istituzionale e Informativa B2B',
 };
 
 const QUICK_HELP_TOKENS = [
   '[SALUTO_AZIENDA]',
-  '[APERTURA_CONTATTO]',
-  '[CHI_SIAMO]',
-  '[SETTORE_MERCEOLOGICO]',
-  '[ABBIAMO_PREDISPOSTO]',
+  '[APERTURA_BREVE]',
+  '[VERBO_CONTATTARE]',
+  '[IDENTITA_IZZO]',
+  '[ABBIAMO_ATTIVATO]',
   '[IL_CATALISTINO_PDF]',
-  '[VANTAGGIO_SCONTO]',
-  '[PRONTA_CONSEGNA_2GG]',
-  '[SENZA_VINCOLI]',
-  '[CHIUSURA_DISPONIBILITA]',
-  '[SALUTO_FINALE]',
+  '[IL_DOPPIO_SCONTO]',
+  '[CLAUSOLA_SOLO_2GG]',
+  '[ZERO_MINIMO_ORDINE]',
+  '[FRASE_DISPONIBILITA]',
+  '[SALUTO_CHIUSURA]',
 ];
 
 const QUICK_CLIENT_VARS = [
@@ -113,7 +113,6 @@ export default function SdrCombinatorialStudioPanel({
   // Filtri 100 Email Madri
   const [tplSearch, setTplSearch] = useState('');
   const [tplAngleFilter, setTplAngleFilter] = useState('ALL');
-  const [tplCategoryFilter, setTplCategoryFilter] = useState('ALL');
   const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
   const [isNewTemplate, setIsNewTemplate] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -186,11 +185,13 @@ export default function SdrCombinatorialStudioPanel({
       const res = await fetch(`${apiUrl}/api/admin/sdr/combinatorial/sync-defaults`, {
         method: 'POST',
         headers: authHeaders(),
+        body: JSON.stringify({ overwrite: true }),
       });
       const data = await res.json();
       if (data.success) {
         toast.success(data.message || 'Libreria sincronizzata!');
         fetchOverview();
+        runSimulation();
       } else {
         toast.error(data.error || 'Errore sincronizzazione');
       }
@@ -212,8 +213,9 @@ export default function SdrCombinatorialStudioPanel({
       angleGroup: 'Ufficio_Acquisti',
       targetCategory: 'ALL',
       htmlLayoutVariant: 'executive_card',
-      subjectTemplate: '[OGGETTO_PREFISSO] per {COMPANY_NAME} — [OGGETTO_FOCUS] ({DISCOUNT_FORMULA})',
-      bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},\n\n[APERTURA_CONTATTO] [CHI_SIAMO], realtà specializzata nella distribuzione B2B di [SETTORE_MERCEOLOGICO].\n\n[ABBIAMO_PREDISPOSTO] per la Vostra sede di {CITY} [IL_CATALISTINO_PDF] con [VANTAGGIO_SCONTO] pari al **{DISCOUNT_FORMULA}** sul primo ordine in [PRONTA_CONSEGNA_2GG].\n\n{CREDENTIALS_BLOCK}\n\n[SENZA_VINCOLI]. [CHIUSURA_DISPONIBILITA]\n\n[SALUTO_FINALE],`,
+      subjectTemplate:
+        '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_RAPIDITA] ({DISCOUNT_FORMULA})',
+      bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},\n\n[APERTURA_BREVE], [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_IZZO] per [SETTORI_MERCEOLOGICI].\n\nPer la Vostra sede di {CITY} [ABBIAMO_ATTIVATO] [IL_CATALISTINO_PDF] con [IL_DOPPIO_SCONTO] pari al {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] ([TEMPI_RESA]).\n\n{CREDENTIALS_BLOCK}\n\n[ZERO_MINIMO_ORDINE]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].\n\n[SALUTO_CHIUSURA]`,
       isActive: true,
     });
   };
@@ -392,7 +394,6 @@ export default function SdrCombinatorialStudioPanel({
   const filteredTemplates = useMemo(() => {
     return templates.filter((t) => {
       if (tplAngleFilter !== 'ALL' && t.angleGroup !== tplAngleFilter) return false;
-      if (tplCategoryFilter !== 'ALL' && t.targetCategory !== tplCategoryFilter) return false;
       if (tplSearch.trim()) {
         const q = tplSearch.toLowerCase();
         const hay = `${t.code} ${t.name} ${t.angleGroup} ${t.subjectTemplate} ${t.bodyTemplate}`.toLowerCase();
@@ -400,7 +401,7 @@ export default function SdrCombinatorialStudioPanel({
       }
       return true;
     });
-  }, [templates, tplAngleFilter, tplCategoryFilter, tplSearch]);
+  }, [templates, tplAngleFilter, tplSearch]);
 
   const filteredTokens = useMemo(() => {
     return tokens.filter((tk) => {
@@ -714,27 +715,19 @@ export default function SdrCombinatorialStudioPanel({
                     onChange={(e) => setTplSearch(e.target.value)}
                   />
                 </div>
-                <div style={{ width: '240px' }}>
+                <div style={{ width: '280px' }}>
                   <Select
                     value={tplAngleFilter}
                     onChange={(e) => setTplAngleFilter(e.target.value)}
                     options={[
-                      { value: 'ALL', label: 'Tutti i 10 Stili Commerciali' },
+                      { value: 'ALL', label: 'Tutti i 10 Angoli Istituzionali' },
                       ...Object.entries(ANGLE_LABELS).map(([k, v]) => ({ value: k, label: v })),
                     ]}
                   />
                 </div>
-                <div style={{ width: '175px' }}>
-                  <Select
-                    value={tplCategoryFilter}
-                    onChange={(e) => setTplCategoryFilter(e.target.value)}
-                    options={[
-                      { value: 'ALL', label: 'Tutti i Destinatari' },
-                      { value: 'IST', label: 'Specifiche IST (40%)' },
-                      { value: 'RIV', label: 'Specifiche RIV (50%)' },
-                    ]}
-                  />
-                </div>
+                <Badge variant="success" size="sm">
+                  100/100 Universali per Tutti i Clienti B2B
+                </Badge>
               </div>
 
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -797,17 +790,8 @@ export default function SdrCombinatorialStudioPanel({
                       </div>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
-                      <Badge
-                        variant={
-                          tpl.targetCategory === 'RIV'
-                            ? 'warning'
-                            : tpl.targetCategory === 'IST'
-                              ? 'primary'
-                              : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {tpl.targetCategory === 'ALL' ? 'IST + RIV' : `Solo ${tpl.targetCategory}`}
+                      <Badge variant="success" size="sm">
+                        Tutti i Clienti B2B
                       </Badge>
                     </td>
                     <td
@@ -1083,18 +1067,14 @@ export default function SdrCombinatorialStudioPanel({
                     marginBottom: '4px',
                   }}
                 >
-                  DESTINATARI
+                  APPLICABILITÀ CLIENTI
                 </label>
                 <Select
-                  value={editingTemplate.targetCategory || 'ALL'}
-                  onChange={(e) =>
-                    setEditingTemplate({ ...editingTemplate, targetCategory: e.target.value })
+                  value="ALL"
+                  onChange={() =>
+                    setEditingTemplate({ ...editingTemplate, targetCategory: 'ALL' })
                   }
-                  options={[
-                    { value: 'ALL', label: 'Tutti (IST + RIV)' },
-                    { value: 'IST', label: 'Solo Installatori (IST 40%)' },
-                    { value: 'RIV', label: 'Solo Rivenditori (RIV 50%)' },
-                  ]}
+                  options={[{ value: 'ALL', label: 'Tutti i Clienti B2B (Universale)' }]}
                 />
               </div>
               <div>

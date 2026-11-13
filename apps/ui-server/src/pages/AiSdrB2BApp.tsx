@@ -640,20 +640,21 @@ export default function AiSdrB2BApp() {
     const extraPct = cat?.extraFirstPurchasePct ?? 10;
     const formula = `${basePct}% + ${extraPct}%`;
     const agentName = promo?.assignedAgentName || config.defaultAgentName || 'Daniele Savoia';
-    const defaultSubject = `Catalistino Pronta Consegna 2gg riservato a ${p?.companyName || 'Cliente B2B'} (Sconto ${formula})`;
-    const defaultBody = `Gentile Team di ${p?.companyName || 'Azienda'},
+    const defaultSubject = `Comunicazione commerciale riservata per ${p?.companyName || 'Cliente B2B'} — Parametro ${formula}`;
+    const defaultBody = `Spettabile ${p?.companyName || 'Azienda'},
 
-Siamo Izzo Distribuzione (I.S.I. S.r.l.), distributore B2B di materiale elettrico, illuminazione tecnica e automazione.
+La presente comunicazione proviene dalla Divisione Commerciale B2B di Izzo Distribuzione S.r.l., operatore specializzato nella distribuzione all’ingrosso di materiale elettrico, illuminotecnica professionale e automazione.
 
-Abbiamo predisposto il Catalistino Pronta Consegna 2gg dedicato a ${p?.companyName || 'Voi'} con Sconto Riservato ${formula} valido sul Vostro primo acquisto sugli articoli disponibili nel Deposito Principale (24/48h).
+Abbiamo predisposto il prospetto catalistino riservato a ${p?.companyName || 'Voi'} con condizione di prima fornitura pari al ${formula}, applicabile sugli articoli disponibili presso il polo logistico centrale (evasione 24/48h).
 
-• Portale B2B: https://www.izzodistribuzione.it/login
-• Username: ${promo?.username || '(premi Genera Credenziali)'}
-• Password Provvisoria: ${promo?.tempPassword || '(premi Genera Credenziali)'}
-• Referente Dedicato: ${agentName}
+• Portale B2B Accreditato: https://www.izzodistribuzione.it/login
+• Codice Utente: ${promo?.username || '(premi Genera Credenziali)'}
+• Credenziale Temporanea: ${promo?.tempPassword || '(premi Genera Credenziali)'}
+• Referente Assegnato: ${agentName}
 
-Cordiali saluti,
-${agentName} — Divisione B2B Izzo Distribuzione`;
+Distinti saluti,
+${agentName} — Divisione Commerciale B2B
+Izzo Distribuzione S.r.l.`;
 
     setDraftSubjectInput(firstDraft?.subject || defaultSubject);
     setDraftBodyInput(firstDraft?.bodyText || defaultBody);

@@ -686,18 +686,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           discountTargetType: 'ALL_2GG',
           discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: String(
-            body.offerTitle || 'Offerta esclusiva valida per il primo acquisto'
+            body.offerTitle || 'Condizioni riservate di prima fornitura B2B'
           ),
           minOrderAmountText: String(
-            body.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto"
+            body.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura'
           ),
           freeShippingText: String(
             body.freeShippingText ||
-              'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)'
+              'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)'
           ),
           paymentTermsText: String(
             body.paymentTermsText ||
-              'Condizioni B2B riservate con referente dedicato Daniele Savoia'
+              'Condizioni B2B riservate con referente assegnato Daniele Savoia'
           ),
           customCommercialNotes: body.customCommercialNotes
             ? String(body.customCommercialNotes)
@@ -922,8 +922,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const effectiveNetPct = Number(
           (100 - (100 - baseDiscountNum) * (1 - extraFirstPurchasePct / 100)).toFixed(2)
         );
-        const catalistinoTitle = `Catalistino Riservato a ${prospect.companyName}`;
-        const catalistinoSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
+        const catalistinoTitle = `Catalistino B2B Riservato — ${prospect.companyName}`;
+        const catalistinoSubtitle = `Condizioni riservate di prima fornitura — Parametro ${discountFormulaLabel}`;
 
         // Regola FIRST_PURCHASE rigorosamente ristretta a ALL_2GG ("Solo Pronta Consegna 2gg")
         // allineata sia su b2b_discount_rules (OS) sia su b2b_agent_discount_rules (Storefront B2B)
@@ -2491,14 +2491,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/api/admin/sdr/combinatorial/sync-defaults', async (_request, reply) => {
+  fastify.post('/api/admin/sdr/combinatorial/sync-defaults', async (request, reply) => {
     try {
-      const res = await seedCombinatorialLibraryInDb({ syncMissing: true });
+      const body = (request.body || {}) as { overwrite?: boolean };
+      const res = await seedCombinatorialLibraryInDb({
+        syncMissing: true,
+        overwriteDefaults: body.overwrite !== false,
+      });
       invalidateCombinatorialCache();
       return reply.send({
         success: true,
         ...res,
-        message: `Libreria base sincronizzata (${res.templatesCount} Email Madri, ${res.tokensCount} Gruppi di Parole).`,
+        message: `Libreria ufficiale Izzo Distribuzione S.r.l. sincronizzata (${res.templatesCount} Email Madri Universali, ${res.tokensCount} Gruppi di Parole).`,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -2549,7 +2553,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           tempPasswordPlain: 'Izzo!8Kx4P2',
           baseDiscount,
           extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
-          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
           minOrderAmountText: config.minOrderAmountText,
           freeShippingText: config.freeShippingText,
           paymentTermsText: config.paymentTermsText,
@@ -2892,15 +2896,15 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           baseDiscount: baseDiscountNum,
           extraFirstPurchasePct:
             config?.enableFirstPurchaseRule !== false ? extraFirstPurchasePct : 0,
-          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
           minOrderAmountText:
-            config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
+            config?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura',
           freeShippingText:
             config?.freeShippingText ||
-            'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
+            'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)',
           paymentTermsText:
             config?.paymentTermsText ||
-            'Condizioni B2B riservate con referente dedicato Daniele Savoia',
+            'Condizioni B2B riservate con referente assegnato Daniele Savoia',
           customCommercialNotes: config?.customCommercialNotes,
           smartCatalogUrl: smartUrls.storefrontOfferUrl,
           agentName: resolvedAgent.name,
@@ -3035,15 +3039,15 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           tempPasswordPlain: promo.tempPassword,
           baseDiscount: baseDiscountNum,
           extraFirstPurchasePct: config?.enableFirstPurchaseRule !== false ? extraPct : 0,
-          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
           minOrderAmountText:
-            config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
+            config?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura',
           freeShippingText:
             config?.freeShippingText ||
-            'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
+            'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)',
           paymentTermsText:
             config?.paymentTermsText ||
-            'Condizioni B2B riservate con referente dedicato Daniele Savoia',
+            'Condizioni B2B riservate con referente assegnato Daniele Savoia',
           customCommercialNotes: config?.customCommercialNotes,
           smartCatalogUrl: smartUrls.storefrontOfferUrl,
           agentName: resolvedAgent.name,

@@ -106,44 +106,104 @@ function buildFallbackLibrary(): CachedLibrary {
 
 /**
  * Popola in modo idempotente le 100 email madri e i 108 gruppi di parole dinamiche nel DB SDR.
+ * Con `overwriteDefaults: true` riallinea tutte le 100 Email Madri (targetCategory = ALL)
+ * e tutti i 108 gruppi lessicali ufficiali alla versione istituzionale di Izzo Distribuzione S.r.l.
  */
 export async function seedCombinatorialLibraryInDb(options?: {
   syncMissing?: boolean;
+  overwriteDefaults?: boolean;
 }): Promise<{ templatesCount: number; tokensCount: number }> {
   const syncMissing = options?.syncMissing ?? true;
+  const overwriteDefaults = options?.overwriteDefaults ?? false;
 
-  const [existingTemplatesCount, existingTokensCount] = await Promise.all([
-    sdrPrisma.sdrEmailTemplate.count(),
-    sdrPrisma.sdrSynonymToken.count(),
-  ]);
+  if (overwriteDefaults) {
+    const chunkSize = 25;
+    for (let i = 0; i < DEFAULT_SYNONYM_TOKENS.length; i += chunkSize) {
+      const batch = DEFAULT_SYNONYM_TOKENS.slice(i, i + chunkSize);
+      await Promise.all(
+        batch.map((tk) => {
+          const key = tk.tokenKey.toUpperCase();
+          return sdrPrisma.sdrSynonymToken.upsert({
+            where: { tokenKey: key },
+            create: {
+              tokenKey: key,
+              category: tk.category,
+              description: tk.description,
+              variants: tk.variants,
+              isActive: true,
+            },
+            update: {
+              category: tk.category,
+              description: tk.description,
+              variants: tk.variants,
+            },
+          });
+        })
+      );
+    }
 
-  if (existingTokensCount === 0 || syncMissing) {
-    await sdrPrisma.sdrSynonymToken.createMany({
-      data: DEFAULT_SYNONYM_TOKENS.map((tk: SeedSynonymToken) => ({
-        tokenKey: tk.tokenKey.toUpperCase(),
-        category: tk.category,
-        description: tk.description,
-        variants: tk.variants,
-        isActive: true,
-      })),
-      skipDuplicates: true,
-    });
-  }
+    for (let i = 0; i < DEFAULT_EMAIL_TEMPLATES.length; i += chunkSize) {
+      const batch = DEFAULT_EMAIL_TEMPLATES.slice(i, i + chunkSize);
+      await Promise.all(
+        batch.map((tpl) =>
+          sdrPrisma.sdrEmailTemplate.upsert({
+            where: { code: tpl.code },
+            create: {
+              code: tpl.code,
+              name: tpl.name,
+              angleGroup: tpl.angleGroup,
+              targetCategory: 'ALL',
+              htmlLayoutVariant: tpl.htmlLayoutVariant,
+              subjectTemplate: tpl.subjectTemplate,
+              bodyTemplate: tpl.bodyTemplate,
+              isActive: true,
+            },
+            update: {
+              name: tpl.name,
+              angleGroup: tpl.angleGroup,
+              targetCategory: 'ALL',
+              htmlLayoutVariant: tpl.htmlLayoutVariant,
+              subjectTemplate: tpl.subjectTemplate,
+              bodyTemplate: tpl.bodyTemplate,
+            },
+          })
+        )
+      );
+    }
+  } else {
+    const [existingTemplatesCount, existingTokensCount] = await Promise.all([
+      sdrPrisma.sdrEmailTemplate.count(),
+      sdrPrisma.sdrSynonymToken.count(),
+    ]);
 
-  if (existingTemplatesCount === 0 || syncMissing) {
-    await sdrPrisma.sdrEmailTemplate.createMany({
-      data: DEFAULT_EMAIL_TEMPLATES.map((tpl: SeedEmailTemplate) => ({
-        code: tpl.code,
-        name: tpl.name,
-        angleGroup: tpl.angleGroup,
-        targetCategory: tpl.targetCategory,
-        htmlLayoutVariant: tpl.htmlLayoutVariant,
-        subjectTemplate: tpl.subjectTemplate,
-        bodyTemplate: tpl.bodyTemplate,
-        isActive: true,
-      })),
-      skipDuplicates: true,
-    });
+    if (existingTokensCount === 0 || syncMissing) {
+      await sdrPrisma.sdrSynonymToken.createMany({
+        data: DEFAULT_SYNONYM_TOKENS.map((tk: SeedSynonymToken) => ({
+          tokenKey: tk.tokenKey.toUpperCase(),
+          category: tk.category,
+          description: tk.description,
+          variants: tk.variants,
+          isActive: true,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (existingTemplatesCount === 0 || syncMissing) {
+      await sdrPrisma.sdrEmailTemplate.createMany({
+        data: DEFAULT_EMAIL_TEMPLATES.map((tpl: SeedEmailTemplate) => ({
+          code: tpl.code,
+          name: tpl.name,
+          angleGroup: tpl.angleGroup,
+          targetCategory: 'ALL',
+          htmlLayoutVariant: tpl.htmlLayoutVariant,
+          subjectTemplate: tpl.subjectTemplate,
+          bodyTemplate: tpl.bodyTemplate,
+          isActive: true,
+        })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   invalidateCombinatorialCache();
@@ -272,8 +332,88 @@ function pickIndex(length: number, seedCursor?: { val: number } | null): number 
   return crypto.randomInt(0, length);
 }
 
+function normalizeItalianArticulatedPrepositions(text: string): string {
+  const rules: Array<[RegExp, string]> = [
+    [/\bdi il\b/g, 'del'],
+    [/\bDi il\b/g, 'Del'],
+    [/\bdi lo\b/g, 'dello'],
+    [/\bDi lo\b/g, 'Dello'],
+    [/\bdi la\b/g, 'della'],
+    [/\bDi la\b/g, 'Della'],
+    [/\bdi l’/g, 'dell’'],
+    [/\bDi l’/g, 'Dell’'],
+    [/\bdi i\b/g, 'dei'],
+    [/\bDi i\b/g, 'Dei'],
+    [/\bdi gli\b/g, 'degli'],
+    [/\bDi gli\b/g, 'Degli'],
+    [/\bdi le\b/g, 'delle'],
+    [/\bDi le\b/g, 'Delle'],
+    [/\ba il\b/g, 'al'],
+    [/\bA il\b/g, 'Al'],
+    [/\ba lo\b/g, 'allo'],
+    [/\bA lo\b/g, 'Allo'],
+    [/\ba la\b/g, 'alla'],
+    [/\bA la\b/g, 'Alla'],
+    [/\ba l’/g, 'all’'],
+    [/\bA l’/g, 'All’'],
+    [/\ba i\b/g, 'ai'],
+    [/\bA i\b/g, 'Ai'],
+    [/\ba gli\b/g, 'agli'],
+    [/\bA gli\b/g, 'Agli'],
+    [/\ba le\b/g, 'alle'],
+    [/\bA le\b/g, 'Alle'],
+    [/\bda il\b/g, 'dal'],
+    [/\bDa il\b/g, 'Dal'],
+    [/\bda lo\b/g, 'dallo'],
+    [/\bDa lo\b/g, 'Dallo'],
+    [/\bda la\b/g, 'dalla'],
+    [/\bDa la\b/g, 'Dalla'],
+    [/\bda l’/g, 'dall’'],
+    [/\bDa l’/g, 'Dall’'],
+    [/\bda i\b/g, 'dai'],
+    [/\bDa i\b/g, 'Dai'],
+    [/\bda gli\b/g, 'dagli'],
+    [/\bDa gli\b/g, 'Dagli'],
+    [/\bda le\b/g, 'dalle'],
+    [/\bDa le\b/g, 'Dalle'],
+    [/\bin il\b/g, 'nel'],
+    [/\bIn il\b/g, 'Nel'],
+    [/\bin lo\b/g, 'nello'],
+    [/\bIn lo\b/g, 'Nello'],
+    [/\bin la\b/g, 'nella'],
+    [/\bIn la\b/g, 'Nella'],
+    [/\bin l’/g, 'nell’'],
+    [/\bIn l’/g, 'Nell’'],
+    [/\bin i\b/g, 'nei'],
+    [/\bIn i\b/g, 'Nei'],
+    [/\bin gli\b/g, 'negli'],
+    [/\bIn gli\b/g, 'Negli'],
+    [/\bin le\b/g, 'nelle'],
+    [/\bIn le\b/g, 'Nelle'],
+    [/\bsu il\b/g, 'sul'],
+    [/\bSu il\b/g, 'Sul'],
+    [/\bsu lo\b/g, 'sullo'],
+    [/\bSu lo\b/g, 'Sullo'],
+    [/\bsu la\b/g, 'sulla'],
+    [/\bSu la\b/g, 'Sulla'],
+    [/\bsu l’/g, 'sull’'],
+    [/\bSu l’/g, 'Sull’'],
+    [/\bsu i\b/g, 'sui'],
+    [/\bSu i\b/g, 'Sui'],
+    [/\bsu gli\b/g, 'sugli'],
+    [/\bSu gli\b/g, 'Sugli'],
+    [/\bsu le\b/g, 'sulle'],
+    [/\bSu le\b/g, 'Sulle'],
+  ];
+  let out = text;
+  for (const [re, rep] of rules) {
+    out = out.replace(re, rep);
+  }
+  return out;
+}
+
 function polishSubjectTypography(rawSubject: string): string {
-  const cleaned = rawSubject
+  const cleaned = normalizeItalianArticulatedPrepositions(rawSubject)
     .replace(/`/g, '')
     .replace(/\s+/g, ' ')
     .replace(/\s+([,.:;!?])/g, '$1')
@@ -284,7 +424,7 @@ function polishSubjectTypography(rawSubject: string): string {
 
 function polishBodyTypography(rawBody: string): string {
   const lines = rawBody.split('\n').map((line) =>
-    line
+    normalizeItalianArticulatedPrepositions(line)
       .replace(/`/g, '')
       .replace(/[ \t]{2,}/g, ' ')
       .replace(/\s+([,.;!?])/g, '$1')
@@ -316,18 +456,18 @@ function renderCredentialsPlainBlock(vars: {
 }): string {
   const rows = [
     `--- ${vars.boxTitle} (${vars.companyName.toUpperCase()}) ---`,
-    `• Offerta attiva: ${vars.offerTitle}`,
-    `• Sconto 1° Acquisto (Solo Pronta Consegna 2gg): ${vars.discountFormulaLabel} in cascata (${vars.effectiveNetPct}% netto da listino)`,
-    `• Portale B2B: ${vars.loginUrl}`,
+    `• Inquadramento riservato: ${vars.offerTitle}`,
+    `• Condizione 1ª Fornitura (Linea Pronta Consegna 2gg): ${vars.discountFormulaLabel} in cascata (${vars.effectiveNetPct}% netto da listino)`,
+    `• Portale B2B accreditato: ${vars.loginUrl}`,
     `• ${vars.labelUsername}: ${vars.username}`,
     `• ${vars.labelPassword}: ${vars.tempPasswordPlain}`,
-    `• Minimo d'ordine: ${vars.minOrderAmountText}`,
-    `• Spedizione: ${vars.freeShippingText}`,
-    `• Referente dedicato: ${vars.agentName} (Cod. ${vars.agentCode})`,
+    `• Parametro minimo d'ordine: ${vars.minOrderAmountText}`,
+    `• Termini logistici: ${vars.freeShippingText}`,
+    `• Referente assegnato: ${vars.agentName} (Cod. ${vars.agentCode})`,
     vars.smartCatalogUrl
-      ? `• Catalistino PDF Riservato 2gg: ${vars.smartCatalogUrl}`
+      ? `• Prospetto PDF Linea 2gg: ${vars.smartCatalogUrl}`
       : '',
-    vars.customCommercialNotes ? `• Nota dedicata: ${vars.customCommercialNotes}` : '',
+    vars.customCommercialNotes ? `• Nota operativa: ${vars.customCommercialNotes}` : '',
   ].filter(Boolean);
 
   return rows.join('\n');
@@ -359,13 +499,13 @@ function renderCredentialsHtmlBlock(
     ? `<div style="margin: 14px 0 4px 0;">
         <a href="${escapeHtml(vars.smartCatalogUrl)}" target="_blank" rel="noopener" style="display: inline-block; background: ${
           variant === 'accent_stripe'
-            ? '#1d4ed8'
+            ? '#1e3a8a'
             : variant === 'clean_table'
-              ? '#15803d'
+              ? '#166534'
               : variant === 'compact_memo'
-                ? '#b45309'
+                ? '#334155'
                 : '#0f172a'
-        }; color: #ffffff; font-weight: 700; text-decoration: none; padding: 11px 18px; border-radius: 7px; font-size: 13.5px;">
+        }; color: #ffffff; font-weight: 600; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; letter-spacing: 0.1px;">
           ${escapeHtml(vars.ctaLabel)}
         </a>
       </div>`
@@ -374,24 +514,24 @@ function renderCredentialsHtmlBlock(
   if (variant === 'plain_personal') {
     return `<div style="margin: 16px 0; padding: 12px 16px; border-left: 3px solid #334155; background: #f8fafc;">
       <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-      <div>• <strong>Sconto 1° Acquisto (Solo 2gg):</strong> ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</div>
-      <div>• <strong>Accesso Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
+      <div>• <strong>Condizione 1ª Fornitura (Linea 2gg):</strong> ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</div>
+      <div>• <strong>Portale B2B Accreditato:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
       <div>• <strong>${escapeHtml(vars.labelUsername)}:</strong> <code>${escapeHtml(vars.username)}</code></div>
       <div>• <strong>${escapeHtml(vars.labelPassword)}:</strong> <code>${escapeHtml(vars.tempPasswordPlain)}</code></div>
-      <div>• <strong>Condizioni:</strong> ${escapeHtml(vars.minOrderAmountText)} — ${escapeHtml(vars.freeShippingText)}</div>
-      ${vars.customCommercialNotes ? `<div>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
+      <div>• <strong>Parametri operativi:</strong> ${escapeHtml(vars.minOrderAmountText)} — ${escapeHtml(vars.freeShippingText)}</div>
+      ${vars.customCommercialNotes ? `<div>• <strong>Nota operativa:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
       ${ctaHtml}
     </div>`;
   }
 
   if (variant === 'compact_memo') {
-    return `<div style="margin: 15px 0; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fffbeb;">
-      <div style="font-size: 12px; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)}</div>
-      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">${escapeHtml(vars.companyName)} — Sconto ${escapeHtml(vars.discountFormulaLabel)} su Pronta Consegna 2gg</div>
+    return `<div style="margin: 15px 0; padding: 14px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+      <div style="font-size: 11.5px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.45px; margin-bottom: 5px;">${escapeHtml(vars.boxTitle)}</div>
+      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">${escapeHtml(vars.companyName)} — Parametro ${escapeHtml(vars.discountFormulaLabel)} (Linea 2gg)</div>
       <div style="font-size: 13.5px; line-height: 1.55;">
-        <strong>Portale:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #b45309; font-weight: 700;">www.izzodistribuzione.it/login</a><br/>
-        <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#fef3c7;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code> &nbsp;|&nbsp;
-        <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#fef3c7;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code><br/>
+        <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e293b; font-weight: 700;">www.izzodistribuzione.it/login</a><br/>
+        <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code> &nbsp;|&nbsp;
+        <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code><br/>
         <span style="color:#475569;font-size:12.5px;">${escapeHtml(vars.minOrderAmountText)} • ${escapeHtml(vars.freeShippingText)}</span>
       </div>
       ${ctaHtml}
@@ -399,12 +539,12 @@ function renderCredentialsHtmlBlock(
   }
 
   if (variant === 'accent_stripe') {
-    return `<div style="margin: 18px 0; border: 1px solid #bfdbfe; border-top: 4px solid #1d4ed8; border-radius: 8px; padding: 16px; background: #f8fafc;">
-      <div style="font-weight: 800; color: #1e40af; font-size: 14.5px; margin-bottom: 4px;">${escapeHtml(vars.boxTitle)}</div>
+    return `<div style="margin: 18px 0; border: 1px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 6px; padding: 16px; background: #f8fafc;">
+      <div style="font-weight: 700; color: #1e3a8a; font-size: 14px; margin-bottom: 4px;">${escapeHtml(vars.boxTitle)}</div>
       <div style="font-size: 13px; color: #334155; margin-bottom: 10px;">${escapeHtml(vars.offerTitle)} — <strong>${escapeHtml(vars.discountFormulaLabel)}</strong> (${vars.effectiveNetPct}% netto su stock 2gg)</div>
-      <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1d4ed8; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
-      <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#dbeafe;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
-      <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#dbeafe;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
+      <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e3a8a; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
+      <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
+      <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
       <div style="margin-top: 8px; font-size: 12.5px; color: #475569;">${escapeHtml(vars.minOrderAmountText)} • ${escapeHtml(vars.freeShippingText)} • Ref. ${escapeHtml(vars.agentName)}</div>
       ${ctaHtml}
     </div>`;
@@ -414,15 +554,15 @@ function renderCredentialsHtmlBlock(
     return `<div style="margin: 18px 0;">
       <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13.5px;">
         <tr style="background: #f1f5f9;">
-          <td colspan="2" style="padding: 9px 12px; font-weight: 800; color: #0f172a; border-bottom: 1px solid #cbd5e1;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</td>
+          <td colspan="2" style="padding: 9px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</td>
         </tr>
         <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 38%;">Sconto 1° Acquisto (Solo 2gg)</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #15803d;">${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 40%;">Condizione 1ª Fornitura (Linea 2gg)</td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #166534;">${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</td>
         </tr>
         <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">Portale B2B</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(vars.loginUrl)}" style="color: #15803d; font-weight: 700;">www.izzodistribuzione.it/login</a></td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">Portale B2B Accreditato</td>
+          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 700;">www.izzodistribuzione.it/login</a></td>
         </tr>
         <tr>
           <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${escapeHtml(vars.labelUsername)}</td>
@@ -433,7 +573,7 @@ function renderCredentialsHtmlBlock(
           <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><code>${escapeHtml(vars.tempPasswordPlain)}</code></td>
         </tr>
         <tr>
-          <td style="padding: 7px 12px; color: #475569;">Condizioni &amp; Consegna</td>
+          <td style="padding: 7px 12px; color: #475569;">Termini Operativi &amp; Logistica</td>
           <td style="padding: 7px 12px; color: #334155;">${escapeHtml(vars.minOrderAmountText)} • ${escapeHtml(vars.freeShippingText)}</td>
         </tr>
       </table>
@@ -442,18 +582,18 @@ function renderCredentialsHtmlBlock(
   }
 
   // Default: executive_card
-  return `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin: 18px 0;">
-    <div style="font-weight: 800; color: #15803d; font-size: 14.5px; margin-bottom: 4px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-    <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${escapeHtml(vars.offerTitle)} — Sconto ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</div>
-    <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #15803d; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
+  return `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #166534; border-radius: 6px; padding: 16px; margin: 18px 0;">
+    <div style="font-weight: 700; color: #166534; font-size: 14px; margin-bottom: 4px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
+    <div style="font-weight: 600; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${escapeHtml(vars.offerTitle)} — Parametro ${escapeHtml(vars.discountFormulaLabel)} (${vars.effectiveNetPct}% netto)</div>
+    <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
     <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
     <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
     <div style="margin-top: 10px; font-size: 13px; color: #334155;">
-      • <strong>Sconto Attivo 1° Acquisto:</strong> <strong>${escapeHtml(vars.discountFormulaLabel)}</strong> automatico a carrello sui prodotti in <strong>Pronta Consegna 2gg</strong><br/>
-      • <strong>Condizione Ordine:</strong> ${escapeHtml(vars.minOrderAmountText)}<br/>
-      • <strong>Consegna:</strong> ${escapeHtml(vars.freeShippingText)}<br/>
-      • <strong>Referente:</strong> ${escapeHtml(vars.agentName)} (Cod. ${escapeHtml(vars.agentCode)})
-      ${vars.customCommercialNotes ? `<br/>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}` : ''}
+      • <strong>Condizione 1ª Fornitura:</strong> <strong>${escapeHtml(vars.discountFormulaLabel)}</strong> applicata automaticamente a carrello sugli articoli in <strong>Pronta Consegna 2gg</strong><br/>
+      • <strong>Parametro Ordine:</strong> ${escapeHtml(vars.minOrderAmountText)}<br/>
+      • <strong>Logistica:</strong> ${escapeHtml(vars.freeShippingText)}<br/>
+      • <strong>Referente Assegnato:</strong> ${escapeHtml(vars.agentName)} (Cod. ${escapeHtml(vars.agentCode)})
+      ${vars.customCommercialNotes ? `<br/>• <strong>Nota Operativa:</strong> ${escapeHtml(vars.customCommercialNotes)}` : ''}
     </div>
     ${ctaHtml}
   </div>`;
@@ -465,7 +605,6 @@ function executeCombinatorialSynthesis(
   options?: GenerateCombinatorialOptions
 ): CombinatorialEmailResult & { chosenTemplateId?: number } {
   const catCfg = resolveClusterConfig(input.categoryCluster);
-  const commercialCategory = catCfg.commercialCategory;
   const discountFormulaLabel = `${input.baseDiscount}% + ${input.extraFirstPurchasePct}%`;
   const effectiveNetPct = Number(
     (100 - (100 - input.baseDiscount) * (1 - input.extraFirstPurchasePct / 100)).toFixed(1)
@@ -476,7 +615,8 @@ function executeCombinatorialSynthesis(
       ? { val: Math.abs(Math.floor(options.deterministicSeed)) || 1 }
       : null;
 
-  // 1. Selezione di una delle 100 Email Madri compatibile col listino del cliente (ALL oppure IST / RIV)
+  // 1. Tutte e 100 le Email Madri sono universali per qualsiasi tipologia di cliente B2B:
+  // le discriminanti dinamiche sono i 108 gruppi di parole/frasi e i parametri cliente.
   let chosenTemplate: ActiveEmailTemplateRecord | undefined;
   if (options?.forceTemplateCode) {
     chosenTemplate = library.templates.find(
@@ -484,12 +624,7 @@ function executeCombinatorialSynthesis(
     );
   }
   if (!chosenTemplate) {
-    const eligible = library.templates.filter(
-      (t) =>
-        t.targetCategory === 'ALL' ||
-        t.targetCategory.toUpperCase() === commercialCategory
-    );
-    const pool = eligible.length > 0 ? eligible : library.templates;
+    const pool = library.templates.length > 0 ? library.templates : buildFallbackLibrary().templates;
     chosenTemplate = pool[pickIndex(pool.length, seedCursor)] || buildFallbackLibrary().templates[0];
   }
 
@@ -524,7 +659,7 @@ function executeCombinatorialSynthesis(
     });
   };
 
-  // Elementi strutturali dinamici (anche etichette box, bottone CTA, firma e opt-out cambiano sempre!)
+  // Elementi strutturali dinamici (anche etichette box, bottone CTA, firma e opt-out cambiano sempre)
   const boxTitle = drawTokenValue('TITOLO_BOX_OFFERTA');
   const ctaLabel = drawTokenValue('CTA_BOTTONE_PDF');
   const labelUsername = drawTokenValue('LABEL_USERNAME');
@@ -536,17 +671,17 @@ function executeCombinatorialSynthesis(
   const provClean = (input.province || '').trim();
   const cityLabel = cityClean
     ? `${cityClean}${provClean ? ` (${provClean})` : ''}`
-    : 'la Vostra zona';
+    : 'la Vostra sede operativa';
   const cityParen = cityClean ? ` (${cityClean})` : '';
 
   const brandsNote = input.brandsDetected
-    ? `Tenendo conto dei marchi e delle tipologie che trattate (${input.brandsDetected
+    ? `In relazione alle tipologie merceologiche di Vostro interesse (${input.brandsDetected
         .split(',')
         .slice(0, 4)
         .map((s) => s.trim())
         .filter(Boolean)
-        .join(', ')}), abbiamo evidenziato le linee ad alta rotazione immediatamente spedibili dal nostro deposito centrale.`
-    : `All’interno del prospetto trova in particolare le famiglie ad alta rotazione (${catCfg.recommendedFamily}) con disponibilità verificata nel nostro Deposito Principale 2gg.`;
+        .join(', ')}), il prospetto evidenzia i riferimenti ad alta rotazione con disponibilità immediata presso il polo logistico centrale.`
+    : `All’interno del prospetto sono riepilogate le famiglie merceologiche ad alta rotazione (${catCfg.recommendedFamily}) con giacenza verificata presso il polo logistico centrale (Linea 2gg).`;
 
   const loginUrl = `https://www.izzodistribuzione.it/login?u=${encodeURIComponent(input.username)}`;
 
@@ -618,14 +753,14 @@ function executeCombinatorialSynthesis(
 
   const signaturePlainLines = [
     `${input.agentName} — ${firmaReparto} (Cod. ${input.agentCode})`,
-    `Izzo Distribuzione — I.S.I. S.r.l.${input.agentPhone ? ` | Tel. ${input.agentPhone}` : ''}`,
+    `Izzo Distribuzione S.r.l.${input.agentPhone ? ` | Tel. ${input.agentPhone}` : ''}`,
     '',
     optOutNote,
   ];
 
   const bodyText = `${resolvedBodyCore}\n${signaturePlainLines.join('\n')}`;
 
-  // 4. Sintesi HTML con 5 layout differenti per azzerare anche il fingerprint DOM
+  // 4. Sintesi HTML con 5 layout istituzionali differenti per azzerare il fingerprint DOM
   const layoutVariant = (
     ['executive_card', 'plain_personal', 'compact_memo', 'accent_stripe', 'clean_table'].includes(
       chosenTemplate.htmlLayoutVariant
@@ -689,7 +824,7 @@ function executeCombinatorialSynthesis(
   ${htmlParagraphs}
   <p style="margin-top: 14px;">
     <strong>${escapeHtml(input.agentName)}</strong><br/>
-    <span style="color:#475569;font-size:13px;">${escapeHtml(firmaReparto)} (Cod. ${escapeHtml(input.agentCode)}) — Izzo Distribuzione (I.S.I. S.r.l.)${
+    <span style="color:#475569;font-size:13px;">${escapeHtml(firmaReparto)} (Cod. ${escapeHtml(input.agentCode)}) — Izzo Distribuzione S.r.l.${
       input.agentPhone ? ` • ${escapeHtml(input.agentPhone)}` : ''
     }</span>
   </p>
