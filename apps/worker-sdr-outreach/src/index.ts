@@ -19,7 +19,8 @@ import {
   decryptSdrSecret,
   computeEffectiveInboxDailyLimit,
   containsUnresolvedPlaceholders,
-  buildTailoredOutreachEmail,
+  generateCombinatorialOutreachEmail,
+  seedCombinatorialLibraryInDb,
 } from '@archelia/sdr-database';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
 
@@ -677,7 +678,7 @@ export async function prepareOutreachPackageForProspect(
   const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
   const smartUrls = buildSmartOfferUrls(trackingToken);
 
-  const tailored = buildTailoredOutreachEmail({
+  const tailored = await generateCombinatorialOutreachEmail({
     prospectId: prospect.id,
     companyName: prospect.companyName,
     city: prospect.city,
@@ -707,6 +708,7 @@ export async function prepareOutreachPackageForProspect(
           subject: tailored.subject,
           bodyText: tailored.bodyText,
           bodyHtml: tailored.bodyHtml,
+          templateCode: tailored.templateCode,
           attachedCatalogUrl: attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
           trackingToken,
           assignedAgentId: resolvedAgent.id,
@@ -721,6 +723,7 @@ export async function prepareOutreachPackageForProspect(
           subject: tailored.subject,
           bodyText: tailored.bodyText,
           bodyHtml: tailored.bodyHtml,
+          templateCode: tailored.templateCode,
           attachedCatalogUrl: attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
           trackingToken,
           assignedAgentId: resolvedAgent.id,
@@ -1557,6 +1560,11 @@ function startHealthServerIfConfigured() {
 
 async function startWorker() {
   startHealthServerIfConfigured();
+  await seedCombinatorialLibraryInDb({ syncMissing: true }).catch((err) => {
+    log.warn(`Seed libreria combinatoria 100x108 differito: ${err?.message || err}`, {
+      module: MODULE_NAME,
+    });
+  });
   await resetDailyInboxQuotasIfNeeded();
 
   const copywriterConn = createRedisConnection();

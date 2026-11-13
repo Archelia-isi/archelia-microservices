@@ -12,5 +12,10 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["index.ts"]
+  "include": [
+    "index.ts",
+    "combinatorialDictionary.ts",
+    "combinatorialTemplates.ts",
+    "combinatorialEngine.ts"
+  ]
 }

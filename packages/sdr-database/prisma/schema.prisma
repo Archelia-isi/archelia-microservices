@@ -94,6 +94,7 @@ model SdrOutreachDraft {
   assignedAgentId     String?     @map("assigned_agent_id")
   assignedAgentCode   String?     @map("assigned_agent_code")
   assignedAgentName   String?     @map("assigned_agent_name")
+  templateCode        String?     @map("template_code")
   messageIdHeader     String?     @map("message_id_header")
   lastError           String?     @map("last_error")
 
@@ -279,4 +280,37 @@ model SdrBlacklist {
   createdAt           DateTime @default(now()) @map("created_at")
 
   @@map("sdr_blacklist")
+}
+
+model SdrEmailTemplate {
+  id                  Int      @id @default(autoincrement())
+  code                String   @unique
+  name                String
+  angleGroup          String   @map("angle_group")
+  targetCategory      String   @default("ALL") @map("target_category")
+  htmlLayoutVariant   String   @default("executive_card") @map("html_layout_variant")
+  subjectTemplate     String   @map("subject_template")
+  bodyTemplate        String   @map("body_template")
+  isActive            Boolean  @default(true) @map("is_active")
+  usageCount          Int      @default(0) @map("usage_count")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, targetCategory])
+  @@index([angleGroup])
+  @@map("sdr_email_templates")
+}
+
+model SdrSynonymToken {
+  id                  Int      @id @default(autoincrement())
+  tokenKey            String   @unique @map("token_key")
+  category            String
+  description         String
+  variants            String[]
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, category])
+  @@map("sdr_synonym_tokens")
 }

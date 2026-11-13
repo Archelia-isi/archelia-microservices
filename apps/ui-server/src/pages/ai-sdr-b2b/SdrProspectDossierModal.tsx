@@ -1,4 +1,4 @@
-import { FileText, KeyRound, Send, Download, Link2 } from 'lucide-react';
+import { FileText, KeyRound, Send, Download, Link2, Shuffle } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -23,6 +23,7 @@ interface SdrProspectDossierModalProps {
   setDraftBodyInput: (v: string) => void;
   onSaveManualEmail: () => void;
   onSaveDraft: () => void;
+  onRerollDraft: () => void;
   onPrepareOutreach: (prospectIds: number[]) => void;
   onDispatchOutreach: (draftIds: number[]) => void;
   onDownloadCatalogPdf: (prospectId: number, companyName: string) => void;
@@ -50,6 +51,7 @@ export default function SdrProspectDossierModal({
   setDraftBodyInput,
   onSaveManualEmail,
   onSaveDraft,
+  onRerollDraft,
   onPrepareOutreach,
   onDispatchOutreach,
   onDownloadCatalogPdf,
@@ -444,6 +446,16 @@ export default function SdrProspectDossierModal({
                       }
                     >
                       Catalog Builder
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Shuffle size={13} />}
+                      disabled={!canWrite || dossierLoading || loading}
+                      onClick={onRerollDraft}
+                      title="Genera una nuova combinazione tra le 100 Email Madri e le 108 Parole Dinamiche"
+                    >
+                      Cambia Testo (100×108)
                     </Button>
                     <Button
                       variant="primary"

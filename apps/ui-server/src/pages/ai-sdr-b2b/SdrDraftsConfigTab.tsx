@@ -1,5 +1,17 @@
 import { useState } from 'react';
-import { Send, Eye, Download, Link2, Settings2, Percent, CheckCircle2 } from 'lucide-react';
+import {
+  Send,
+  Eye,
+  Download,
+  Link2,
+  Settings2,
+  Percent,
+  CheckCircle2,
+  Shuffle,
+  FileText,
+  BookOpen,
+  Inbox,
+} from 'lucide-react';
 import GlassPanel from '../../components/ui/GlassPanel';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -7,10 +19,15 @@ import TextInput from '../../components/ui/TextInput';
 import Select from '../../components/ui/Select';
 import Modal from '../../components/ui/Modal';
 import { sanitizeEmailHtml } from './constants';
+import SdrCombinatorialStudioPanel, {
+  type CombinatorialSubMode,
+} from './SdrCombinatorialStudioPanel';
 import type { SdrB2BAgentOption, SdrOutreachConfigState } from './types';
 
 interface SdrDraftsConfigTabProps {
   mode: 'drafts' | 'config';
+  apiUrl: string;
+  authHeaders: () => Record<string, string>;
   canWrite: boolean;
   loading: boolean;
   drafts: any[];
@@ -19,6 +36,8 @@ interface SdrDraftsConfigTabProps {
   b2bAgents: SdrB2BAgentOption[];
   enableGlobalWrites: boolean;
   onDispatchOutreach: (draftIds?: number[]) => void;
+  onRerollSingleDraft: (prospectId: number) => void;
+  onRerollReadyDrafts: () => void;
   onSaveConfig: () => void;
   onOpenDiscountsApp: () => void;
   onOpenDossier: (prospectId: number) => void;
@@ -28,6 +47,8 @@ interface SdrDraftsConfigTabProps {
 
 export default function SdrDraftsConfigTab({
   mode,
+  apiUrl,
+  authHeaders,
   canWrite,
   loading,
   drafts,
@@ -36,12 +57,15 @@ export default function SdrDraftsConfigTab({
   b2bAgents,
   enableGlobalWrites,
   onDispatchOutreach,
+  onRerollSingleDraft,
+  onRerollReadyDrafts,
   onSaveConfig,
   onOpenDiscountsApp,
   onOpenDossier,
   onDownloadCatalogPdf,
   onCopySmartLink,
 }: SdrDraftsConfigTabProps) {
+  const [draftsSection, setDraftsSection] = useState<'queue' | CombinatorialSubMode>('queue');
   const [draftStatusFilter, setDraftStatusFilter] = useState<string>('ALL');
   const [draftSearch, setDraftSearch] = useState<string>('');
   const [previewDraft, setPreviewDraft] = useState<any | null>(null);
@@ -52,7 +76,7 @@ export default function SdrDraftsConfigTab({
       if (draftStatusFilter !== 'ALL' && d.status !== draftStatusFilter) return false;
       if (draftSearch.trim()) {
         const q = draftSearch.toLowerCase();
-        const hay = `${d.subject || ''} ${d.prospect?.companyName || ''} ${d.prospect?.ordinaryEmail || ''}`.toLowerCase();
+        const hay = `${d.subject || ''} ${d.templateCode || ''} ${d.prospect?.companyName || ''} ${d.prospect?.ordinaryEmail || ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -60,183 +84,270 @@ export default function SdrDraftsConfigTab({
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-        <GlassPanel padding="md" radius="lg">
+        {/* BARRA DI SCELTA SEZIONE: CODA BOZZE vs MOTORE 100 EMAIL × 108 PAROLE */}
+        <GlassPanel padding="sm" radius="lg">
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '10px',
+              gap: '8px',
             }}
           >
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {[
-                { id: 'ALL', label: `Tutte (${drafts.length})` },
-                { id: 'Bozza_Pronta', label: `✅ Pronte Invio (${readyDrafts.length})` },
-                {
-                  id: 'Inviata_Dry_Run',
-                  label: `🧪 Dry-Run (${drafts.filter((d) => d.status === 'Inviata_Dry_Run').length})`,
-                },
-                {
-                  id: 'Inviata',
-                  label: `📨 Inviate Live (${drafts.filter((d) => d.status === 'Inviata').length})`,
-                },
-                {
-                  id: 'Template_Da_Attivare',
-                  label: `⏸️ Template Disarmati (${drafts.filter((d) => d.status === 'Template_Da_Attivare').length})`,
-                },
-              ].map((st) => (
-                <Button
-                  key={st.id}
-                  variant={draftStatusFilter === st.id ? 'primary' : 'secondary'}
-                  size="sm"
-                  onClick={() => setDraftStatusFilter(st.id)}
-                >
-                  {st.label}
-                </Button>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ width: '230px' }}>
-                <TextInput
-                  placeholder="Filtra bozze..."
-                  value={draftSearch}
-                  onChange={(e) => setDraftSearch(e.target.value)}
-                />
-              </div>
               <Button
-                variant="primary"
+                variant={draftsSection === 'queue' ? 'primary' : 'secondary'}
                 size="sm"
-                icon={<Send size={14} />}
-                onClick={() => onDispatchOutreach(readyDrafts.slice(0, 25).map((d) => d.id))}
-                disabled={!canWrite || loading || readyDrafts.length === 0}
+                icon={<Inbox size={14} />}
+                onClick={() => setDraftsSection('queue')}
               >
-                {enableGlobalWrites
-                  ? `Invia Lotto Pronte (${Math.min(25, readyDrafts.length)}) con Jitter`
-                  : `Testa Invio in Dry-Run (${Math.min(25, readyDrafts.length)})`}
+                Coda Bozze &amp; Invio ({drafts.length})
+              </Button>
+              <Button
+                variant={draftsSection === 'simulator' ? 'primary' : 'secondary'}
+                size="sm"
+                icon={<Shuffle size={14} />}
+                onClick={() => setDraftsSection('simulator')}
+              >
+                Simulatore Combinazioni
+              </Button>
+              <Button
+                variant={draftsSection === 'templates' ? 'primary' : 'secondary'}
+                size="sm"
+                icon={<FileText size={14} />}
+                onClick={() => setDraftsSection('templates')}
+              >
+                100 Email Madri
+              </Button>
+              <Button
+                variant={draftsSection === 'tokens' ? 'primary' : 'secondary'}
+                size="sm"
+                icon={<BookOpen size={14} />}
+                onClick={() => setDraftsSection('tokens')}
+              >
+                108 Parole Dinamiche
               </Button>
             </div>
+
+            <Badge variant="success" size="sm">
+              MOTORE ANTI-SPAM 100×108 ATTIVO (&gt; 10^17 COMBINAZIONI)
+            </Badge>
           </div>
         </GlassPanel>
 
-        <GlassPanel padding="none" radius="lg" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
-            <thead>
-              <tr
+        {draftsSection !== 'queue' ? (
+          <SdrCombinatorialStudioPanel
+            apiUrl={apiUrl}
+            authHeaders={authHeaders}
+            canWrite={canWrite}
+            subMode={draftsSection}
+            onChangeSubMode={(m) => setDraftsSection(m)}
+          />
+        ) : (
+          <>
+            <GlassPanel padding="md" radius="lg">
+              <div
                 style={{
-                  borderBottom: '1px solid var(--color-border)',
-                  textAlign: 'left',
-                  fontSize: '11px',
-                  textTransform: 'uppercase',
-                  color: 'var(--color-text-muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '10px',
                 }}
               >
-                <th style={{ padding: '10px 12px' }}>Destinatario B2B</th>
-                <th style={{ padding: '10px 12px' }}>Oggetto Email Anti-Spam</th>
-                <th style={{ padding: '10px 12px' }}>Casella Mittente</th>
-                <th style={{ padding: '10px 12px' }}>Stato</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right' }}>Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDrafts.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                    Nessuna bozza trovata con questo filtro. Prepara nuove credenziali dal tab Lead B2B!
-                  </td>
-                </tr>
-              ) : (
-                filteredDrafts.map((d: any) => (
-                  <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '10px 12px' }}>
-                      <div style={{ fontWeight: 800 }}>{d.prospect?.companyName || `Lead #${d.prospectId}`}</div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
-                        {d.prospect?.ordinaryEmail || '—'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 12px', maxWidth: '380px' }}>
-                      <div style={{ fontWeight: 700 }}>{d.subject}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        Step {d.sequenceStep || 1} • Smart Link Catalistino 2gg incluso
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 12px', fontSize: '11.5px' }}>
-                      {d.senderAccount?.email || 'Pool Rotazione 60 Caselle Aruba'}
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <Badge
-                        variant={
-                          d.status === 'Inviata'
-                            ? 'success'
-                            : d.status === 'Bozza_Pronta'
-                              ? 'primary'
-                              : d.status === 'Inviata_Dry_Run'
-                                ? 'warning'
-                                : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {d.status}
-                      </Badge>
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={<Eye size={13} />}
-                          onClick={() => setPreviewDraft(d)}
-                        >
-                          Anteprima
-                        </Button>
-                        {d.prospectId && (
-                          <>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<Download size={13} />}
-                              title="Scarica Catalistino PDF Reale"
-                              onClick={() =>
-                                onDownloadCatalogPdf(d.prospectId, d.prospect?.companyName || 'Cliente')
-                              }
-                            />
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              icon={<Link2 size={13} />}
-                              title="Copia Smart Link Offerta"
-                              onClick={() => onCopySmartLink(d.prospectId)}
-                            />
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => onOpenDossier(d.prospectId)}
-                            >
-                              Dossier
-                            </Button>
-                          </>
-                        )}
-                        {d.status === 'Bozza_Pronta' && (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={<Send size={13} />}
-                            disabled={!canWrite || loading}
-                            onClick={() => onDispatchOutreach([d.id])}
-                          >
-                            Invia
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'ALL', label: `Tutte (${drafts.length})` },
+                    { id: 'Bozza_Pronta', label: `✅ Pronte Invio (${readyDrafts.length})` },
+                    {
+                      id: 'Inviata_Dry_Run',
+                      label: `🧪 Dry-Run (${drafts.filter((d) => d.status === 'Inviata_Dry_Run').length})`,
+                    },
+                    {
+                      id: 'Inviata',
+                      label: `📨 Inviate Live (${drafts.filter((d) => d.status === 'Inviata').length})`,
+                    },
+                    {
+                      id: 'Template_Da_Attivare',
+                      label: `⏸️ Template Disarmati (${drafts.filter((d) => d.status === 'Template_Da_Attivare').length})`,
+                    },
+                  ].map((st) => (
+                    <Button
+                      key={st.id}
+                      variant={draftStatusFilter === st.id ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setDraftStatusFilter(st.id)}
+                    >
+                      {st.label}
+                    </Button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ width: '210px' }}>
+                    <TextInput
+                      placeholder="Filtra bozze o T001..."
+                      value={draftSearch}
+                      onChange={(e) => setDraftSearch(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Shuffle size={14} />}
+                    onClick={onRerollReadyDrafts}
+                    disabled={!canWrite || loading || readyDrafts.length === 0}
+                    title="Rigenera testi e sinonimi tutti diversi per le bozze pronte mantenendo intatte username e password"
+                  >
+                    Rigenera Tutte Uniche ({readyDrafts.length})
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Send size={14} />}
+                    onClick={() => onDispatchOutreach(readyDrafts.slice(0, 25).map((d) => d.id))}
+                    disabled={!canWrite || loading || readyDrafts.length === 0}
+                  >
+                    {enableGlobalWrites
+                      ? `Invia Lotto Pronte (${Math.min(25, readyDrafts.length)}) con Jitter`
+                      : `Testa Invio in Dry-Run (${Math.min(25, readyDrafts.length)})`}
+                  </Button>
+                </div>
+              </div>
+            </GlassPanel>
+
+            <GlassPanel padding="none" radius="lg" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <thead>
+                  <tr
+                    style={{
+                      borderBottom: '1px solid var(--color-border)',
+                      textAlign: 'left',
+                      fontSize: '11px',
+                      textTransform: 'uppercase',
+                      color: 'var(--color-text-muted)',
+                    }}
+                  >
+                    <th style={{ padding: '10px 12px' }}>Destinatario B2B</th>
+                    <th style={{ padding: '10px 12px' }}>Oggetto Email Anti-Spam (Unico)</th>
+                    <th style={{ padding: '10px 12px' }}>Casella Mittente</th>
+                    <th style={{ padding: '10px 12px' }}>Stato</th>
+                    <th style={{ padding: '10px 12px', textAlign: 'right' }}>Azioni</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </GlassPanel>
+                </thead>
+                <tbody>
+                  {filteredDrafts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                        Nessuna bozza trovata con questo filtro. Prepara nuove credenziali dal tab Lead B2B!
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDrafts.map((d: any) => (
+                      <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontWeight: 800 }}>{d.prospect?.companyName || `Lead #${d.prospectId}`}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
+                            {d.prospect?.ordinaryEmail || '—'}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 12px', maxWidth: '390px' }}>
+                          <div style={{ fontWeight: 700 }}>{d.subject}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                            {d.templateCode && (
+                              <Badge variant="neutral" size="sm">
+                                Madre {d.templateCode}
+                              </Badge>
+                            )}
+                            <span>Step {d.sequenceStep || 1} • Smart Link Catalistino 2gg incluso</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontSize: '11.5px' }}>
+                          {d.senderAccount?.email || 'Pool Rotazione 60 Caselle Aruba'}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <Badge
+                            variant={
+                              d.status === 'Inviata'
+                                ? 'success'
+                                : d.status === 'Bozza_Pronta'
+                                  ? 'primary'
+                                  : d.status === 'Inviata_Dry_Run'
+                                    ? 'warning'
+                                    : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {d.status}
+                          </Badge>
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={<Eye size={13} />}
+                              onClick={() => setPreviewDraft(d)}
+                            >
+                              Anteprima
+                            </Button>
+                            {d.prospectId && (
+                              <>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  icon={<Shuffle size={13} />}
+                                  disabled={!canWrite || loading}
+                                  title="Rigenera nuova combinazione (100 Email × 108 Parole)"
+                                  onClick={() => onRerollSingleDraft(d.prospectId)}
+                                />
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  icon={<Download size={13} />}
+                                  title="Scarica Catalistino PDF Reale"
+                                  onClick={() =>
+                                    onDownloadCatalogPdf(d.prospectId, d.prospect?.companyName || 'Cliente')
+                                  }
+                                />
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  icon={<Link2 size={13} />}
+                                  title="Copia Smart Link Offerta"
+                                  onClick={() => onCopySmartLink(d.prospectId)}
+                                />
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => onOpenDossier(d.prospectId)}
+                                >
+                                  Dossier
+                                </Button>
+                              </>
+                            )}
+                            {d.status === 'Bozza_Pronta' && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                icon={<Send size={13} />}
+                                disabled={!canWrite || loading}
+                                onClick={() => onDispatchOutreach([d.id])}
+                              >
+                                Invia
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </GlassPanel>
+          </>
+        )}
 
         {/* MODAL ANTEPRIMA BOZZA SANITIZZATA */}
         <Modal
@@ -247,15 +358,22 @@ export default function SdrDraftsConfigTab({
         >
           {previewDraft && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                Destinatario: <strong>{previewDraft.prospect?.companyName}</strong> (
-                {previewDraft.prospect?.ordinaryEmail})
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>
+                  Destinatario: <strong>{previewDraft.prospect?.companyName}</strong> (
+                  {previewDraft.prospect?.ordinaryEmail})
+                </span>
+                {previewDraft.templateCode && (
+                  <Badge variant="primary" size="sm">
+                    Email Madre {previewDraft.templateCode}
+                  </Badge>
+                )}
               </div>
               <div
                 style={{
                   padding: '16px',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text-main)',
+                  background: '#ffffff',
+                  color: '#0f172a',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--color-border)',
                 }}

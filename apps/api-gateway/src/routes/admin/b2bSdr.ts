@@ -7,7 +7,10 @@ import {
   decryptSdrSecret,
   computeEffectiveInboxDailyLimit,
   containsUnresolvedPlaceholders,
-  buildTailoredOutreachEmail,
+  generateCombinatorialOutreachEmail,
+  seedCombinatorialLibraryInDb,
+  invalidateCombinatorialCache,
+  computeCombinatorialStats,
 } from '@archelia/sdr-database';
 import {
   env,
@@ -1057,7 +1060,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
 
         const unpackedMeta = unpackProspectRichData(prospect);
-        const tailored = buildTailoredOutreachEmail({
+        const tailored = await generateCombinatorialOutreachEmail({
           prospectId: prospect.id,
           companyName: prospect.companyName,
           city: prospect.city,
@@ -1088,6 +1091,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
                 subject: tailored.subject,
                 bodyText: tailored.bodyText,
                 bodyHtml: tailored.bodyHtml,
+                templateCode: tailored.templateCode,
                 attachedCatalogUrl: config.attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
                 trackingToken,
                 assignedAgentId: resolvedAgent.id,
@@ -1102,6 +1106,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
                 subject: tailored.subject,
                 bodyText: tailored.bodyText,
                 bodyHtml: tailored.bodyHtml,
+                templateCode: tailored.templateCode,
                 attachedCatalogUrl: config.attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
                 trackingToken,
                 assignedAgentId: resolvedAgent.id,
@@ -1135,6 +1140,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           effectiveNetPct,
           firstPurchaseRuleId,
           draftId: draft.id,
+          templateCode: tailored.templateCode,
+          tokensReplacedCount: tailored.tokensReplacedCount,
           trackingToken,
           smartOfferUrl: smartUrls.storefrontOfferUrl,
           catalogPdfUrl: smartUrls.apiPdfDownloadUrl,
@@ -2440,6 +2447,638 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         .header('Content-Type', 'text/csv; charset=utf-8')
         .header('Content-Disposition', `attachment; filename="izzo_sdr_leads_${Date.now()}.csv"`)
         .send(csvContent);
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 14. AI SDR B2B — MOTORE COMBINATORIO 100 EMAIL MADRI × 108 PAROLE DINAMICHE
+  // ============================================================================
+  fastify.get('/api/admin/sdr/combinatorial/overview', async (_request, reply) => {
+    try {
+      const [tplCount, tokCount] = await Promise.all([
+        sdrPrisma.sdrEmailTemplate.count(),
+        sdrPrisma.sdrSynonymToken.count(),
+      ]);
+
+      if (tplCount === 0 || tokCount === 0) {
+        await seedCombinatorialLibraryInDb({ syncMissing: true });
+      }
+
+      const [templates, tokens] = await Promise.all([
+        sdrPrisma.sdrEmailTemplate.findMany({
+          orderBy: { code: 'asc' },
+        }),
+        sdrPrisma.sdrSynonymToken.findMany({
+          orderBy: [{ category: 'asc' }, { tokenKey: 'asc' }],
+        }),
+      ]);
+
+      const stats = computeCombinatorialStats(templates, tokens);
+
+      return reply.send({
+        success: true,
+        stats,
+        templates,
+        tokens,
+      });
+    } catch (error: any) {
+      log.error(`Errore GET /api/admin/sdr/combinatorial/overview: ${error.message}`, {
+        module: 'api-gateway:b2bSdr',
+      });
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/combinatorial/sync-defaults', async (_request, reply) => {
+    try {
+      const res = await seedCombinatorialLibraryInDb({ syncMissing: true });
+      invalidateCombinatorialCache();
+      return reply.send({
+        success: true,
+        ...res,
+        message: `Libreria base sincronizzata (${res.templatesCount} Email Madri, ${res.tokensCount} Gruppi di Parole).`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/combinatorial/preview', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        templateCode?: string | null;
+        commercialCategory?: 'IST' | 'RIV';
+        companyName?: string;
+        city?: string;
+        province?: string;
+        categoryCluster?: string;
+      };
+
+      const config =
+        (await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } })) ||
+        (await sdrPrisma.sdrOutreachConfig.create({ data: { id: 'default' } }));
+      const resolvedAgent = await resolveSdrAgent(
+        config.defaultAgentId || config.defaultAgentCode
+      );
+
+      const isRiv = body.commercialCategory === 'RIV';
+      const baseDiscount = isRiv ? 50 : 40;
+      const extraFirstPurchasePct = isRiv
+        ? Number(config.rivExtraDiscountPct || 10)
+        : Number(config.istExtraDiscountPct || 10);
+      const companyName = String(body.companyName || '').trim() || 'Elettroimpianti Rossi S.r.l.';
+      const city = String(body.city || '').trim() || 'Napoli';
+      const province = String(body.province || '').trim() || 'NA';
+      const cluster =
+        body.categoryCluster || (isRiv ? 'Ferramenta' : 'Installatore_Civile');
+      const formula = `${baseDiscount}% + ${extraFirstPurchasePct}%`;
+
+      const preview = await generateCombinatorialOutreachEmail(
+        {
+          prospectId: 999999,
+          companyName,
+          city,
+          province,
+          categoryCluster: cluster,
+          brandsDetected: isRiv
+            ? 'Elmark, Vimar, Gewiss, Beghelli'
+            : 'Vimar, BTicino, Elmark, Finder',
+          username: normalizeBaseUsername(companyName) + '.na',
+          tempPasswordPlain: 'Izzo!8Kx4P2',
+          baseDiscount,
+          extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
+          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          minOrderAmountText: config.minOrderAmountText,
+          freeShippingText: config.freeShippingText,
+          paymentTermsText: config.paymentTermsText,
+          customCommercialNotes: config.customCommercialNotes,
+          smartCatalogUrl: 'https://www.izzodistribuzione.it/offerta-riservata/demo-simulatore',
+          agentName: resolvedAgent.name,
+          agentCode: resolvedAgent.code,
+          agentEmail: resolvedAgent.email,
+          agentPhone: resolvedAgent.phone,
+        },
+        {
+          forceTemplateCode:
+            body.templateCode && body.templateCode !== 'RANDOM' ? body.templateCode : null,
+          isPreview: true,
+        }
+      );
+
+      return reply.send({
+        success: true,
+        preview,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/combinatorial/templates', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        code?: string;
+        name?: string;
+        angleGroup?: string;
+        targetCategory?: string;
+        htmlLayoutVariant?: string;
+        subjectTemplate?: string;
+        bodyTemplate?: string;
+        isActive?: boolean;
+      };
+
+      const subjectTemplate = String(body.subjectTemplate || '').trim();
+      const bodyTemplate = String(body.bodyTemplate || '').trim();
+      if (!subjectTemplate || !bodyTemplate) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Oggetto e Corpo della Email Madre sono obbligatori.',
+        });
+      }
+
+      let code = String(body.code || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_-]/g, '');
+      if (!code) {
+        const count = await sdrPrisma.sdrEmailTemplate.count();
+        code = `T${String(count + 1).padStart(3, '0')}`;
+        const existingCode = await sdrPrisma.sdrEmailTemplate.findUnique({ where: { code } });
+        if (existingCode) {
+          code = `T${Date.now().toString().slice(-4)}`;
+        }
+      }
+
+      const created = await sdrPrisma.sdrEmailTemplate.create({
+        data: {
+          code,
+          name: String(body.name || `Modello Personalizzato ${code}`).trim(),
+          angleGroup: String(body.angleGroup || 'Ufficio_Acquisti').trim(),
+          targetCategory: ['ALL', 'IST', 'RIV'].includes(
+            String(body.targetCategory || 'ALL').toUpperCase()
+          )
+            ? String(body.targetCategory || 'ALL').toUpperCase()
+            : 'ALL',
+          htmlLayoutVariant: String(body.htmlLayoutVariant || 'executive_card').trim(),
+          subjectTemplate,
+          bodyTemplate,
+          isActive: body.isActive !== false,
+        },
+      });
+
+      invalidateCombinatorialCache();
+      return reply.send({
+        success: true,
+        template: created,
+        message: `Email Madre ${created.code} creata con successo!`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.put('/api/admin/sdr/combinatorial/templates/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const templateId = Number(id);
+      if (Number.isNaN(templateId)) {
+        return reply.status(400).send({ success: false, error: 'ID modello non valido.' });
+      }
+      const body = (request.body || {}) as Record<string, any>;
+
+      const updated = await sdrPrisma.sdrEmailTemplate.update({
+        where: { id: templateId },
+        data: {
+          name: body.name !== undefined ? String(body.name).trim() : undefined,
+          angleGroup: body.angleGroup !== undefined ? String(body.angleGroup).trim() : undefined,
+          targetCategory:
+            body.targetCategory !== undefined
+              ? String(body.targetCategory).toUpperCase()
+              : undefined,
+          htmlLayoutVariant:
+            body.htmlLayoutVariant !== undefined
+              ? String(body.htmlLayoutVariant).trim()
+              : undefined,
+          subjectTemplate:
+            body.subjectTemplate !== undefined ? String(body.subjectTemplate).trim() : undefined,
+          bodyTemplate:
+            body.bodyTemplate !== undefined ? String(body.bodyTemplate).trim() : undefined,
+          isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
+        },
+      });
+
+      invalidateCombinatorialCache();
+      return reply.send({
+        success: true,
+        template: updated,
+        message: `Email Madre ${updated.code} aggiornata!`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.delete('/api/admin/sdr/combinatorial/templates/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const templateId = Number(id);
+      if (Number.isNaN(templateId)) {
+        return reply.status(400).send({ success: false, error: 'ID modello non valido.' });
+      }
+      await sdrPrisma.sdrEmailTemplate.delete({ where: { id: templateId } });
+      invalidateCombinatorialCache();
+      return reply.send({ success: true, message: 'Email Madre eliminata.' });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/combinatorial/tokens', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        tokenKey?: string;
+        category?: string;
+        description?: string;
+        variants?: string[] | string;
+        isActive?: boolean;
+      };
+
+      const tokenKey = String(body.tokenKey || '')
+        .trim()
+        .toUpperCase()
+        .replace(/^\[|\]$/g, '')
+        .replace(/[^A-Z0-9_]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      const rawVariants = Array.isArray(body.variants)
+        ? body.variants
+        : String(body.variants || '').split('\n');
+      const variants = Array.from(
+        new Set(rawVariants.map((v) => String(v || '').trim()).filter(Boolean))
+      );
+
+      if (!tokenKey || variants.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Inserisci un codice parola (es. SALUTO_AZIENDA) e almeno una variante.',
+        });
+      }
+
+      const created = await sdrPrisma.sdrSynonymToken.create({
+        data: {
+          tokenKey,
+          category: String(body.category || '01_Saluti_Apertura').trim(),
+          description: String(body.description || `Gruppo sinonimi per [${tokenKey}]`).trim(),
+          variants,
+          isActive: body.isActive !== false,
+        },
+      });
+
+      invalidateCombinatorialCache();
+      return reply.send({
+        success: true,
+        token: created,
+        message: `Parola dinamica [${created.tokenKey}] salvata con ${variants.length} varianti!`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.put('/api/admin/sdr/combinatorial/tokens/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const tokenId = Number(id);
+      if (Number.isNaN(tokenId)) {
+        return reply.status(400).send({ success: false, error: 'ID parola dinamica non valido.' });
+      }
+      const body = (request.body || {}) as Record<string, any>;
+
+      let parsedVariants: string[] | undefined = undefined;
+      if (body.variants !== undefined) {
+        const rawList = Array.isArray(body.variants)
+          ? body.variants
+          : String(body.variants || '').split('\n');
+        parsedVariants = Array.from(
+          new Set(rawList.map((v: any) => String(v || '').trim()).filter(Boolean))
+        );
+        if (parsedVariants.length === 0) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Ogni gruppo di parole deve contenere almeno 1 variante valida.',
+          });
+        }
+      }
+
+      const updated = await sdrPrisma.sdrSynonymToken.update({
+        where: { id: tokenId },
+        data: {
+          tokenKey:
+            body.tokenKey !== undefined
+              ? String(body.tokenKey)
+                  .trim()
+                  .toUpperCase()
+                  .replace(/^\[|\]$/g, '')
+                  .replace(/[^A-Z0-9_]+/g, '_')
+              : undefined,
+          category: body.category !== undefined ? String(body.category).trim() : undefined,
+          description: body.description !== undefined ? String(body.description).trim() : undefined,
+          variants: parsedVariants,
+          isActive: body.isActive !== undefined ? Boolean(body.isActive) : undefined,
+        },
+      });
+
+      invalidateCombinatorialCache();
+      return reply.send({
+        success: true,
+        token: updated,
+        message: `Parola dinamica [${updated.tokenKey}] aggiornata!`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.delete('/api/admin/sdr/combinatorial/tokens/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const tokenId = Number(id);
+      if (Number.isNaN(tokenId)) {
+        return reply.status(400).send({ success: false, error: 'ID parola dinamica non valido.' });
+      }
+      await sdrPrisma.sdrSynonymToken.delete({ where: { id: tokenId } });
+      invalidateCombinatorialCache();
+      return reply.send({ success: true, message: 'Gruppo di parole eliminato.' });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // Rigenera una nuova combinazione unica (100 Email × 108 Parole) per un singolo prospect
+  fastify.post('/api/admin/sdr/prospects/:id/reroll-draft', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      if (Number.isNaN(prospectId)) {
+        return reply.status(400).send({ success: false, error: 'ID prospect non valido.' });
+      }
+      const body = (request.body || {}) as { templateCode?: string | null };
+
+      const prospect = await sdrPrisma.sdrProspect.findUnique({ where: { id: prospectId } });
+      if (!prospect) {
+        return reply.status(404).send({ success: false, error: 'Azienda non trovata.' });
+      }
+
+      const [config, existingDraft, promoProspect] = await Promise.all([
+        sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } }),
+        sdrPrisma.sdrOutreachDraft.findFirst({
+          where: { prospectId, sequenceStep: 1 },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prospect.promoProspectId
+          ? b2bPrisma.b2BPromoProspect.findUnique({ where: { id: prospect.promoProspectId } })
+          : prospect.ordinaryEmail
+            ? b2bPrisma.b2BPromoProspect.findFirst({
+                where: {
+                  OR: [
+                    { sdrProspectId: prospect.id },
+                    { email: prospect.ordinaryEmail.trim().toLowerCase() },
+                  ],
+                },
+              })
+            : Promise.resolve(null),
+      ]);
+
+      const resolvedAgent = await resolveSdrAgent(
+        prospect.assignedAgentId ||
+          prospect.assignedAgentCode ||
+          config?.defaultAgentId ||
+          config?.defaultAgentCode
+      );
+
+      const clusterCfg = resolveClusterConfig(prospect.categoryCluster);
+      const isRiv =
+        prospect.commercialCategory === 'RIV' || clusterCfg.commercialCategory === 'RIV';
+      const baseDiscountNum = isRiv ? 50 : 40;
+      const extraFirstPurchasePct = isRiv
+        ? Number(config?.rivExtraDiscountPct ?? 10)
+        : Number(config?.istExtraDiscountPct ?? 10);
+      const formula = `${baseDiscountNum}% + ${extraFirstPurchasePct}%`;
+      const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
+      const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
+      const unpackedMeta = unpackProspectRichData(prospect);
+
+      const hasRealCredentials = Boolean(promoProspect?.username && promoProspect?.tempPassword);
+      const usernameToUse =
+        promoProspect?.username ||
+        `${normalizeBaseUsername(prospect.companyName)}${
+          prospect.province ? `.${prospect.province.toLowerCase()}` : ''
+        }`;
+      const passwordToUse = promoProspect?.tempPassword || 'Izzo!Temp2gg';
+
+      const tailored = await generateCombinatorialOutreachEmail(
+        {
+          prospectId: prospect.id,
+          companyName: prospect.companyName,
+          city: prospect.city,
+          province: prospect.province,
+          categoryCluster: clusterCfg.cluster,
+          brandsDetected: prospect.brandsDetected,
+          decisionMaker: unpackedMeta.decisionMaker,
+          username: usernameToUse,
+          tempPasswordPlain: passwordToUse,
+          baseDiscount: baseDiscountNum,
+          extraFirstPurchasePct:
+            config?.enableFirstPurchaseRule !== false ? extraFirstPurchasePct : 0,
+          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          minOrderAmountText:
+            config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
+          freeShippingText:
+            config?.freeShippingText ||
+            'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
+          paymentTermsText:
+            config?.paymentTermsText ||
+            'Condizioni B2B riservate con referente dedicato Daniele Savoia',
+          customCommercialNotes: config?.customCommercialNotes,
+          smartCatalogUrl: smartUrls.storefrontOfferUrl,
+          agentName: resolvedAgent.name,
+          agentCode: resolvedAgent.code,
+          agentEmail: resolvedAgent.email,
+          agentPhone: resolvedAgent.phone,
+        },
+        {
+          forceTemplateCode:
+            body.templateCode && body.templateCode !== 'RANDOM' ? body.templateCode : null,
+          isPreview: !hasRealCredentials,
+        }
+      );
+
+      let savedDraft = existingDraft;
+      if (hasRealCredentials) {
+        savedDraft = existingDraft
+          ? await sdrPrisma.sdrOutreachDraft.update({
+              where: { id: existingDraft.id },
+              data: {
+                subject: tailored.subject,
+                bodyText: tailored.bodyText,
+                bodyHtml: tailored.bodyHtml,
+                templateCode: tailored.templateCode,
+                trackingToken,
+                attachedCatalogUrl:
+                  config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
+                status:
+                  existingDraft.status === 'Inviata'
+                    ? existingDraft.status
+                    : 'Bozza_Pronta',
+              },
+            })
+          : await sdrPrisma.sdrOutreachDraft.create({
+              data: {
+                prospectId: prospect.id,
+                sequenceStep: 1,
+                subject: tailored.subject,
+                bodyText: tailored.bodyText,
+                bodyHtml: tailored.bodyHtml,
+                templateCode: tailored.templateCode,
+                trackingToken,
+                attachedCatalogUrl:
+                  config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
+                assignedAgentId: resolvedAgent.id,
+                assignedAgentCode: resolvedAgent.code,
+                status: 'Bozza_Pronta',
+              },
+            });
+      }
+
+      return reply.send({
+        success: true,
+        savedToDb: hasRealCredentials,
+        draft: savedDraft,
+        generated: tailored,
+        message: hasRealCredentials
+          ? `Nuova combinazione generata e salvata: Modello ${tailored.templateCode} (${tailored.tokensReplacedCount} varianti lessicali)!`
+          : `Anteprima generata col Modello ${tailored.templateCode}. Premi "Genera Credenziali + Bozza" per attivare username e password reali.`,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // Rigenera in blocco combinazioni uniche (100×108) per tutte le bozze in stato Bozza_Pronta
+  fastify.post('/api/admin/sdr/combinatorial/reroll-ready-drafts', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { draftIds?: number[]; limit?: number };
+      const requestedIds = Array.isArray(body.draftIds)
+        ? body.draftIds.map((n) => Number(n)).filter((n) => !Number.isNaN(n))
+        : [];
+
+      const readyDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
+        where:
+          requestedIds.length > 0
+            ? { id: { in: requestedIds }, status: 'Bozza_Pronta' }
+            : { status: 'Bozza_Pronta' },
+        take: Math.min(200, Math.max(1, Number(body.limit || 150))),
+        include: { prospect: true },
+      });
+
+      if (readyDrafts.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Nessuna bozza in stato Bozza_Pronta da rigenerare.',
+        });
+      }
+
+      const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
+      const resolvedAgent = await resolveSdrAgent(
+        config?.defaultAgentId || config?.defaultAgentCode
+      );
+
+      const promoIds = readyDrafts
+        .map((d) => d.prospect?.promoProspectId)
+        .filter((id): id is string => Boolean(id));
+      const promoRows =
+        promoIds.length > 0
+          ? await b2bPrisma.b2BPromoProspect.findMany({ where: { id: { in: promoIds } } })
+          : [];
+      const promoMap = new Map(promoRows.map((pr) => [pr.id, pr]));
+
+      let updatedCount = 0;
+      const usedTemplates = new Set<string>();
+
+      for (const d of readyDrafts) {
+        const p = d.prospect;
+        if (!p) continue;
+        const promo = p.promoProspectId ? promoMap.get(p.promoProspectId) : null;
+        if (!promo?.username || !promo?.tempPassword) continue;
+
+        const clusterCfg = resolveClusterConfig(p.categoryCluster);
+        const isRiv =
+          p.commercialCategory === 'RIV' || clusterCfg.commercialCategory === 'RIV';
+        const baseDiscountNum = isRiv ? 50 : 40;
+        const extraPct = isRiv
+          ? Number(config?.rivExtraDiscountPct ?? 10)
+          : Number(config?.istExtraDiscountPct ?? 10);
+        const formula = `${baseDiscountNum}% + ${extraPct}%`;
+        const trackingToken = d.trackingToken || generateTrackingToken();
+        const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
+
+        const tailored = await generateCombinatorialOutreachEmail({
+          prospectId: p.id,
+          companyName: p.companyName,
+          city: p.city,
+          province: p.province,
+          categoryCluster: clusterCfg.cluster,
+          brandsDetected: p.brandsDetected,
+          username: promo.username,
+          tempPasswordPlain: promo.tempPassword,
+          baseDiscount: baseDiscountNum,
+          extraFirstPurchasePct: config?.enableFirstPurchaseRule !== false ? extraPct : 0,
+          offerTitle: `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${formula}`,
+          minOrderAmountText:
+            config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
+          freeShippingText:
+            config?.freeShippingText ||
+            'Spedizione rapida 24/48h in tutta Italia da Deposito Principale (2gg)',
+          paymentTermsText:
+            config?.paymentTermsText ||
+            'Condizioni B2B riservate con referente dedicato Daniele Savoia',
+          customCommercialNotes: config?.customCommercialNotes,
+          smartCatalogUrl: smartUrls.storefrontOfferUrl,
+          agentName: resolvedAgent.name,
+          agentCode: resolvedAgent.code,
+          agentEmail: resolvedAgent.email,
+          agentPhone: resolvedAgent.phone,
+        });
+
+        await sdrPrisma.sdrOutreachDraft.update({
+          where: { id: d.id },
+          data: {
+            subject: tailored.subject,
+            bodyText: tailored.bodyText,
+            bodyHtml: tailored.bodyHtml,
+            templateCode: tailored.templateCode,
+            trackingToken,
+          },
+        });
+
+        usedTemplates.add(tailored.templateCode);
+        updatedCount++;
+      }
+
+      addSdrLog(
+        'COPYWRITER',
+        `Rigenerate ${updatedCount} bozze uniche col Motore Combinatorio 100×108 (${usedTemplates.size} Email Madri diverse utilizzate).`,
+        'SUCCESS'
+      );
+
+      return reply.send({
+        success: true,
+        updatedCount,
+        distinctTemplatesUsed: usedTemplates.size,
+        message: `Rigenerate ${updatedCount} bozze con testi e sinonimi tutti diversi (${usedTemplates.size} Email Madri distinte)!`,
+      });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }

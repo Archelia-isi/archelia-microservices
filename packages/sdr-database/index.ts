@@ -465,15 +465,13 @@ export function computeEffectiveInboxDailyLimit(account: {
 
 export function containsUnresolvedPlaceholders(text?: string | null): boolean {
   if (!text) return false;
-  return /\{\{[^}]*\}\}/.test(text) || text.includes('DEMO_USERNAME') || text.includes('DEMO_PASS');
-}
-
-function escapeEmailHtml(val?: string | null): string {
-  return String(val || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return (
+    /\{\{[^}]*\}\}/.test(text) ||
+    /\{[A-Z0-9_]{4,}\}/.test(text) ||
+    /\[[A-Z0-9_]{4,}\]/.test(text) ||
+    text.includes('DEMO_USERNAME') ||
+    text.includes('DEMO_PASS')
+  );
 }
 
 export interface BuildOutreachEmailInput {
@@ -500,136 +498,15 @@ export interface BuildOutreachEmailInput {
   agentPhone?: string | null;
 }
 
-export function buildTailoredOutreachEmail(input: BuildOutreachEmailInput): {
-  subject: string;
-  bodyText: string;
-  bodyHtml: string;
-  discountFormulaLabel: string;
-} {
-  const catCfg = resolveClusterConfig(input.categoryCluster);
-  const discountFormulaLabel = `${input.baseDiscount}% + ${input.extraFirstPurchasePct}%`;
-  const effectiveNetPct = Number(
-    (100 - (100 - input.baseDiscount) * (1 - input.extraFirstPurchasePct / 100)).toFixed(1)
-  );
-  const seed = Math.abs(Number(input.prospectId || 1));
+import {
+  generateCombinatorialOutreachEmailSync,
+  type CombinatorialEmailResult,
+} from './combinatorialEngine';
 
-  const cleanDm = input.decisionMaker
-    ? input.decisionMaker.replace(/\s*\(.*?\)\s*/g, '').trim()
-    : '';
+export * from './combinatorialDictionary';
+export * from './combinatorialTemplates';
+export * from './combinatorialEngine';
 
-  const greetings = cleanDm
-    ? [
-        `Gentile ${cleanDm},`,
-        `Buongiorno ${cleanDm},`,
-        `Cortese attenzione di ${cleanDm} (${input.companyName}),`,
-      ]
-    : [
-        `Gentile Ufficio Acquisti di ${input.companyName},`,
-        `Buongiorno al Team di ${input.companyName},`,
-        `Cortese Direzione Commerciale di ${input.companyName},`,
-        `Gentili Referenti di ${input.companyName},`,
-      ];
-
-  const locationPhrase = input.city
-    ? `operativa su ${input.city}${input.province ? ` (${input.province})` : ''}`
-    : 'attiva sul territorio';
-
-  const intros = [
-    `Vi scrivo da Izzo Distribuzione (I.S.I. S.r.l.), polo logistico B2B per forniture di materiale elettrico, illuminazione tecnica e ferramenta professionale: seguendo le realtà del comparto ${catCfg.shortLabel} ${locationPhrase}, abbiamo predisposto per la Vostra azienda un listino dedicato.`,
-    `Sono ${input.agentName} della divisione B2B di Izzo Distribuzione (I.S.I. S.r.l.). Per supportare le commesse e i rifornimenti della Vostra struttura ${locationPhrase} nel settore ${catCfg.shortLabel}, abbiamo attivato una quotazione riservata in pronta consegna.`,
-    `Come distributore B2B diretto di materiale elettrico e illuminazione professionale (I.S.I. S.r.l.), abbiamo riservato a ${input.companyName} un accesso diretto al nostro deposito centrale 24/48h pensato per chi opera in ambito ${catCfg.shortLabel}.`,
-    `Da Izzo Distribuzione (I.S.I. S.r.l.) seguiamo con forniture rapide 24/48h installatori e rivenditori ${locationPhrase}: abbiamo preparato per ${input.companyName} il Catalistino Pronta Consegna 2gg su ${catCfg.recommendedFamily}.`,
-  ];
-
-  const subjects = [
-    `Catalistino 2gg riservato a ${input.companyName} — Sconto ${discountFormulaLabel} primo acquisto`,
-    `Listino B2B Pronta Consegna per ${input.companyName}${input.city ? ` (${input.city})` : ''} [${discountFormulaLabel}]`,
-    `Forniture 24/48h ${catCfg.shortLabel}: condizioni riservate a ${input.companyName}`,
-    `Accesso B2B e Catalistino Riservato (${discountFormulaLabel}) — ${input.companyName}`,
-  ];
-
-  const closings = [
-    `Resto a completa disposizione per qualsiasi verifica tecnica o quotazione su commessa.`,
-    `Per qualunque esigenza su disponibilità immediate o forniture programmate può rispondermi direttamente a questa email.`,
-    `Sarà un piacere sentirci anche solo per un confronto rapido sulle linee che trattate più spesso.`,
-  ];
-
-  const greeting = greetings[seed % greetings.length];
-  const intro = intros[(seed * 3) % intros.length];
-  const subject = subjects[(seed * 7) % subjects.length];
-  const closing = closings[(seed * 5) % closings.length];
-
-  const brandsLine = input.brandsDetected
-    ? `Abbiamo inoltre tenuto conto della Vostra operatività su linee tecniche (${input.brandsDetected.split(',').slice(0, 4).join(', ')}) selezionando gli equivalenti ad alta rotazione disponibili subito a magazzino.`
-    : `All'interno trova subito le famiglie ad alta rotazione (${catCfg.recommendedFamily}) con giacenza reale verificata nel nostro Deposito Principale 2gg.`;
-
-  const loginUrl = `https://www.izzodistribuzione.it/login?u=${encodeURIComponent(input.username)}`;
-
-  const bodyTextLines = [
-    greeting,
-    '',
-    intro,
-    brandsLine,
-    '',
-    `--- CONDIZIONI RISERVATE A ${input.companyName.toUpperCase()} ---`,
-    `• Offerta attiva: ${input.offerTitle}`,
-    `• Sconto 1° Acquisto (Solo Pronta Consegna 2gg): ${discountFormulaLabel} in cascata (pari al ${effectiveNetPct}% netto da listino)`,
-    `• Portale B2B: ${loginUrl}`,
-    `• Username riservata: ${input.username}`,
-    `• Password provvisoria (da personalizzare al 1° accesso): ${input.tempPasswordPlain}`,
-    `• Minimo d'ordine: ${input.minOrderAmountText}`,
-    `• Spedizione: ${input.freeShippingText}`,
-    input.smartCatalogUrl ? `• Sfogli o scarichi il Catalistino PDF Riservato 2gg: ${input.smartCatalogUrl}` : '',
-    input.customCommercialNotes ? `• Nota dedicata: ${input.customCommercialNotes}` : '',
-    '',
-    closing,
-    '',
-    `Cordiali saluti,`,
-    `${input.agentName} — Divisione Commerciale B2B (Cod. ${input.agentCode})`,
-    `Izzo Distribuzione — I.S.I. S.r.l.${input.agentPhone ? ` | Tel. ${input.agentPhone}` : ''}`,
-    `Informativa B2B: se non desidera ricevere ulteriori aggiornamenti commerciali è sufficiente rispondere "STOP" a questo messaggio.`,
-  ].filter((l) => l !== '');
-
-  const bodyText = bodyTextLines.join('\n');
-
-  const catalogCtaHtml = input.smartCatalogUrl
-    ? `<div style="margin: 18px 0; text-align: left;">
-        <a href="${escapeEmailHtml(input.smartCatalogUrl)}" target="_blank" rel="noopener" style="display: inline-block; background: #0f172a; color: #ffffff; font-weight: 700; text-decoration: none; padding: 11px 18px; border-radius: 8px; font-size: 14px;">
-          📄 Apri e Scarica il Catalistino PDF Riservato (Pronta Consegna 2gg)
-        </a>
-      </div>`
-    : '';
-
-  const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #0f172a; line-height: 1.6; max-width: 640px; font-size: 14.5px;">
-  <p>${escapeEmailHtml(greeting)}</p>
-  <p>${escapeEmailHtml(intro)}</p>
-  <p>${escapeEmailHtml(brandsLine)}</p>
-  <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin: 18px 0;">
-    <div style="font-weight: 800; color: #15803d; font-size: 15px; margin-bottom: 4px;">Catalistino Riservato a ${escapeEmailHtml(input.companyName)}</div>
-    <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${escapeEmailHtml(input.offerTitle)} — Sconto ${escapeEmailHtml(discountFormulaLabel)} (${effectiveNetPct}% netto)</div>
-    <div><strong>Portale B2B:</strong> <a href="${escapeEmailHtml(loginUrl)}" style="color: #15803d; font-weight: 700;">www.izzodistribuzione.it/login</a></div>
-    <div><strong>Username riservata:</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeEmailHtml(input.username)}</code></div>
-    <div><strong>Password provvisoria (1° accesso):</strong> <code style="background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeEmailHtml(input.tempPasswordPlain)}</code></div>
-    <div style="margin-top: 10px; font-size: 13px; color: #334155;">
-      • <strong>Sconto Attivo 1° Acquisto:</strong> <strong>${escapeEmailHtml(discountFormulaLabel)}</strong> automatico a carrello sui prodotti in <strong>Pronta Consegna 2gg</strong><br/>
-      • <strong>Condizione Ordine:</strong> ${escapeEmailHtml(input.minOrderAmountText)}<br/>
-      • <strong>Consegna:</strong> ${escapeEmailHtml(input.freeShippingText)}<br/>
-      • <strong>Referente:</strong> ${escapeEmailHtml(input.agentName)} (Cod. ${escapeEmailHtml(input.agentCode)})
-      ${input.customCommercialNotes ? `<br/>• <strong>Nota:</strong> ${escapeEmailHtml(input.customCommercialNotes)}` : ''}
-    </div>
-  </div>
-  ${catalogCtaHtml}
-  <p>${escapeEmailHtml(closing)}</p>
-  <p style="margin-top: 16px;">Cordiali saluti,<br/><strong>${escapeEmailHtml(input.agentName)}</strong><br/><span style="color:#475569;font-size:13px;">Divisione B2B — Izzo Distribuzione (I.S.I. S.r.l.)${input.agentPhone ? ` • ${escapeEmailHtml(input.agentPhone)}` : ''}</span></p>
-  <p style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 11.5px; color: #64748b;">
-    Comunicazione commerciale B2B destinata a operatori professionali del settore impiantistico, edile e rivendita tecnica. Per non ricevere ulteriori comunicazioni è sufficiente rispondere indicando "STOP".
-  </p>
-</div>`;
-
-  return {
-    subject,
-    bodyText,
-    bodyHtml,
-    discountFormulaLabel,
-  };
+export function buildTailoredOutreachEmail(input: BuildOutreachEmailInput): CombinatorialEmailResult {
+  return generateCombinatorialOutreachEmailSync(input);
 }

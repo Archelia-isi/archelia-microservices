@@ -740,6 +740,54 @@ ${agentName} — Divisione B2B Izzo Distribuzione`;
     }
   };
 
+  const handleRerollSingleDraft = async (prospectId: number) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/prospects/${prospectId}/reroll-draft`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Nuova combinazione email generata!');
+        if (activeDossier?.prospect?.id === prospectId && data.generated) {
+          setDraftSubjectInput(data.generated.subject || '');
+          setDraftBodyInput(data.generated.bodyText || '');
+        }
+        fetchDrafts();
+      } else {
+        toast.error(data.error || 'Impossibile rigenerare la combinazione');
+      }
+    } catch {
+      toast.error('Errore rigenerazione combinazione');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRerollReadyDrafts = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/combinatorial/reroll-ready-drafts`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ limit: 150 }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message || 'Bozze rigenerate con testi unici!');
+        fetchDrafts();
+      } else {
+        toast.error(data.error || 'Nessuna bozza pronta da rigenerare');
+      }
+    } catch {
+      toast.error('Errore rigenerazione massiva bozze');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePrepareOutreach = async (prospectIds?: number[]) => {
     try {
       setLoading(true);
@@ -1281,6 +1329,8 @@ ${agentName} — Divisione B2B Izzo Distribuzione`;
           {(activeTab === 'drafts' || activeTab === 'config') && (
             <SdrDraftsConfigTab
               mode={activeTab}
+              apiUrl={API_URL}
+              authHeaders={authHeaders}
               canWrite={canWrite}
               loading={loading}
               drafts={drafts}
@@ -1289,6 +1339,8 @@ ${agentName} — Divisione B2B Izzo Distribuzione`;
               b2bAgents={b2bAgents}
               enableGlobalWrites={Boolean(statsData?.enableGlobalWrites)}
               onDispatchOutreach={handleDispatchOutreach}
+              onRerollSingleDraft={handleRerollSingleDraft}
+              onRerollReadyDrafts={handleRerollReadyDrafts}
               onSaveConfig={handleSaveConfig}
               onOpenDiscountsApp={openDiscountsApp}
               onOpenDossier={handleOpenProspectDossier}
@@ -1331,6 +1383,11 @@ ${agentName} — Divisione B2B Izzo Distribuzione`;
         setDraftBodyInput={setDraftBodyInput}
         onSaveManualEmail={handleSaveManualEmailInDossier}
         onSaveDraft={handleSaveDraftInDossier}
+        onRerollDraft={() => {
+          if (activeDossier?.prospect?.id) {
+            handleRerollSingleDraft(activeDossier.prospect.id);
+          }
+        }}
         onPrepareOutreach={handlePrepareOutreach}
         onDispatchOutreach={handleDispatchOutreach}
         onDownloadCatalogPdf={handleDownloadCatalogPdf}
