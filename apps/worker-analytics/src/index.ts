@@ -39,6 +39,7 @@ pubSubClient.on('message', (channel, message) => {
       const data = JSON.parse(message);
       logBatch.push({
         level: data.level,
+        storeType: data.storeType === 'B2B' ? 'B2B' : 'RETAIL',
         message: data.message,
         category: data.category,
         data: typeof data.details === 'object' ? JSON.stringify(data.details) : data.details,

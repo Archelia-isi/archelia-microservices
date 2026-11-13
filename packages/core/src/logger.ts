@@ -25,10 +25,21 @@ export const logger = pino({
 let redisClient: any = null;
 
 const publishToRedis = (level: string, msg: string, data?: any) => {
+  const category = String(data?.module || 'system');
+  const lcCat = category.toLowerCase();
+  const inferredStoreType =
+    data?.storeType === 'B2B' ||
+    data?.storeType === 'RETAIL'
+      ? data.storeType
+      : lcCat.includes('sdr') || lcCat.includes('b2b')
+        ? 'B2B'
+        : 'RETAIL';
+
   const payload = JSON.stringify({
     level,
+    storeType: inferredStoreType,
     message: msg,
-    category: data?.module || 'system',
+    category,
     details: data || {},
     createdAt: new Date().toISOString()
   });

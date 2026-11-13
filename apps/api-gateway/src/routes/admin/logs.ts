@@ -37,10 +37,21 @@ export async function adminLogsRoutes(app: FastifyInstance) {
     const { category, level, limit, search } = request.query;
     const storeType = ((request.headers['x-store-context'] as string) || 'RETAIL') as 'RETAIL' | 'B2B';
 
-    const where: any = { storeType };
-    if (category) where.category = category;
-    // Nascondiamo i log molto voluminosi di infinity_db dalla vista globale se non filtrati
-    else where.category = { not: 'infinity_db' };
+    const where: any = {};
+    if (category === 'worker-sdr-scraper' || category === 'worker-sdr-outreach') {
+      where.category = category;
+    } else if (category === 'api-gateway') {
+      where.storeType = storeType;
+      where.OR = [
+        { category: 'api-gateway' },
+        { category: { startsWith: 'api-gateway:' } },
+      ];
+    } else {
+      where.storeType = storeType;
+      if (category) where.category = category;
+      // Nascondiamo i log molto voluminosi di infinity_db dalla vista globale se non filtrati
+      else where.category = { not: 'infinity_db' };
+    }
 
     if (level) where.level = level;
     if (search) where.message = { contains: search, mode: 'insensitive' };

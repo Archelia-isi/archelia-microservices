@@ -975,7 +975,11 @@ export default function DiscountsManagerClient({
             ...(r.targetProductGroups || []),
             ...(r.targetFamilies || []),
             ...(r.targetCategories || []),
-            r.targetType === 'ALL_CATALOG' ? 'tutto il catalogo' : '',
+            r.targetType === 'ALL_CATALOG'
+              ? 'tutto il catalogo'
+              : r.targetType === 'ALL_2GG'
+                ? 'pronta consegna 2gg deposito principale'
+                : '',
           ]
             .join(' ')
             .toLowerCase();
@@ -1500,6 +1504,12 @@ export default function DiscountsManagerClient({
                 >
                   {[
                     {
+                      id: 'ALL_2GG' as DiscountTargetType,
+                      title: 'Pronta Consegna 2gg',
+                      sub: 'Solo Deposito Principale',
+                      icon: <Globe size={14} />,
+                    },
+                    {
                       id: 'ALL_CATALOG' as DiscountTargetType,
                       title: 'Tutto il Catalogo',
                       sub: 'Intero listino prodotti',
@@ -1591,6 +1601,22 @@ export default function DiscountsManagerClient({
                   >
                     🌐 <strong>Sconto applicato a TUTTO IL CATALOGO:</strong> le regole più
                     specifiche (es. singolo prodotto o marchio) avranno sempre priorità.
+                  </div>
+                )}
+
+                {targetType === 'ALL_2GG' && (
+                  <div
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--color-primary-light)',
+                      border: '1px solid var(--color-primary)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    ⚡ <strong>Sconto applicato SOLO a PRONTA CONSEGNA 2GG:</strong> vale
+                    esclusivamente sugli articoli disponibili nel Deposito Principale (2gg),
+                    escludendo gli articoli a 7gg.
                   </div>
                 )}
 
@@ -2155,7 +2181,11 @@ export default function DiscountsManagerClient({
                     Prodotti ({previewProductsTotal})
                   </span>
                   <Badge variant="success" size="sm">
-                    {targetType === 'ALL_CATALOG' ? 'Intero catalogo' : targetType}
+                    {targetType === 'ALL_CATALOG'
+                      ? 'Intero catalogo'
+                      : targetType === 'ALL_2GG'
+                        ? 'Solo Pronta Consegna 2gg'
+                        : targetType}
                   </Badge>
                 </div>
 
@@ -2517,6 +2547,11 @@ export default function DiscountsManagerClient({
                                 {rule.targetType === 'ALL_CATALOG' && (
                                   <Badge variant="success" size="sm">
                                     🌐 TUTTO IL CATALOGO
+                                  </Badge>
+                                )}
+                                {rule.targetType === 'ALL_2GG' && (
+                                  <Badge variant="success" size="sm">
+                                    ⚡ SOLO PRONTA CONSEGNA 2GG
                                   </Badge>
                                 )}
                                 {(rule.targetSkus || []).map(sku => {

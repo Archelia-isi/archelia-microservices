@@ -44,7 +44,7 @@ export default function LogsApp() {
       const res = await fetch(`${API_URL}/api/admin/logs?category=${category}&limit=200`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Store-Context': currentStore
+          'X-Store-Context': category.startsWith('worker-sdr-') ? 'b2b' : currentStore
         }
       });
       if (!res.ok) {

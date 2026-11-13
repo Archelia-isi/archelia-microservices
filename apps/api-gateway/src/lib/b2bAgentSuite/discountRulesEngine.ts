@@ -6,6 +6,7 @@ export type DiscountClientScope =
 
 export type DiscountTargetType =
   | 'ALL_CATALOG'
+  | 'ALL_2GG'
   | 'PRODUCTS'
   | 'BRAND'
   | 'PRODUCT_GROUP'
@@ -72,6 +73,9 @@ export interface ProductDiscountInput {
   listPrice: number;
   catalogSource?: string;
   discgroup?: string;
+  stockMain?: number;
+  stockEk?: number;
+  is2ggAvailable?: boolean;
 }
 
 export interface ClientDiscountMatchContext {
@@ -295,6 +299,18 @@ export function scoreRuleForProduct(
   // 2. Se la regola è su TUTTO IL CATALOGO
   if (rule.targetType === 'ALL_CATALOG') {
     return clientScore + 1;
+  }
+
+  // 2b. Se la regola è SOLO SU PRONTA CONSEGNA 2GG (Deposito Principale)
+  if (rule.targetType === 'ALL_2GG') {
+    if (product.is2ggAvailable === false) return -1;
+    if (product.catalogSource && product.catalogSource.trim().toLowerCase() === 'elmark') {
+      return -1;
+    }
+    if (product.stockMain !== undefined && product.stockMain !== null) {
+      if (Number(product.stockMain) <= 0) return -1;
+    }
+    return clientScore + 5;
   }
 
   // 3. Verifica target prodotto specifici

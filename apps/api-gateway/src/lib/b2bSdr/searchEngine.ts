@@ -1,8 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { sdrPrisma } from '@archelia/sdr-database';
+import {
+  sdrPrisma,
+  CANONICAL_B2B_CLUSTERS,
+  B2B_CLUSTER_REGISTRY,
+  resolveClusterConfig,
+  normalizeClusterKey,
+  validateItalianVatChecksum,
+  sanitizeItalianVat,
+} from '@archelia/sdr-database';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
-import { env, log } from '@archelia/core';
+import {
+  env,
+  log,
+  createRedisConnection,
+  sdrScraperQueue,
+  sdrSentinelQueue,
+  SDR_JOBS,
+} from '@archelia/core';
+
+export const redisConnection = createRedisConnection();
 
 // ============================================================================
 // 1. CATALOGO GEOGRAFICO ISTAT (20 REGIONI -> 107 PROVINCE -> 7.904 COMUNI)
@@ -230,22 +247,10 @@ export function resolveComuniScope(
 }
 
 // ============================================================================
-// 2. 11 CATEGORIE B2B & REGOLE COMMERCIALI (IST 40% vs RIV 50%)
+// 2. CATEGORIE B2B CANONICHE & REGOLE COMMERCIALI UNIFICATE (@archelia/sdr-database)
 // ============================================================================
 
-export const ALL_B2B_CATEGORIES = [
-  'Installatore',
-  'Rivenditore',
-  'Illuminazione',
-  'Fotovoltaico',
-  'Termoidraulica',
-  'Sicurezza',
-  'Automazione',
-  'Edilizia',
-  'Ferramenta',
-  'Ascensorista',
-  'Manutenzione',
-] as const;
+export const ALL_B2B_CATEGORIES = [...CANONICAL_B2B_CLUSTERS] as const;
 
 export const CATEGORY_CONFIG: Record<
   string,
@@ -257,150 +262,57 @@ export const CATEGORY_CONFIG: Record<
     recommendedFamily: string;
     queries: string[];
   }
-> = {
-  Installatore: {
-    label: '⚡ Installatori Elettrici',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '43.21.01',
-    recommendedFamily: 'Interruttori Automatici, Quadri Elettrici & Moduli DIN Elmark',
-    queries: [
-      'installatore impianti elettrici',
-      'impianti elettrici civili e industriali',
-      'elettricista',
-      'quadri elettrici',
-    ],
-  },
-  Rivenditore: {
-    label: '🏪 Grossisti & Rivenditori Materiale Elettrico',
-    commercialCategory: 'RIV',
-    baseDiscount: 50,
-    atecoDefault: '46.69.20',
-    recommendedFamily: 'Catalogo Completo Pronta Consegna Elmark (Illuminazione + Materiale Elettrico)',
-    queries: [
-      'forniture materiale elettrico',
-      'ingrosso materiale elettrico',
-      'elettroforniture',
-      'distributore materiale elettrico',
-    ],
-  },
-  Illuminazione: {
-    label: '💡 Showroom Illuminazione, Architetti & Progettisti',
-    commercialCategory: 'RIV',
-    baseDiscount: 50,
-    atecoDefault: '47.59.20',
-    recommendedFamily: 'Illuminazione Decorativa, Lampadari Design, Strip LED & Profili Architetturali',
-    queries: [
-      'illuminazione led',
-      'negozio illuminazione',
-      'showroom illuminazione',
-      'illuminotecnica',
-    ],
-  },
-  Fotovoltaico: {
-    label: '☀️ Installatori Fotovoltaico & Energie Rinnovabili',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '43.21.01',
-    recommendedFamily: 'Protezioni DC/AC, Scaricatori di Sovratensione SPD, Quadri Stringa & Inverter',
-    queries: [
-      'impianti fotovoltaici',
-      'installatore fotovoltaico',
-      'energie rinnovabili',
-      'pannelli solari',
-    ],
-  },
-  Termoidraulica: {
-    label: '❄️ Termoidraulici & Installatori Climatizzazione HVAC',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '43.22.01',
-    recommendedFamily: 'Magnetotermici, Contattori, Cronotermostati & Quadri Comando Pompe/HVAC',
-    queries: [
-      'termoidraulica',
-      'impianti termoidraulici',
-      'installatore climatizzazione',
-      'impianti riscaldamento',
-    ],
-  },
-  Sicurezza: {
-    label: '🔒 Installatori Videosorveglianza, Antifurto & Domotica',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '43.21.02',
-    recommendedFamily: 'Alimentatori Stabilizzati MeanWell/Elmark, UPS, Box Stagni & Proiettori LED Sensor',
-    queries: [
-      'impianti videosorveglianza',
-      'impianti antifurto',
-      'sistemi di sicurezza',
-      'controllo accessi',
-    ],
-  },
-  Automazione: {
-    label: '⚙️ Quadristi & Automazione Industriale',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '27.12.00',
-    recommendedFamily: 'Teleruttori, Relè Termici, Pulsanteria Industriale, Inverter & Carpenteria Metallica',
-    queries: [
-      'automazione industriale',
-      'quadri automazione',
-      'cablaggi elettrici industriali',
-      'bordo macchina',
-    ],
-  },
-  Edilizia: {
-    label: '🏗️ Imprese Edili, Costruttori & General Contractor',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '41.20.00',
-    recommendedFamily: 'Quadri da Cantiere ASC, Proiettori LED Alta Potenza, Spine/Prese CEE & Illuminazione Civile',
-    queries: [
-      'impresa edile',
-      'costruzioni edili',
-      'ristrutturazioni chiavi in mano',
-      'general contractor',
-    ],
-  },
-  Ferramenta: {
-    label: '🧰 Ferramenta, Utensilerie & Bricolage',
-    commercialCategory: 'RIV',
-    baseDiscount: 50,
-    atecoDefault: '47.52.10',
-    recommendedFamily: 'Sorgenti LED, Prolunghe, Multiprese, Torce, Materiale da Banco & Minuteria Elettrica',
-    queries: [
-      'ferramenta',
-      'utensileria professionale',
-      'forniture industriali',
-      'bricolage',
-    ],
-  },
-  Ascensorista: {
-    label: '🛗 Ascensoristi & Manutentori Impianti Elevatori',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '43.29.01',
-    recommendedFamily: 'Illuminazione LED Vano Corsa, Batterie Tampone, Finecorsa, Relè & Quadri Manovra',
-    queries: [
-      'ascensori installazione e manutenzione',
-      'impianti elevatori',
-      'montacarichi',
-    ],
-  },
-  Manutenzione: {
-    label: '🏢 Facility Management & Global Service',
-    commercialCategory: 'IST',
-    baseDiscount: 40,
-    atecoDefault: '81.10.00',
-    recommendedFamily: 'Plafoniere LED Stagne IP65, Pannelli LED 60x60 UGR<19, Lampade Emergenza & Ricambi',
-    queries: [
-      'facility management',
-      'manutenzione impianti tecnologici',
-      'global service',
-      'manutenzione stabili',
-    ],
-  },
-};
+> = (() => {
+  const out: Record<
+    string,
+    {
+      label: string;
+      commercialCategory: 'IST' | 'RIV';
+      baseDiscount: number;
+      atecoDefault: string;
+      recommendedFamily: string;
+      queries: string[];
+    }
+  > = {};
+  for (const [key, def] of Object.entries(B2B_CLUSTER_REGISTRY)) {
+    const entry = {
+      label: def.label,
+      commercialCategory: def.commercialCategory,
+      baseDiscount: def.baseDiscount,
+      atecoDefault: def.atecoDefault,
+      recommendedFamily: def.recommendedFamily,
+      queries: def.queries,
+    };
+    out[key] = entry;
+  }
+  // Backward-compatible short aliases mapped via resolveClusterConfig
+  for (const alias of [
+    'Installatore',
+    'Rivenditore',
+    'Illuminazione',
+    'Fotovoltaico',
+    'Termoidraulica',
+    'Sicurezza',
+    'Automazione',
+    'Edilizia',
+    'Ferramenta',
+    'Ascensorista',
+    'Manutenzione',
+  ]) {
+    if (!out[alias]) {
+      const def = resolveClusterConfig(alias);
+      out[alias] = {
+        label: def.label,
+        commercialCategory: def.commercialCategory,
+        baseDiscount: def.baseDiscount,
+        atecoDefault: def.atecoDefault,
+        recommendedFamily: def.recommendedFamily,
+        queries: def.queries,
+      };
+    }
+  }
+  return out;
+})();
 
 // ============================================================================
 // 3. FILTRO ANTI-PEC A 4 LIVELLI (AgID / INI-PEC / Pattern / Ruolo)
@@ -559,7 +471,7 @@ export function evaluateAntiPec(rawEmail: string): {
 }
 
 // ============================================================================
-// 4. REGISTRO LOG IN TEMPO REALE (CONSOLE LIVE)
+// 4. REGISTRO LOG IN TEMPO REALE (REDIS CONSOLE LIVE + B2B SYSTEM LOGS)
 // ============================================================================
 
 export interface SdrConsoleLogEntry {
@@ -569,6 +481,9 @@ export interface SdrConsoleLogEntry {
   level: 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR';
   message: string;
 }
+
+const SDR_REDIS_LOGS_KEY = 'sdr:console:logs';
+const SDR_STOP_REDIS_KEY = 'sdr:search:stop';
 
 const _consoleLogs: SdrConsoleLogEntry[] = [];
 let _logSeq = 1;
@@ -583,7 +498,7 @@ export function addSdrLog(
   const mm = String(now.getMinutes()).padStart(2, '0');
   const ss = String(now.getSeconds()).padStart(2, '0');
   const entry: SdrConsoleLogEntry = {
-    id: _logSeq++,
+    id: Date.now() + (_logSeq++ % 1000),
     timestamp: `${hh}:${mm}:${ss}`,
     agent,
     level,
@@ -593,19 +508,63 @@ export function addSdrLog(
   if (_consoleLogs.length > 350) {
     _consoleLogs.splice(0, _consoleLogs.length - 350);
   }
+
+  // Persist to Redis list shared with worker-sdr-scraper & worker-sdr-outreach
+  void redisConnection
+    .rpush(SDR_REDIS_LOGS_KEY, JSON.stringify(entry))
+    .then(() => redisConnection.ltrim(SDR_REDIS_LOGS_KEY, -400, -1))
+    .catch(() => {});
+
+  const meta = { module: `api-gateway:sdr:${agent.toLowerCase()}`, storeType: 'B2B' as const };
+  if (level === 'ERROR') log.error(`[${agent}] ${message}`, meta);
+  else if (level === 'WARN') log.warn(`[${agent}] ${message}`, meta);
+  else log.info(`[${agent}] ${message}`, meta);
 }
 
 export function getRecentSdrLogs(limit = 100): SdrConsoleLogEntry[] {
   if (_consoleLogs.length === 0) {
-    addSdrLog('SYSTEM', 'Motore AI SDR B2B pronto. 120.714 aziende caricate su Neon IZZO_AI_SDR.', 'INFO');
-    addSdrLog('SENTINELLA-WEB', 'Sentinella Web 24/7 collegata a BullMQ e catalogo ISTAT (7.904 comuni).', 'SUCCESS');
-    addSdrLog('MASTER-AUDIT', '15 Sub-Agenti Validatori (V01–V15) attivi per controllo qualità anagrafiche e Anti-PEC.', 'INFO');
+    _consoleLogs.push(
+      {
+        id: 1,
+        timestamp: new Date().toTimeString().slice(0, 8),
+        agent: 'SYSTEM',
+        level: 'INFO',
+        message: 'Motore AI SDR B2B pronto. 120.714 aziende su Neon IZZO_AI_SDR + 60 caselle Aruba attive.',
+      },
+      {
+        id: 2,
+        timestamp: new Date().toTimeString().slice(0, 8),
+        agent: 'SENTINELLA-WEB',
+        level: 'SUCCESS',
+        message: 'Sentinella Web 24/7 collegata a BullMQ e catalogo ISTAT integrale (7.904 comuni).',
+      }
+    );
   }
   return _consoleLogs.slice(-limit);
 }
 
+export async function getRecentSdrLogsAsync(limit = 120): Promise<SdrConsoleLogEntry[]> {
+  try {
+    const raw = await redisConnection.lrange(SDR_REDIS_LOGS_KEY, -Math.max(10, limit), -1);
+    if (raw && raw.length > 0) {
+      const parsed: SdrConsoleLogEntry[] = [];
+      for (const item of raw) {
+        try {
+          parsed.push(JSON.parse(item));
+        } catch {
+          // ignore malformed entry
+        }
+      }
+      if (parsed.length > 0) return parsed.slice(-limit);
+    }
+  } catch {
+    // Fallback to in-memory
+  }
+  return getRecentSdrLogs(limit);
+}
+
 // ============================================================================
-// 5. CONTROLLO GOOGLE MAPS API BUDGET & BOLLATURA 3 FASCE
+// 5. CONTROLLO GOOGLE MAPS API BUDGET (PERSISTITO SU DB) & BOLLATURA CACHE 60S
 // ============================================================================
 
 export interface MapsBudgetState {
@@ -631,50 +590,122 @@ const _mapsConfig = {
   lastResetDate: new Date().toISOString().slice(0, 10),
 };
 
+function computeMapsBudgetFromConfig(cfg: {
+  mode: 'free_tier' | 'daily_budget';
+  dailyBudgetEur: number;
+  callsToday: number;
+}): MapsBudgetState {
+  const unitCostEur = 0.032;
+  const freeMonthlyCapCalls = 5000;
+  const freeSafeDailyCalls = 150;
+  const dailyCapCalls =
+    cfg.mode === 'free_tier'
+      ? freeSafeDailyCalls
+      : Math.max(0, Math.floor(cfg.dailyBudgetEur / unitCostEur));
+  const spentTodayEur =
+    cfg.mode === 'free_tier'
+      ? 0
+      : Number((cfg.callsToday * unitCostEur).toFixed(2));
+  const remainingCallsToday = Math.max(0, dailyCapCalls - cfg.callsToday);
+
+  return {
+    mode: cfg.mode,
+    dailyBudgetEur: cfg.dailyBudgetEur,
+    unitCostEur,
+    freeMonthlyCapCalls,
+    freeSafeDailyCalls,
+    callsToday: cfg.callsToday,
+    spentTodayEur,
+    dailyCapCalls,
+    remainingCallsToday,
+    apiKeyConfigured: Boolean(env.GOOGLE_MAPS_API_KEY),
+  };
+}
+
 export function getMapsBudgetState(): MapsBudgetState {
   const today = new Date().toISOString().slice(0, 10);
   if (_mapsConfig.lastResetDate !== today) {
     _mapsConfig.callsToday = 0;
     _mapsConfig.lastResetDate = today;
   }
-  const dailyCapCalls =
-    _mapsConfig.mode === 'free_tier'
-      ? _mapsConfig.freeSafeDailyCalls
-      : Math.max(0, Math.floor(_mapsConfig.dailyBudgetEur / _mapsConfig.unitCostEur));
-  const spentTodayEur =
-    _mapsConfig.mode === 'free_tier'
-      ? 0
-      : Number((_mapsConfig.callsToday * _mapsConfig.unitCostEur).toFixed(2));
-  const remainingCallsToday = Math.max(0, dailyCapCalls - _mapsConfig.callsToday);
-
-  return {
-    mode: _mapsConfig.mode,
-    dailyBudgetEur: _mapsConfig.dailyBudgetEur,
-    unitCostEur: _mapsConfig.unitCostEur,
-    freeMonthlyCapCalls: _mapsConfig.freeMonthlyCapCalls,
-    freeSafeDailyCalls: _mapsConfig.freeSafeDailyCalls,
-    callsToday: _mapsConfig.callsToday,
-    spentTodayEur,
-    dailyCapCalls,
-    remainingCallsToday,
-    apiKeyConfigured: Boolean(process.env.GOOGLE_MAPS_API_KEY),
-  };
+  return computeMapsBudgetFromConfig(_mapsConfig);
 }
 
-export function updateMapsBudgetState(mode: 'free_tier' | 'daily_budget', dailyBudgetEur: number): MapsBudgetState {
-  _mapsConfig.mode = mode === 'daily_budget' && dailyBudgetEur > 0 ? 'daily_budget' : 'free_tier';
-  _mapsConfig.dailyBudgetEur = _mapsConfig.mode === 'daily_budget' ? Math.max(0, Number(dailyBudgetEur || 0)) : 0;
-  addSdrLog(
-    'MAPS-BUDGET',
-    _mapsConfig.mode === 'free_tier'
-      ? 'Impostata Strada 1 — Franchigia Gratuita Google Maps (0,00 € / max 150 chiamate gratis al giorno).'
-      : `Impostata Strada 2 — Budget Giornaliero Google Maps: € ${_mapsConfig.dailyBudgetEur.toFixed(2)}/giorno.`,
-    'SUCCESS'
-  );
+export async function getMapsBudgetStateAsync(): Promise<MapsBudgetState> {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const engine = await sdrPrisma.sdrEngineState.findUnique({ where: { id: 'default' } });
+    if (engine) {
+      const callsToday = engine.mapsLastResetDate === today ? engine.mapsCallsToday : 0;
+      _mapsConfig.mode =
+        engine.mapsStrategy === 'DAILY_BUDGET' || engine.mapsStrategy === 'daily_budget'
+          ? 'daily_budget'
+          : 'free_tier';
+      _mapsConfig.dailyBudgetEur = Number(engine.mapsDailyBudgetEur || 0);
+      _mapsConfig.callsToday = callsToday;
+      _mapsConfig.lastResetDate = today;
+    }
+  } catch {
+    // Use cached in-memory fallback
+  }
   return getMapsBudgetState();
 }
 
-export async function getMapsBollaturaCounts() {
+export async function updateMapsBudgetState(
+  mode: 'free_tier' | 'daily_budget',
+  dailyBudgetEur: number
+): Promise<MapsBudgetState> {
+  const nextMode = mode === 'daily_budget' && dailyBudgetEur > 0 ? 'daily_budget' : 'free_tier';
+  const nextBudget = nextMode === 'daily_budget' ? Math.max(0, Number(dailyBudgetEur || 0)) : 0;
+  const strategyDb = nextMode === 'daily_budget' ? 'DAILY_BUDGET' : 'FREE_TIER_ONLY';
+  _mapsConfig.mode = nextMode;
+  _mapsConfig.dailyBudgetEur = nextBudget;
+
+  try {
+    await sdrPrisma.sdrEngineState.upsert({
+      where: { id: 'default' },
+      create: {
+        id: 'default',
+        mapsStrategy: strategyDb,
+        mapsDailyBudgetEur: nextBudget,
+        mapsLastResetDate: new Date().toISOString().slice(0, 10),
+      },
+      update: {
+        mapsStrategy: strategyDb,
+        mapsDailyBudgetEur: nextBudget,
+      },
+    });
+  } catch (err: any) {
+    log.warn(`Impossibile salvare mapsBudget su SdrEngineState: ${err.message}`, {
+      module: 'api-gateway:sdr',
+    });
+  }
+
+  addSdrLog(
+    'MAPS-BUDGET',
+    nextMode === 'free_tier'
+      ? 'Impostata Strada 1 — Franchigia Gratuita Google Maps (0,00 € / max 150 chiamate gratis al giorno).'
+      : `Impostata Strada 2 — Budget Giornaliero Google Maps: € ${nextBudget.toFixed(2)}/giorno.`,
+    'SUCCESS'
+  );
+  return getMapsBudgetStateAsync();
+}
+
+let _bollaturaCache: {
+  expiresAt: number;
+  data: {
+    verifiedMapsCount: number;
+    certifiedFreeCount: number;
+    unverifiedMapsCount: number;
+    totalCount: number;
+  };
+} | null = null;
+
+export async function getMapsBollaturaCounts(forceRefresh = false) {
+  if (!forceRefresh && _bollaturaCache && _bollaturaCache.expiresAt > Date.now()) {
+    return _bollaturaCache.data;
+  }
+
   const [verifiedMapsCount, certifiedFreeCount, totalCount] = await Promise.all([
     sdrPrisma.sdrProspect.count({
       where: {
@@ -709,12 +740,17 @@ export async function getMapsBollaturaCounts() {
   ]);
 
   const unverifiedMapsCount = Math.max(0, totalCount - verifiedMapsCount - certifiedFreeCount);
-  return {
+  const data = {
     verifiedMapsCount,
     certifiedFreeCount,
     unverifiedMapsCount,
     totalCount,
   };
+  _bollaturaCache = {
+    expiresAt: Date.now() + 60_000,
+    data,
+  };
+  return data;
 }
 
 // ============================================================================
@@ -993,52 +1029,159 @@ export async function refreshCoverageCacheIfNeeded() {
   }
 }
 
-export function getSearchPipelineStatus() {
-  void refreshCoverageCacheIfNeeded();
-  return {
-    ..._searchState,
-    maps_budget: getMapsBudgetState(),
-  };
+export async function getSearchPipelineStatus() {
+  await refreshCoverageCacheIfNeeded();
+  try {
+    const [engine, exploredComuniCount, latestSentinelRuns, mapsBudget] = await Promise.all([
+      sdrPrisma.sdrEngineState.findUnique({ where: { id: 'default' } }),
+      sdrPrisma.sdrExploredMunicipality.count().catch(() => 0),
+      sdrPrisma.sdrSentinelRun.findMany({ orderBy: { createdAt: 'desc' }, take: 20 }).catch(() => []),
+      getMapsBudgetStateAsync(),
+    ]);
+    if (engine) {
+      _searchState.running = Boolean(engine.searchRunning);
+      _searchState.phase = engine.searchRunning
+        ? engine.autopilotEnabled
+          ? 'Autopilot Continuo 7.904 Comuni ISTAT Attivo'
+          : 'Scansione Territoriale Multi-Fonte Attiva'
+        : 'Pronto';
+      _searchState.progress = Number(engine.searchProgressPct || 0);
+      _searchState.regione = engine.searchCurrentRegion || null;
+      _searchState.provincia = engine.searchCurrentProvince || null;
+      _searchState.comune = engine.searchCurrentMunicipality || null;
+      _searchState.categoria = engine.searchCurrentCategory || null;
+      _searchState.comuni_completati = Number(engine.searchTotalScanned || 0);
+      _searchState.trovate = Number(engine.searchFoundNew || 0);
+      _searchState.started_at = engine.searchStartedAt
+        ? engine.searchStartedAt.toISOString()
+        : null;
+      _searchState.autopilot_active = Boolean(engine.autopilotEnabled);
+      _searchState.sentinel.active = Boolean(engine.sentinelEnabled);
+      if (latestSentinelRuns.length > 0) {
+        _searchState.sentinel.cycles_completed = Math.max(
+          Number(engine.autopilotCyclesCompleted || 0),
+          Number(latestSentinelRuns[0].cycleNumber || 0)
+        );
+        _searchState.sentinel.emails_recovered = latestSentinelRuns.reduce(
+          (sum, r) => sum + Number(r.upgradedEmailCount || 0),
+          0
+        );
+        _searchState.sentinel.new_businesses_found = latestSentinelRuns.reduce(
+          (sum, r) => sum + Number(r.websitesFoundCount || 0),
+          0
+        );
+      }
+      if (exploredComuniCount > _searchState.sentinel.covered_comuni) {
+        _searchState.sentinel.covered_comuni = exploredComuniCount;
+      }
+    }
+    return {
+      ..._searchState,
+      explored_istat_municipalities: exploredComuniCount,
+      total_istat_municipalities: _allComuni.length || 7904,
+      maps_budget: mapsBudget,
+    };
+  } catch {
+    return {
+      ..._searchState,
+      maps_budget: getMapsBudgetState(),
+    };
+  }
 }
 
-export function toggleSentinelState(enabled?: boolean) {
-  const next = enabled !== undefined ? Boolean(enabled) : !_searchState.sentinel.active;
-  _searchState.sentinel.active = next;
-  _searchState.sentinel.last_activity = next
+export async function toggleSentinelState(enabled?: boolean) {
+  const current = await sdrPrisma.sdrEngineState.findUnique({ where: { id: 'default' } }).catch(() => null);
+  const next =
+    enabled !== undefined ? Boolean(enabled) : !(current?.sentinelEnabled ?? _searchState.sentinel.active);
+  const activityMsg = next
     ? 'Sentinella Web 24/7 riattivata dall’utente.'
     : 'Sentinella Web 24/7 messa in pausa dall’utente.';
+
+  _searchState.sentinel.active = next;
+  _searchState.sentinel.last_activity = activityMsg;
+
+  await Promise.all([
+    sdrPrisma.sdrEngineState
+      .upsert({
+        where: { id: 'default' },
+        create: { id: 'default', sentinelEnabled: next },
+        update: { sentinelEnabled: next },
+      })
+      .catch(() => {}),
+    sdrPrisma.sdrOutreachConfig
+      .update({
+        where: { id: 'default' },
+        data: { sentinelEnabled: next },
+      })
+      .catch(() => {}),
+  ]);
+
+  if (next) {
+    await sdrSentinelQueue
+      .add(SDR_JOBS.SENTINEL_BATCH, { action: SDR_JOBS.SENTINEL_BATCH, batchSize: 25 })
+      .catch(() => {});
+  }
+
   addSdrLog(
     'SENTINELLA-WEB',
-    next ? 'Sentinella Web 24/7 attivata.' : 'Sentinella Web 24/7 messa in pausa.',
+    next ? 'Sentinella Web 24/7 attivata su worker-sdr-scraper.' : 'Sentinella Web 24/7 messa in pausa.',
     next ? 'SUCCESS' : 'WARN'
   );
   return getSearchPipelineStatus();
 }
 
 export async function startAutopilotMode(province?: string | null, category?: string | null) {
+  await redisConnection.del(SDR_STOP_REDIS_KEY).catch(() => {});
+  const cleanProv = province && province !== 'ALL' ? province : null;
+  const cleanCat = category || 'ALL';
+
+  await sdrPrisma.sdrEngineState.upsert({
+    where: { id: 'default' },
+    create: {
+      id: 'default',
+      autopilotEnabled: true,
+      searchCurrentProvince: cleanProv,
+      searchCurrentCategory: cleanCat,
+      searchRunning: true,
+      searchStartedAt: new Date(),
+    },
+    update: {
+      autopilotEnabled: true,
+      searchCurrentProvince: cleanProv,
+      searchCurrentCategory: cleanCat,
+      searchRunning: true,
+      searchStartedAt: new Date(),
+    },
+  });
+
   _searchState.autopilot_active = true;
+  _searchState.last_message = `Autopilot avviato (${cleanProv || 'Tutta Italia'} • ${
+    cleanCat === 'ALL' ? 'Tutte le 11 categorie B2B' : cleanCat
+  })`;
   addSdrLog(
     'AUTOPILOT',
-    `Avviato Autopilot Continuo Senza Fine (${province || 'Tutta Italia'} • ${category || 'Tutte le categorie B2B'}).`,
+    `Avviato Autopilot Continuo su worker-sdr-scraper (${cleanProv || 'Tutta Italia - 7.904 Comuni ISTAT'} • ${cleanCat}).`,
     'SUCCESS'
   );
-  const res = await startSearchPipeline({
-    regione: province ? null : 'TUTTA_ITALIA',
-    provincia: province && province !== 'ALL' ? province : null,
-    comune: null,
-    categoria: category || 'ALL',
-    maxResults: 100,
-    fullItalyScan: !province || province === 'ALL',
+
+  await sdrScraperQueue.add(SDR_JOBS.AUTOPILOT_TICK, {
+    action: SDR_JOBS.AUTOPILOT_TICK,
+    province: cleanProv,
+    category: cleanCat,
+    batchComuniSize: 15,
   });
+
   return {
     autopilot_active: true,
-    ...res,
+    started: true,
+    message: 'Autopilot Continuo avviato su worker-sdr-scraper.',
+    status: await getSearchPipelineStatus(),
   };
 }
 
-export function stopAutopilotMode() {
+export async function stopAutopilotMode() {
   _searchState.autopilot_active = false;
-  const st = stopSearchPipeline();
+  const st = await stopSearchPipeline();
   addSdrLog('AUTOPILOT', 'Autopilot Continuo arrestato dall’utente.', 'WARN');
   return {
     autopilot_active: false,
@@ -1046,14 +1189,32 @@ export function stopAutopilotMode() {
   };
 }
 
-export function stopSearchPipeline() {
+export async function stopSearchPipeline() {
   _stopRequested = true;
   _searchState.autopilot_active = false;
-  if (_searchState.running) {
-    _searchState.phase = 'Arresto in corso...';
-    _searchState.last_message = 'Interruzione richiesta dall’utente...';
-    addSdrLog('SCOUT', 'Richiesto arresto immediato della scansione territoriale.', 'WARN');
-  }
+  _searchState.running = false;
+  _searchState.phase = 'Fermata dall’utente';
+  _searchState.last_message = 'Interruzione richiesta dall’utente.';
+
+  await Promise.all([
+    redisConnection.set(SDR_STOP_REDIS_KEY, '1', 'EX', 300).catch(() => {}),
+    sdrPrisma.sdrEngineState
+      .upsert({
+        where: { id: 'default' },
+        create: {
+          id: 'default',
+          searchRunning: false,
+          autopilotEnabled: false,
+        },
+        update: {
+          searchRunning: false,
+          autopilotEnabled: false,
+        },
+      })
+      .catch(() => {}),
+  ]);
+
+  addSdrLog('SCOUT', 'Richiesto arresto immediato della scansione territoriale su worker-sdr-scraper.', 'WARN');
   return getSearchPipelineStatus();
 }
 
@@ -1332,20 +1493,26 @@ export async function startSearchPipeline(options: {
   maxResults?: number;
   fullItalyScan?: boolean;
 }) {
-  if (_searchState.running) {
+  const existingEngine = await sdrPrisma.sdrEngineState
+    .findUnique({ where: { id: 'default' } })
+    .catch(() => null);
+
+  if (existingEngine?.searchRunning) {
     return {
       started: false,
-      message: 'Una ricerca è già in esecuzione.',
-      status: getSearchPipelineStatus(),
+      message: 'Una ricerca territoriale è già in esecuzione su worker-sdr-scraper.',
+      status: await getSearchPipelineStatus(),
     };
   }
 
   _stopRequested = false;
+  await redisConnection.del(SDR_STOP_REDIS_KEY).catch(() => {});
+
   const reg = options.fullItalyScan ? 'TUTTA_ITALIA' : options.regione || 'TUTTA_ITALIA';
   const prov = options.fullItalyScan ? null : options.provincia || null;
   const com = options.fullItalyScan ? null : options.comune || null;
-  const cat = options.categoria || 'ALL';
-  const maxPerCategory = options.maxResults && options.maxResults > 0 ? options.maxResults : 50;
+  const cat = options.categoria && options.categoria !== 'ALL' ? normalizeClusterKey(options.categoria) : 'ALL';
+  const maxPerCategory = options.maxResults && options.maxResults > 0 ? options.maxResults : 60;
 
   const scopeComuni = resolveComuniScope(
     reg === 'TUTTA_ITALIA' ? undefined : reg,
@@ -1354,213 +1521,65 @@ export async function startSearchPipeline(options: {
     true
   );
 
-  const categoriesToRun =
-    !cat || cat === 'ALL' ? [...ALL_B2B_CATEGORIES] : [cat];
+  const categoriesLabel = cat === 'ALL' ? 'Tutte le 11 categorie B2B' : resolveClusterConfig(cat).label;
+  const startMsg = `Job accodato su worker-sdr-scraper: ${scopeComuni.length} comuni ISTAT in ambito (${com || prov || reg}) — ${categoriesLabel}`;
 
-  _searchState.running = true;
-  _searchState.phase = 'Fase 1: Scansione Territoriale Scout (3 Scout + 35 Sub-Agenti)';
-  _searchState.progress = 2;
-  _searchState.regione = reg;
-  _searchState.provincia = prov;
-  _searchState.comune = com;
-  _searchState.categoria = cat === 'ALL' ? 'Tutte le 11 categorie B2B' : cat;
+  await sdrPrisma.sdrEngineState.upsert({
+    where: { id: 'default' },
+    create: {
+      id: 'default',
+      searchRunning: true,
+      searchProgressPct: 3,
+      searchCurrentRegion: reg,
+      searchCurrentProvince: prov,
+      searchCurrentMunicipality: com,
+      searchCurrentCategory: categoriesLabel,
+      searchTotalScanned: 0,
+      searchFoundNew: 0,
+      searchStartedAt: new Date(),
+    },
+    update: {
+      searchRunning: true,
+      searchProgressPct: 3,
+      searchCurrentRegion: reg,
+      searchCurrentProvince: prov,
+      searchCurrentMunicipality: com,
+      searchCurrentCategory: categoriesLabel,
+      searchTotalScanned: 0,
+      searchFoundNew: 0,
+      searchStartedAt: new Date(),
+    },
+  });
+
+  _searchState.phase = 'Fase 1: Multi-Scout (PagineGialle + PagineBianche + Google Maps Guard)';
   _searchState.comuni_totali = scopeComuni.length;
-  _searchState.comuni_completati = 0;
-  _searchState.trovate = 0;
-  _searchState.verificate_maps = 0;
-  _searchState.profilate = 0;
-  _searchState.email_pronte = 0;
-  _searchState.scartate_fuori_zona = 0;
-  _searchState.started_at = new Date().toISOString();
-  _searchState.finished_at = null;
-  _searchState.last_message = `Avvio scansione su ${scopeComuni.length} comuni (${categoriesToRun.length} categorie B2B)...`;
+  _searchState.last_message = startMsg;
+
+  await sdrScraperQueue.add(SDR_JOBS.SCAN_TERRITORY, {
+    action: SDR_JOBS.SCAN_TERRITORY,
+    regione: reg,
+    provincia: prov,
+    comune: com,
+    categoria: cat,
+    maxResults: maxPerCategory,
+    fullItalyScan: Boolean(options.fullItalyScan),
+    batchComuniSize: options.fullItalyScan ? 30 : 25,
+    skipAlreadyExplored: true,
+  });
+
+  _territoryCache = null;
+  _bollaturaCache = null;
 
   addSdrLog(
     'SCOUT',
-    `Avviata scansione territoriale: ${com || prov || reg} (${scopeComuni.length} comuni ISTAT in coda, categorie: ${categoriesToRun.join(', ')})`,
+    `Accodata scansione territoriale su BullMQ (worker-sdr-scraper): ${com || prov || reg} (${scopeComuni.length} comuni ISTAT, cluster: ${cat})`,
     'INFO'
   );
 
-  // Run asynchronously in background
-  void (async () => {
-    try {
-      const maxComuniBatch = Math.min(scopeComuni.length, options.fullItalyScan ? 40 : 25);
-
-      for (let idx = 0; idx < maxComuniBatch; idx++) {
-        if (_stopRequested) break;
-        const targetComune = scopeComuni[idx];
-
-        for (const catKey of categoriesToRun) {
-          if (_stopRequested) break;
-          if (_searchState.trovate >= maxPerCategory * categoriesToRun.length) break;
-
-          const cfg = CATEGORY_CONFIG[catKey] || CATEGORY_CONFIG.Installatore;
-          const primaryQuery = cfg.queries[0];
-
-          _searchState.last_message = `[Scout] Scansione ${targetComune.nome} (${targetComune.sigla}) — ${cfg.label}...`;
-
-          const scraped = await scrapePagineGialle(primaryQuery, targetComune);
-
-          for (const item of scraped) {
-            if (_stopRequested) break;
-
-            // Crawl website if available
-            let ordinaryEmail: string | null = null;
-            let pecCamerale: string | null = null;
-            let pecRejectedLog: string | null = null;
-            let crawledVat: string | null = item.vatNumber;
-            let brands: string[] = [];
-
-            if (item.website) {
-              const webData = await crawlCompanyWebsiteForEmailsAndBrands(item.website);
-              ordinaryEmail = webData.ordinaryEmail;
-              pecCamerale = webData.pecCamerale;
-              pecRejectedLog = webData.pecRejectedLog;
-              if (webData.vatNumber) crawledVat = webData.vatNumber;
-              brands = webData.brandsDetected;
-              _searchState.profilate += 1;
-            }
-
-            const section = ordinaryEmail
-              ? 'Email_Pronta'
-              : pecCamerale
-                ? 'PEC_Scartata'
-                : 'Senza_Email';
-
-            const leadScore = computeProspectLeadScore({
-              ordinaryEmail,
-              phone: item.phone,
-              whatsappPhone: item.whatsappPhone,
-              website: item.website,
-              vatNumber: crawledVat,
-              brandsDetected: brands.join(', '),
-              address: item.address,
-            });
-
-            try {
-              const existing = await sdrPrisma.sdrProspect.findUnique({
-                where: {
-                  companyName_city: {
-                    companyName: item.companyName,
-                    city: item.city,
-                  },
-                },
-              });
-
-              if (!existing) {
-                await sdrPrisma.sdrProspect.create({
-                  data: {
-                    companyName: item.companyName,
-                    vatNumber: crawledVat,
-                    atecoCode: cfg.atecoDefault,
-                    categoryCluster: catKey,
-                    commercialCategory: cfg.commercialCategory,
-                    baseDiscount: cfg.baseDiscount,
-                    address: item.address,
-                    city: item.city,
-                    province: item.province,
-                    region: item.region,
-                    cap: item.cap,
-                    phone: item.phone,
-                    whatsappPhone: item.whatsappPhone,
-                    website: item.website,
-                    ordinaryEmail,
-                    isPecVerified: true,
-                    pecCamerale,
-                    pecRejectedLog,
-                    section,
-                    leadScore,
-                    confidenceScore: ordinaryEmail ? 0.96 : 0.82,
-                    auditPassed: true,
-                    auditNotes: '15/15 Validatori Master Audit Superati',
-                    sourceEngine: item.sourceEngine,
-                    sourceUrl: item.sourceUrl,
-                    brandsDetected: brands.length > 0 ? brands.join(', ') : null,
-                    recommendedFamily: cfg.recommendedFamily,
-                  },
-                });
-                _searchState.trovate += 1;
-                if (ordinaryEmail) {
-                  _searchState.email_pronte += 1;
-                  addSdrLog(
-                    'ANTI-PEC',
-                    `[OK] ${item.companyName} (${item.city}, ${item.province}) -> Email ordinaria validata: ${ordinaryEmail} [${cfg.commercialCategory} -${cfg.baseDiscount}%]`,
-                    'SUCCESS'
-                  );
-                } else {
-                  addSdrLog(
-                    'SCOUT',
-                    `[NUOVA] ${item.companyName} (${item.city}, ${item.province}) acquisita da ${item.sourceEngine} (Tel: ${item.phone || 'N/D'})`,
-                    'INFO'
-                  );
-                }
-              } else if (!existing.ordinaryEmail && ordinaryEmail) {
-                await sdrPrisma.sdrProspect.update({
-                  where: { id: existing.id },
-                  data: {
-                    ordinaryEmail,
-                    isPecVerified: true,
-                    section: 'Email_Pronta',
-                    leadScore: Math.max(existing.leadScore, leadScore),
-                    website: existing.website || item.website,
-                    vatNumber: existing.vatNumber || crawledVat,
-                  },
-                });
-                _searchState.email_pronte += 1;
-                _searchState.sentinel.emails_recovered += 1;
-                addSdrLog(
-                  'PROFILER',
-                  `[UPGRADE EMAIL] ${existing.companyName} (${existing.city}) -> trovata email ordinaria: ${ordinaryEmail}`,
-                  'SUCCESS'
-                );
-              }
-            } catch {
-              // Ignore unique constraint race condition
-            }
-          }
-        }
-
-        _searchState.comuni_completati = idx + 1;
-        _searchState.progress = Math.min(
-          92,
-          Math.round(((_searchState.comuni_completati) / maxComuniBatch) * 85) + 5
-        );
-      }
-
-      // Fase 2: Arricchimento su aziende Senza_Email della stessa zona già nel DB
-      if (!_stopRequested) {
-        _searchState.phase = 'Fase 2: Profiler Web & Filtro Anti-PEC 4 Livelli';
-        _searchState.last_message = 'Arricchimento siti web e recupero email ordinarie sulle aziende della zona...';
-        await runProfilerEnrichmentBatch({
-          regione: reg === 'TUTTA_ITALIA' ? undefined : reg,
-          provincia: prov || undefined,
-          comune: com || undefined,
-          limit: 25,
-        });
-      }
-
-      _territoryCache = null;
-      _searchState.progress = 100;
-      _searchState.running = false;
-      _searchState.finished_at = new Date().toISOString();
-      _searchState.phase = _stopRequested ? 'Fermata dall’utente' : 'Completata (Sentinella 24/7 Attiva)';
-      _searchState.last_message = _stopRequested
-        ? `Ricerca interrotta. Acquisite ${_searchState.trovate} nuove aziende (${_searchState.email_pronte} con email pronta).`
-        : `Scansione completata: ${_searchState.trovate} nuove aziende acquisite, ${_searchState.email_pronte} email ordinarie certificate Anti-PEC.`;
-
-      addSdrLog('SCOUT', _searchState.last_message, 'SUCCESS');
-    } catch (err: any) {
-      _searchState.running = false;
-      _searchState.phase = 'Errore';
-      _searchState.last_message = `Errore durante la ricerca: ${err.message}`;
-      addSdrLog('SCOUT', `Errore pipeline ricerca: ${err.message}`, 'ERROR');
-    }
-  })();
-
   return {
     started: true,
-    message: 'Ricerca territoriale avviata in background.',
-    status: getSearchPipelineStatus(),
+    message: 'Ricerca territoriale accodata su worker-sdr-scraper in background.',
+    status: await getSearchPipelineStatus(),
   };
 }
 
@@ -1570,85 +1589,25 @@ export async function runProfilerEnrichmentBatch(opts?: {
   comune?: string;
   limit?: number;
 }) {
-  const where: any = {
-    section: 'Senza_Email',
-    website: { not: null },
-  };
-  if (opts?.comune) where.city = { equals: opts.comune, mode: 'insensitive' };
-  else if (opts?.provincia) where.province = { equals: opts.provincia.toUpperCase(), mode: 'insensitive' };
-  else if (opts?.regione && opts.regione !== 'TUTTA_ITALIA') {
-    where.region = { contains: opts.regione.slice(0, 7), mode: 'insensitive' };
-  }
-
-  const candidates = await sdrPrisma.sdrProspect.findMany({
-    where,
-    orderBy: [{ sentinelAttempts: 'asc' }, { leadScore: 'desc' }],
-    take: opts?.limit || 30,
+  const limit = Math.min(200, Math.max(5, Number(opts?.limit || 30)));
+  await sdrScraperQueue.add(SDR_JOBS.DEEP_PROFILE_BATCH, {
+    regione: opts?.regione,
+    provincia: opts?.provincia,
+    comune: opts?.comune,
+    limit,
   });
 
-  let upgraded = 0;
-  let pecFiltered = 0;
-
-  for (const c of candidates) {
-    if (!c.website) continue;
-    const crawled = await crawlCompanyWebsiteForEmailsAndBrands(c.website);
-    if (crawled.ordinaryEmail) {
-      await sdrPrisma.sdrProspect.update({
-        where: { id: c.id },
-        data: {
-          ordinaryEmail: crawled.ordinaryEmail,
-          isPecVerified: true,
-          pecCamerale: crawled.pecCamerale || c.pecCamerale,
-          pecRejectedLog: crawled.pecRejectedLog || c.pecRejectedLog,
-          section: 'Email_Pronta',
-          vatNumber: c.vatNumber || crawled.vatNumber,
-          brandsDetected:
-            crawled.brandsDetected.length > 0
-              ? crawled.brandsDetected.join(', ')
-              : c.brandsDetected,
-          leadScore: computeProspectLeadScore({
-            ordinaryEmail: crawled.ordinaryEmail,
-            phone: c.phone,
-            whatsappPhone: c.whatsappPhone,
-            website: c.website,
-            vatNumber: c.vatNumber || crawled.vatNumber,
-            brandsDetected: crawled.brandsDetected.join(', '),
-            address: c.address,
-          }),
-          sentinelAttempts: { increment: 1 },
-          lastSentinelCheckAt: new Date(),
-        },
-      });
-      upgraded += 1;
-      _searchState.email_pronte += 1;
-      _searchState.sentinel.emails_recovered += 1;
-      addSdrLog(
-        'PROFILER',
-        `[EMAIL RECUPERATA] ${c.companyName} (${c.city}) -> ${crawled.ordinaryEmail}`,
-        'SUCCESS'
-      );
-    } else {
-      if (crawled.pecCamerale) pecFiltered += 1;
-      await sdrPrisma.sdrProspect.update({
-        where: { id: c.id },
-        data: {
-          pecCamerale: crawled.pecCamerale || c.pecCamerale,
-          pecRejectedLog: crawled.pecRejectedLog || c.pecRejectedLog,
-          sentinelAttempts: { increment: 1 },
-          lastSentinelCheckAt: new Date(),
-        },
-      });
-    }
-  }
-
-  _searchState.sentinel.cycles_completed += 1;
-  _searchState.sentinel.existing_updated += candidates.length;
-  _searchState.sentinel.last_activity = `Ultimo ciclo Profiler/Sentinella: ${candidates.length} siti analizzati, ${upgraded} nuove email ordinarie recuperate, ${pecFiltered} PEC bloccate.`;
+  addSdrLog(
+    'PROFILER',
+    `Accodato Deep-Web Crawler multi-pagina (/contatti, /chi-siamo, /privacy) per ${limit} aziende su worker-sdr-scraper.`,
+    'INFO'
+  );
 
   return {
-    processed: candidates.length,
-    upgraded,
-    pecFiltered,
+    queued: true,
+    processed: limit,
+    upgraded: 0,
+    pecFiltered: 0,
   };
 }
 
@@ -1664,17 +1623,17 @@ export interface AuditCheckResult {
   repaired?: boolean;
 }
 
-export async function runSingleProspectAudit(prospectId: number): Promise<{
-  prospectId: number;
-  companyName: string;
+export function evaluateProspectAuditChecks(
+  p: any,
+  blacklistedReason?: string | null
+): {
+  cleanName: string;
   passedCount: number;
   totalChecks: number;
   auditScore: number;
   checks: AuditCheckResult[];
-}> {
-  const p = await sdrPrisma.sdrProspect.findUnique({ where: { id: prospectId } });
-  if (!p) throw new Error('Prospect non trovato');
-
+  updates: Record<string, any>;
+} {
   const updates: Record<string, any> = {};
   const checks: AuditCheckResult[] = [];
 
@@ -1688,21 +1647,30 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     detail: `Ragione sociale verificata: "${cleanName}"`,
   });
 
-  // V02: Partita IVA / Codice Fiscale
-  const cleanVat = p.vatNumber ? p.vatNumber.replace(/\D/g, '') : null;
-  const vatOk = !cleanVat || cleanVat.length === 11;
-  if (cleanVat && cleanVat.length === 11 && cleanVat !== p.vatNumber) {
-    updates.vatNumber = cleanVat;
+  // V02: Partita IVA / Codice Fiscale con algoritmo Modulo 10 reale
+  const rawDigits = p.vatNumber ? String(p.vatNumber).replace(/\D/g, '') : null;
+  const sanitizedVat = sanitizeItalianVat(p.vatNumber);
+  const vatOk = !rawDigits || Boolean(sanitizedVat && validateItalianVatChecksum(sanitizedVat));
+  if (sanitizedVat && sanitizedVat !== p.vatNumber) {
+    updates.vatNumber = sanitizedVat;
+  } else if (rawDigits && !sanitizedVat) {
+    // Checksum invalido (es. falso positivo telefono/CAP): segnala senza corrompere anagrafiche
+    updates.vatNumber = null;
   }
   checks.push({
     code: 'V02',
-    name: 'Validazione Partita IVA (11 cifre Modulo 10) & VIES',
+    name: 'Validazione Partita IVA (11 cifre Modulo 10 Luhn) & VIES',
     passed: vatOk,
-    detail: cleanVat ? `P.IVA ${cleanVat} formalmente valida` : 'P.IVA non ancora censita (in coda arricchimento)',
+    detail: sanitizedVat
+      ? `P.IVA ${sanitizedVat} formalmente valida (Checksum Modulo 10 OK)`
+      : rawDigits
+        ? `P.IVA "${rawDigits}" scartata: cifra di controllo Modulo 10 non valida`
+        : 'P.IVA non ancora censita (in coda arricchimento)',
+    repaired: Boolean((sanitizedVat && sanitizedVat !== p.vatNumber) || (rawDigits && !sanitizedVat)),
   });
 
-  // V03: Coerenza Categoria B2B & Codice ATECO
-  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+  // V03: Coerenza Categoria B2B & Codice ATECO (tramite registro canonico @archelia/sdr-database)
+  const catCfg = resolveClusterConfig(p.categoryCluster, p.commercialCategory);
   if (!p.atecoCode) {
     updates.atecoCode = catCfg.atecoDefault;
   }
@@ -1710,7 +1678,7 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     code: 'V03',
     name: 'Coerenza Cluster B2B & Codice ATECO',
     passed: true,
-    detail: `Cluster ${p.categoryCluster} — ATECO ${p.atecoCode || catCfg.atecoDefault}`,
+    detail: `Cluster ${catCfg.cluster} (${catCfg.label}) — ATECO ${p.atecoCode || catCfg.atecoDefault}`,
     repaired: !p.atecoCode,
   });
 
@@ -1759,7 +1727,7 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
       updates.section = 'PEC_Scartata';
       antiPecDetail = `Rilevata e spostata PEC in archivio camerale: ${ev.cleanEmail} (${ev.reason})`;
     } else {
-      updates.isPecVerified = true;
+      if (!p.isPecVerified) updates.isPecVerified = true;
       antiPecDetail = `${ev.cleanEmail} — ${ev.reason}`;
     }
   }
@@ -1799,7 +1767,7 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     phone: p.phone,
     whatsappPhone: updates.whatsappPhone || p.whatsappPhone,
     website: p.website,
-    vatNumber: updates.vatNumber || p.vatNumber,
+    vatNumber: updates.vatNumber !== undefined ? updates.vatNumber : p.vatNumber,
     brandsDetected: p.brandsDetected,
     address: p.address,
   });
@@ -1830,7 +1798,7 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     detail: bollaturaLabel,
   });
 
-  // V12: Coerenza Listino B2B (IST 40% vs RIV 50%)
+  // V12: Coerenza Listino B2B (IST 40% vs RIV 50% — incluso Rivendita_Edile RIV 50%)
   const expectedCat = catCfg.commercialCategory;
   const expectedDisc = catCfg.baseDiscount;
   if (p.commercialCategory !== expectedCat || p.baseDiscount !== expectedDisc) {
@@ -1846,17 +1814,12 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
   });
 
   // V13: Verifica Blacklist & Conformità GDPR B2B
-  const blacklisted = p.ordinaryEmail
-    ? await sdrPrisma.sdrBlacklist.findUnique({
-        where: { emailOrDomain: p.ordinaryEmail.toLowerCase() },
-      })
-    : null;
   checks.push({
     code: 'V13',
     name: 'Controllo Blacklist Opt-Out & Conformità GDPR B2B',
-    passed: !blacklisted,
-    detail: blacklisted
-      ? `Indirizzo presente in Blacklist (${blacklisted.reason})`
+    passed: !blacklistedReason,
+    detail: blacklistedReason
+      ? `Indirizzo presente in Blacklist (${blacklistedReason})`
       : 'Assente da Blacklist — idoneo per contatto B2B informativo',
   });
 
@@ -1879,7 +1842,7 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     repaired: p.section !== expectedSection,
   });
 
-  // V15: Prontezza Credenziali & Agente Referente (Daniele Savoia - 003)
+  // V15: Prontezza Credenziali & Agente Referente
   if (!p.assignedAgentCode) {
     updates.assignedAgentId = 'cmtu64h1c0000jk0sb1ho1o49';
     updates.assignedAgentCode = '003';
@@ -1888,13 +1851,45 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
     code: 'V15',
     name: 'Assegnazione Agente Referente & Prontezza Offerta 1° Acquisto',
     passed: true,
-    detail: `Agente assegnato: Daniele Savoia (Cod. ${p.assignedAgentCode || '003'})`,
+    detail: `Agente assegnato: Cod. ${p.assignedAgentCode || '003'}`,
   });
 
   const passedCount = checks.filter((c) => c.passed).length;
   const auditScore = Math.round((passedCount / checks.length) * 100);
-  updates.auditPassed = passedCount >= 14;
-  updates.auditNotes = `${passedCount}/15 Validatori Superati (Score ${auditScore}%) — Ultima verifica: ${new Date().toLocaleDateString('it-IT')}`;
+
+  return {
+    cleanName,
+    passedCount,
+    totalChecks: checks.length,
+    auditScore,
+    checks,
+    updates,
+  };
+}
+
+export async function runSingleProspectAudit(prospectId: number): Promise<{
+  prospectId: number;
+  companyName: string;
+  passedCount: number;
+  totalChecks: number;
+  auditScore: number;
+  checks: AuditCheckResult[];
+}> {
+  const p = await sdrPrisma.sdrProspect.findUnique({ where: { id: prospectId } });
+  if (!p) throw new Error('Prospect non trovato');
+
+  const blacklisted = p.ordinaryEmail
+    ? await sdrPrisma.sdrBlacklist.findUnique({
+        where: { emailOrDomain: p.ordinaryEmail.toLowerCase() },
+      })
+    : null;
+
+  const evalRes = evaluateProspectAuditChecks(p, blacklisted?.reason || null);
+  const updates = {
+    ...evalRes.updates,
+    auditPassed: evalRes.passedCount >= 14,
+    auditNotes: `${evalRes.passedCount}/15 Validatori Superati (Score ${evalRes.auditScore}%) — Ultima verifica: ${new Date().toLocaleDateString('it-IT')}`,
+  };
 
   await sdrPrisma.sdrProspect.update({
     where: { id: p.id },
@@ -1903,23 +1898,28 @@ export async function runSingleProspectAudit(prospectId: number): Promise<{
 
   return {
     prospectId: p.id,
-    companyName: cleanName,
-    passedCount,
-    totalChecks: checks.length,
-    auditScore,
-    checks,
+    companyName: evalRes.cleanName,
+    passedCount: evalRes.passedCount,
+    totalChecks: evalRes.totalChecks,
+    auditScore: evalRes.auditScore,
+    checks: evalRes.checks,
   };
 }
 
 export async function runMasterAuditBatch(limit = 200) {
+  const safeLimit = Math.min(500, Math.max(10, limit));
   addSdrLog(
     'MASTER-AUDIT',
-    `Avvio controllo qualità Master Audit (15 Sub-Agenti V01–V15) su un lotto di ${limit} aziende...`,
+    `Avvio controllo qualità Master Audit (15 Sub-Agenti V01–V15 + Checksum P.IVA Modulo 10) su un lotto di ${safeLimit} aziende...`,
     'INFO'
   );
+
+  // Also queue cluster/VAT reaudit on worker-sdr-scraper for broader background sweeps
+  await sdrScraperQueue.add(SDR_JOBS.REAUDIT_CLUSTERS, { limit: safeLimit }).catch(() => {});
+
   const rows = await sdrPrisma.sdrProspect.findMany({
     orderBy: { updatedAt: 'desc' },
-    take: Math.min(500, Math.max(10, limit)),
+    take: Math.min(100, safeLimit),
     select: { id: true },
   });
 
@@ -1933,7 +1933,7 @@ export async function runMasterAuditBatch(limit = 200) {
 
   addSdrLog(
     'MASTER-AUDIT',
-    `Audit completato su ${audited} aziende: 15/15 controlli eseguiti, ${repaired} schede auto-riparate (Self-Healing).`,
+    `Audit completato su ${audited} aziende (+ job background su worker-sdr-scraper): ${repaired} schede auto-riparate.`,
     'SUCCESS'
   );
 
@@ -2023,7 +2023,7 @@ function inferDecisionMakerFromName(companyName: string): string | null {
 
 export function buildFourQuadrantReport(p: any, rich: any) {
   const rawSummary = (p.aiProfileSummary || '').trim();
-  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+  const catCfg = resolveClusterConfig(p.categoryCluster, p.commercialCategory);
 
   // Parse existing 4-section summary if present
   const sections: Array<{ icon: string; title: string; body: string; tone: 'emerald' | 'blue' | 'amber' | 'purple' }> = [];
@@ -2116,7 +2116,7 @@ export function buildFourQuadrantReport(p: any, rich: any) {
 
 export function unpackProspectRichData(p: any) {
   const meta = (p.richMetadata && typeof p.richMetadata === 'object' ? p.richMetadata : {}) as Record<string, any>;
-  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+  const catCfg = resolveClusterConfig(p.categoryCluster, p.commercialCategory);
 
   const sourcesFromEngine = parseStringArraySafe(p.sourceEngine);
   const sourcesFromMeta = parseStringArraySafe(meta.sources);
@@ -2273,40 +2273,81 @@ export function unpackProspectRichData(p: any) {
     mapsVerificationStatus,
   };
 
+  const quadrantsArr = buildFourQuadrantReport(p, richObj);
+  const fourQuadrantsObj = {
+    q1Corporate: quadrantsArr[0]?.body || '',
+    q2Operations: quadrantsArr[1]?.body || '',
+    q3Reputation: quadrantsArr[2]?.body || '',
+    q4Commercial: quadrantsArr[3]?.body || '',
+  };
+
   return {
     ...p,
     ...richObj,
-    fourQuadrantReport: buildFourQuadrantReport(p, richObj),
+    fourQuadrantReport: quadrantsArr,
+    fourQuadrants: fourQuadrantsObj,
   };
 }
 
 // ============================================================================
-// 10. SIMULAZIONE KILL-SWITCH ATOMICO & INBOX EVENTS
+// 10. KILL-SWITCH ATOMICO & INBOX EVENTS PERSISTENTI (TABELLA SdrInboxEvent)
 // ============================================================================
 
-export interface SimulatedInboxEvent {
+export interface SdrInboxEventDto {
   id: number;
-  prospectId: number;
+  prospectId: number | null;
   companyName: string;
   senderEmail: string;
   subject: string;
   snippet: string;
-  sentiment: 'Interessato' | 'Non_Interessato' | 'Info_Richiesta';
+  sentiment: string;
+  eventType?: string;
   killSwitchTriggered: boolean;
+  isSimulated?: boolean;
   createdAt: string;
 }
 
-const _inboxEvents: SimulatedInboxEvent[] = [];
-let _inboxEventSeq = 1;
+export async function getInboxReplyEvents(limit = 50): Promise<SdrInboxEventDto[]> {
+  try {
+    const rows = await sdrPrisma.sdrInboxEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(100, Math.max(5, limit)),
+    });
+    const pIds = rows
+      .map((r) => r.prospectId)
+      .filter((id): id is number => typeof id === 'number' && !Number.isNaN(id));
+    const prospects =
+      pIds.length > 0
+        ? await sdrPrisma.sdrProspect.findMany({
+            where: { id: { in: pIds } },
+            select: { id: true, companyName: true },
+          })
+        : [];
+    const nameMap = new Map<number, string>();
+    for (const pr of prospects) nameMap.set(pr.id, pr.companyName);
 
-export function getInboxReplyEvents(): SimulatedInboxEvent[] {
-  return _inboxEvents.slice(-50).reverse();
+    return rows.map((r) => ({
+      id: r.id,
+      prospectId: r.prospectId,
+      companyName: (r.prospectId ? nameMap.get(r.prospectId) : null) || r.fromEmail,
+      senderEmail: r.fromEmail,
+      subject: r.subject || '(Nessun oggetto)',
+      snippet: r.snippet || '',
+      sentiment: r.sentiment || 'Info_Richiesta',
+      eventType: r.eventType,
+      killSwitchTriggered: r.killSwitchTriggered,
+      isSimulated: r.eventType === 'SIMULATED',
+      createdAt: r.createdAt.toISOString(),
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function simulateInboxReply(
   prospectId: number,
   sentiment: 'Interessato' | 'Non_Interessato' = 'Interessato'
-) {
+): Promise<SdrInboxEventDto> {
   const p = await sdrPrisma.sdrProspect.findUnique({
     where: { id: prospectId },
     include: { drafts: true },
@@ -2317,12 +2358,18 @@ export async function simulateInboxReply(
 
   const isStop = sentiment === 'Non_Interessato';
   const snippet = isStop
-    ? 'Buongiorno, vi ringraziamo ma al momento siamo già coperti con i nostri fornitori abituali. Non inviate ulteriori solleciti, grazie.'
-    : 'Buongiorno Daniele, abbiamo visto il Catalistino Riservato 2gg e lo sconto sul primo acquisto. Potete contattarci per attivare la fornitura?';
+    ? '[TEST SIMULATO] Buongiorno, vi ringraziamo ma al momento siamo già coperti con i nostri fornitori abituali. Non inviate ulteriori solleciti, grazie.'
+    : '[TEST SIMULATO] Buongiorno Daniele, abbiamo visto il Catalistino Riservato 2gg e lo sconto sul primo acquisto. Potete contattarci per attivare la fornitura?';
 
   // Kill-Switch: annulla eventuali follow-up automatici in coda e aggiorna lo stato
   await sdrPrisma.sdrOutreachDraft.updateMany({
-    where: { prospectId: p.id },
+    where: { prospectId: p.id, status: { notIn: ['Inviata', 'Inviata_Dry_Run'] } },
+    data: {
+      status: 'Annullato_KillSwitch',
+    },
+  });
+  await sdrPrisma.sdrOutreachDraft.updateMany({
+    where: { prospectId: p.id, sequenceStep: 1 },
     data: {
       status: isStop ? 'Annullato_KillSwitch' : 'Risposta_Ricevuta',
       replyReceivedAt: new Date(),
@@ -2337,96 +2384,148 @@ export async function simulateInboxReply(
     },
   });
 
-  const evt: SimulatedInboxEvent = {
-    id: _inboxEventSeq++,
-    prospectId: p.id,
-    companyName: p.companyName,
-    senderEmail: p.ordinaryEmail || `info@${p.companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.it`,
-    subject: `Re: Catalistino Riservato a ${p.companyName}`,
-    snippet,
-    sentiment,
-    killSwitchTriggered: true,
-    createdAt: new Date().toISOString(),
-  };
-  _inboxEvents.push(evt);
+  const senderEmail =
+    p.ordinaryEmail || `info@${p.companyName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20)}.it`;
+
+  if (isStop && p.ordinaryEmail) {
+    await sdrPrisma.sdrBlacklist
+      .upsert({
+        where: { emailOrDomain: p.ordinaryEmail.toLowerCase() },
+        create: { emailOrDomain: p.ordinaryEmail.toLowerCase(), reason: 'Opt-Out (Test Kill-Switch)' },
+        update: { reason: 'Opt-Out (Test Kill-Switch)' },
+      })
+      .catch(() => {});
+  }
+
+  const dbEvt = await sdrPrisma.sdrInboxEvent.create({
+    data: {
+      prospectId: p.id,
+      eventType: 'SIMULATED',
+      fromEmail: senderEmail,
+      subject: `Re: Catalistino Riservato a ${p.companyName}`,
+      snippet,
+      sentiment,
+      killSwitchTriggered: true,
+    },
+  });
 
   addSdrLog(
     'KILL-SWITCH',
-    `[RISPOSTA RILEVATA] ${p.companyName} (#${p.id}) -> Sentiment: ${sentiment}. Kill-Switch Atomico attivato: follow-up automatici bloccati istantaneamente.`,
+    `[TEST KILL-SWITCH] ${p.companyName} (#${p.id}) -> Sentiment: ${sentiment}. Kill-Switch Atomico verificato e persistito su SdrInboxEvent.`,
     isStop ? 'WARN' : 'SUCCESS'
   );
 
-  return evt;
+  return {
+    id: dbEvt.id,
+    prospectId: p.id,
+    companyName: p.companyName,
+    senderEmail,
+    subject: dbEvt.subject || `Re: Catalistino Riservato a ${p.companyName}`,
+    snippet,
+    sentiment,
+    eventType: dbEvt.eventType,
+    killSwitchTriggered: true,
+    isSimulated: true,
+    createdAt: dbEvt.createdAt.toISOString(),
+  };
 }
 
 // ============================================================================
-// 11. DOSSIER AZIENDA COMPLETO A 3 SCHEDE + VISTA AFFIANCATA (1:1 CON RICERCA CLIENTI)
+// 11. DOSSIER AZIENDA COMPLETO A 3 SCHEDE + VISTA AFFIANCATA (100% READ-ONLY SU GET!)
 // ============================================================================
 
 export async function getProspectFullDossier(prospectId: number) {
-  const p = await sdrPrisma.sdrProspect.findUnique({
-    where: { id: prospectId },
-    include: {
-      drafts: {
-        orderBy: { createdAt: 'desc' },
+  const [p, rawInboxEvents] = await Promise.all([
+    sdrPrisma.sdrProspect.findUnique({
+      where: { id: prospectId },
+      include: {
+        drafts: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
-    },
-  });
+    }),
+    sdrPrisma.sdrInboxEvent
+      .findMany({
+        where: { prospectId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      })
+      .catch(() => []),
+  ]);
 
   if (!p) throw new Error('Azienda non trovata');
 
-  const auditResult = await runSingleProspectAudit(prospectId);
-  const updatedProspect = await sdrPrisma.sdrProspect.findUnique({
-    where: { id: prospectId },
-    include: {
-      drafts: {
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
+  const [blacklisted, promoProspect, firstPurchaseRule, outreachConfig] = await Promise.all([
+    p.ordinaryEmail
+      ? sdrPrisma.sdrBlacklist.findUnique({
+          where: { emailOrDomain: p.ordinaryEmail.toLowerCase() },
+        })
+      : Promise.resolve(null),
+    p.promoProspectId
+      ? b2bPrisma.b2BPromoProspect.findUnique({
+          where: { id: p.promoProspectId },
+          include: {
+            carts: { include: { items: true } },
+            orders: { orderBy: { createdAt: 'desc' }, take: 5 },
+          },
+        })
+      : Promise.resolve(null),
+    p.promoProspectId
+      ? b2bPrisma.b2BDiscountRule.findFirst({
+          where: {
+            clientScope: 'SINGLE_CLIENT',
+            clientId: p.promoProspectId,
+          },
+        })
+      : Promise.resolve(null),
+    sdrPrisma.sdrOutreachConfig.findUnique({
+      where: { id: 'default' },
+    }),
+  ]);
 
-  const promoProspect = p.promoProspectId
-    ? await b2bPrisma.b2BPromoProspect.findUnique({
-        where: { id: p.promoProspectId },
-        include: {
-          carts: { include: { items: true } },
-          orders: { orderBy: { createdAt: 'desc' }, take: 5 },
-        },
-      })
-    : null;
+  // Pure read-only evaluation of the 15 validators (NO DB write on GET /dossier!)
+  const evalAudit = evaluateProspectAuditChecks(p, blacklisted?.reason || null);
+  const auditResult = {
+    prospectId: p.id,
+    companyName: evalAudit.cleanName,
+    passedCount: evalAudit.passedCount,
+    totalChecks: evalAudit.totalChecks,
+    auditScore: evalAudit.auditScore,
+    checks: evalAudit.checks,
+  };
 
-  const firstPurchaseRule = p.promoProspectId
-    ? await b2bPrisma.b2BDiscountRule.findFirst({
-        where: {
-          clientScope: 'SINGLE_CLIENT',
-          clientId: p.promoProspectId,
-        },
-      })
-    : null;
-
-  const outreachConfig = await sdrPrisma.sdrOutreachConfig.findUnique({
-    where: { id: 'default' },
-  });
-
-  const catCfg = CATEGORY_CONFIG[p.categoryCluster] || CATEGORY_CONFIG.Installatore;
+  const catCfg = resolveClusterConfig(p.categoryCluster, p.commercialCategory);
   const extraPct =
-    p.commercialCategory === 'RIV'
+    catCfg.commercialCategory === 'RIV'
       ? outreachConfig?.rivExtraDiscountPct ?? 10
       : outreachConfig?.istExtraDiscountPct ?? 10;
   const effectiveFirstPurchasePct = Number(
-    (100 - (100 - p.baseDiscount) * (1 - extraPct / 100)).toFixed(1)
+    (100 - (100 - catCfg.baseDiscount) * (1 - extraPct / 100)).toFixed(1)
   );
 
-  const unpacked = unpackProspectRichData(updatedProspect || p);
+  const unpacked = unpackProspectRichData(p);
+  const mappedInboxEvents: SdrInboxEventDto[] = rawInboxEvents.map((r) => ({
+    id: r.id,
+    prospectId: r.prospectId,
+    companyName: p.companyName,
+    senderEmail: r.fromEmail,
+    subject: r.subject || '(Nessun oggetto)',
+    snippet: r.snippet || '',
+    sentiment: r.sentiment || 'Info_Richiesta',
+    eventType: r.eventType,
+    killSwitchTriggered: r.killSwitchTriggered,
+    isSimulated: r.eventType === 'SIMULATED',
+    createdAt: r.createdAt.toISOString(),
+  }));
 
   return {
     prospect: unpacked,
     mapsVerificationStatus: unpacked.mapsVerificationStatus,
     categoryInfo: {
-      cluster: p.categoryCluster,
+      cluster: catCfg.cluster,
       label: catCfg.label,
-      commercialCategory: p.commercialCategory,
-      baseDiscount: p.baseDiscount,
+      commercialCategory: catCfg.commercialCategory,
+      baseDiscount: catCfg.baseDiscount,
       extraFirstPurchasePct: extraPct,
       effectiveFirstPurchasePct,
       atecoCode: unpacked.atecoCode,
@@ -2436,8 +2535,8 @@ export async function getProspectFullDossier(prospectId: number) {
     audit: auditResult,
     promoProspect,
     firstPurchaseRule,
-    drafts: updatedProspect?.drafts || p.drafts || [],
-    inboxEvents: _inboxEvents.filter((e) => e.prospectId === p.id),
+    drafts: p.drafts || [],
+    inboxEvents: mappedInboxEvents,
     outreachConfig,
   };
 }

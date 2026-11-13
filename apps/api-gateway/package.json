@@ -7,13 +7,13 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc && mkdir -p dist/lib/b2bSdr && cp src/lib/b2bSdr/comuni_italiani.json dist/lib/b2bSdr/comuni_italiani.json"
+    "build": "tsc && mkdir -p dist/lib/b2bSdr dist/lib/b2bAgentSuite && cp src/lib/b2bSdr/comuni_italiani.json dist/lib/b2bSdr/comuni_italiani.json && cp src/lib/b2bAgentSuite/taxonomy.json dist/lib/b2bAgentSuite/taxonomy.json"
   },
   "dependencies": {
     "@archelia/b2b-database": "^1.0.0",
-    "@archelia/sdr-database": "^1.0.0",
     "@archelia/core": "*",
     "@archelia/database": "*",
+    "@archelia/sdr-database": "^1.0.0",
     "@archelia/shopify": "*",
     "@archelia/typesense": "*",
     "@fastify/cookie": "^11.0.2",
@@ -23,7 +23,9 @@
     "cloudinary": "^2.10.0",
     "fastify": "^5.8.2",
     "fastify-type-provider-zod": "^7.0.0",
+    "imapflow": "^2.11.0",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.5.0",
     "pg": "^8.22.0",
     "sharp": "^0.33.5",
     "zod": "^4.3.6"
@@ -32,6 +34,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.2",
     "tsx": "^4.21.0",
     "typescript": "^5.6.0"
   }

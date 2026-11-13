@@ -1,15 +1,33 @@
 import { FastifyInstance } from 'fastify';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
-import { sdrPrisma } from '@archelia/sdr-database';
+import {
+  sdrPrisma,
+  resolveClusterConfig,
+  encryptSdrSecret,
+  decryptSdrSecret,
+  computeEffectiveInboxDailyLimit,
+  containsUnresolvedPlaceholders,
+  buildTailoredOutreachEmail,
+} from '@archelia/sdr-database';
 import {
   env,
   log,
   sdrSentinelQueue,
   sdrCopywriterQueue,
   sdrOutreachQueue,
+  SDR_JOBS,
 } from '@archelia/core';
 import * as bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
+import { ImapFlow } from 'imapflow';
 import { authenticate } from '../auth.js';
+import {
+  getAvailableB2BAgents,
+  resolveSdrAgent,
+  generateTrackingToken,
+  buildSmartCatalogOfferUrls,
+  generateProspectReservedCatalogPdf,
+} from '../../lib/b2bSdr/sdrCatalogService.js';
 import {
   getAgentDiscountManagementInitData,
   saveAgentDiscountRuleAction,
@@ -41,6 +59,7 @@ import {
   runSingleProspectAudit,
   getProspectFullDossier,
   getRecentSdrLogs,
+  getRecentSdrLogsAsync,
   addSdrLog,
   evaluateAntiPec,
   computeProspectLeadScore,
@@ -107,11 +126,25 @@ function generateTempPassword(): string {
   return `Izzo!${suffix}`;
 }
 
+function sanitizeInboxAccount(acc: any) {
+  const ramp = computeEffectiveInboxDailyLimit(acc);
+  const { smtpPasswordEnc, imapPasswordEnc, ...safe } = acc;
+  return {
+    ...safe,
+    hasPasswordConfigured: Boolean(
+      smtpPasswordEnc && smtpPasswordEnc !== 'DRY_RUN_TOKEN' && smtpPasswordEnc.length > 8
+    ),
+    effectiveDailyLimit: ramp.effectiveDailyLimit,
+    warmupWeek: ramp.warmupWeek,
+    daysActive: ramp.daysActive,
+  };
+}
+
 export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', authenticate);
 
   // ============================================================================
-  // 1. AI SDR B2B — STATS & PANORAMICA
+  // 1. AI SDR B2B — STATS, PANORAMICA & LISTA AGENTI B2B
   // ============================================================================
   fastify.get('/api/admin/sdr/stats', async (_request, reply) => {
     try {
@@ -125,8 +158,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         clusterGroups,
         pipelineGroups,
         draftsCount,
+        activeBozzaProntaCount,
+        catalogOpenedCount,
         sentinelRuns,
-        inboxAccounts,
+        rawInboxAccounts,
         blacklistCount,
         promoTotal,
         promoContacted,
@@ -150,12 +185,14 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           _count: { _all: true },
         }),
         sdrPrisma.sdrOutreachDraft.count(),
+        sdrPrisma.sdrOutreachDraft.count({ where: { status: 'Bozza_Pronta' } }),
+        sdrPrisma.sdrOutreachDraft.count({ where: { catalogOpenCount: { gt: 0 } } }),
         sdrPrisma.sdrSentinelRun.findMany({
           orderBy: { createdAt: 'desc' },
           take: 10,
         }),
         sdrPrisma.sdrInboxAccount.findMany({
-          orderBy: { createdAt: 'desc' },
+          orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
         }),
         sdrPrisma.sdrBlacklist.count(),
         b2bPrisma.b2BPromoProspect.count(),
@@ -174,6 +211,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } }),
       ]);
 
+      const inboxAccounts = rawInboxAccounts.map(sanitizeInboxAccount);
+      const totalDailyCapacity = inboxAccounts
+        .filter((a) => a.isActive)
+        .reduce((sum, a) => sum + Number(a.effectiveDailyLimit || 0), 0);
+      const sentTodayTotal = inboxAccounts.reduce((sum, a) => sum + Number(a.sentToday || 0), 0);
+
       return reply.send({
         success: true,
         enableGlobalWrites: env.ENABLE_GLOBAL_WRITES,
@@ -185,12 +228,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           istCount,
           rivCount,
           draftsCount,
+          activeBozzaProntaCount,
+          catalogOpenedCount,
           blacklistCount,
           promoTotal,
           promoContacted,
           promoLoggedIn,
           promoPendingOrder,
           promoConverted,
+          activeInboxesCount: inboxAccounts.filter((a) => a.isActive).length,
+          totalInboxesCount: inboxAccounts.length,
+          totalDailyCapacity,
+          sentTodayTotal,
         },
         clusters: clusterGroups.map((g) => ({
           cluster: g.categoryCluster,
@@ -210,6 +259,15 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         module: 'api-gateway:b2bSdr',
       });
       return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/b2b-agents', async (_request, reply) => {
+    try {
+      const agents = await getAvailableB2BAgents();
+      return reply.send({ success: true, agents });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message, agents: [] });
     }
   });
 
@@ -490,20 +548,53 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // Fetch associated FIRST_PURCHASE discount rules
+      // Fetch associated FIRST_PURCHASE discount rules & SDR Catalistino Tracking
       const promoIds = allPromos.map((p) => p.id);
-      const rules =
+      const sdrProspectIds = allPromos
+        .map((p) => p.sdrProspectId)
+        .filter((id): id is number => typeof id === 'number' && !Number.isNaN(id));
+
+      const [rules, sdrDrafts] = await Promise.all([
         promoIds.length > 0
-          ? await b2bPrisma.b2BDiscountRule.findMany({
+          ? b2bPrisma.b2BDiscountRule.findMany({
               where: {
                 clientScope: 'SINGLE_CLIENT',
                 clientId: { in: promoIds },
               },
             })
-          : [];
+          : Promise.resolve([]),
+        sdrProspectIds.length > 0
+          ? sdrPrisma.sdrOutreachDraft.findMany({
+              where: {
+                prospectId: { in: sdrProspectIds },
+                sequenceStep: 1,
+              },
+              orderBy: { createdAt: 'desc' },
+              select: {
+                id: true,
+                prospectId: true,
+                trackingToken: true,
+                catalogOpenedAt: true,
+                catalogOpenCount: true,
+                status: true,
+                sentAt: true,
+                assignedAgentId: true,
+                assignedAgentCode: true,
+              },
+            })
+          : Promise.resolve([]),
+      ]);
+
       const ruleByClient = new Map<string, any>();
       for (const r of rules) {
         if (r.clientId) ruleByClient.set(r.clientId, r);
+      }
+
+      const draftBySdrId = new Map<number, any>();
+      for (const dr of sdrDrafts) {
+        if (!draftBySdrId.has(dr.prospectId)) {
+          draftBySdrId.set(dr.prospectId, dr);
+        }
       }
 
       const enriched = allPromos.map((p) => {
@@ -512,11 +603,21 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           (acc, c) => acc + c.items.reduce((sum, item) => sum + item.quantity, 0),
           0
         );
+        const sdrDraft = p.sdrProspectId ? draftBySdrId.get(p.sdrProspectId) || null : null;
+        const smartUrls = sdrDraft?.trackingToken
+          ? buildSmartCatalogOfferUrls(sdrDraft.trackingToken)
+          : null;
         return {
           ...p,
           cartItemsCount,
           cartTotalUnits,
           firstPurchaseRule: ruleByClient.get(p.id) || null,
+          trackingToken: sdrDraft?.trackingToken || null,
+          catalogOpenedAt: sdrDraft?.catalogOpenedAt || null,
+          catalogOpenCount: Number(sdrDraft?.catalogOpenCount || 0),
+          outreachDraftStatus: sdrDraft?.status || null,
+          smartOfferUrl: smartUrls?.storefrontOfferUrl || smartUrls?.apiOfferUrl || null,
+          catalogPdfUrl: smartUrls?.apiPdfDownloadUrl || null,
         };
       });
 
@@ -526,6 +627,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           p.status === 'ORDER_PENDING_APPROVAL' ||
           (p.loginCount > 0 && p.status !== 'CONVERTED')
       );
+      const openedCatalog = enriched.filter(
+        (p) => p.catalogOpenCount > 0 && p.status !== 'CONVERTED'
+      );
       const contacted = enriched.filter(
         (p) => p.status === 'CONTACTED' && p.loginCount === 0
       );
@@ -534,6 +638,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         loggedIn,
+        openedCatalog,
         contacted,
         converted,
       });
@@ -640,6 +745,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           afternoonWindow: body.afternoonWindow,
           sentinelEnabled:
             body.sentinelEnabled !== undefined ? Boolean(body.sentinelEnabled) : undefined,
+          defaultAgentId: body.defaultAgentId ? String(body.defaultAgentId) : undefined,
+          defaultAgentCode: body.defaultAgentCode ? String(body.defaultAgentCode) : undefined,
         },
       });
       return reply.send({ success: true, config });
@@ -649,7 +756,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   });
 
   // ============================================================================
-  // 5. AI SDR B2B — GENERA CREDENZIALI + SCONTO 1° ACQUISTO + BOZZA EMAIL + CATALOGO
+  // 5. AI SDR B2B — GENERA CREDENZIALI + SCONTO 1° ACQUISTO (ALL_2GG) + BOZZA ANTI-SPAM + SMART LINK
   // ============================================================================
   fastify.post('/api/admin/sdr/prepare-outreach', async (request, reply) => {
     try {
@@ -658,11 +765,17 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         commercialCategory?: string;
         categoryCluster?: string;
         limit?: number;
+        agentId?: string;
+        agentCode?: string;
       };
 
       const config =
         (await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } })) ||
         (await sdrPrisma.sdrOutreachConfig.create({ data: { id: 'default' } }));
+
+      const resolvedAgent = await resolveSdrAgent(
+        body.agentId || body.agentCode || config.defaultAgentId || config.defaultAgentCode
+      );
 
       let targetIds = Array.isArray(body.prospectIds)
         ? body.prospectIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
@@ -681,7 +794,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         }
         const rows = await sdrPrisma.sdrProspect.findMany({
           where,
-          take: Math.min(50, Math.max(1, Number(body.limit || 10))),
+          take: Math.min(100, Math.max(1, Number(body.limit || 20))),
           orderBy: { leadScore: 'desc' },
           select: { id: true },
         });
@@ -695,24 +808,48 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Enqueue on BullMQ worker-sdr-outreach
-      await sdrCopywriterQueue.add('PREPARE_OUTREACH', {
-        prospectIds: targetIds,
-        configId: 'default',
-      });
-
-      // Process up to 20 immediately so UI sees instant results
+      // Process up to 20 immediately so UI sees instant results; queue ONLY remaining (>20) on worker
       const immediateIds = targetIds.slice(0, 20);
+      const remainingIds = targetIds.slice(20);
+
+      if (remainingIds.length > 0) {
+        await sdrCopywriterQueue.add(SDR_JOBS.PREPARE_BATCH, {
+          action: SDR_JOBS.PREPARE_BATCH,
+          prospectIds: remainingIds,
+          agentId: resolvedAgent.id,
+          agentCode: resolvedAgent.code,
+          configId: 'default',
+        });
+      }
+
       const prospects = await sdrPrisma.sdrProspect.findMany({
         where: { id: { in: immediateIds } },
       });
 
       const preparedResults: any[] = [];
+      const skippedBlacklist: string[] = [];
+
       for (const prospect of prospects) {
         if (!prospect.ordinaryEmail) continue;
         const emailLower = prospect.ordinaryEmail.trim().toLowerCase();
+        const domainLower = emailLower.split('@')[1] || '';
 
-        const isRIV = prospect.commercialCategory === 'RIV';
+        // Guard Blacklist / Opt-Out / Hard Bounce
+        const bl = await sdrPrisma.sdrBlacklist.findFirst({
+          where: {
+            OR: [{ emailOrDomain: emailLower }, { emailOrDomain: domainLower }],
+          },
+        });
+        if (bl) {
+          skippedBlacklist.push(`${emailLower} (${bl.reason})`);
+          continue;
+        }
+
+        // Canonical 11-Cluster resolution (Rivendita_Edile, Ferramenta, Illuminazione => RIV 50%)
+        const clusterCfg = resolveClusterConfig(prospect.categoryCluster);
+        const isRIV =
+          prospect.commercialCategory === 'RIV' || clusterCfg.commercialCategory === 'RIV';
+        const commercialCategory: 'IST' | 'RIV' = isRIV ? 'RIV' : 'IST';
         const baseDiscountNum = isRIV ? 50 : 40;
         const extraFirstPurchasePct = isRIV
           ? Number(config.rivExtraDiscountPct || 10)
@@ -745,18 +882,35 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               fiscalCode: prospect.fiscalCode,
               pecEmail: prospect.pecCamerale,
               phone: prospect.phone || prospect.whatsappPhone,
+              whatsappPhone: prospect.whatsappPhone,
+              website: prospect.website,
               address: prospect.address,
               city: prospect.city,
               zip: prospect.cap,
               province: prospect.province,
               region: prospect.region,
-              commercialCategory: isRIV ? 'RIV' : 'IST',
-              categoryCluster: prospect.categoryCluster,
+              commercialCategory,
+              categoryCluster: clusterCfg.cluster,
               discount: baseDiscountNum,
-              agentId: DANIELE_SAVOIA_AGENT_ID,
-              agentCode: DANIELE_SAVOIA_AGENT_CODE,
+              agentId: resolvedAgent.id,
+              agentCode: resolvedAgent.code,
               status: 'CONTACTED',
               emailSentAt: new Date(),
+            },
+          });
+        } else if (
+          promoProspect.agentId !== resolvedAgent.id ||
+          promoProspect.commercialCategory !== commercialCategory ||
+          promoProspect.discount !== baseDiscountNum
+        ) {
+          promoProspect = await b2bPrisma.b2BPromoProspect.update({
+            where: { id: promoProspect.id },
+            data: {
+              agentId: resolvedAgent.id,
+              agentCode: resolvedAgent.code,
+              commercialCategory,
+              categoryCluster: clusterCfg.cluster,
+              discount: baseDiscountNum,
             },
           });
         }
@@ -768,26 +922,27 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const catalistinoTitle = `Catalistino Riservato a ${prospect.companyName}`;
         const catalistinoSubtitle = `Offerta esclusiva valida per il primo acquisto — Sconto Riservato ${discountFormulaLabel}`;
 
-        // Auto-generate FIRST_PURCHASE discount rule (X% + Y%, Solo 2gg, Scadenza: Sul 1° Acquisto)
-        // collegata sia a b2b_discount_rules (OS) sia a b2b_agent_discount_rules (Storefront B2B)
+        // Regola FIRST_PURCHASE rigorosamente ristretta a ALL_2GG ("Solo Pronta Consegna 2gg")
+        // allineata sia su b2b_discount_rules (OS) sia su b2b_agent_discount_rules (Storefront B2B)
         let firstPurchaseRuleId: string | null = promoProspect.firstPurchaseRuleId || null;
         if (config.enableFirstPurchaseRule && extraFirstPurchasePct > 0) {
           const ruleId = `sdr_fp_${promoProspect.id}`;
           const ruleName = `Primo Acquisto (${discountFormulaLabel} Solo 2gg) — ${prospect.companyName}`;
+          const upperUsername = promoProspect.username.toUpperCase();
 
           const newRule = await b2bPrisma.b2BDiscountRule.upsert({
             where: { id: ruleId },
             create: {
               id: ruleId,
               name: ruleName,
-              agentId: DANIELE_SAVOIA_AGENT_ID,
-              agentCode: DANIELE_SAVOIA_AGENT_CODE,
+              agentId: resolvedAgent.id,
+              agentCode: resolvedAgent.code,
               clientScope: 'SINGLE_CLIENT',
               clientId: promoProspect.id,
               clientName: prospect.companyName,
               clientIds: [promoProspect.id],
-              clientCategories: [isRIV ? 'RIV' : 'IST'],
-              targetType: 'ALL_CATALOG',
+              clientCategories: [commercialCategory],
+              targetType: 'ALL_2GG',
               calculationMode: 'EXTRA_CASCADE',
               discountValue: extraFirstPurchasePct,
               expiryType: 'FIRST_PURCHASE',
@@ -795,6 +950,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             },
             update: {
               name: ruleName,
+              agentId: resolvedAgent.id,
+              agentCode: resolvedAgent.code,
+              targetType: 'ALL_2GG',
               discountValue: extraFirstPurchasePct,
               calculationMode: 'EXTRA_CASCADE',
               expiryType: 'FIRST_PURCHASE',
@@ -813,36 +971,42 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               ) VALUES (
                 $1, $2, $3, $4, 'SINGLE_CLIENT', $5, $6, $7,
                 $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb,
-                'ALL_CATALOG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
+                'ALL_2GG', '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb,
                 'EXTRA_CASCADE', $12, TRUE, 'FIRST_PURCHASE', NOW(), NOW()
               )
               ON CONFLICT ("id") DO UPDATE SET
+                "agentId" = EXCLUDED."agentId",
+                "agentCode" = EXCLUDED."agentCode",
                 "name" = EXCLUDED."name",
+                "clientCode" = EXCLUDED."clientCode",
+                "clientCodes" = EXCLUDED."clientCodes",
+                "clientsMeta" = EXCLUDED."clientsMeta",
+                "targetType" = 'ALL_2GG',
                 "discountValue" = EXCLUDED."discountValue",
                 "calculationMode" = 'EXTRA_CASCADE',
                 "expiryType" = 'FIRST_PURCHASE',
                 "isActive" = TRUE,
                 "updatedAt" = NOW()`,
               ruleId,
-              DANIELE_SAVOIA_AGENT_ID,
-              DANIELE_SAVOIA_AGENT_CODE,
+              resolvedAgent.id,
+              resolvedAgent.code,
               ruleName,
               promoProspect.id,
-              promoProspect.username.toUpperCase(),
+              upperUsername,
               `[IN ATTIVAZIONE] ${prospect.companyName}`,
               JSON.stringify([promoProspect.id]),
-              JSON.stringify([promoProspect.username.toUpperCase()]),
+              JSON.stringify([upperUsername]),
               JSON.stringify([
                 {
                   id: promoProspect.id,
-                  code: promoProspect.username.toUpperCase(),
+                  code: upperUsername,
                   name: `[IN ATTIVAZIONE] ${prospect.companyName}`,
                   baseDiscount: baseDiscountNum,
-                  categoryCode: isRIV ? 'RIV' : 'IST',
+                  categoryCode: commercialCategory,
                   categoryLabel: isRIV ? 'Rivenditore' : 'Installatore',
                 },
               ]),
-              JSON.stringify([isRIV ? 'RIV' : 'IST']),
+              JSON.stringify([commercialCategory]),
               extraFirstPurchasePct
             );
           } catch (syncErr: any) {
@@ -867,6 +1031,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               extraFirstPurchasePct,
               discountFormula: discountFormulaLabel,
               effectiveNetPct,
+              agentName: resolvedAgent.name,
+              agentEmail: resolvedAgent.email,
+              agentPhone: resolvedAgent.phone,
             },
             attachedCatalogMeta: {
               filename: catalogFilename,
@@ -878,50 +1045,53 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               discountFormula: discountFormulaLabel,
               baseDiscount: baseDiscountNum,
               extraDiscountPct: extraFirstPurchasePct,
-              maxProducts: 250,
+              maxProducts: Number(config.catalogMaxProducts || 250),
             },
           },
         });
 
-        const subject = `${catalistinoTitle} — Offerta valida per il primo acquisto (Sconto ${discountFormulaLabel})`;
-
-        const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 640px;">
-  <p>Gentile Team di <strong>${prospect.companyName}</strong>,</p>
-  <p>Siamo <strong>Izzo Distribuzione</strong> (<em>I.S.I. S.r.l.</em>), distributore B2B specializzato in materiale elettrico, illuminazione professionale e ferramenta tecnica.</p>
-  <p>Abbiamo predisposto il <strong>${catalistinoTitle}</strong> e attivato il Vostro accesso riservato al portale B2B con <strong>Sconto Riservato ${discountFormulaLabel}</strong> valido sul Vostro primo acquisto su tutti i prodotti in <strong>Pronta Consegna 2gg</strong>.</p>
-  <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin: 20px 0;">
-    <div style="font-weight: 800; color: #15803d; margin-bottom: 4px;">${catalistinoTitle}</div>
-    <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 10px;">${catalistinoSubtitle}</div>
-    <div><strong>Portale B2B:</strong> <a href="https://www.izzodistribuzione.it/login">https://www.izzodistribuzione.it/login</a></div>
-    <div><strong>Username (definitiva):</strong> <code>${promoProspect.username}</code></div>
-    <div><strong>Password Provvisoria (da personalizzare al 1° accesso):</strong> <code>${tempPasswordPlain}</code></div>
-    <div style="margin-top: 10px; font-size: 13px; color: #475569;">
-      🏷️ <strong>Sconto Attivo 1° Acquisto:</strong> <strong>${discountFormulaLabel}</strong> automatico a carrello su tutti i prodotti 2gg<br/>
-      📦 <strong>Condizione Ordine:</strong> ${config.minOrderAmountText}<br/>
-      🚚 <strong>Consegna:</strong> ${config.freeShippingText}<br/>
-      👤 <strong>Referente Commerciale:</strong> ${config.paymentTermsText}
-    </div>
-  </div>
-  ${
-    config.attachCatalogPdf
-      ? `<p>📎 In allegato trovate il <strong>${catalistinoTitle} (${catalogFilename})</strong> con tutti i prodotti in pronta consegna 2gg e lo sconto <strong>${discountFormulaLabel}</strong> già calcolato.</p>`
-      : ''
-  }
-  <p>Cordiali saluti,<br/><strong>Daniele Savoia</strong> — Divisione B2B Izzo Distribuzione (I.S.I. S.r.l.)</p>
-</div>`;
-
         const existingDraft = await sdrPrisma.sdrOutreachDraft.findFirst({
           where: { prospectId: prospect.id, sequenceStep: 1 },
+        });
+        const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
+        const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
+
+        const unpackedMeta = unpackProspectRichData(prospect);
+        const tailored = buildTailoredOutreachEmail({
+          prospectId: prospect.id,
+          companyName: prospect.companyName,
+          city: prospect.city,
+          province: prospect.province,
+          categoryCluster: clusterCfg.cluster,
+          brandsDetected: prospect.brandsDetected,
+          decisionMaker: unpackedMeta.decisionMaker,
+          username: promoProspect.username,
+          tempPasswordPlain,
+          baseDiscount: baseDiscountNum,
+          extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
+          offerTitle: catalistinoSubtitle,
+          minOrderAmountText: config.minOrderAmountText,
+          freeShippingText: config.freeShippingText,
+          paymentTermsText: config.paymentTermsText,
+          customCommercialNotes: config.customCommercialNotes,
+          smartCatalogUrl: smartUrls.storefrontOfferUrl,
+          agentName: resolvedAgent.name,
+          agentCode: resolvedAgent.code,
+          agentEmail: resolvedAgent.email,
+          agentPhone: resolvedAgent.phone,
         });
 
         const draft = existingDraft
           ? await sdrPrisma.sdrOutreachDraft.update({
               where: { id: existingDraft.id },
               data: {
-                subject,
-                bodyText: `Credenziali B2B Izzo Distribuzione per ${prospect.companyName}: Username ${promoProspect.username} | Password provvisoria ${tempPasswordPlain} | Sconto base ${baseDiscountNum}% + Extra 1° Acquisto +${extraFirstPurchasePct}%`,
-                bodyHtml,
-                attachedCatalogUrl: config.attachCatalogPdf ? catalogFilename : null,
+                subject: tailored.subject,
+                bodyText: tailored.bodyText,
+                bodyHtml: tailored.bodyHtml,
+                attachedCatalogUrl: config.attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
+                trackingToken,
+                assignedAgentId: resolvedAgent.id,
+                assignedAgentCode: resolvedAgent.code,
                 status: 'Bozza_Pronta',
               },
             })
@@ -929,10 +1099,13 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               data: {
                 prospectId: prospect.id,
                 sequenceStep: 1,
-                subject,
-                bodyText: `Credenziali B2B Izzo Distribuzione per ${prospect.companyName}: Username ${promoProspect.username} | Password provvisoria ${tempPasswordPlain} | Sconto base ${baseDiscountNum}% + Extra 1° Acquisto +${extraFirstPurchasePct}%`,
-                bodyHtml,
-                attachedCatalogUrl: config.attachCatalogPdf ? catalogFilename : null,
+                subject: tailored.subject,
+                bodyText: tailored.bodyText,
+                bodyHtml: tailored.bodyHtml,
+                attachedCatalogUrl: config.attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
+                trackingToken,
+                assignedAgentId: resolvedAgent.id,
+                assignedAgentCode: resolvedAgent.code,
                 status: 'Bozza_Pronta',
               },
             });
@@ -940,8 +1113,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         await sdrPrisma.sdrProspect.update({
           where: { id: prospect.id },
           data: {
+            commercialCategory,
+            baseDiscount: baseDiscountNum,
             promoProspectId: promoProspect.id,
             promotedUsername: promoProspect.username,
+            assignedAgentId: resolvedAgent.id,
+            assignedAgentCode: resolvedAgent.code,
             pipelineStatus: 'Credenziali_Create',
           },
         });
@@ -952,20 +1129,35 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           email: emailLower,
           username: promoProspect.username,
           tempPassword: tempPasswordPlain,
-          commercialCategory: promoProspect.commercialCategory,
+          commercialCategory,
           baseDiscount: baseDiscountNum,
           extraFirstPurchasePct,
           effectiveNetPct,
           firstPurchaseRuleId,
           draftId: draft.id,
+          trackingToken,
+          smartOfferUrl: smartUrls.storefrontOfferUrl,
+          catalogPdfUrl: smartUrls.apiPdfDownloadUrl,
           catalogFilename,
+          assignedAgent: resolvedAgent.name,
         });
       }
+
+      addSdrLog(
+        'COPYWRITER',
+        `Preparati ${preparedResults.length} pacchetti B2B completi (Credenziali + Sconto ALL_2GG + Smart Link Catalistino — Agente: ${resolvedAgent.name}).${
+          remainingIds.length > 0 ? ` Altri ${remainingIds.length} in coda worker.` : ''
+        }`,
+        'SUCCESS'
+      );
 
       return reply.send({
         success: true,
         preparedCount: preparedResults.length,
+        queuedBackgroundCount: remainingIds.length,
+        skippedBlacklistCount: skippedBlacklist.length,
         totalQueued: targetIds.length,
+        agent: resolvedAgent,
         preparedResults,
       });
     } catch (error: any) {
@@ -977,49 +1169,105 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   });
 
   // ============================================================================
-  // 6. AI SDR B2B — DISPATCH EMAILS (RISPETTANDO ENABLE_GLOBAL_WRITES DRY-RUN)
+  // 6. AI SDR B2B — DISPATCH EMAILS (HARD GUARD ANTI-PLACEHOLDER + DRY-RUN)
   // ============================================================================
   fastify.post('/api/admin/sdr/dispatch-outreach', async (request, reply) => {
     try {
-      const body = request.body as { draftIds?: number[] };
-      let draftIds = Array.isArray(body.draftIds)
+      const body = request.body as { draftIds?: number[]; limit?: number };
+      const requestedIds = Array.isArray(body.draftIds)
         ? body.draftIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id))
         : [];
 
-      if (draftIds.length === 0) {
-        const readyDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
-          where: { status: { in: ['Bozza_Pronta', 'READY_TO_SEND', 'DRAFT'] } },
-          take: 50,
-          select: { id: true },
-        });
-        draftIds = readyDrafts.map((d) => d.id);
-      }
-
-      if (draftIds.length === 0) {
-        return reply.status(400).send({
-          success: false,
-          error: 'Nessuna bozza pronta per l’invio.',
-        });
-      }
-
-      await sdrOutreachQueue.add('DISPATCH_OUTREACH', { draftIds });
-
-      const newStatus = env.ENABLE_GLOBAL_WRITES ? 'In_Coda_SMTP' : 'Inviata_Dry_Run';
-      await sdrPrisma.sdrOutreachDraft.updateMany({
-        where: { id: { in: draftIds } },
-        data: {
-          status: newStatus,
-          sentAt: new Date(),
+      const candidateDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
+        where:
+          requestedIds.length > 0
+            ? { id: { in: requestedIds }, status: 'Bozza_Pronta' }
+            : { status: 'Bozza_Pronta' },
+        take: requestedIds.length > 0 ? Math.min(500, requestedIds.length) : Math.min(200, Number(body.limit || 50)),
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          prospect: {
+            select: {
+              id: true,
+              companyName: true,
+              ordinaryEmail: true,
+              promoProspectId: true,
+              promotedUsername: true,
+            },
+          },
         },
       });
 
+      if (candidateDrafts.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error:
+            'Nessuna bozza attiva con stato Bozza_Pronta trovata. Genera prima Credenziali B2B + Catalistino (prepare-outreach).',
+        });
+      }
+
+      const validDraftIds: number[] = [];
+      const blockedReasons: string[] = [];
+
+      for (const d of candidateDrafts) {
+        const hasPlaceholders =
+          containsUnresolvedPlaceholders(d.subject) ||
+          containsUnresolvedPlaceholders(d.bodyText) ||
+          containsUnresolvedPlaceholders(d.bodyHtml);
+        if (hasPlaceholders) {
+          blockedReasons.push(`Draft #${d.id} (${d.prospect?.companyName || ''}): contiene placeholder non risolti`);
+          await sdrPrisma.sdrOutreachDraft.update({
+            where: { id: d.id },
+            data: { status: 'Template_Da_Attivare' },
+          });
+          continue;
+        }
+        if (!d.prospect?.promoProspectId || !d.prospect?.ordinaryEmail) {
+          blockedReasons.push(
+            `Draft #${d.id} (${d.prospect?.companyName || ''}): credenziali B2B o email ordinaria mancanti`
+          );
+          continue;
+        }
+        validDraftIds.push(d.id);
+      }
+
+      if (validDraftIds.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: `Tutte le bozze selezionate sono state bloccate dal Safety Guard (${blockedReasons.slice(0, 3).join(' | ')}).`,
+          blockedCount: blockedReasons.length,
+        });
+      }
+
+      const newStatus = env.ENABLE_GLOBAL_WRITES ? 'In_Coda_SMTP' : 'Inviata_Dry_Run';
+      await sdrPrisma.sdrOutreachDraft.updateMany({
+        where: { id: { in: validDraftIds } },
+        data: env.ENABLE_GLOBAL_WRITES
+          ? { status: newStatus }
+          : { status: newStatus, sentAt: new Date() },
+      });
+
+      await sdrOutreachQueue.add(SDR_JOBS.DISPATCH_BATCH, {
+        action: SDR_JOBS.DISPATCH_BATCH,
+        draftIds: validDraftIds,
+      });
+
+      addSdrLog(
+        'OUTREACH',
+        env.ENABLE_GLOBAL_WRITES
+          ? `Accodate ${validDraftIds.length} email B2B verificate sul Pool 60 Caselle Aruba (Time-Fencing + Jitter attivi).`
+          : `[DRY-RUN SICUREZZA] Simulate e accodate ${validDraftIds.length} email B2B sul Pool Aruba (ENABLE_GLOBAL_WRITES=false).`,
+        'SUCCESS'
+      );
+
       return reply.send({
         success: true,
-        dispatchedCount: draftIds.length,
+        dispatchedCount: validDraftIds.length,
+        blockedUnsafeCount: blockedReasons.length,
         dryRun: !env.ENABLE_GLOBAL_WRITES,
         message: env.ENABLE_GLOBAL_WRITES
-          ? `${draftIds.length} email accodate per l'invio SMTP.`
-          : `[DRY-RUN SICUREZZA] ${draftIds.length} email simulate con successo (ENABLE_GLOBAL_WRITES=false).`,
+          ? `${validDraftIds.length} email B2B accodate sul Pool 60 Caselle Aruba con Time-Fencing e Jitter anti-spam.`
+          : `[DRY-RUN SICUREZZA] ${validDraftIds.length} email simulate sul Pool Aruba (ENABLE_GLOBAL_WRITES=false).`,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1027,14 +1275,96 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   });
 
   // ============================================================================
-  // 7. AI SDR B2B — SENTINELLA 24/7, SCRAPER & CASELLE EMAIL
+  // 6B. AI SDR B2B — DOWNLOAD CATALISTINO PDF REALE & SMART LINK TRACCIATO
+  // ============================================================================
+  fastify.get('/api/admin/sdr/prospects/:id/catalog-pdf', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const q = request.query as { force?: string };
+      const prospectId = Number(id);
+      if (Number.isNaN(prospectId)) {
+        return reply.status(400).send({ success: false, error: 'ID prospect non valido' });
+      }
+
+      const pdfRes = await generateProspectReservedCatalogPdf({
+        prospectId,
+        forceRefresh: q.force === '1',
+      });
+
+      return reply
+        .header('Content-Type', 'application/pdf')
+        .header('Content-Disposition', `attachment; filename="${pdfRes.pdfFileName}"`)
+        .header('Cache-Control', 'private, max-age=1800')
+        .send(pdfRes.pdfBuffer);
+    } catch (error: any) {
+      log.error(`Errore GET /api/admin/sdr/prospects/:id/catalog-pdf: ${error.message}`, {
+        module: 'api-gateway:b2bSdr',
+      });
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/prospects/:id/smart-link', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const prospectId = Number(id);
+      if (Number.isNaN(prospectId)) {
+        return reply.status(400).send({ success: false, error: 'ID prospect non valido' });
+      }
+
+      const prospect = await sdrPrisma.sdrProspect.findUnique({ where: { id: prospectId } });
+      if (!prospect) {
+        return reply.status(404).send({ success: false, error: 'Azienda non trovata' });
+      }
+
+      let draft = await sdrPrisma.sdrOutreachDraft.findFirst({
+        where: { prospectId, sequenceStep: 1 },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const token = draft?.trackingToken || generateTrackingToken();
+      if (draft && !draft.trackingToken) {
+        draft = await sdrPrisma.sdrOutreachDraft.update({
+          where: { id: draft.id },
+          data: { trackingToken: token },
+        });
+      } else if (!draft) {
+        const agent = await resolveSdrAgent(prospect.assignedAgentId || prospect.assignedAgentCode);
+        draft = await sdrPrisma.sdrOutreachDraft.create({
+          data: {
+            prospectId,
+            sequenceStep: 1,
+            subject: `Catalistino Riservato a ${prospect.companyName}`,
+            bodyText: '',
+            trackingToken: token,
+            assignedAgentId: agent.id,
+            assignedAgentCode: agent.code,
+            status: 'Template_Da_Attivare',
+          },
+        });
+      }
+
+      const urls = buildSmartCatalogOfferUrls(token);
+      return reply.send({
+        success: true,
+        trackingToken: token,
+        ...urls,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 7. AI SDR B2B — SENTINELLA 24/7, BOZZE & POOL 60 CASELLE ARUBA (AES-256-GCM + TEST SSL)
   // ============================================================================
   fastify.post('/api/admin/sdr/sentinel/trigger', async (request, reply) => {
     try {
       const body = (request.body || {}) as { batchSize?: number; targetRegion?: string };
       const batchSize = Math.min(200, Math.max(5, Number(body.batchSize || 25)));
 
-      await sdrSentinelQueue.add('SENTINEL_BATCH', {
+      await sdrSentinelQueue.add(SDR_JOBS.SENTINEL_BATCH, {
+        action: SDR_JOBS.SENTINEL_BATCH,
         batchSize,
         targetRegion: body.targetRegion,
       });
@@ -1073,7 +1403,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const drafts = await sdrPrisma.sdrOutreachDraft.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
         take: 100,
         include: {
           prospect: true,
@@ -1088,21 +1418,254 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.post('/api/admin/sdr/inboxes', async (request, reply) => {
     try {
       const body = request.body as Record<string, any>;
+      const emailClean = String(body.email || '').trim().toLowerCase();
+      if (!emailClean || !emailClean.includes('@')) {
+        return reply.status(400).send({ success: false, error: 'Indirizzo email casella non valido.' });
+      }
+
+      const rawSmtpPass = String(body.smtpPassword || body.password || '').trim();
+      const rawImapPass = String(body.imapPassword || rawSmtpPass || '').trim();
+      const smtpPasswordEnc = rawSmtpPass ? encryptSdrSecret(rawSmtpPass) : 'DRY_RUN_TOKEN';
+      const imapPasswordEnc = rawImapPass ? encryptSdrSecret(rawImapPass) : smtpPasswordEnc;
+
       const inbox = await sdrPrisma.sdrInboxAccount.create({
         data: {
-          email: String(body.email).trim().toLowerCase(),
+          email: emailClean,
           displayName: String(body.displayName || 'Daniele Savoia — Izzo Distribuzione'),
-          smtpHost: String(body.smtpHost || 'smtp.ionos.it'),
+          smtpHost: String(body.smtpHost || 'smtps.aruba.it').trim(),
           smtpPort: Number(body.smtpPort || 465),
-          smtpUser: String(body.smtpUser || body.email),
-          smtpPasswordEnc: String(body.smtpPasswordEnc || 'DRY_RUN_TOKEN'),
-          imapHost: String(body.imapHost || 'imap.ionos.it'),
+          smtpUser: String(body.smtpUser || emailClean).trim(),
+          smtpPasswordEnc,
+          imapHost: String(body.imapHost || 'imaps.aruba.it').trim(),
           imapPort: Number(body.imapPort || 993),
-          dailyLimit: Number(body.dailyLimit || 45),
-          isActive: true,
+          imapUser: String(body.imapUser || body.smtpUser || emailClean).trim(),
+          imapPasswordEnc,
+          dailyLimit: Math.max(1, Math.min(50, Number(body.dailyLimit || 5))),
+          targetDailyLimit: Math.max(1, Math.min(50, Number(body.targetDailyLimit || 15))),
+          warmupEnabled: body.warmupEnabled !== undefined ? Boolean(body.warmupEnabled) : true,
+          warmupStartedAt: new Date(),
+          isActive: body.isActive !== undefined ? Boolean(body.isActive) : true,
         },
       });
-      return reply.send({ success: true, inbox });
+      return reply.send({ success: true, inbox: sanitizeInboxAccount(inbox) });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.put('/api/admin/sdr/inboxes/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const inboxId = Number(id);
+      if (Number.isNaN(inboxId)) {
+        return reply.status(400).send({ success: false, error: 'ID casella non valido.' });
+      }
+      const body = (request.body || {}) as Record<string, any>;
+      const updateData: Record<string, any> = {};
+
+      if (body.displayName !== undefined) updateData.displayName = String(body.displayName);
+      if (body.smtpHost !== undefined) updateData.smtpHost = String(body.smtpHost).trim();
+      if (body.smtpPort !== undefined) updateData.smtpPort = Number(body.smtpPort);
+      if (body.smtpUser !== undefined) updateData.smtpUser = String(body.smtpUser).trim();
+      if (body.imapHost !== undefined) updateData.imapHost = String(body.imapHost).trim();
+      if (body.imapPort !== undefined) updateData.imapPort = Number(body.imapPort);
+      if (body.imapUser !== undefined) updateData.imapUser = String(body.imapUser).trim();
+      if (body.dailyLimit !== undefined) {
+        updateData.dailyLimit = Math.max(1, Math.min(50, Number(body.dailyLimit)));
+      }
+      if (body.targetDailyLimit !== undefined) {
+        updateData.targetDailyLimit = Math.max(1, Math.min(50, Number(body.targetDailyLimit)));
+      }
+      if (body.warmupEnabled !== undefined) {
+        updateData.warmupEnabled = Boolean(body.warmupEnabled);
+      }
+      if (body.isActive !== undefined) {
+        updateData.isActive = Boolean(body.isActive);
+      }
+
+      const rawSmtpPass = String(body.smtpPassword || body.password || '').trim();
+      const rawImapPass = String(body.imapPassword || '').trim();
+      if (rawSmtpPass) {
+        updateData.smtpPasswordEnc = encryptSdrSecret(rawSmtpPass);
+        if (!rawImapPass) {
+          updateData.imapPasswordEnc = updateData.smtpPasswordEnc;
+        }
+      }
+      if (rawImapPass) {
+        updateData.imapPasswordEnc = encryptSdrSecret(rawImapPass);
+      }
+
+      const updated = await sdrPrisma.sdrInboxAccount.update({
+        where: { id: inboxId },
+        data: updateData,
+      });
+
+      return reply.send({ success: true, inbox: sanitizeInboxAccount(updated) });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.delete('/api/admin/sdr/inboxes/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const inboxId = Number(id);
+      if (Number.isNaN(inboxId)) {
+        return reply.status(400).send({ success: false, error: 'ID casella non valido.' });
+      }
+      await sdrPrisma.sdrInboxAccount.delete({ where: { id: inboxId } });
+      return reply.send({ success: true, deletedId: inboxId });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/inboxes/speed-gear', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as {
+        gear?: 'prudente' | 'intermedia' | 'rampup_auto' | 'regime';
+      };
+      const gear = body.gear || 'rampup_auto';
+
+      let updateData: Record<string, any>;
+      let label: string;
+      if (gear === 'prudente') {
+        updateData = { warmupEnabled: false, dailyLimit: 5, targetDailyLimit: 15 };
+        label = 'Marcia 1 Prudente (5 email/giorno per casella = 300/giorno)';
+      } else if (gear === 'intermedia') {
+        updateData = { warmupEnabled: false, dailyLimit: 10, targetDailyLimit: 15 };
+        label = 'Marcia 2 Intermedia (10 email/giorno per casella = 600/giorno)';
+      } else if (gear === 'regime') {
+        updateData = { warmupEnabled: false, dailyLimit: 15, targetDailyLimit: 15 };
+        label = 'Marcia 3 Regime Pieno (15 email/giorno per casella = 900/giorno)';
+      } else {
+        updateData = { warmupEnabled: true, dailyLimit: 5, targetDailyLimit: 15 };
+        label = 'Ramp-Up Automatico 3 Settimane (5 -> 10 -> 15 email/giorno)';
+      }
+
+      const res = await sdrPrisma.sdrInboxAccount.updateMany({
+        data: updateData,
+      });
+
+      addSdrLog('OUTREACH', `Selettore Velocità Pool Aruba aggiornato: ${label} (${res.count} caselle).`, 'SUCCESS');
+
+      const refreshed = await sdrPrisma.sdrInboxAccount.findMany({
+        orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
+      });
+      const sanitized = refreshed.map(sanitizeInboxAccount);
+      const totalDailyCapacity = sanitized
+        .filter((a) => a.isActive)
+        .reduce((sum, a) => sum + Number(a.effectiveDailyLimit || 0), 0);
+
+      return reply.send({
+        success: true,
+        gear,
+        updatedCount: res.count,
+        totalDailyCapacity,
+        message: label,
+        inboxAccounts: sanitized,
+      });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.post('/api/admin/sdr/inboxes/:id/test', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const inboxId = Number(id);
+      if (Number.isNaN(inboxId)) {
+        return reply.status(400).send({ success: false, error: 'ID casella non valido.' });
+      }
+
+      const inbox = await sdrPrisma.sdrInboxAccount.findUnique({ where: { id: inboxId } });
+      if (!inbox) {
+        return reply.status(404).send({ success: false, error: 'Casella non trovata.' });
+      }
+
+      const smtpPass = decryptSdrSecret(inbox.smtpPasswordEnc);
+      const imapPass = decryptSdrSecret(inbox.imapPasswordEnc || inbox.smtpPasswordEnc);
+
+      if (!smtpPass || smtpPass === 'DRY_RUN_TOKEN') {
+        return reply.status(400).send({
+          success: false,
+          error: 'Password SMTP/IMAP non configurata su questa casella.',
+        });
+      }
+
+      const startedAt = Date.now();
+      let smtpOk = false;
+      let imapOk = false;
+      let inboxMessages = 0;
+      const errors: string[] = [];
+
+      // 1. Test SSL/TLS handshake su smtps.aruba.it:465 (read-only verify, nessun invio)
+      try {
+        const transporter = nodemailer.createTransport({
+          host: inbox.smtpHost,
+          port: inbox.smtpPort,
+          secure: inbox.smtpPort === 465,
+          auth: {
+            user: inbox.smtpUser,
+            pass: smtpPass,
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+        });
+        await transporter.verify();
+        transporter.close();
+        smtpOk = true;
+      } catch (smtpErr: any) {
+        errors.push(`SMTP (${inbox.smtpHost}:${inbox.smtpPort}): ${smtpErr.message}`);
+      }
+
+      // 2. Test SSL handshake su imaps.aruba.it:993 (read-only INBOX open)
+      const imapClient = new ImapFlow({
+        host: inbox.imapHost,
+        port: inbox.imapPort,
+        secure: inbox.imapPort === 993,
+        auth: {
+          user: inbox.imapUser || inbox.smtpUser || inbox.email,
+          pass: imapPass,
+        },
+        logger: false,
+      });
+
+      try {
+        await imapClient.connect();
+        const mb = await imapClient.mailboxOpen('INBOX', { readOnly: true });
+        inboxMessages = Number(mb.exists || 0);
+        await imapClient.logout();
+        imapOk = true;
+      } catch (imapErr: any) {
+        errors.push(`IMAP (${inbox.imapHost}:${inbox.imapPort}): ${imapErr.message}`);
+        try {
+          imapClient.close();
+        } catch {
+          // ignore
+        }
+      }
+
+      const latencyMs = Date.now() - startedAt;
+      const allOk = smtpOk && imapOk;
+      const updated = await sdrPrisma.sdrInboxAccount.update({
+        where: { id: inbox.id },
+        data: {
+          lastTestAt: new Date(),
+          lastTestStatus: allOk ? 'OK' : 'ERROR',
+          lastTestError: allOk ? null : errors.join(' | ').slice(0, 500),
+        },
+      });
+
+      return reply.send({
+        success: allOk,
+        smtpOk,
+        imapOk,
+        inboxMessages,
+        latencyMs,
+        error: allOk ? null : errors.join(' | '),
+        inbox: sanitizeInboxAccount(updated),
+      });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
@@ -1343,7 +1906,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/api/admin/sdr/search/stop', async (_request, reply) => {
     try {
-      const status = stopSearchPipeline();
+      const status = await stopSearchPipeline();
       return reply.send({ success: true, status });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1368,7 +1931,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         mode?: 'free_tier' | 'daily_budget';
         daily_budget_eur?: number;
       };
-      const budget = updateMapsBudgetState(
+      const budget = await updateMapsBudgetState(
         body.mode || 'free_tier',
         Number(body.daily_budget_eur || 0)
       );
@@ -1382,7 +1945,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.get('/api/admin/sdr/logs', async (request, reply) => {
     try {
       const q = request.query as { limit?: string };
-      const logs = getRecentSdrLogs(Number(q.limit || 120));
+      const logs = await getRecentSdrLogsAsync(Number(q.limit || 120));
       return reply.send({ success: true, logs });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1579,7 +2142,14 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const subject = String(body.subject || `Catalistino Riservato a ${p.companyName} — Offerta 1° Acquisto`);
       const bodyText = String(body.bodyText || '');
-      const bodyHtml = `<div style="font-family: sans-serif; white-space: pre-wrap; line-height: 1.6; color: #0f172a;">${bodyText
+      if (containsUnresolvedPlaceholders(subject) || containsUnresolvedPlaceholders(bodyText)) {
+        return reply.status(400).send({
+          success: false,
+          error:
+            'La bozza contiene ancora variabili template non risolte ({{...}} o DEMO_USERNAME). Clicca su "Genera Credenziali + Bozza" prima di salvare.',
+        });
+      }
+      const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; white-space: pre-wrap; line-height: 1.6; color: #0f172a; max-width: 640px;">${bodyText
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')}</div>`;
@@ -1596,6 +2166,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
               subject,
               bodyText,
               bodyHtml,
+              trackingToken: generateTrackingToken(),
               status: 'Bozza_Pronta',
             },
           });
@@ -1619,7 +2190,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.post('/api/admin/sdr/sentinel/toggle', async (request, reply) => {
     try {
       const body = (request.body || {}) as { enabled?: boolean };
-      const status = toggleSentinelState(body.enabled);
+      const status = await toggleSentinelState(body.enabled);
       return reply.send({ success: true, status });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1638,7 +2209,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/api/admin/sdr/autopilot/stop', async (_request, reply) => {
     try {
-      const res = stopAutopilotMode();
+      const res = await stopAutopilotMode();
       return reply.send({ success: true, ...res });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1656,10 +2227,11 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'Inserisci un ID Prospect valido.' });
       }
       const event = await simulateInboxReply(pid, body.sentiment || 'Interessato');
+      const events = await getInboxReplyEvents();
       return reply.send({
         success: true,
         event,
-        events: getInboxReplyEvents(),
+        events,
         message: `Kill-Switch Atomico attivato per ${event.companyName} (#${event.prospectId})! Sentiment: ${event.sentiment}.`,
       });
     } catch (error: any) {
@@ -1669,9 +2241,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
   fastify.get('/api/admin/sdr/inbox-events', async (_request, reply) => {
     try {
+      const events = await getInboxReplyEvents();
       return reply.send({
         success: true,
-        events: getInboxReplyEvents(),
+        events,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1692,6 +2265,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       if (q.categoryCluster && q.categoryCluster !== 'ALL') {
         where.categoryCluster = q.categoryCluster;
       }
+      if (q.pipelineStatus && q.pipelineStatus !== 'ALL') {
+        where.pipelineStatus = q.pipelineStatus;
+      }
       if (q.region && q.region !== 'ALL') {
         where.region = { contains: q.region, mode: 'insensitive' };
       }
@@ -1703,6 +2279,53 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       }
       if (q.vatOnly === '1') {
         where.vatNumber = { not: null };
+      }
+      if (q.mapsFilter && q.mapsFilter !== 'ALL') {
+        if (q.mapsFilter === 'verified_maps') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              OR: [
+                { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+              ],
+            },
+          ];
+        } else if (q.mapsFilter === 'certified_free') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              NOT: {
+                OR: [
+                  { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                  { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+                ],
+              },
+            },
+            {
+              OR: [
+                { section: 'Email_Pronta' },
+                { website: { not: null } },
+                { vatNumber: { not: null } },
+              ],
+            },
+          ];
+        } else if (q.mapsFilter === 'unverified_maps') {
+          where.AND = [
+            ...(where.AND || []),
+            {
+              NOT: {
+                OR: [
+                  { sourceEngine: { contains: 'Google Maps', mode: 'insensitive' } },
+                  { sourceUrl: { contains: 'google.com/maps', mode: 'insensitive' } },
+                ],
+              },
+            },
+            { section: { not: 'Email_Pronta' } },
+            { website: null },
+            { vatNumber: null },
+          ];
+        }
       }
       if (q.search && q.search.trim().length > 0) {
         const s = q.search.trim();

@@ -52,7 +52,21 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().default(''),
   GEMINI_API_KEY: z.string().default(''),
 
-  ENABLE_GLOBAL_WRITES: z.coerce.boolean().default(false),
+  BREVO_API_KEY: z.string().default(''),
+  BREVO_SENDER_EMAIL: z.string().default('commerciale@izzodistribuzione.it'),
+  BREVO_SENDER_NAME: z.string().default('Izzo Distribuzione B2B'),
+
+  GOOGLE_MAPS_API_KEY: z.string().default(''),
+  SDR_ENCRYPTION_KEY: z.string().default(''),
+  B2B_PUBLIC_URL: z.string().default('https://www.izzodistribuzione.it'),
+  API_PUBLIC_URL: z.string().default('https://api-gateway-production-2ec6.up.railway.app'),
+
+  ENABLE_GLOBAL_WRITES: z
+    .preprocess(
+      (val) => val === true || String(val || '').trim().toLowerCase() === 'true' || String(val || '').trim() === '1',
+      z.boolean()
+    )
+    .default(false),
 });
 
 function loadEnv() {

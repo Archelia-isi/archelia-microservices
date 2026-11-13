@@ -32,6 +32,7 @@ import { adminAiWidgetsRoutes } from './routes/admin/ai_widgets.js';
 import { adminFinanceRoutes } from './routes/admin/finance.js';
 import { adminGlobalSearchRoutes } from './routes/admin/globalSearch.js';
 import { adminB2BSdrRoutes } from './routes/admin/b2bSdr.js';
+import { publicSdrOfferRoutes } from './routes/publicSdrOffer.js';
 async function buildApp() {
   const app = Fastify({
     logger: false, // We use Pino from @archelia/core
@@ -54,6 +55,7 @@ async function buildApp() {
 
   await app.register(healthRoutes);
   await app.register(authRoutes);
+  await app.register(publicSdrOfferRoutes);
   
   // Admin Routes
   await app.register(adminPreferencesRoutes);

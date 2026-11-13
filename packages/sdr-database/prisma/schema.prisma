@@ -86,10 +86,24 @@ model SdrOutreachDraft {
   sentAt              DateTime?   @map("sent_at")
   replyReceivedAt     DateTime?   @map("reply_received_at")
   replySnippet        String?     @map("reply_snippet")
+
+  // Estensioni V2: Smart Tracking Catalistino PDF, Multi-Agente e Correlazione IMAP
+  trackingToken       String?     @unique @map("tracking_token")
+  catalogOpenedAt     DateTime?   @map("catalog_opened_at")
+  catalogOpenCount    Int         @default(0) @map("catalog_open_count")
+  assignedAgentId     String?     @map("assigned_agent_id")
+  assignedAgentCode   String?     @map("assigned_agent_code")
+  assignedAgentName   String?     @map("assigned_agent_name")
+  messageIdHeader     String?     @map("message_id_header")
+  lastError           String?     @map("last_error")
+
   createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
 
   @@index([prospectId, sequenceStep])
   @@index([status, scheduledFor])
+  @@index([messageIdHeader])
+  @@index([catalogOpenCount])
   @@map("sdr_outreach_drafts")
 }
 
@@ -97,12 +111,12 @@ model SdrOutreachConfig {
   id                        String   @id @default("default")
   name                      String   @default("Configurazione Offerta B2B Izzo Distribuzione")
   
-  // 1. Parametri Sconto 1° Acquisto Autogenerato (FIRST_PURCHASE)
+  // 1. Parametri Sconto 1° Acquisto Autogenerato (FIRST_PURCHASE — Solo 2gg)
   enableFirstPurchaseRule   Boolean  @default(true) @map("enable_first_purchase_rule")
   istExtraDiscountPct       Float    @default(10) @map("ist_extra_discount_pct")
   rivExtraDiscountPct       Float    @default(10) @map("riv_extra_discount_pct")
   discountCalculationMode   String   @default("EXTRA_CASCADE") @map("discount_calculation_mode")
-  discountTargetType        String   @default("ALL_CATALOG") @map("discount_target_type")
+  discountTargetType        String   @default("ALL_2GG") @map("discount_target_type")
   discountTargetFiltersJson Json     @default("{}") @map("discount_target_filters_json")
   
   // 2. Dettagli e Condizioni del 1° Ordine (Stampati in Mail + Pagina 2 Catalogo PDF)
@@ -115,24 +129,27 @@ model SdrOutreachConfig {
   defaultAgentCode          String   @default("003") @map("default_agent_code")
   defaultAgentName          String   @default("Daniele Savoia") @map("default_agent_name")
   
-  // 3. Parametri Catalogo PDF Autogenerato e Allegato alla Mail
+  // 3. Parametri Catalogo PDF Autogenerato e Link Smart Tracciato
   attachCatalogPdf          Boolean  @default(true) @map("attach_catalog_pdf")
+  enableSmartCatalogLink    Boolean  @default(true) @map("enable_smart_catalog_link")
+  attachPhysicalPdf         Boolean  @default(false) @map("attach_physical_pdf")
   catalogSelectionMode      String   @default("BY_CLUSTER") @map("catalog_selection_mode") // GLOBAL | BY_CLUSTER
   globalCatalogFiltersJson  Json     @default("{}") @map("global_catalog_filters_json")
   clusterCatalogPresetsJson Json     @default("{}") @map("cluster_catalog_presets_json")
   catalogPriceMode          String   @default("LIST_AND_NET") @map("catalog_price_mode")
   catalogStockMode          String   @default("BADGE_ONLY") @map("catalog_stock_mode")
-  catalogWarehouse          String   @default("ALL_WAREHOUSES") @map("catalog_warehouse")
+  catalogWarehouse          String   @default("MAIN_2GG") @map("catalog_warehouse")
   catalogIncludeZeroStock   Boolean  @default(false) @map("catalog_include_zero_stock")
   catalogSortBy             String   @default("STOCK_DESC") @map("catalog_sort_by")
   catalogMaxProducts        Int      @default(60) @map("catalog_max_products")
   
-  // 4. Parametri Time-Fencing & Jitter SMTP
+  // 4. Parametri Time-Fencing, Jitter & Marcia Velocità SMTP
   timeFencingEnabled        Boolean  @default(true) @map("time_fencing_enabled")
   morningWindow             String   @default("08:30-12:30") @map("morning_window")
   afternoonWindow           String   @default("14:00-17:30") @map("afternoon_window")
   jitterMinSeconds          Int      @default(180) @map("jitter_min_seconds")
   jitterMaxSeconds          Int      @default(420) @map("jitter_max_seconds")
+  speedProfile              String   @default("PRUDENT_WARMUP") @map("speed_profile") // PRUDENT_WARMUP | STANDARD | FULL_REGIME
   sentinelEnabled           Boolean  @default(true) @map("sentinel_enabled")
 
   updatedAt                 DateTime @updatedAt @map("updated_at")
@@ -140,23 +157,106 @@ model SdrOutreachConfig {
 }
 
 model SdrInboxAccount {
-  id                  Int      @id @default(autoincrement())
-  email               String   @unique
-  displayName         String   @map("display_name")
-  smtpHost            String   @map("smtp_host")
-  smtpPort            Int      @default(465) @map("smtp_port")
-  smtpUser            String   @map("smtp_user")
-  smtpPasswordEnc     String   @map("smtp_password_enc")
-  imapHost            String   @map("imap_host")
-  imapPort            Int      @default(993) @map("imap_port")
-  dailyLimit          Int      @default(45) @map("daily_limit")
-  sentToday           Int      @default(0) @map("sent_today")
-  isActive            Boolean  @default(true) @map("is_active")
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  domainName          String?   @map("domain_name")
+  displayName         String    @map("display_name")
+  smtpHost            String    @map("smtp_host")
+  smtpPort            Int       @default(465) @map("smtp_port")
+  smtpUser            String    @map("smtp_user")
+  smtpPasswordEnc     String    @map("smtp_password_enc")
+  imapHost            String    @map("imap_host")
+  imapPort            Int       @default(993) @map("imap_port")
+  imapUser            String?   @map("imap_user")
+  imapPasswordEnc     String?   @map("imap_password_enc")
+  useTls              Boolean   @default(true) @map("use_tls")
+  warmupEnabled       Boolean   @default(true) @map("warmup_enabled")
+  warmupStartedAt     DateTime  @default(now()) @map("warmup_started_at")
+  dailyLimit          Int       @default(5) @map("daily_limit")
+  targetDailyLimit    Int       @default(15) @map("target_daily_limit")
+  sentToday           Int       @default(0) @map("sent_today")
+  isActive            Boolean   @default(true) @map("is_active")
   lastSentAt          DateTime? @map("last_sent_at")
   lastImapSyncAt      DateTime? @map("last_imap_sync_at")
+  lastImapUid         Int       @default(0) @map("last_imap_uid")
+  lastTestAt          DateTime? @map("last_test_at")
+  lastTestStatus      String?   @map("last_test_status")
+  lastTestError       String?   @map("last_test_error")
+  consecutiveErrors   Int       @default(0) @map("consecutive_errors")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  @@index([domainName, isActive])
+  @@map("sdr_inbox_accounts")
+}
+
+model SdrExploredMunicipality {
+  id                  Int      @id @default(autoincrement())
+  comuneCode          String   @map("comune_code")
+  comuneName          String   @map("comune_name")
+  province            String
+  region              String
+  cap                 String?
+  categoryCluster     String   @map("category_cluster")
+  leadsFoundCount     Int      @default(0) @map("leads_found_count")
+  emailsFoundCount    Int      @default(0) @map("emails_found_count")
+  sourcesUsed         String?  @map("sources_used")
+  lastScannedAt       DateTime @default(now()) @map("last_scanned_at")
+
+  @@unique([comuneCode, categoryCluster])
+  @@index([region, province])
+  @@index([categoryCluster, lastScannedAt])
+  @@map("sdr_explored_municipalities")
+}
+
+model SdrInboxEvent {
+  id                  Int      @id @default(autoincrement())
+  inboxAccountId      Int?     @map("inbox_account_id")
+  prospectId          Int?     @map("prospect_id")
+  draftId             Int?     @map("draft_id")
+  fromEmail           String   @map("from_email")
+  toEmail             String?  @map("to_email")
+  subject             String?
+  snippet             String?
+  eventType           String   @map("event_type") // REPLY | BOUNCE | OPT_OUT | OUT_OF_OFFICE | SIMULATED
+  sentiment           String?
+  killSwitchTriggered Boolean  @default(true) @map("kill_switch_triggered")
+  agentAlertSent      Boolean  @default(false) @map("agent_alert_sent")
+  messageUid          Int?     @map("message_uid")
+  messageId           String?  @unique @map("message_id")
   createdAt           DateTime @default(now()) @map("created_at")
 
-  @@map("sdr_inbox_accounts")
+  @@index([prospectId])
+  @@index([eventType, createdAt])
+  @@map("sdr_inbox_events")
+}
+
+model SdrEngineState {
+  id                          String    @id @default("default")
+  searchRunning               Boolean   @default(false) @map("search_running")
+  searchCurrentRegion         String?   @map("search_current_region")
+  searchCurrentProvince       String?   @map("search_current_province")
+  searchCurrentMunicipality   String?   @map("search_current_municipality")
+  searchCurrentCategory       String?   @map("search_current_category")
+  searchProgressPct           Float     @default(0) @map("search_progress_pct")
+  searchTotalScanned          Int       @default(0) @map("search_total_scanned")
+  searchFoundNew              Int       @default(0) @map("search_found_new")
+  searchStartedAt             DateTime? @map("search_started_at")
+  searchLastHeartbeatAt       DateTime? @map("search_last_heartbeat_at")
+
+  autopilotEnabled            Boolean   @default(false) @map("autopilot_enabled")
+  autopilotCyclesCompleted    Int       @default(0) @map("autopilot_cycles_completed")
+  sentinelEnabled             Boolean   @default(true) @map("sentinel_enabled")
+  sentinelRunning             Boolean   @default(false) @map("sentinel_running")
+
+  mapsStrategy                String    @default("FREE_TIER_ONLY") @map("maps_strategy")
+  mapsDailyLimitCalls         Int       @default(150) @map("maps_daily_limit_calls")
+  mapsDailyBudgetEur          Float     @default(0) @map("maps_daily_budget_eur")
+  mapsCallsToday              Int       @default(0) @map("maps_calls_today")
+  mapsSpentTodayEur           Float     @default(0) @map("maps_spent_today_eur")
+  mapsLastResetDate           String?   @map("maps_last_reset_date")
+
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
+  @@map("sdr_engine_states")
 }
 
 model SdrSentinelRun {

@@ -124,7 +124,7 @@ export async function getAgentDiscountManagementInitData(): Promise<{
   const mappedPromoClients: AgentManagedClient[] = promoProspects.map(p => ({
     id: p.id,
     hasB2BAccount: true,
-    zucchettiCode: p.username,
+    zucchettiCode: p.username.toUpperCase(),
     companyName: `[IN ATTIVAZIONE] ${p.companyName}`,
     vatNumber: p.vatNumber || '',
     codiceFiscale: p.fiscalCode || p.vatNumber || '',
@@ -304,17 +304,18 @@ export async function saveAgentDiscountRuleAction(
   }
 
   const targetType: DiscountTargetType = input.targetType || 'PRODUCTS';
-  const targetSkus = targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetSkus, true);
-  const targetBrands = targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetBrands, true);
+  const isGlobalTarget = targetType === 'ALL_CATALOG' || targetType === 'ALL_2GG';
+  const targetSkus = isGlobalTarget ? [] : cleanArray(input.targetSkus, true);
+  const targetBrands = isGlobalTarget ? [] : cleanArray(input.targetBrands, true);
   const targetProductGroups =
-    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetProductGroups, true);
+    isGlobalTarget ? [] : cleanArray(input.targetProductGroups, true);
   const targetFamilies =
-    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetFamilies, true);
+    isGlobalTarget ? [] : cleanArray(input.targetFamilies, true);
   const targetCategories =
-    targetType === 'ALL_CATALOG' ? [] : cleanArray(input.targetCategories, true);
+    isGlobalTarget ? [] : cleanArray(input.targetCategories, true);
 
   const hasTarget =
-    targetType === 'ALL_CATALOG' ||
+    isGlobalTarget ||
     targetSkus.length > 0 ||
     targetBrands.length > 0 ||
     targetProductGroups.length > 0 ||
@@ -325,12 +326,12 @@ export async function saveAgentDiscountRuleAction(
     return {
       success: false,
       error:
-        'Seleziona "Tutto il Catalogo" oppure almeno un prodotto (SKU), marchio, gruppo merceologico, famiglia o categoria.',
+        'Seleziona "Tutto il Catalogo", "Solo Pronta Consegna 2gg" oppure almeno un prodotto (SKU), marchio, gruppo merceologico, famiglia o categoria.',
     };
   }
 
   const targetProductsMeta: DiscountTargetProductMeta[] =
-    targetType === 'ALL_CATALOG'
+    isGlobalTarget
       ? []
       : Array.isArray(input.targetProductsMeta)
         ? input.targetProductsMeta.filter(
@@ -351,7 +352,9 @@ export async function saveAgentDiscountRuleAction(
   // Genera un nome descrittivo automatico se non specificato
   let autoName = (input.name || '').trim();
   if (!autoName) {
-    if (targetType === 'ALL_CATALOG') {
+    if (targetType === 'ALL_2GG') {
+      autoName = 'Tutto il Catalogo Pronta Consegna 2gg';
+    } else if (targetType === 'ALL_CATALOG') {
       autoName = 'Tutto il Catalogo';
     } else {
       const parts: string[] = [];
