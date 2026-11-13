@@ -175,6 +175,18 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
         env.API_PUBLIC_URL || 'https://api-gateway-v2-development.up.railway.app'
       ).replace(/\/$/, '');
 
+      const cleanMinOrder = (ctx.config?.minOrderAmountText || "Nessun minimo d'ordine")
+        .replace(/\(?\s*(?:solo\s*)?2gg\s*\)?/gi, '')
+        .trim();
+      const cleanShipping = (
+        ctx.config?.freeShippingText || 'Spedizione curata e tracciata in tutta Italia'
+      )
+        .replace(/\(?\s*(?:pronta\s+consegna\s*)?2gg\s*\)?/gi, '')
+        .replace(/\b24\/48\s*(?:h|ore)\b/gi, '')
+        .replace(/da\s+Deposito\s+Principale/gi, 'in tutta Italia')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
       return reply.send({
         success: true,
         offer: {
@@ -187,13 +199,9 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
           extraDiscount: ctx.extraDiscount,
           discountFormula: ctx.discountFormula,
           effectiveNetPct: ctx.effectiveNetPct,
-          offerTitle:
-            ctx.config?.offerTitle || 'Offerta esclusiva valida per il primo acquisto',
-          minOrderAmountText:
-            ctx.config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto",
-          freeShippingText:
-            ctx.config?.freeShippingText ||
-            'Spedizione rapida 24/48h da Deposito Principale (Pronta Consegna 2gg)',
+          offerTitle: 'Invito conoscitivo e sconto di benvenuto sul primo ordine',
+          minOrderAmountText: cleanMinOrder || "Nessun minimo d'ordine",
+          freeShippingText: cleanShipping || 'Spedizione curata e tracciata in tutta Italia',
           username: ctx.username,
           loginUrl: ctx.loginUrl,
           pdfInlineUrl: `${apiBase}/api/public/sdr/offerta/${encodeURIComponent(token)}/pdf`,
@@ -262,12 +270,24 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
       const pdfInlinePath = `/api/public/sdr/offerta/${encodeURIComponent(token)}/pdf?track=0`;
       const pdfDownloadPath = `/api/public/sdr/offerta/${encodeURIComponent(token)}/pdf?download=1&track=0`;
 
+      const cleanMinOrder = (ctx.config?.minOrderAmountText || "Nessun minimo d'ordine")
+        .replace(/\(?\s*(?:solo\s*)?2gg\s*\)?/gi, '')
+        .trim();
+      const cleanShipping = (
+        ctx.config?.freeShippingText || 'Spedizione curata e tracciata in tutta Italia'
+      )
+        .replace(/\(?\s*(?:pronta\s+consegna\s*)?2gg\s*\)?/gi, '')
+        .replace(/\b24\/48\s*(?:h|ore)\b/gi, '')
+        .replace(/da\s+Deposito\s+Principale/gi, 'in tutta Italia')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
       const html = `<!doctype html>
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Catalistino Riservato a ${escapeHtml(ctx.prospect.companyName)} — Izzo Distribuzione B2B</title>
+  <title>Catalistino Illustrativo per ${escapeHtml(ctx.prospect.companyName)} — Izzo Distribuzione S.r.l.</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #0f172a; }
@@ -278,48 +298,53 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
     .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px; transition: transform 0.15s ease; }
     .btn-primary { background: #16a34a; color: #fff; }
     .btn-secondary { background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
-    .container { max-width: 1180px; margin: 20px auto; padding: 0 16px; }
+    .container { max-width: 1180px; margin: 20px auto; padding: 0 16px 28px; }
     .hero { background: #fff; border-radius: 16px; padding: 22px 24px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06); border: 1px solid #e2e8f0; margin-bottom: 18px; display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
     @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
     .badge { display: inline-block; background: #dcfce7; color: #15803d; font-weight: 800; font-size: 12px; padding: 4px 10px; border-radius: 999px; margin-bottom: 8px; }
     h1 { margin: 0 0 6px; font-size: 22px; }
-    .meta { color: #475569; font-size: 14px; line-height: 1.55; }
+    .meta { color: #475569; font-size: 14px; line-height: 1.6; }
     .promo-box { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 12px; padding: 14px 18px; min-width: 270px; }
     .promo-val { font-size: 24px; font-weight: 900; color: #15803d; }
-    .viewer { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #cbd5e1; height: calc(100vh - 250px); min-height: 620px; }
+    .viewer { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #cbd5e1; height: calc(100vh - 280px); min-height: 620px; }
     iframe { width: 100%; height: 100%; border: 0; }
+    .legal-footer { margin-top: 18px; text-align: center; font-size: 12.5px; color: #475569; line-height: 1.6; padding: 12px 16px; }
   </style>
 </head>
 <body>
   <div class="topbar">
     <div>
-      <div class="brand">IZZO DISTRIBUZIONE <span>B2B</span> — I.S.I. S.r.l.</div>
-      <div style="font-size:12px;opacity:0.8;">Referente dedicato: ${escapeHtml(ctx.agent.name)} (${escapeHtml(ctx.agent.email)})</div>
+      <div class="brand">IZZO DISTRIBUZIONE <span>S.r.l.</span> — Portale B2B</div>
+      <div style="font-size:12px;opacity:0.85;">Referente commerciale: ${escapeHtml(ctx.agent.name)} • Tel / WhatsApp: ${escapeHtml(ctx.agent.phone || '+39 389 0129832')} (${escapeHtml(ctx.agent.email)})</div>
     </div>
     <div class="actions">
-      <a class="btn btn-secondary" href="${pdfDownloadPath}">📥 Scarica PDF Riservato (2gg)</a>
-      <a class="btn btn-primary" href="${escapeHtml(ctx.loginUrl)}" target="_blank" rel="noopener">🔐 Accedi al Portale B2B${ctx.username ? ` (${escapeHtml(ctx.username)})` : ''}</a>
+      <a class="btn btn-secondary" href="${pdfDownloadPath}">📥 Scarica Catalistino PDF</a>
+      <a class="btn btn-primary" href="${escapeHtml(ctx.loginUrl)}" target="_blank" rel="noopener">🔐 Consulta il Portale B2B${ctx.username ? ` (${escapeHtml(ctx.username)})` : ''}</a>
     </div>
   </div>
   <div class="container">
     <div class="hero">
       <div>
-        <div class="badge">PRONTA CONSEGNA 2GG • OFFERTA 1° ACQUISTO RISERVATA</div>
-        <h1>Catalistino Riservato a ${escapeHtml(ctx.prospect.companyName)}</h1>
+        <div class="badge">CONSULTAZIONE GRATUITA E SENZA IMPEGNO • INVITO FORNITORE B2B</div>
+        <h1>Catalistino Illustrativo per ${escapeHtml(ctx.prospect.companyName)}</h1>
         <div class="meta">
-          ✅ <strong>${escapeHtml(ctx.config?.minOrderAmountText || "Nessun minimo d'ordine sul tuo 1° acquisto")}</strong><br/>
-          🚚 ${escapeHtml(ctx.config?.freeShippingText || 'Spedizione rapida 24/48h da Deposito Principale')}<br/>
-          🏷️ Prezzi netti già calcolati con Sconto Base <strong>${ctx.baseDiscount}%</strong> + Extra 1° Acquisto <strong>+${ctx.extraDiscount}%</strong>
+          ✅ <strong>Credenziali provvisorie gratuite predisposte unicamente per Vostra comodità, senza alcun costo né vincolo</strong><br/>
+          🚚 ${escapeHtml(cleanMinOrder || "Nessun minimo d'ordine")} • ${escapeHtml(cleanShipping || 'Spedizione curata e tracciata in tutta Italia')}<br/>
+          🏷️ Prezzi netti B2B calcolati con Sconto Base <strong>${ctx.baseDiscount}%</strong> + Benvenuto 1° Ordine <strong>+${ctx.extraDiscount}%</strong>
         </div>
       </div>
       <div class="promo-box">
-        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;">Sconto Attivo a Carrello</div>
+        <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;">Sconto di Benvenuto 1° Ordine</div>
         <div class="promo-val">${escapeHtml(ctx.discountFormula)}</div>
-        <div style="font-size:12px;color:#334155;">Pari al <strong>${ctx.effectiveNetPct}% netto</strong> sui prodotti 2gg</div>
+        <div style="font-size:12px;color:#334155;">Pari al <strong>${ctx.effectiveNetPct}% netto</strong> da listino (zero minimo d’ordine)</div>
       </div>
     </div>
     <div class="viewer">
-      <iframe src="${pdfInlinePath}" title="Catalistino PDF Riservato"></iframe>
+      <iframe src="${pdfInlinePath}" title="Catalistino PDF Illustrativo"></iframe>
+    </div>
+    <div class="legal-footer">
+      <strong>Izzo Distribuzione S.r.l.</strong> — Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049<br/>
+      Tel / WhatsApp: +39 389 0129832 • Email: daniele.savoia@izzodistribuzione.com • Portale B2B: <a href="https://www.izzodistribuzione.it" style="color:#15803d;font-weight:600;">www.izzodistribuzione.it</a>
     </div>
   </div>
 </body>

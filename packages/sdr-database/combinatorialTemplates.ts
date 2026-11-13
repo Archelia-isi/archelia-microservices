@@ -18,46 +18,771 @@ export interface SeedEmailTemplate {
 /**
  * 100 Modelli di Email "Madri" Universali (T001 - T100) — Izzo Distribuzione S.r.l.
  * Tutte le 100 email sono valide per qualsiasi tipologia di cliente B2B (targetCategory: 'ALL').
- * Stile: Commerciale nella proposta di valore, Istituzionale e Autorevole nella forma (zero tono pubblicitario).
- * Le discriminanti dinamiche sono affidate ai 108 gruppi di parole ([TOKEN]) pescati dal database.
+ * Tono: presentazione B2B cortese, istituzionale e rassicurante per aziende che non ci conoscono ancora,
+ * con invito libero a valutarci come fornitore e credenziali provvisorie gratuite per loro comodità.
+ * Zero "2gg", zero "24/48h", zero codici interni Zucchetti, zero espressioni contrattuali ambigue.
  */
 export const DEFAULT_EMAIL_TEMPLATES: SeedEmailTemplate[] = [
   // ==========================================================================
-  // GRUPPO 1 (T001 - T010): DIREZIONE & UFFICIO ACQUISTI
+  // GRUPPO 1 (T001 - T010): PRESENTAZIONE FORNITORE & INVITO A CONOSCERCI
   // ==========================================================================
   {
     code: 'T001',
-    name: 'Ufficio Acquisti — Accreditamento e Confronto Analitico Netti',
-    angleGroup: 'Ufficio_Acquisti',
+    name: 'Presentazione Fornitore — Invito Conoscitivo Completo',
+    angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[ATTACCO_UFFICIO_ACQUISTI] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] nel comparto [SETTORI_MERCEOLOGICI].
+[APERTURA_BREVE] e invitarVi a valutarci liberamente come fornitore B2B. Siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] nel settore di [SETTORI_MERCEOLOGICI].
 
-Al fine di [SUPPORTARE_LAVORO] {COMPANY_NAME}, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF], associando alla Vostra anagrafica [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+[ACCESSO_SENZA_IMPEGNO]. Proprio per permetterVi di dare uno sguardo con calma ai nostri articoli e ai prezzi netti riservati, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] insieme a [IL_CATALISTINO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-[CONNETTIVO_AGGIUNTA] l’accesso a [IL_PORTALE_B2B] [CONSENTE_DI] [CONFRONTARE_NETTI] [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
+Qualora decideste in futuro di metterci alla prova con un primo ordine, troverete già predisposto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE].
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA], [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T002',
-    name: 'Ufficio Acquisti — Nota Informativa Sintetica sulle Condizioni',
-    angleGroup: 'Ufficio_Acquisti',
+    name: 'Presentazione Fornitore — Nota Cortese per Chi Non Ci Conosce',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | [OGG_APPROCCIO_SOFT] [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [LE_CREDENZIALI].
+
+Non conoscendoci ancora, riteniamo che il modo più semplice e trasparente per farci valutare come possibile fornitore sia lasciarVi consultare in autonomia il nostro catalogo e le nostre quotazioni nette su [SETTORI_MERCEOLOGICI], [INCISO_SENZA_VINCOLO].
+
+[INVITO_MORBIDO_CATALISTINO]
+
+{CREDENTIALS_BLOCK}
+
+All’interno di [IL_PORTALE_B2B] [TROVA_ATTIVO] anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], [DOPO_PRIMO_ORDINE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T003',
+    name: 'Presentazione Fornitore — Presentazione Istituzionale all’Ufficio Acquisti',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] — {COMPANY_NAME}{CITY_PAREN} | [OGG_RAPIDITA]',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[ATTACCO_UFFICIO_ACQUISTI]. Con questo spirito desideriamo presentarVi [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] attiva [COPERTURA_ITALIA], e invitarVi a valutarci tra i Vostri fornitori di riferimento.
+
+Unicamente per Vostra comodità, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD], così che possiate verificare [AVVERBIO_LIBERAMENTE] assortimento, schede tecniche e prezzi netti sulle linee {RECOMMENDED_FAMILY}.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Nel caso voleste testare il nostro servizio, è inoltre disponibile [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T004',
+    name: 'Presentazione Fornitore — Chi Siamo e Come Lavoriamo',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Presentazione aziendale Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+ci fa piacere far conoscere la nostra realtà alla Vostra azienda invitandoVi, quando ne avrete occasione, a valutarci come fornitore per le forniture di [SETTORI_MERCEOLOGICI].
+
+In [IDENTITA_IZZO] affianchiamo ogni giorno [TARGET_PROFESSIONALE], [FILOSOFIA_OPERATIVA]. Per evitarVi perdite di tempo con moduli di registrazione, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
+
+{CREDENTIALS_BLOCK}
+
+[CONNETTIVO_PRATICO] potrete consultare i listini [AVVERBIO_LIBERAMENTE] e, solo se un giorno vorrete provare una fornitura, usufruire dello sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
+
+[PROMESSA_FIDUCIA]
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T005',
+    name: 'Presentazione Fornitore — Invito Semplice e Trasparente',
+    angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. | {COMPANY_NAME}{CITY_PAREN} — [OGG_APPROCCIO_SOFT]',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_FORMULA_PROMO]',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] per sottoporre al Vostro Ufficio Acquisti un riferimento [AGGETTIVO_SOLIDO_M] relativo alle forniture [IN_PRONTA_CONSEGNA].
+[APERTURA_BREVE]: operiamo come [QUALIFICA_DISTRIBUTORE] e ci piacerebbe sottoporre il nostro catalogo alla Vostra libera valutazione come possibile fornitore.
 
-Presso [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA] [VANTAGGIO_DIRETTO]. Per consentire un riscontro oggettivo sulle nostre condizioni, [ABBIAMO_ATTIVATO] [CANALE_RISERVATO] con parametro {DISCOUNT_FORMULA} (pari al {NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
+Sappiamo che valutare un fornitore nuovo richiede soprattutto chiarezza sui prezzi. Per questo motivo [ABBIAMO_ATTIVATO] per {COMPANY_NAME} delle credenziali provvisorie gratuite di sola consultazione su [IL_PORTALE_B2B], accompagnate da [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. [AIUTO_PRIMA_LISTA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T006',
+    name: 'Presentazione Fornitore — Conoscenza Reciproca Senza Vincoli',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Invito a conoscere Izzo Distribuzione S.r.l. — Catalogo B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+Vi scriviamo per presentare [IDENTITA_IZZO] alla Vostra struttura, [SALUTO_REFERENTE], con l’invito a valutarci senza alcuna fretta come fornitore per il comparto {SECTOR_SHORT}.
+
+Trattiamo [SETTORI_MERCEOLOGICI] [VANTAGGIO_DIRETTO]. Per rendere più comoda una Vostra eventuale consultazione, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e un estratto PDF già valorizzato con i prezzi netti riservati.
+
+{CREDENTIALS_BLOCK}
+
+L’accesso [CONSENTE_DI] [FUNZIONI_PORTALE], senza alcun costo né impegno. Se vorrete poi metterci alla prova, è già pronto lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T007',
+    name: 'Presentazione Fornitore — Filiera Diretta B2B per Partite IVA',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: '[OGG_RAPIDITA] — Presentazione Izzo Distribuzione S.r.l. a {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[ATTACCO_CANTIERE]. Per questa ragione ci permettiamo di presentarVi [IDENTITA_IZZO] e di invitarVi a valutarci come fornitore [RUOLO_SECONDO_CANALE].
+
+Operiamo tramite [CANALE_RISERVATO], [AFFIDABILITA_DATO_STOCK]. Esclusivamente per agevolarVi qualora voleste curiosare tra i nostri articoli e i nostri listini, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. A titolo di benvenuto abbiamo associato anche la condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], con [TEMPI_RESA].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T008',
+    name: 'Presentazione Fornitore — Dialogo Aperto e Catalogo Riservato',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA} di benvenuto) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+ci presentiamo con piacere alla Vostra azienda: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], e Vi scriviamo per invitarVi a valutarci liberamente come fornitore per i materiali tecnici di uso quotidiano.
+
+Affinché possiate verificare subito se i nostri prodotti e le nostre condizioni possono essere di Vostro interesse, [ABBIAMO_ATTIVATO] per Vostra comodità un accesso ospite provvisorio e gratuito a [IL_PORTALE_B2B], oltre a [IL_CATALISTINO_PDF].
+
+{CREDENTIALS_BLOCK}
+
+Entrando quando preferite [TROVA_ATTIVO] anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [SENSO_DELLA_PROVA] [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA] ([CONTATTO_UMANO_VERO]).
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T009',
+    name: 'Presentazione Fornitore — Qualità e Chiarezza per gli Acquisti',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Presentazione B2B [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] con il semplice desiderio di far conoscere la nostra azienda a {COMPANY_NAME} e invitarVi a valutarci come possibile fornitore nel settore {SECTOR_SHORT}.
+
+Dal [NOSTRO_DEPOSITO] seguiamo [TARGET_PROFESSIONALE] [ESPERIENZA_SERVIZIO]. Per Vostra esclusiva comodità, [ABBIAMO_PREPARATO] delle credenziali provvisorie gratuite che Vi permettono di sfogliare catalogo e prezzi netti senza alcun impegno né registrazione.
+
+{CREDENTIALS_BLOCK}
+
+{BRANDS_NOTE}
+
+[PROMESSA_FIDUCIA]
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T010',
+    name: 'Presentazione Fornitore — Invito Diretto dal Responsabile Commerciale',
+    angleGroup: 'Presentazione_Fornitore',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: 'Un contatto utile per gli acquisti di {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+mi permetto di scriverVi a nome di [IDENTITA_IZZO] per sottoporre la nostra realtà alla Vostra cortese valutazione come fornitore B2B di [SETTORI_MERCEOLOGICI].
+
+Poiché non ci conosciamo ancora, abbiamo voluto evitare qualsiasi formalità: [ABBIAMO_ATTIVATO] gratuitamente per Vostra comodità un accesso provvisorio al nostro portale B2B e [IL_CATALISTINO_PDF], così possiate valutare in autonomia prodotti e prezzi netti.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Qualora un giorno voleste metterci alla prova, è già previsto lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+
+  // ==========================================================================
+  // GRUPPO 2 (T011 - T020): VALUTAZIONE TRASPARENTE LISTINO & PREZZI NETTI
+  // ==========================================================================
+  {
+    code: 'T011',
+    name: 'Valutazione Listino — Confronto Prezzi Netti in Piena Autonomia',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_FORMULA_PROMO] [OGG_PER_AZIENDA] {COMPANY_NAME} — Confronto listino B2B senza impegno',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[ATTACCO_RIVENDITA]. Con questa breve email desideriamo presentarVi [IDENTITA_IZZO] e invitarVi a valutare con tutta calma la convenienza del nostro listino B2B.
+
+Per permetterVi di [CONFRONTARE_NETTI], [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] su [IL_PORTALE_B2B], [TRASPARENZA_PREZZI].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Se dal confronto troverete articoli di Vostro interesse, potrete anche contare su [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T012',
+    name: 'Valutazione Listino — Trasparenza tra Listino Ufficiale e Netto',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} | Prezzi netti B2B consultabili gratuitamente',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[APERTURA_BREVE] con l’invito a valutarci come possibile fornitore per i materiali {RECOMMENDED_FAMILY}.
+
+In [IDENTITA_IZZO] crediamo nella massima chiarezza: invece di inviare listini generici, [ABBIAMO_PREPARATO] per Vostra comodità un accesso provvisorio gratuito al nostro portale B2B dove ogni scheda mostra sia il listino ufficiale sia il prezzo netto riservato, già comprensivo dello sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto).
+
+{CREDENTIALS_BLOCK}
+
+L’utenza provvisoria non comporta alcun costo né alcun vincolo: serve unicamente a farVi valutare se possiamo offrirVi [VANTAGGIO_MARGINE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T013',
+    name: 'Valutazione Listino — Verifica Rapida dei Costi di Fornitura',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Invito a valutare il nostro listino B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per proporVi [INCISO_SENZA_VINCOLO] di valutarci come fornitore alternativo sulle forniture di [SETTORI_MERCEOLOGICI].
+
+Sappiamo quanto sia pratico vedere subito il prezzo finito senza dover attendere un preventivo ogni volta. Per questo [ABBIAMO_ATTIVATO] [LE_CREDENZIALI], che [CONSENTE_DI] [ORDINARE_AUTONOMIA].
+
+{CREDENTIALS_BLOCK}
+
+Per chi desidera metterci alla prova su una prima fornitura è inoltre previsto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
+
+[AIUTO_PRIMA_LISTA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T014',
+    name: 'Valutazione Listino — Riscontro Economico Immediato per l’Ufficio Acquisti',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_TIPO_DOC] — Valutazione prezzi netti B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+quando un fornitore non è ancora conosciuto, il modo più serio per presentarsi è mettere in chiaro prodotti, disponibilità e condizioni economiche. È con questo approccio che [IDENTITA_IZZO] Vi invita a valutare il proprio catalogo B2B.
+
+[INVITO_MORBIDO_CATALISTINO]
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Accedendo quando Vi farà comodo, [TROVA_ATTIVO] la scontistica di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], [DOPO_PRIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T015',
+    name: 'Valutazione Listino — Tutela della Marginalità sugli Acquisti Ricorrenti',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_RAPIDITA] | Invito a confrontare i nostri listini B2B — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+sugli articoli [RICAMBIO_COSTANTE], anche una piccola differenza sul prezzo netto d’acquisto genera un beneficio concreto nel tempo. Per questo Vi invitiamo volentieri a valutare [IDENTITA_IZZO] come possibile fornitore B2B.
+
+Per Vostra comodità [ABBIAMO_ATTIVATO] gratuitamente un accesso temporaneo a [IL_PORTALE_B2B], pensato [DIFESA_COMPETITIVITA].
+
+{CREDENTIALS_BLOCK}
+
+Potrete così [CONFRONTARE_NETTI] [AVVERBIO_LIBERAMENTE], avendo già a disposizione anche lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T016',
+    name: 'Valutazione Listino — Nessuna Registrazione, Consultazione Diretta',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Consultazione libera listino B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[APERTURA_BREVE]: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], e desideriamo invitarVi a valutarci senza impegno tra i Vostri fornitori.
+
+Poiché il nostro sito mostra i prezzi all’ingrosso solo alle aziende registrate, per risparmiarVi qualsiasi procedura [ABBIAMO_PREPARATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Oltre alla libera consultazione di tutti i prezzi netti, per un eventuale primo ordine di prova è attivo lo sconto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [AMBITO_DISPONIBILITA].
+
+[QUOTAZIONI_SU_COMMESSA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T017',
+    name: 'Valutazione Listino — Confronto su Quattro o Cinque Articoli Abituali',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Invito a metterci alla prova sui prezzi B2B — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+ci permettiamo di presentarVi [IDENTITA_IZZO] con una proposta molto semplice: invitarVi a confrontare i nostri prezzi netti su alcuni degli articoli che {COMPANY_NAME} acquista abitualmente.
+
+Per lasciarVi la massima comodità, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], dove è già calcolato [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+
+{CREDENTIALS_BLOCK}
+
+[AIUTO_PRIMA_LISTA]. Naturalmente le credenziali provvisorie sono gratuite e non comportano alcun impegno.
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T018',
+    name: 'Valutazione Listino — Parametro Economico Chiaro per Preventivi',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Listino netto e catalogo PDF',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[ATTACCO_UFFICIO_ACQUISTI]. Con questo intento Vi presentiamo [IDENTITA_IZZO], invitandoVi a valutare il nostro servizio di fornitura B2B [QUANDO_SERVE_SUBITO].
+
+Abbiamo pensato di agevolarVi predisponendo gratuitamente un accesso provvisorio a [IL_PORTALE_B2B], [AFFIDABILITA_DATO_STOCK] e con la condizione di benvenuto {DISCOUNT_FORMULA} [APPLICAZIONE_CARRELLO].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Restiamo volentieri a disposizione [PER_OGNI_ESIGENZA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T019',
+    name: 'Valutazione Listino — Convenienza Diretta e Qualità Certificata',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Proposta conoscitiva e listino B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per far conoscere a {COMPANY_NAME} il nostro catalogo professionale di [SETTORI_MERCEOLOGICI], con articoli selezionati [CONFORMITA_QUALITA].
+
+Per invitarVi a valutarci comodamente come fornitore, [METTIAMO_A_DISPOSIZIONE] [LE_CREDENZIALI] e un prospetto PDF dedicato, entrambi gratuiti e senza alcun vincolo commerciale.
+
+{CREDENTIALS_BLOCK}
+
+Qualora le nostre quotazioni risultassero di Vostro gradimento, sul primo ordine conoscitivo potrete usufruire dello sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [VANTAGGIO_ZERO_SCORTE].
+
+[PROMESSA_FIDUCIA]
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T020',
+    name: 'Valutazione Listino — Sintesi Chiarezza Prezzi e Libertà di Scelta',
+    angleGroup: 'Valutazione_Listino_B2B',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+desideriamo sottoporre [IDENTITA_IZZO] alla Vostra attenzione come possibile fornitore B2B per il settore {SECTOR_SHORT}, lasciando parlare direttamente la trasparenza dei nostri prezzi.
+
+Qui sotto trovate delle credenziali provvisorie gratuite create unicamente per Vostra comodità: permettono di entrare su [IL_PORTALE_B2B] senza moduli da compilare e verificare il listino riservato con lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+
+  // ==========================================================================
+  // GRUPPO 3 (T021 - T030): CREDENZIALI PROVVISORIE PER VOSTRA COMODITÀ
+  // ==========================================================================
+  {
+    code: 'T021',
+    name: 'Credenziali per Comodità — Spiegazione Chiara dell’Accesso Ospite Gratuito',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Invito a valutarci come fornitore — Accesso gratuito di consultazione per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+ci permettiamo di scriverVi per presentare [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], e invitarVi a valutarci liberamente come fornitore di [SETTORI_MERCEOLOGICI].
+
+Poiché il nostro portale è riservato ai soli operatori con Partita IVA, per non farVi perdere tempo con richieste di registrazione [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Se e quando vorrete provare il nostro servizio, sul primo ordine è già disponibile lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T022',
+    name: 'Credenziali per Comodità — Consultare il Sito Senza Compilare Moduli',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Credenziali provvisorie gratuite di consultazione per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
+
+spesso quando un nuovo fornitore si presenta via email non è immediato capire quali prodotti tratti davvero e a quali prezzi. Per questo motivo, nel presentarVi [IDENTITA_IZZO], abbiamo pensato a una soluzione semplice per Vostra comodità.
+
+Abbiamo predisposto un accesso ospite temporaneo e completamente gratuito a [IL_PORTALE_B2B], così possiate [FUNZIONI_PORTALE] quando avete due minuti liberi, senza alcun contratto né impegno.
+
+{CREDENTIALS_BLOCK}
+
+Nel caso decidiate un giorno di metterci alla prova come fornitore, troverete già pronto anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T023',
+    name: 'Credenziali per Comodità — Massima Trasparenza: Zero Costi e Zero Obblighi',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Consultazione gratuita portale B2B',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per sottoporre alla Vostra valutazione il nostro catalogo all’ingrosso dedicato a [TARGET_PROFESSIONALE].
+
+Ci teniamo anzitutto alla massima chiarezza: non Vi stiamo attivando alcun servizio a pagamento né alcun abbonamento. Semplicemente, per Vostra comodità di consultazione, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] affinché possiate valutare in piena libertà se possiamo esserVi utili come fornitore.
+
+{CREDENTIALS_BLOCK}
+
+Per un eventuale primo acquisto conoscitivo è inoltre riservata a {COMPANY_NAME} la scontistica di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T024',
+    name: 'Credenziali per Comodità — Uno Strumento Pratico per l’Ufficio Tecnico e Acquisti',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Catalogo B2B Izzo Distribuzione S.r.l. — Accesso ospite gratuito [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+[ATTACCO_UFFICIO_ACQUISTI]. Da [IDENTITA_IZZO] desideriamo invitarVi a valutarci come possibile fornitore per le linee {RECOMMENDED_FAMILY}.
+
+Per agevolare chi in azienda segue preventivi e acquisti, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI]: questo accesso gratuito [CONSENTE_DI] [ORDINARE_AUTONOMIA], [CERTEZZA_EVASIONE].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete testare una prima fornitura, lo sconto di benvenuto {DISCOUNT_FORMULA} è già impostato sul profilo [ZERO_MINIMO_ORDINE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T025',
+    name: 'Credenziali per Comodità — Dare uno Sguardo da PC o Smartphone Quando Comodo',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[APERTURA_BREVE] e invitarVi a conoscere il nostro assortimento di [SETTORI_MERCEOLOGICI].
+
+Senza alcun impegno da parte Vostra e solo per comodità pratica, lasciamo qui di seguito delle credenziali provvisorie gratuite per entrare su [IL_PORTALE_B2B] o sfogliare [IL_CATALISTINO_PDF] dal computer o dallo smartphone quando preferite.
+
+{CREDENTIALS_BLOCK}
+
+Qualora i nostri prodotti e i nostri prezzi netti Vi convincessero, sul primo ordine è attivo lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], con [TEMPI_RESA].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T026',
+    name: 'Credenziali per Comodità — Area Riservata B2B Pronta per una Libera Visita',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_TIPO_DOC] | Invito gratuito al portale B2B per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+in qualità di [QUALIFICA_DISTRIBUTORE], [IDENTITA_IZZO] mantiene i propri listini d’ingrosso all’interno di [CANALE_RISERVATO] per tutelare il lavoro degli operatori professionali.
+
+Poiché ci farebbe piacere essere valutati da {COMPANY_NAME} come possibile fornitore, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD], così che possiate visitare liberamente l’area riservata senza alcuna attesa.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. All’interno troverete anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], [DOPO_PRIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T027',
+    name: 'Credenziali per Comodità — Consultazione Autonoma o Supporto via WhatsApp',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Presentazione Izzo Distribuzione S.r.l. — Riferimenti gratuiti per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+Vi contattiamo con piacere da [IDENTITA_IZZO] per presentarVi la nostra attività e invitarVi a valutarci come fornitore nel comparto {SECTOR_SHORT}.
+
+Alcuni clienti preferiscono guardare catalogo e prezzi in completa autonomia, altri preferiscono chiedere direttamente un preventivo: per offrirVi entrambe le comodità senza alcun impegno, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e restiamo sempre raggiungibili anche ai recapiti diretti in calce.
+
+{CREDENTIALS_BLOCK}
+
+Se vorrete effettuare una prima prova d’acquisto, potrete contare sullo sconto di benvenuto {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA] [ZERO_MINIMO_ORDINE].
+
+[AIUTO_PRIMA_LISTA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T028',
+    name: 'Credenziali per Comodità — Verificare Schede Tecniche e Giacenze in Tempo Reale',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_RAPIDITA] — Accesso conoscitivo gratuito per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+nel presentarVi [IDENTITA_IZZO] desideriamo invitarVi a valutare con calma la praticità di [IL_PORTALE_B2B], dove raccogliamo migliaia di articoli professionali [AFFIDABILITA_DATO_STOCK].
+
+Per Vostra semplice comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI]: non hanno alcun costo, non comportano alcun vincolo e servono unicamente a permetterVi di [CONFRONTARE_NETTI].
+
+{CREDENTIALS_BLOCK}
+
+A chi sceglie di provarci con un primo ordine dedichiamo inoltre la scontistica di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto), [ZERO_MINIMO_ORDINE] e con [CURA_IMBALLO].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T029',
+    name: 'Credenziali per Comodità — Un Invito Discreto da Conservare tra i Contatti',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Un contatto B2B da tenere a portata di mano per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+anche se in questo momento non aveste necessità immediate di acquisto, ci fa piacere presentarVi [IDENTITA_IZZO] affinché possiate conservarci tra i fornitori da valutare alla prima occasione utile.
+
+Per farVi trovare tutto già pronto e comodo da consultare gratuitamente, lasciamo a disposizione di {COMPANY_NAME} [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Lo sconto di benvenuto {DISCOUNT_FORMULA} resterà comunque disponibile per il Vostro eventuale primo ordine [ZERO_MINIMO_ORDINE].
+
+[PROMESSA_FIDUCIA]
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T030',
+    name: 'Credenziali per Comodità — Semplicità di Ingresso e Chiarezza Totale',
+    angleGroup: 'Credenziali_Comodita',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} | Credenziali gratuite senza impegno',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], con l’unico scopo di farci conoscere dalla Vostra azienda e invitarVi a valutarci come fornitore.
+
+[CONNETTIVO_PRATICO] [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] per consentirVi di sfogliare in libertà prodotti, schede tecniche e listini netti sulle famiglie {RECOMMENDED_FAMILY}, con lo sconto di benvenuto {DISCOUNT_FORMULA} già visibile in anteprima.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+
+  // ==========================================================================
+  // GRUPPO 4 (T031 - T040): SCONTO DI BENVENUTO SENZA IMPEGNO (1° ORDINE)
+  // ==========================================================================
+  {
+    code: 'T031',
+    name: 'Sconto di Benvenuto — Invito a Metterci alla Prova Senza Minimo d’Ordine',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[APERTURA_BREVE] e invitarVi a valutarci come fornitore per le Vostre esigenze di [SETTORI_MERCEOLOGICI].
+
+Per dare a chi non ci conosce ancora un motivo concreto e trasparente per metterci alla prova, in [IDENTITA_IZZO] abbiamo pensato a [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} (pari al {NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO], [AMBITO_DISPONIBILITA] e [ZERO_MINIMO_ORDINE].
+
+[INVITO_MORBIDO_CATALISTINO]
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Potrete quindi prima guardare con calma tutti i prezzi netti e decidere in piena libertà se e quando fare una prova.
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T032',
+    name: 'Sconto di Benvenuto — Come Funziona l’Agevolazione Conoscitiva',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Presentazione Izzo Distribuzione S.r.l. e sconto di benvenuto ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+ci presentiamo con piacere alla Vostra azienda: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] operante [COPERTURA_ITALIA], e Vi scriviamo per invitarVi a valutarci tra i Vostri fornitori B2B.
+
+Per accompagnare questa presentazione [ABBIAMO_ATTIVATO] per Vostra comodità un accesso provvisorio gratuito al portale e abbiamo associato una condizione di benvenuto molto chiara: sconto base B2B del {BASE_DISCOUNT}% più un ulteriore {EXTRA_DISCOUNT}% in cascata ({DISCOUNT_FORMULA}) [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+Lo sconto è [APPLICAZIONE_CARRELLO], [DOPO_PRIMO_ORDINE]. La consultazione è totalmente gratuita e non vincolante.
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T033',
+    name: 'Sconto di Benvenuto — Testare Qualità e Puntualità anche con Pochi Articoli',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Invito conoscitivo B2B [OGG_PER_AZIENDA] {COMPANY_NAME} — Prova senza minimo d’ordine ({DISCOUNT_FORMULA})',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
+
+quando si valuta per la prima volta un nuovo fornitore è normale voler iniziare da un piccolo ordine di prova per verificare qualità della merce, imballo e precisione del servizio.
+
+Proprio per questo, nel presentarVi [IDENTITA_IZZO], abbiamo voluto unire due comodità per {COMPANY_NAME}: [LE_CREDENZIALI] per consultare liberamente i prezzi e [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} utilizzabile anche su pochi articoli, [ZERO_MINIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete testarci, cureremo la fornitura con [TEMPI_RESA] e [CURA_IMBALLO].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T034',
+    name: 'Sconto di Benvenuto — Prezzo Netto Già Calcolato in Anteprima sul Portale',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} | Listino netto con benvenuto {DISCOUNT_FORMULA}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per invitarVi a valutare la nostra azienda come fornitore B2B nel settore {SECTOR_SHORT}.
+
+Per permetterVi di vedere subito la convenienza effettiva articolo per articolo, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] su [IL_PORTALE_B2B]: entrando gratuitamente [TROVA_ATTIVO] lo sconto di benvenuto {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [TRASPARENZA_PREZZI].
+
+{CREDENTIALS_BLOCK}
+
+Si tratta di [IMPATTO_SCONTO] [SENSO_DELLA_PROVA], senza alcun costo di attivazione e senza alcun obbligo d’acquisto.
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T035',
+    name: 'Sconto di Benvenuto — Opportunità d’Acquisto sui Materiali di Uso Frequente',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_RAPIDITA] — Sconto di benvenuto B2B ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[ATTACCO_RIVENDITA]. In questa prospettiva desideriamo far conoscere [IDENTITA_IZZO] a {COMPANY_NAME} e invitarVi a valutarci come fornitore.
+
+Sui materiali [ARTICOLI_ALTA_ROTAZIONE] ({RECOMMENDED_FAMILY}) potrete verificare tramite le credenziali provvisorie gratuite qui sotto una condizione di benvenuto pari al {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. [QUOTAZIONI_SU_COMMESSA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T036',
+    name: 'Sconto di Benvenuto — Libertà Prima e Dopo il Primo Ordine',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Condizioni B2B di presentazione [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+ci teniamo a presentarci a {COMPANY_NAME} con estrema correttezza: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], e Vi invitiamo semplicemente a valutarci come fornitore quando ne avrete piacere.
+
+Per Vostra comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI], associando uno sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo ordine di prova, [DOPO_PRIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+Non esiste alcun minimo d’ordine né alcun impegno nel tempo: il nostro obiettivo è offrire [VANTAGGIO_MARGINE] e farci scegliere per la qualità del servizio.
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T037',
+    name: 'Sconto di Benvenuto — Valutare Oggi il Listino e Usarlo Quando Serve',
+    angleGroup: 'Sconto_Benvenuto_Prova',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[APERTURA_BREVE]: con [IDENTITA_IZZO] seguiamo quotidianamente [TARGET_PROFESSIONALE] nella fornitura di [SETTORI_MERCEOLOGICI].
+
+Anche se oggi aveste già le forniture coperte, Vi invitiamo a dare uno sguardo senza impegno al nostro catalogo usando le credenziali provvisorie gratuite create per Vostra comodità. Qualora in seguito voleste provarci, resterà a Vostra disposizione [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
@@ -66,1893 +791,1281 @@ Presso [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA] [VANTAGGIO_DIRETTO]. Per consentire
 [SALUTO_CHIUSURA]`,
   },
   {
-    code: 'T003',
-    name: 'Ufficio Acquisti — Verifica Giacenza Fisica e Quotazione Netta',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} | [OGG_RAPIDITA] ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-nella qualificazione dei fornitori [PER_IL_COMPARTO] {SECTOR_SHORT} assumono rilievo primario due indicatori: [STOCK_REALE] e trasparenza del prezzo netto.
-
-In qualità di [QUALIFICA_DISTRIBUTORE], da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [LE_CREDENZIALI] intestate a {COMPANY_NAME} per verificare [AVVERBIO_LIBERAMENTE] entrambi gli aspetti sulle linee {RECOMMENDED_FAMILY}, [TRASPARENZA_PREZZI].
-
-{CREDENTIALS_BLOCK}
-
-[CONNETTIVO_PRATICO] la condizione {DISCOUNT_FORMULA} risulta [APPLICAZIONE_CARRELLO] [ZERO_MINIMO_ORDINE], [DOPO_PRIMO_ORDINE].
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T004',
-    name: 'Ufficio Acquisti — Prospetto Comparativo Listino Ufficiale e Netto',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Prospetto quotazioni nette ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-per agevolare un esame immediato dei parametri economici senza attese amministrative, [IDENTITA_IZZO] ha adottato un criterio di piena trasparenza documentale: [ABBIAMO_PREPARATO] per la Vostra società [IL_CATALISTINO_PDF] [TRASPARENZA_PREZZI].
-
-[INVITO_CLIC_PDF] [PUO_VISIONARE] [GAMMA_SELEZIONATA] [ARTICOLI_ALTA_ROTAZIONE] [CLAUSOLA_SOLO_2GG], già valorizzata con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
-
-{CREDENTIALS_BLOCK}
-
-{BRANDS_NOTE}
-
-[AIUTO_PRIMA_LISTA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T005',
-    name: 'Ufficio Acquisti — Ottimizzazione dei Costi di Approvvigionamento',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — Comunicazione riservata a {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] uno strumento concreto [DIFESA_COMPETITIVITA].
-
-Sulle referenze [ARTICOLI_ALTA_ROTAZIONE] disponibili presso [NOSTRO_DEPOSITO] ([SETTORI_MERCEOLOGICI]), [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} il parametro {DISCOUNT_FORMULA} in cascata [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
-
-{CREDENTIALS_BLOCK}
-
-Si tratta di [IMPATTO_SCONTO] [SENSO_DELLA_PROVA], assistito da [TEMPI_RESA] e [CURA_IMBALLO].
-
-Per qualsiasi approfondimento sulle singole famiglie merceologiche è possibile riscontrare [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T006',
-    name: 'Ufficio Acquisti — Consultazione Immediata Senza Tempi di Attesa',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Abilitazione portale B2B e [OGG_TIPO_DOC] — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-nella gestione corrente degli acquisti tecnici la possibilità di verificare istantaneamente disponibilità e costo finito riduce sensibilmente gli oneri operativi. Attraverso [IL_PORTALE_B2B], [IDENTITA_IZZO] garantisce questo standard a [TARGET_PROFESSIONALE].
-
-In sede di accreditamento [ABBIAMO_ATTIVATO] [LE_CREDENZIALI]: accedendo, il Vostro ufficio [TROVA_ATTIVO] il parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e può [FUNZIONI_PORTALE] nonché [ORDINARE_AUTONOMIA].
-
-{CREDENTIALS_BLOCK}
-
-[QUOTAZIONI_SU_COMMESSA]. [FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T007',
-    name: 'Ufficio Acquisti — Notifica di Apertura Posizione Fornitore B2B',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Apertura posizione B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-con la presente informiamo che presso [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] operante [COPERTURA_ITALIA]) [ABBIAMO_ATTIVATO] la scheda anagrafica riservata alla Vostra azienda, profilata per il comparto {SECTOR_SHORT}.
-
-L’abilitazione comprende [IL_CATALISTINO_PDF] immediatamente consultabile e [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [INCISO_SENZA_VINCOLO].
-
-{CREDENTIALS_BLOCK}
-
-[PROMESSA_FIDUCIA]
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T008',
-    name: 'Ufficio Acquisti — Parametro di Riferimento per Verifiche Periodiche',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Riferimenti listino B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_RAPIDITA]',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-anche in presenza di canali di fornitura già consolidati, disporre di un ulteriore riferimento accreditato [AFFIDABILITA_DATO_STOCK] rappresenta un utile strumento di controllo per la Direzione Acquisti.
-
-A tal fine, da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] in favore di {COMPANY_NAME}{CITY_PAREN}, attraverso cui [PUO_VISIONARE] e [PUO_SCARICARE_PDF] le principali referenze 2gg valorizzate con la condizione {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) per la prima fornitura.
-
-{CREDENTIALS_BLOCK}
-
-[ACCESSO_SENZA_IMPEGNO].
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T009',
-    name: 'Ufficio Acquisti — Allineamento tra Condizione Economica e Giacenza',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] ({NET_DISCOUNT_PCT}% netto 1ª fornitura) [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-nell’esperienza degli approvvigionamenti professionali una scontistica favorevole risulta realmente efficace solo se sostenuta da disponibilità immediata di magazzino. Per tale ragione in [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA].
-
-Abbiamo pertanto associato la condizione riservata a {COMPANY_NAME} ({DISCOUNT_FORMULA} in cascata, pari al {NET_DISCOUNT_PCT}% netto) specificamente [CLAUSOLA_SOLO_2GG], coniugando [IMPATTO_SCONTO] e [VALORE_PUNTUALITA].
-
-{CREDENTIALS_BLOCK}
-
-{BRANDS_NOTE}
-
-Per ogni eventuale verifica è possibile rispondere [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T010',
-    name: 'Ufficio Acquisti — Riscontro Analitico su Articoli Ricorrenti',
-    angleGroup: 'Ufficio_Acquisti',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. — [OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-[APERTURA_BREVE] da parte di [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per il settore [SETTORI_MERCEOLOGICI].
-
-Riportiamo di seguito [LE_CREDENZIALI] e l’accesso a [IL_CATALISTINO_PDF] già valorizzato col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]).
-
-{CREDENTIALS_BLOCK}
-
-[AIUTO_PRIMA_LISTA], riscontrando direttamente sia la celerità del nostro ufficio sia le linee [RAPPORTO_QUALITA_PREZZO] disponibili [IN_PRONTA_CONSEGNA].
-
-[SALUTO_CHIUSURA]`,
-  },
-
-  // ==========================================================================
-  // GRUPPO 2 (T011 - T020): CONTINUITÀ LOGISTICA & PRONTA CONSEGNA 24/48H
-  // ==========================================================================
-  {
-    code: 'T011',
-    name: 'Continuità Logistica — Evasione 24/48h da Polo Centrale',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_RAPIDITA] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[ATTACCO_CANTIERE] [EVITARE_DISAGI].
-
-Attraverso [NOSTRO_DEPOSITO], [IDENTITA_IZZO] serve [COPERTURA_ITALIA] [TARGET_PROFESSIONALE] assicurando forniture [AFFIDABILITA_DATO_STOCK] e [TEMPI_RESA] [DESTINAZIONE_FLESSIBILE].
-
-Per consentire una verifica diretta del nostro standard logistico, [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
-
-{CREDENTIALS_BLOCK}
-
-Operiamo [CERTEZZA_EVASIONE], garantendo [CURA_IMBALLO]. [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T012',
-    name: 'Continuità Logistica — Flessibilità di Recapito Operativo',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Servizio logistico 24/48h [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Condizioni {DISCOUNT_FORMULA}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[QUANDO_SERVE_SUBITO], poter fare affidamento su [NOSTRO_DEPOSITO] con partenza immediata consente una gestione ordinata delle attività programmate.
-
-[VERBO_CONTATTARE] [IDENTITA_IZZO] per comunicare che [ABBIAMO_ATTIVATO] a nome della Vostra società [CANALE_RISERVATO] dedicato alle referenze [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [DESTINAZIONE_FLESSIBILE].
-
-{CREDENTIALS_BLOCK}
-
-Sulla prima fornitura l’anagrafica [TROVA_ATTIVO] il parametro {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [APPLICAZIONE_CARRELLO].
-
-[INVITO_MORBIDO_CATALISTINO]
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T013',
-    name: 'Continuità Logistica — Separazione Rigorosa Circuito 2gg',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Disponibilità verificata 2gg e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-uno degli aspetti più critici negli approvvigionamenti B2B consiste nel distinguere la reale giacenza fisica dai materiali soggetti a riordino presso il produttore.
-
-Sulla piattaforma di [IDENTITA_IZZO] il circuito **Pronta Consegna 2gg** identifica esclusivamente codici con [STOCK_REALE] presso [NOSTRO_DEPOSITO], gestiti con [TEMPI_RESA] [CERTEZZA_EVASIONE].
-
-{CREDENTIALS_BLOCK}
-
-[CONNETTIVO_AGGIUNTA] per la prima fornitura di {COMPANY_NAME} [ABBIAMO_ATTIVATO] la condizione {DISCOUNT_FORMULA} in cascata [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T014',
-    name: 'Continuità Logistica — Estensione Operativa del Magazzino Aziendale',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Polo logistico 24/48h e condizioni {DISCOUNT_FORMULA} — Riservato a {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-disporre di un ampio assortimento elettrico, illuminotecnico e tecnico evadibile in 24/48 ore permette di pianificare gli acquisti [VANTAGGIO_ZERO_SCORTE].
-
-È questa l’impostazione di servizio che [IDENTITA_IZZO] riserva a {COMPANY_NAME}{CITY_PAREN}: [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] abbinati a [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
-
-{CREDENTIALS_BLOCK}
-
-[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T015',
-    name: 'Continuità Logistica — Approvvigionamento Regolare Materiali Ricorrenti',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — Linea 24/48h per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-per garantire regolarità di rifornimento sulle referenze [ARTICOLI_ALTA_ROTAZIONE], [IDENTITA_IZZO] ha strutturato una linea dedicata su [SETTORI_MERCEOLOGICI], gestita [FLUSSO_RAPIDO].
-
-Per {COMPANY_NAME} [ABBIAMO_SELEZIONATO] gli articoli di maggior rilievo [PER_IL_COMPARTO] {SECTOR_SHORT} all’interno di [IL_CATALISTINO_PDF], applicando [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
-
-{CREDENTIALS_BLOCK}
-
-Standard elevati di [CURA_IMBALLO] e [ZERO_MINIMO_ORDINE] consentono una verifica immediata e priva di vincoli.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T016',
-    name: 'Continuità Logistica — Copertura Rapida dei Fabbisogni Immediati',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '{COMPANY_NAME} — Abilitazione [OGG_RAPIDITA] e parametro {DISCOUNT_FORMULA}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-nelle forniture tecniche si verificano frequentemente esigenze di integrazione rapida su apparecchiature di protezione, corpi illuminanti o materiali complementari [QUANDO_SERVE_SUBITO].
-
-Disporre di un accesso già accreditato presso [IDENTITA_IZZO] consente ai Vostri uffici di riscontrare istantaneamente la [STOCK_REALE] in [NOSTRO_DEPOSITO] e ricevere la merce con [TEMPI_RESA], beneficiando sulla prima fornitura del parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
-
-{CREDENTIALS_BLOCK}
-
-Le credenziali riportate restano stabilmente attive a nome della Vostra società per ogni futura necessità.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T017',
-    name: 'Continuità Logistica — Protocollo Operativo a Due Giorni Lavorativi',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accreditamento logistica 24/48h [OGG_PER_AZIENDA] {COMPANY_NAME} | {DISCOUNT_FORMULA}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-[VERBO_CONTATTARE] [IDENTITA_IZZO], organizzazione distributiva B2B [ESPERIENZA_SERVIZIO].
-
-Riepiloghiamo i tre elementi dell’abilitazione predisposta a favore della Vostra ragione sociale:
-1) [IL_CATALISTINO_PDF] relativo alle referenze con partenza immediata da deposito;
-2) [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG];
-3) [ZERO_MINIMO_ORDINE] con [TEMPI_RESA] [COPERTURA_ITALIA].
-
-{CREDENTIALS_BLOCK}
-
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA], [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T018',
-    name: 'Continuità Logistica — Affidabilità dei Tempi di Resa',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_RAPIDITA] ({DISCOUNT_FORMULA} 1ª fornitura) — Posizione {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-il rispetto delle programmazioni aziendali dipende in misura rilevante da [VALORE_PUNTUALITA] assicurata dai propri partner di fornitura.
-
-In [IDENTITA_IZZO] presidiamo quotidianamente le disponibilità di {RECOMMENDED_FAMILY} [RICAMBIO_COSTANTE], garantendo alle aziende strutturate come {COMPANY_NAME} [CONTESTO_ZONA] {CITY} un’evasione [AGGETTIVO_VELOCE_F] e prodotti [CONFORMITA_QUALITA].
-
-{CREDENTIALS_BLOCK}
-
-All’interno di [IL_CATALISTINO_PDF] ciascuna voce espone già il valore netto derivante dal parametro {DISCOUNT_FORMULA} attivo sul primo ordine 2gg.
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T019',
-    name: 'Continuità Logistica — Operatività Digitale H24 e Presa in Carico Prioritaria',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Piattaforma B2B h24 e [OGG_RAPIDITA] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-la pianificazione degli acquisti richiede spesso di verificare disponibilità e costi anche al di fuori dei consueti orari di sportello. Tramite [IL_PORTALE_B2B] è possibile controllare le scorte e [ORDINARE_AUTONOMIA], attivando l’evasione [FLUSSO_RAPIDO].
-
-A tale scopo [ABBIAMO_ATTIVATO] per {COMPANY_NAME} [LE_CREDENZIALI] complete della condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
-
-{CREDENTIALS_BLOCK}
-
-[PROMESSA_FIDUCIA]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T020',
-    name: 'Continuità Logistica — Sinergia tra Piattaforma Digitale e Referente Assegnato',
-    angleGroup: 'Continuità_Logistica_24_48h',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Servizio 2gg ({DISCOUNT_FORMULA}) e referente assegnato',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-coniugare l’efficienza di una piattaforma B2B [AFFIDABILITA_DATO_STOCK] con l’assistenza di un [TITOLO_REFERENTE] ({AGENT_NAME}) consente di gestire ogni fornitura con precisione amministrativa e logistica.
-
-Presso [IDENTITA_IZZO] [ABBIAMO_PREPARATO] per {COMPANY_NAME} sia [IL_CATALISTINO_PDF] sia l’utenza abilitata col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [DESTINAZIONE_FLESSIBILE].
-
-{CREDENTIALS_BLOCK}
-
-Per verifiche su quantitativi specifici o forniture urgenti è attivo il contatto diretto [COME_RISPONDERE] ([CONTATTO_UMANO_VERO]).
-
-[SALUTO_CHIUSURA]`,
-  },
-
-  // ==========================================================================
-  // GRUPPO 3 (T021 - T030): CONDIZIONI ECONOMICHE QUADRO & PRIMA FORNITURA
-  // ==========================================================================
-  {
-    code: 'T021',
-    name: 'Condizioni Quadro — Struttura dello Sconto in Cascata',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Parametri economici B2B {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-nell’accreditare la nostra struttura presso le realtà professionali [CONTESTO_ZONA] {CITY}, in [IDENTITA_IZZO] privilegiamo condizioni economiche immediatamente riscontrabili fin dalla prima fornitura.
-
-In aggiunta al listino B2B di categoria ({BASE_DISCOUNT}%), [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} un’ulteriore agevolazione del +{EXTRA_DISCOUNT}% in cascata (pari al **{NET_DISCOUNT_PCT}% di sconto netto effettivo** da listino ufficiale) [SUL_PRIMO_ACQUISTO], [CLAUSOLA_SOLO_2GG].
-
-{CREDENTIALS_BLOCK}
-
-[CONNETTIVO_AGGIUNTA] tale condizione opera [ZERO_MINIMO_ORDINE] ed è [APPLICAZIONE_CARRELLO], [DOPO_PRIMO_ORDINE].
-
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T022',
-    name: 'Condizioni Quadro — Prima Fornitura Conoscitiva Senza Minimo d’Ordine',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Abilitazione B2B senza minimo d’ordine ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-nella valutazione iniziale di un nuovo fornitore B2B è prassi corretta poter effettuare una prima verifica operativa senza vincoli di fatturato minimo.
-
-In quest’ottica, [IDENTITA_IZZO] ha formalizzato per {COMPANY_NAME} una condizione d’ingresso [ZERO_MINIMO_ORDINE], mantenendo integralmente attivo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
-
-{CREDENTIALS_BLOCK}
-
-Ciò consente alla Vostra struttura di riscontrare direttamente [CURA_IMBALLO], [VALORE_PUNTUALITA] e standard qualitativo su [SETTORI_MERCEOLOGICI] [INCISO_SENZA_VINCOLO].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T023',
-    name: 'Condizioni Quadro — Tutela della Marginalità Operativa',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — Posizione riservata a {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-in uno scenario di mercato che richiede attento controllo dei costi diretti, accedere a condizioni d’acquisto {DISCOUNT_FORMULA} in cascata [CONSENTE_DI] consolidare la marginalità operativa aziendale.
-
-Da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] questa quotazione [AGGETTIVO_RISERVATA_F] per {COMPANY_NAME} [SUL_PRIMO_ACQUISTO] sull’intero perimetro [IN_PRONTA_CONSEGNA] ({RECOMMENDED_FAMILY}), [VANTAGGIO_DIRETTO].
-
-{CREDENTIALS_BLOCK}
-
-[INVITO_CLIC_PDF] [PUO_VISIONARE] i prezzi netti già determinati e [CONFRONTARE_NETTI] con immediatezza.
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T024',
-    name: 'Condizioni Quadro — Parametrizzazione Nativa sull’Anagrafica Cliente',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Anagrafica {COMPANY_NAME} abilitata — Parametro {DISCOUNT_FORMULA} su Linea 2gg',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[APERTURA_BREVE] per confermare che sul profilo B2B aperto da [IDENTITA_IZZO] a nome di {COMPANY_NAME} la condizione {DISCOUNT_FORMULA} è [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG], senza necessità di inserire codici manuali.
-
-{CREDENTIALS_BLOCK}
-
-Autenticandosi con [LE_CREDENZIALI] sopra indicate — o consultando [IL_CATALISTINO_PDF] — ogni referenza 2gg espone già il netto riservato ({NET_DISCOUNT_PCT}% da listino), [ZERO_MINIMO_ORDINE].
-
-Per qualsiasi chiarimento è possibile rispondere [COME_RISPONDERE].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T025',
-    name: 'Condizioni Quadro — Accreditamento Diretto per Operatori di Settore',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Condizioni di accreditamento B2B ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-nello sviluppo dei rapporti commerciali con gli operatori qualificati del comparto {SECTOR_SHORT}, [IDENTITA_IZZO] adotta una politica di accreditamento diretto basata su condizioni economiche verificabili fin dal primo ordine.
-
-Per {COMPANY_NAME} tale impostazione prevede il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], corredato da [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
-
-{CREDENTIALS_BLOCK}
-
-{BRANDS_NOTE}
-
-[PROMESSA_FIDUCIA]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T026',
-    name: 'Condizioni Quadro — Accesso a Parametri Direzionali Senza Impegni Annui',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Parametri direzionali ({DISCOUNT_FORMULA}) attivi per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-normalmente i livelli di sconto più elevati nella distribuzione tecnica sono subordinati a impegni di volume annuali. Attraverso il protocollo di primo accreditamento di [IDENTITA_IZZO], {COMPANY_NAME} accede direttamente al parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE] sulle linee [IN_PRONTA_CONSEGNA].
-
-{CREDENTIALS_BLOCK}
-
-La procedura è finalizzata a consentirVi di [CONFRONTARE_NETTI] su [SETTORI_MERCEOLOGICI] e verificare sul campo [TEMPI_RESA], [DOPO_PRIMO_ORDINE].
-
-[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T027',
-    name: 'Condizioni Quadro — Incidenza Economica sui Materiali a Consumo Ricorrente',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Quotazioni riservate {DISCOUNT_FORMULA} su referenze 2gg — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-sulle forniture [ARTICOLI_ALTA_ROTAZIONE] l’applicazione di un ulteriore +{EXTRA_DISCOUNT}% in cascata oltre allo sconto base B2B ({BASE_DISCOUNT}%) determina un beneficio economico immediato e misurabile.
-
-Da [IDENTITA_IZZO] [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} esattamente questa configurazione [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], per referenze utili [IMPIEGO_PRATICO].
-
-{CREDENTIALS_BLOCK}
-
-La consultazione di [IL_CATALISTINO_PDF] permette di verificare con precisione i valori netti dedicati alla Vostra società.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T028',
-    name: 'Condizioni Quadro — Validità Stabile senza Scadenze Pressanti',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] e condizione {DISCOUNT_FORMULA} registrata per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-comunichiamo da parte di [IDENTITA_IZZO] che l’agevolazione {DISCOUNT_FORMULA} riservata alla prima fornitura di {COMPANY_NAME} è stata regolarmente registrata sulla Vostra anagrafica e rimarrà disponibile per il Vostro prossimo fabbisogno [IN_PRONTA_CONSEGNA].
-
-{CREDENTIALS_BLOCK}
-
-Nel frattempo [PUO_VISIONARE] e [PUO_SCARICARE_PDF] [IL_CATALISTINO_PDF], conservando i riferimenti a disposizione dei Vostri uffici [INCISO_SENZA_VINCOLO].
-
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T029',
-    name: 'Condizioni Quadro — Prospetto Sintetico dei Patti Commerciali',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Quadro condizioni commerciali B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-riepiloghiamo in modo lineare i termini della posizione commerciale aperta a Vostro nome:
-• Società fornitrice: [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI];
-• Parametro 1ª fornitura per {COMPANY_NAME}: sconto {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto da listino);
-• Perimetro applicativo: [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE];
-• Regime ordinario successivo: mantenimento del listino professionale {BASE_DISCOUNT}%, [DOPO_PRIMO_ORDINE].
-
-{CREDENTIALS_BLOCK}
-
-[AIUTO_PRIMA_LISTA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T030',
-    name: 'Condizioni Quadro — Efficienza Economica e Logistica Integrata',
-    angleGroup: 'Condizioni_Quadro_Riservate',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. | Parametri B2B {DISCOUNT_FORMULA} attivi per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [CANALE_RISERVATO] già operativo, strutturato [VANTAGGIO_MARGINE].
-
-All’interno di [IL_CATALISTINO_PDF] [ABBIAMO_SELEZIONATO] le principali referenze [IN_PRONTA_CONSEGNA] relative a {RECOMMENDED_FAMILY}, tutte valorizzate col parametro riservato {DISCOUNT_FORMULA} sulla prima fornitura.
-
-{CREDENTIALS_BLOCK}
-
-[ACCESSO_SENZA_IMPEGNO]. Per ogni approfondimento siamo reperibili [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-
-  // ==========================================================================
-  // GRUPPO 4 (T031 - T040): NOTA UFFICIALE DEL REFERENTE COMMERCIALE ASSEGNATO
-  // ==========================================================================
-  {
-    code: 'T031',
-    name: 'Referente Assegnato — Comunicazione di Presa in Carico Anagrafica',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Assegnazione referente B2B e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-la presente per comunicarVi che, nell’ambito dell’organizzazione commerciale di [IDENTITA_IZZO], la posizione relativa a {COMPANY_NAME}{CITY_PAREN} è affidata al sottoscritto {AGENT_NAME} in qualità di [TITOLO_REFERENTE].
-
-Riteniamo essenziale affiancare agli strumenti digitali un riferimento personale certo: pertanto, oltre ad aver abilitato [IL_PORTALE_B2B] con condizione riservata {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], Vi lascio i miei recapiti diretti per ogni esigenza operativa.
-
-{CREDENTIALS_BLOCK}
-
-[AIUTO_PRIMA_LISTA], [CONTATTO_UMANO_VERO].
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T032',
-    name: 'Referente Assegnato — Interlocutore Unico per Forniture e Quotazioni',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Riferimento commerciale diretto e listino {DISCOUNT_FORMULA} [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-scrivo in qualità di referente assegnato ({AGENT_NAME}) presso [IDENTITA_IZZO], a disposizione della Vostra struttura per la gestione delle forniture di [SETTORI_MERCEOLOGICI] [IN_PRONTA_CONSEGNA].
-
-Contestualmente all’apertura anagrafica, [ABBIAMO_ATTIVATO] sul Vostro profilo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] ([CLAUSOLA_SOLO_2GG]) ed elaborato [IL_CATALISTINO_PDF] intestato a {COMPANY_NAME}:
-
-{CREDENTIALS_BLOCK}
-
-Per verifiche tecniche, disponibilità su lotti o condizioni dedicate potete contattarmi [COME_RISPONDERE] [OPZIONE_TELEFONATA].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T033',
-    name: 'Referente Assegnato — Doppia Modalità di Consultazione o Quotazione Assistita',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Supporto commerciale B2B e condizioni {DISCOUNT_FORMULA} — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-come referente B2B ({AGENT_NAME} — [IDENTITA_IZZO]), desidero agevolare al massimo la consultazione delle nostre condizioni da parte dei Vostri uffici, mettendo a disposizione due modalità operative:
-
-• **Consultazione autonoma**: tramite il riquadro sottostante sono già accessibili [IL_CATALISTINO_PDF] e [LE_CREDENZIALI] con parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG];
-• **Quotazione assistita**: qualora preferiste inviare in risposta un elenco sintetico di articoli di uso ricorrente, provvederò personalmente a trasmetterVi il relativo prospetto netto riservato a {COMPANY_NAME}.
-
-{CREDENTIALS_BLOCK}
-
-Resto a completa disposizione per entrambe le soluzioni.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T034',
-    name: 'Referente Assegnato — Presidio Dedicato per gli Operatori del Territorio',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Comunicazione da {AGENT_NAME} (Izzo Distribuzione S.r.l.) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-dalla Direzione Commerciale di [IDENTITA_IZZO] seguo direttamente i rapporti con le aziende professionali attive su {CITY}. In tale veste ho curato la predisposizione per la Vostra società di [CANALE_RISERVATO] focalizzato su {RECOMMENDED_FAMILY}.
-
-Il profilo comprende [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE], affinché possiate valutare [AVVERBIO_LIBERAMENTE] sia la qualità della gamma sia [TEMPI_RESA].
-
-{CREDENTIALS_BLOCK}
-
-{BRANDS_NOTE}
-
-Per ogni riscontro diretto sono reperibile [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T035',
-    name: 'Referente Assegnato — Gestione Diretta Senza Filtri Automatici',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Canale diretto B2B e condizioni {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-l’organizzazione di [IDENTITA_IZZO] affianca all’operatività h24 di [IL_PORTALE_B2B] la presenza costante di un referente dedicato ({AGENT_NAME}, Cod. {AGENT_CODE}), [CONTATTO_UMANO_VERO].
-
-Trasmetto qui di seguito [LE_CREDENZIALI] assegnate a {COMPANY_NAME} e l’accesso a [IL_CATALISTINO_PDF], già valorizzato col parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
-
-{CREDENTIALS_BLOCK}
-
-Rimango a disposizione per seguire personalmente ogni Vostra richiesta informativa o di fornitura.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T036',
-    name: 'Referente Assegnato — Assistenza Tecnica e Commerciale Dedicata',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Referente B2B e [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-nella gestione delle forniture tecniche per aziende strutturate è fondamentale disporre di un interlocutore che presidi direttamente codici, giacenze di magazzino e tempistiche di spedizione.
-
-Con questa impostazione, per conto di [IDENTITA_IZZO] ({AGENT_NAME}) [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF] e abilitato la condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
-
-{CREDENTIALS_BLOCK}
-
-[QUOTAZIONI_SU_COMMESSA]. Per qualsiasi esigenza potete fare riferimento diretto alla presente comunicazione.
-
-[PRE_SALUTO_FINALE]
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T037',
-    name: 'Referente Assegnato — Trasmissione Prospetto Valorizzato',
-    angleGroup: 'Referente_Direzionale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Trasmissione prospetto riservato 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[APERTURA_BREVE] a cura di {AGENT_NAME} ([IDENTITA_IZZO]): abbiamo emesso il prospetto riservato a {COMPANY_NAME} relativo agli articoli [IN_PRONTA_CONSEGNA] d’interesse per il comparto {SECTOR_SHORT}, con applicazione del parametro {DISCOUNT_FORMULA} sulla prima fornitura.
-
-{CREDENTIALS_BLOCK}
-
-[INVITO_MORBIDO_CATALISTINO] Per approfondimenti su specifiche linee o ulteriori referenze a catalogo sono contattabile [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
     code: 'T038',
-    name: 'Referente Assegnato — Accreditamento Istituzionale Senza Vincoli',
-    angleGroup: 'Referente_Direzionale',
+    name: 'Sconto di Benvenuto — Trasparenza per Acquisti Agili Senza Scorte Inutili',
+    angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accreditamento commerciale B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in qualità di responsabile commerciale B2B ({AGENT_NAME}) per [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] di [SETTORI_MERCEOLOGICI], desidero sottoporre alla Vostra Direzione i riferimenti dell’utenza riservata aperta a Vostro nome.
+nel presentarVi [IDENTITA_IZZO] come possibile fornitore B2B, abbiamo voluto pensare alle esigenze concrete di chi gestisce gli acquisti aziendali: prezzi chiari, disponibilità reale e nessun obbligo di grandi volumi.
 
-L’abilitazione, predisposta [INCISO_SENZA_VINCOLO], include l’agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Per farVi verificare tutto ciò in autonomia, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], con l’agevolazione di benvenuto {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [VANTAGGIO_ZERO_SCORTE].
 
 {CREDENTIALS_BLOCK}
 
-[PROMESSA_FIDUCIA]
-Resto a disposizione per ogni eventuale colloquio conoscitivo.
+[ACCESSO_SENZA_IMPEGNO]. [AIUTO_PRIMA_LISTA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T039',
-    name: 'Referente Assegnato — Codice Agente Associato per Gestione Prioritaria',
-    angleGroup: 'Referente_Direzionale',
+    name: 'Sconto di Benvenuto — Un Benvenuto Concreto alle Aziende con Partita IVA',
+    angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Credenziali B2B e assistenza diretta ({AGENT_NAME}) per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Benvenuto B2B Izzo Distribuzione S.r.l. — Invito di valutazione per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-comunico di aver associato il mio codice referente ({AGENT_CODE} — {AGENT_NAME}) all’anagrafica di {COMPANY_NAME} presso [IDENTITA_IZZO], al fine di garantire gestione prioritaria sia sulle spedizioni 24/48h sia sulle richieste di quotazione dedicata.
+[ATTACCO_CANTIERE]. Per farci conoscere dalla Vostra realtà Vi presentiamo volentieri [IDENTITA_IZZO], invitandoVi a valutarci come fornitore di fiducia.
 
-Di seguito si riportano [LE_CREDENZIALI] ([NOTA_CAMBIO_PASSWORD]) e il collegamento per consultare [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+Abbiamo predisposto gratuitamente per Vostra comodità delle credenziali provvisorie su [IL_PORTALE_B2B] e un trattamento di benvenuto pari al {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO].
+Potete consultare il sito anche solo a titolo informativo, senza alcun costo né impegno.
+
+[PROMESSA_FIDUCIA]
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T040',
-    name: 'Referente Assegnato — Sintesi Direzionale in Tre Punti',
-    angleGroup: 'Referente_Direzionale',
+    name: 'Sconto di Benvenuto — Proposta Chiara e Verificabile a Carrello',
+    angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Rif. {AGENT_NAME} | Izzo Distribuzione S.r.l. — Posizione B2B {COMPANY_NAME}',
+    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) — Presentazione B2B per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-nel pieno rispetto delle Vostre tempistiche operative, riepilogo i tre elementi essenziali attivati da [IDENTITA_IZZO] a favore della Vostra società:
-1) accesso diretto alle disponibilità reali 24/48h presenti presso [NOSTRO_DEPOSITO];
-2) condizione riservata {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) sulla prima fornitura 2gg [ZERO_MINIMO_ORDINE];
-3) riferimento commerciale diretto ({AGENT_NAME}) per supporto tecnico e quotazioni.
+[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF].
+
+Chi entra sul portale può simulare liberamente un carrello per vedere il totale netto con lo sconto di benvenuto {DISCOUNT_FORMULA} [APPLICAZIONE_CARRELLO], [ZERO_MINIMO_ORDINE]. Naturalmente si tratta di un accesso provvisorio gratuito, creato solo per Vostra comodità e senza alcun vincolo.
 
 {CREDENTIALS_BLOCK}
 
-Ringraziando per la cortese attenzione, porgo a tutta la struttura di {COMPANY_NAME}
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 5 (T041 - T050): TRASMISSIONE PROSPETTO LISTINO PDF RISERVATO
+  // GRUPPO 5 (T041 - T050): CATALOGO ILLUSTRATIVO PDF DA SFOGLIARE CON CALMA
   // ==========================================================================
   {
     code: 'T041',
-    name: 'Documentazione PDF — Consultazione Diretta Senza Obbligo Preliminare di Login',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Estratto Pratico con Foto e Prezzi Netti',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: '[OGG_TIPO_DOC] in formato PDF [OGG_PER_AZIENDA] {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Catalistino illustrativo PDF e presentazione fornitore [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-al fine di consentire un esame immediato delle referenze [IN_PRONTA_CONSEGNA] anche prima dell’accesso al portale, [IDENTITA_IZZO] ha elaborato [IL_CATALISTINO_PDF] intestato a {COMPANY_NAME}.
+per presentarVi in modo concreto [IDENTITA_IZZO] e invitarVi a valutarci come possibile fornitore B2B, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
 
-[INVITO_CLIC_PDF] [PUO_VISIONARE] il documento integrale e [PUO_SCARICARE_PDF], [DETTAGLIO_CONTENUTO_PDF] secondo il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+[INVITO_CLIC_PDF] [PUO_VISIONARE] [GAMMA_SELEZIONATA] [PER_IL_COMPARTO] {SECTOR_SHORT}, oltre ad avere a disposizione per Vostra comodità [LE_CREDENZIALI] per consultare l’intero sito.
 
 {CREDENTIALS_BLOCK}
 
-Qualora intendeste procedere con un ordine, autenticandosi su [IL_PORTALE_B2B] mediante [LE_CREDENZIALI] riscontrerete i medesimi valori netti [APPLICAZIONE_CARRELLO] [CLAUSOLA_SOLO_2GG].
+[ACCESSO_SENZA_IMPEGNO]. Nel documento PDF i prezzi mostrano già anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} riservato a un eventuale primo ordine [ZERO_MINIMO_ORDINE].
 
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T042',
-    name: 'Documentazione PDF — Prontuario Prezzi per l’Ufficio Acquisti e Preventivazione',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Sfogliare o Scaricare il Listino in Pochi Secondi',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Prontuario PDF Pronta Consegna 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    subjectTemplate: '[OGG_TIPO_DOC] (PDF) [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-nell’attività di preventivazione e controllo costi risulta particolarmente funzionale disporre di un prospetto PDF ordinato, consultabile rapidamente dai referenti interni.
+sappiamo che spesso in ufficio è più comodo sfogliare rapidamente un documento PDF ordinato prima ancora di visitare un sito web. Per questo, nel presentarVi [IDENTITA_IZZO], [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] dedicato a {COMPANY_NAME}.
 
-A tale scopo [IDENTITA_IZZO] ha predisposto per {COMPANY_NAME} [IL_CATALISTINO_PDF] relativo alle famiglie {RECOMMENDED_FAMILY}, [OLTRE_AL_PDF].
+Al suo interno [ABBIAMO_SELEZIONATO] gli articoli [ARTICOLI_ALTA_ROTAZIONE] sulle famiglie {RECOMMENDED_FAMILY}, che potrete [PUO_SCARICARE_PDF], [INCISO_SENZA_VINCOLO].
 
 {CREDENTIALS_BLOCK}
 
-Ogni articolo inserito nel documento rispecchia [STOCK_REALE] presso [NOSTRO_DEPOSITO] ed espone la quotazione netta {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) valida sulla prima fornitura 2gg [ZERO_MINIMO_ORDINE].
+Accanto al PDF trovate anche delle credenziali provvisorie gratuite create solo per Vostra comodità qualora voleste esplorare tutte le altre linee su [IL_PORTALE_B2B].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T043',
-    name: 'Documentazione PDF — Estratto Selezionato per Comparto Operativo',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Un Assaggio Chiaro del Nostro Assortimento B2B',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Estratto listino PDF {SECTOR_SHORT} ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    subjectTemplate: 'Estratto catalogo PDF e prezzi riservati [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-per offrire uno strumento di consultazione mirato ed essenziale, in [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] all’interno di [IL_CATALISTINO_PDF] esclusivamente [GAMMA_SELEZIONATA] [PER_IL_COMPARTO] {SECTOR_SHORT} con effettiva partenza in 24/48 ore.
+[VERBO_CONTATTARE] [IDENTITA_IZZO] con il piacere di invitarVi a valutarci come fornitore per i materiali di [SETTORI_MERCEOLOGICI].
 
-{BRANDS_NOTE}
+Per darVi subito un’idea chiara dei prodotti che trattiamo e dei nostri prezzi all’ingrosso, [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] [OLTRE_AL_PDF]. Per Vostra comodità abbiamo incluso anche [LE_CREDENZIALI].
 
 {CREDENTIALS_BLOCK}
 
-Il prospetto riporta per ciascun codice immagine, descrizione tecnica, listino ufficiale e prezzo netto calcolato col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [OLTRE_AL_PDF].
+{BRANDS_NOTE}
 
-[FRASE_DISPONIBILITA] [COME_RISPONDERE].
+[ACCESSO_SENZA_IMPEGNO]. Sul primo ordine conoscitivo è inoltre disponibile lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T044',
-    name: 'Documentazione PDF — Notifica di Emissione Fascicolo Commerciale',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Prontuario Utile da Tenere in Archivio Fornitori',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Emissione prospetto PDF riservato a {COMPANY_NAME} ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Prontuario PDF gratuito [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-[APERTURA_BREVE] da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI]): è disponibile online [IL_CATALISTINO_PDF] riservato alla Vostra ragione sociale, valorizzato con la condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+ci permettiamo di inviarVi questa presentazione di [IDENTITA_IZZO] invitandoVi, senza alcuna urgenza né impegno, a valutarci tra i Vostri fornitori B2B.
+
+Abbiamo predisposto per {COMPANY_NAME} [IL_CATALISTINO_PDF], comodissimo da [PUO_SCARICARE_PDF] nell’archivio fornitori per qualsiasi futuro confronto prezzi, insieme a delle credenziali provvisorie gratuite per il portale online.
 
 {CREDENTIALS_BLOCK}
 
-[INVITO_MORBIDO_CATALISTINO] La consultazione e l’archiviazione del documento avvengono [INCISO_SENZA_VINCOLO].
+Sia il PDF sia le credenziali provvisorie sono puramente conoscitivi e gratuiti; qualora decideste di fare una prova, avrete a disposizione anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
-Per ogni approfondimento resta attivo il referente assegnato ({AGENT_NAME}).
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T045',
-    name: 'Documentazione PDF — Integrazione tra Documento PDF e Piattaforma B2B',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Confronto Immediato A Colpo d’Occhio',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_TIPO_DOC] e credenziali portale B2B — {COMPANY_NAME}',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_RAPIDITA] | Catalistino PDF conoscitivo per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-la procedura di accreditamento predisposta da [IDENTITA_IZZO] consente una verifica lineare in due passaggi:
-• **Consultazione documentale**: apertura immediata di [IL_CATALISTINO_PDF] per esaminare gamma tecnica e quotazioni nette riservate ({DISCOUNT_FORMULA});
-• **Operatività a portale**: utilizzo di [LE_CREDENZIALI] su [IL_PORTALE_B2B] per verificare le giacenze aggiornate e gestire eventuali forniture con [TEMPI_RESA] [ZERO_MINIMO_ORDINE].
+[ATTACCO_UFFICIO_ACQUISTI]. Per presentare [IDENTITA_IZZO] in modo concreto e veloce, abbiamo raccolto in un unico PDF illustrativo una selezione di prodotti [IN_PRONTA_CONSEGNA] con listino e netto già affiancati.
+
+[INVITO_MORBIDO_CATALISTINO]
 
 {CREDENTIALS_BLOCK}
 
-[AIUTO_PRIMA_LISTA].
+[ACCESSO_SENZA_IMPEGNO]. Per chi volesse poi testarci su un primo ordine è attivo lo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T046',
-    name: 'Documentazione PDF — Valorizzazione Netta Già Calcolata su Ogni Riga',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Dal Prospetto PDF al Catalogo Completo Online',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Documentazione PDF con prezzi netti calcolati ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] — Prospetto PDF e accesso ospite gratuito per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] [MOTIVO_CONTATTO] [IL_CATALISTINO_PDF] allineato alle disponibilità attuali di [NOSTRO_DEPOSITO].
+[APERTURA_BREVE]: operiamo con [IDENTITA_IZZO] nella distribuzione B2B di [SETTORI_MERCEOLOGICI] e saremmo lieti se voleste valutarci come fornitore.
 
-Per semplificare il lavoro di analisi dei Vostri uffici, ciascuna referenza inclusa nel PDF espone già il prezzo netto finito derivante dal parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO], applicabile [CLAUSOLA_SOLO_2GG].
+Per offrirVi la massima praticità di consultazione, mettiamo gratuitamente a Vostra disposizione due strumenti senza impegno: [IL_CATALISTINO_PDF] per una panoramica immediata, e [LE_CREDENZIALI] per cercare qualsiasi altro codice su [IL_PORTALE_B2B].
 
 {CREDENTIALS_BLOCK}
 
-Prodotti [CONFORMITA_QUALITA] e procedure di [CURA_IMBALLO] caratterizzano ogni spedizione effettuata.
+Entrambi gli strumenti riportano già la condizione di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], [ZERO_MINIMO_ORDINE].
+
+[QUOTAZIONI_SU_COMMESSA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T047',
+    name: 'Catalogo Illustrativo PDF — Selezione Dedicata per il Vostro Settore',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Selezione prodotti e listino PDF [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+nel presentarVi [IDENTITA_IZZO] abbiamo voluto preparare qualcosa di utile e mirato [PER_IL_COMPARTO] {SECTOR_SHORT}, invitandoVi a valutare con calma la nostra proposta di fornitura.
+
+Nel riquadro seguente potrete aprire [IL_CATALISTINO_PDF] dedicato alle famiglie {RECOMMENDED_FAMILY}, oppure usare le credenziali provvisorie gratuite create solo per Vostra comodità di accesso al sito.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Ogni articolo gode inoltre dello sconto di benvenuto {DISCOUNT_FORMULA} qualora voleste effettuare un primo ordine di prova [ZERO_MINIMO_ORDINE].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
-    code: 'T047',
-    name: 'Documentazione PDF — Supporto per Preventivazione Rapida Interna',
-    angleGroup: 'Documentazione_Listino_PDF',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Prospetto prezzi B2B per l’ufficio tecnico/acquisti di {COMPANY_NAME} ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-disporre in archivio di [IL_CATALISTINO_PDF] emesso da [IDENTITA_IZZO] agevola anche l’elaborazione rapida dei Vostri preventivi: ogni scheda riporta congiuntamente il listino ufficiale e il costo netto riservato ({DISCOUNT_FORMULA} sulla prima fornitura 2gg), con garanzia di evasione in 24/48 ore.
-
-{CREDENTIALS_BLOCK}
-
-Contemplando referenze [OLTRE_AL_PDF], l’accesso a [IL_PORTALE_B2B] permette in ogni momento di [FUNZIONI_PORTALE].
-
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
     code: 'T048',
-    name: 'Documentazione PDF — Riepilogo Disponibilità Immediate di Magazzino',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Lettura Semplice per Ufficio e Reparto Operativo',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '{COMPANY_NAME}{CITY_PAREN} — Prospetto disponibilità 24/48h ({DISCOUNT_FORMULA})',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] (con Catalistino PDF) [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] [FILOSOFIA_OPERATIVA]. Al fine di documentare puntualmente le referenze pronte alla spedizione presso [NOSTRO_DEPOSITO], [ABBIAMO_PREPARATO] un prospetto PDF dedicato a {COMPANY_NAME} calibrato sul comparto {SECTOR_SHORT}.
+ci permettiamo di sottoporre [IDENTITA_IZZO] alla Vostra attenzione come possibile fornitore B2B, condividendo [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
+
+È un documento leggero e chiaro che potrete condividere internamente o conservare per futuri confronti, affiancato per Vostra comodità da [LE_CREDENZIALI] su [IL_PORTALE_B2B].
 
 {CREDENTIALS_BLOCK}
 
-Sulla prima fornitura l’intera selezione 2gg beneficia automaticamente della condizione {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [SENSO_DELLA_PROVA].
+Precisiamo che sia il catalogo PDF sia le credenziali temporanee sono gratuiti e non comportano alcun vincolo. Per un eventuale primo ordine resta disponibile lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
-Per richieste specifiche o quotazioni a volume siamo operativi [COME_RISPONDERE].
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T049',
-    name: 'Documentazione PDF — Pre-Accreditamento Completo Senza Formalità',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Panoramica Prezzi Riservati e Disponibilità',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Pre-accreditamento B2B e listino PDF riservato — {COMPANY_NAME}',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Catalogo illustrativo B2B Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-per evitare ai Vostri uffici iter preliminari di registrazione prima ancora di aver valutato listini e disponibilità, [IDENTITA_IZZO] ha completato internamente il pre-accreditamento anagrafico a favore di {COMPANY_NAME}.
+[ATTACCO_RIVENDITA]. Con questo spirito Vi scriviamo da [IDENTITA_IZZO] per invitarVi a valutarci liberamente come fornitore all’ingrosso.
 
-Di conseguenza, sia [IL_CATALISTINO_PDF] sia [LE_CREDENZIALI] con parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] risultano già immediatamente fruibili:
+[INVITO_CLIC_PDF] [PUO_VISIONARE] il nostro prospetto PDF illustrato e utilizzare, se lo desiderate, le credenziali provvisorie gratuite predisposte per accedere in autonomia a tutti i listini del portale.
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Il referente assegnato ({AGENT_NAME}) rimane a disposizione.
+Sul primo acquisto conoscitivo potrete contare su [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE] e con [TEMPI_RESA].
+
+[PROMESSA_FIDUCIA]
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T050',
-    name: 'Documentazione PDF — Quadro Generale Comparti Elettrico, LED e Tecnico',
-    angleGroup: 'Documentazione_Listino_PDF',
+    name: 'Catalogo Illustrativo PDF — Invito Veloce alla Consultazione del PDF',
+    angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. — Documentazione 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
+    subjectTemplate: 'Estratto listino PDF gratuito [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] per trasmettere l’accesso a [IL_CATALISTINO_PDF] predisposto per la Vostra società, comprensivo delle linee [DETTAGLIO_LUCE_LED] e [DETTAGLIO_ELETTRICO_QUADRO], tutte gestite [IN_PRONTA_CONSEGNA].
+Vi inviamo un breve saluto di presentazione da [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) per invitarVi a valutarci come fornitore.
+
+Solo per Vostra comodità lasciamo qui sotto il link per sfogliare gratuitamente [IL_CATALISTINO_PDF] e le credenziali provvisorie per consultare senza impegno [IL_PORTALE_B2B], dove è già previsto lo sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo ordine.
 
 {CREDENTIALS_BLOCK}
 
-La condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] è già associata al profilo [ZERO_MINIMO_ORDINE].
+[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 
-[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
-
   // ==========================================================================
-  // GRUPPO 6 (T051 - T060): QUALIFICAZIONE GAMMA TECNICA, CONFORMITÀ & ASSORTIMENTO (UNIVERSALE)
+  // GRUPPO 6 (T051 - T060): GAMMA TECNICA ELETTRICO, LED, QUADRI & FISSAGGIO
   // ==========================================================================
   {
     code: 'T051',
-    name: 'Gamma Tecnica — Completezza Merceologica e Conformità Certificata',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Illuminazione LED Tecnica, Civile e Industriale',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Forniture professionali {SECTOR_SHORT} 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_RAPIDITA] — Presentazione Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-nella selezione di un fornitore B2B per apparecchiature elettriche e sistemi illuminotecnici [DETTAGLIO_ELETTRICO_QUADRO], la certezza della conformità normativa e della pronta giacenza incide direttamente sull’efficienza aziendale.
+ci fa piacere presentare alla Vostra azienda [IDENTITA_IZZO] e invitarVi a valutarci liberamente come fornitore B2B, in particolare per il comparto illuminotecnico ed elettrico.
 
-Da [IDENTITA_IZZO] [ABBIAMO_PREPARATO] a favore di {COMPANY_NAME} una posizione B2B completa di parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Sul nostro catalogo trattiamo un’ampia selezione professionale [DETTAGLIO_LUCE_LED], con articoli scelti [RAPPORTO_QUALITA_PREZZO]. Per Vostra comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] così possiate consultare senza impegno schede tecniche e prezzi netti.
 
 {CREDENTIALS_BLOCK}
 
-{BRANDS_NOTE}
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete metterci alla prova su un primo ordine, troverete già pronto lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
-[QUOTAZIONI_SU_COMMESSA]. [FRASE_DISPONIBILITA] ({AGENT_NAME}).
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T052',
-    name: 'Gamma Tecnica — Affidabilità per Approvvigionamenti Programmati e Correnti',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Materiale Elettrico, Modulare DIN e Quadristica',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME} — Assortimento tecnico 2gg ({DISCOUNT_FORMULA})',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Forniture elettriche e quadristica B2B — Invito di valutazione per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-[ATTACCO_CANTIERE] avvalersi di un partner distributivo [AGGETTIVO_SOLIDO_M] per forniture utili [IMPIEGO_PRATICO].
+[VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], per sottoporre alla Vostra libera valutazione la nostra gamma dedicata agli impianti elettrici e ai quadri.
 
-In [IDENTITA_IZZO] affianchiamo gli operatori qualificati di ambito {SECTOR_SHORT} [CONTESTO_ZONA] {CITY} mediante spedizioni dirette da [NOSTRO_DEPOSITO] ({RECOMMENDED_FAMILY}), con articoli [CONFORMITA_QUALITA]. Sulla prima fornitura 2gg risulta già operativa [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE]:
+Trattiamo regolarmente [DETTAGLIO_ELETTRICO_QUADRO], [EQUIVALENZA_TECNICA]. Solo per agevolarVi in una consultazione senza impegno, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-Per sottoporre eventuali distinte materiali a quotazione dedicata è sufficiente scrivere [COME_RISPONDERE].
+[ACCESSO_SENZA_IMPEGNO]. Sul primo ordine conoscitivo è inoltre disponibile [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE].
 
+[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T053',
-    name: 'Gamma Tecnica — Sistemi LED ad Alta Efficienza e Componentistica',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Fissaggio, Sigillanti, Utensileria e Consumabili',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Sistemi illuminotecnici ed elettrotecnica 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Elettrico, fissaggio e utensileria B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-a supporto delle forniture tecniche della Vostra organizzazione, [IDENTITA_IZZO] rende disponibile con evasione 24/48h un assortimento strutturato [DETTAGLIO_LUCE_LED], [EQUIVALENZA_TECNICA].
+nel presentarVi la nostra azienda desideriamo invitarVi a valutare [IDENTITA_IZZO] anche per tutti i materiali complementari che servono quotidianamente in cantiere, in officina o a banco vendita.
 
-Abbiamo formalizzato a nome di {COMPANY_NAME} [IL_CATALISTINO_PDF] già calcolato secondo la formula {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Accanto all’illuminazione e al materiale elettrico disponiamo infatti di [DETTAGLIO_BANCO_FERRAMENTA], [IMPIEGO_PRATICO]. Per Vostra comodità abbiamo predisposto gratuitamente delle credenziali provvisorie sul nostro portale B2B.
 
 {CREDENTIALS_BLOCK}
 
-Modalità di [DESTINAZIONE_FLESSIBILE] e standard di [CURA_IMBALLO] assicurano una gestione logistica puntuale.
+Potrete così visionare ogni articolo in piena autonomia e senza alcun costo, usufruendo dello sconto di benvenuto {DISCOUNT_FORMULA} qualora voleste effettuare una prima prova [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T054',
-    name: 'Gamma Tecnica — Sostenibilità Economica delle Forniture Dirette',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Un Unico Catalogo per Più Esigenze Merceologiche',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Efficienza costi d’acquisto per {COMPANY_NAME} — Listino 2gg {DISCOUNT_FORMULA}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Panoramica linee B2B',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-coniugare standard qualitativi certificati e contenimento dei costi d’acquisto richiede canali distributivi snelli. Operare direttamente con [IDENTITA_IZZO] [VANTAGGIO_DIRETTO] [CONSENTE_DI] ottimizzare sensibilmente il valore netto delle forniture.
+[ATTACCO_CANTIERE]. Per questo motivo ci permettiamo di presentarVi [IDENTITA_IZZO] invitandoVi a valutarci come possibile fornitore multiprodotto.
 
-Per il primo ordine di {COMPANY_NAME} [ABBIAMO_ATTIVATO] il parametro {DISCOUNT_FORMULA} in cascata [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
+Su [IL_PORTALE_B2B] riuniamo in un unico spazio [SETTORI_MERCEOLOGICI], [CERTEZZA_EVASIONE]. Per farVi esplorare comodamente l’intero assortimento senza moduli di iscrizione, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI].
 
 {CREDENTIALS_BLOCK}
 
-Tramite [IL_PORTALE_B2B] i Vostri referenti possono [FUNZIONI_PORTALE] in completa autonomia.
+[ACCESSO_SENZA_IMPEGNO]. In caso di un primo ordine di prova è già previsto lo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
 
-[PRE_SALUTO_FINALE]
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T055',
-    name: 'Gamma Tecnica — Presidio Continuativo sui Codici ad Alta Rotazione',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Soluzioni Affidabili per il Vostro Settore Operativo',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Reintegro rapido referenze tecniche 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    subjectTemplate: 'Linee B2B {SECTOR_SHORT} — Presentazione Izzo Distribuzione S.r.l. a {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-protezioni modulari, alimentatori, contenitori stagni, proiettori LED, componentistica di distribuzione e accessori tecnici costituiscono referenze essenziali la cui disponibilità non può subire interruzioni.
+[APERTURA_BREVE] per far conoscere a {COMPANY_NAME} le nostre linee dedicate [PER_IL_COMPARTO] {SECTOR_SHORT}, invitandoVi a valutarci con calma come fornitore.
 
-Con l’utenza B2B [IDENTITA_IZZO] già abilitata per {COMPANY_NAME}, l’approvvigionamento da [NOSTRO_DEPOSITO] avviene con parametro 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
+In particolare troverete disponibili {RECOMMENDED_FAMILY}, con articoli selezionati [CONFORMITA_QUALITA]. Qui di seguito lasciamo per Vostra comodità un accesso provvisorio gratuito al portale e al Catalistino PDF.
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO]. Per chiarimenti tecnici resta attivo il riferimento diretto ({AGENT_NAME}).
+[ACCESSO_SENZA_IMPEGNO]. Resta inoltre a Vostra disposizione lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T056',
-    name: 'Gamma Tecnica — Componentistica Elettrotecnica, Protezione e Illuminazione',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Articoli Certificati ad Alta Rotazione',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Disponibilità centrale 2gg ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    subjectTemplate: '[OGG_TIPO_DOC] | Qualità certificata e listini B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[VERBO_CONTATTARE] [IDENTITA_IZZO] per portare a conoscenza della Vostra struttura la disponibilità immediata sulle linee di protezione, distribuzione elettrica, comando e illuminazione professionale rivolte agli operatori del settore {SECTOR_SHORT}.
+quando si valuta un nuovo fornitore tecnico contano sia il prezzo sia l’affidabilità del materiale installato o rivenduto. Con questa premessa desideriamo presentarVi [IDENTITA_IZZO].
 
-All’interno di [IL_CATALISTINO_PDF] sono raccolte le principali referenze pronte in [NOSTRO_DEPOSITO], sulle quali {COMPANY_NAME} beneficia del parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Selezioniamo prodotti [ARTICOLI_ALTA_ROTAZIONE] [CONFORMITA_QUALITA], proponendoli [VANTAGGIO_DIRETTO]. Per consentirVi una verifica diretta e gratuita, [ABBIAMO_ATTIVATO] per Vostra comodità [LE_CREDENZIALI].
 
 {CREDENTIALS_BLOCK}
 
-Tutti i prodotti proposti risultano [CONFORMITA_QUALITA]. Restiamo a disposizione per schede tecniche e quotazioni dedicate.
+Potrete consultare schede tecniche e prezzi senza alcun vincolo e, se lo vorrete, provare il servizio con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
+[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T057',
-    name: 'Gamma Tecnica — Logistica Protetta e Consegna su Sede o Destinazione Operativa',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Dall’Illuminotecnica alla Domotica e Serie Civile',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Servizio di recapito diretto 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Catalogo elettrico, serie civile e LED B2B — Presentazione a {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-nella pianificazione logistica aziendale la possibilità di ricevere apparecchiature elettriche e corpi illuminanti in 24/48h direttamente presso l’indirizzo operativo prescelto riduce tempi e costi di movimentazione interna.
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per invitarVi a valutare senza impegno il nostro catalogo all’ingrosso dedicato agli operatori con Partita IVA.
 
-In [IDENTITA_IZZO] gestiamo regolarmente spedizioni [DESTINAZIONE_FLESSIBILE] assicurando [CURA_IMBALLO]. Per la prima fornitura di {COMPANY_NAME} [ABBIAMO_ATTIVATO] la condizione riservata {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+All’interno di [IL_PORTALE_B2B] spaziate comodamente tra [DETTAGLIO_ELETTRICO_QUADRO] e linee complete di illuminazione LED. Unicamente per Vostra comodità [ABBIAMO_PREPARATO] [LE_CREDENZIALI] pronte all’uso.
 
 {CREDENTIALS_BLOCK}
 
-[AIUTO_PRIMA_LISTA].
+[ACCESSO_SENZA_IMPEGNO]. In caso di interesse per una prima fornitura è attivo lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], con [CURA_IMBALLO].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T058',
-    name: 'Gamma Tecnica — Linee Professionali ad Elevata Competitività Economica',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Materiali Pronti a Magazzino per Lavorare Senza Attese',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_TIPO_DOC] per operatori professionali ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] — Assortimento disponibile per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-{BRANDS_NOTE}
+ci permettiamo di presentarVi [IDENTITA_IZZO] con l’invito a valutarci come fornitore per i materiali [IN_PRONTA_CONSEGNA] di uso più comune nel settore {SECTOR_SHORT}.
 
-Al fine di supportare con efficacia gli approvvigionamenti di {COMPANY_NAME}, in [IDENTITA_IZZO] [ABBIAMO_SELEZIONATO] linee professionali [RAPPORTO_QUALITA_PREZZO] tutte [IN_PRONTA_CONSEGNA], associando alla prima fornitura il trattamento {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
+Presso [NOSTRO_DEPOSITO] manteniamo disponibili le referenze di maggiore rotazione su [SETTORI_MERCEOLOGICI], [CERTEZZA_EVASIONE]. Per farVi controllare liberamente disponibilità e prezzi, lasciamo qui sotto delle credenziali provvisorie gratuite create per Vostra comodità.
 
 {CREDENTIALS_BLOCK}
 
-La consultazione di [IL_CATALISTINO_PDF] offre riscontro immediato sui valori netti riservati.
+Non c’è alcun costo né alcun obbligo; qualora decideste di testarci, potrete usufruire anche dello sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T059',
-    name: 'Gamma Tecnica — Unico Polo Distributivo per Più Famiglie Tecnologiche',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Equilibrio tra Prestazioni Tecniche e Convenienza',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Fornitura integrata elettrico, LED e dotazioni 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Proposta forniture tecniche B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-le aziende attive nel comparto {SECTOR_SHORT} necessitano quotidianamente di concentrare in forniture rapide e coordinate protezioni modulari, carpenterie stagne, alimentazione, illuminazione LED e accessori tecnici [DETTAGLIO_BANCO_FERRAMENTA].
+[ATTACCO_RIVENDITA]. È proprio su questo equilibrio che lavora [IDENTITA_IZZO], realtà B2B che ci fa piacere sottoporre alla Vostra valutazione come possibile fornitore.
 
-Presso [IDENTITA_IZZO] tali famiglie sono disponibili in un unico polo logistico 24/48h, con [LE_CREDENZIALI] già abilitate a nome di {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+[INVITO_MORBIDO_CATALISTINO]
 
 {CREDENTIALS_BLOCK}
 
-[DOPO_PRIMO_ORDINE]. Per richieste specifiche siamo contattabili [COME_RISPONDERE].
+{BRANDS_NOTE}
+
+[ACCESSO_SENZA_IMPEGNO]. Sul primo ordine conoscitivo è già riservato lo sconto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T060',
-    name: 'Gamma Tecnica — Continuità dalla Preventivazione all’Evasione Ordine',
-    angleGroup: 'Qualificazione_Gamma_Tecnica',
+    name: 'Gamma Tecnica — Esplorazione Libera delle Famiglie di Prodotto',
+    angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. | Listino riservato 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Elettrico, LED e Utensileria',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[APERTURA_BREVE] a nome di {AGENT_NAME} ([IDENTITA_IZZO]). Abbiamo predisposto per la Vostra organizzazione [IL_CATALISTINO_PDF] focalizzato su {RECOMMENDED_FAMILY}, con condizione riservata {DISCOUNT_FORMULA} operativa sul primo ordine [CLAUSOLA_SOLO_2GG].
+Vi scriviamo una breve presentazione di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) per invitarVi a scoprire il nostro assortimento professionale e valutarci liberamente tra i Vostri fornitori.
+
+Con le credenziali provvisorie gratuite predisposte qui sotto per Vostra comodità potrete [FUNZIONI_PORTALE], trovando già impostato anche lo sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo ordine [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Sia per forniture contenute [ZERO_MINIMO_ORDINE] sia per approvvigionamenti strutturati, confermiamo la nostra piena assistenza diretta.
+[ACCESSO_SENZA_IMPEGNO]. [QUOTAZIONI_SU_COMMESSA].
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 7 (T061 - T070): ACCREDITAMENTO ANAGRAFICA B2B & ROTAZIONE SCORTE (UNIVERSALE)
+  // GRUPPO 7 (T061 - T070): PRESENTAZIONE REFERENTE UMANO & CONTATTO DIRETTO
   // ==========================================================================
   {
     code: 'T061',
-    name: 'Accreditamento B2B — Ottimizzazione Rotazione e Marginalità d’Acquisto',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    name: 'Referente Diretto — Presentazione Personale con Credenziali di Cortesia',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accreditamento listino B2B {DISCOUNT_FORMULA} (Pronta Consegna 2gg) — {COMPANY_NAME}',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Presentazione {AGENT_NAME} — Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-[ATTACCO_RIVENDITA] [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per il settore [SETTORI_MERCEOLOGICI].
+sono {AGENT_NAME}, [TITOLO_REFERENTE] di [IDENTITA_IZZO], e mi permetto di scriverVi per presentare la nostra azienda e invitarVi a valutarci liberamente come fornitore B2B.
 
-Nelle organizzazioni B2B moderne risultano determinanti due fattori: **acquistare a condizioni nette competitive** e **riapprovvigionare in 24/48 ore evitando immobilizzi superflui**. A favore di {COMPANY_NAME} [ABBIAMO_ATTIVATO] il profilo aziendale con parametro riservato {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto da listino) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Credo molto nel rapporto diretto e trasparente: per non disturbarVi con telefonate improvvise e lasciarVi valutare con calma i nostri articoli e i nostri prezzi, ho preparato gratuitamente per Vostra comodità delle credenziali provvisorie di consultazione sul nostro portale e [IL_CATALISTINO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-All’interno di [IL_CATALISTINO_PDF] sono presenti referenze [DETTAGLIO_BANCO_FERRAMENTA] e [DETTAGLIO_LUCE_LED], acquistabili [ZERO_MINIMO_ORDINE].
+[ACCESSO_SENZA_IMPEGNO]. Se un giorno vorrete metterci alla prova, troverete già pronto anche lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE]. Per qualsiasi domanda rispondo personalmente ai recapiti qui sotto.
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T062',
-    name: 'Accreditamento B2B — Gestione Snella dello Stock Aziendale',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    name: 'Referente Diretto — Un Interlocutore Reale Accanto al Portale B2B',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Gestione snella approvvigionamenti 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Un riferimento B2B diretto [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-contenere l’immobilizzo di capitale in magazzino mantenendo intatta la rapidità operativa rappresenta una leva gestionale di primario interesse. Attraverso [NOSTRO_DEPOSITO] di [IDENTITA_IZZO], {COMPANY_NAME} può approvvigionare con [TEMPI_RESA] i materiali effettivamente richiesti, [VANTAGGIO_ZERO_SCORTE].
+in un mercato dove spesso ci si scontra con portali impersonali, in [IDENTITA_IZZO] ci teniamo a unire la praticità del catalogo online alla presenza costante di un referente reale. Con questo spirito Vi invitiamo a valutarci come fornitore per [SETTORI_MERCEOLOGICI].
 
-Per la prima fornitura conoscitiva [ABBIAMO_PREPARATO] [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE]:
+Per Vostra semplice comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI], così che possiate guardare prodotti e prezzi netti in autonomia, sapendo di poter contare sempre su {AGENT_NAME} ([CONTATTO_UMANO_VERO]).
 
 {CREDENTIALS_BLOCK}
 
-[DOPO_PRIMO_ORDINE]. Per richieste su confezionamenti multipli o lotti dedicati siamo a disposizione [COME_RISPONDERE].
+[ACCESSO_SENZA_IMPEGNO]. Sul Vostro eventuale primo ordine è già previsto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T063',
-    name: 'Accreditamento B2B — Referenze ad Elevata Movimentazione Giornaliera',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    name: 'Referente Diretto — Disponibilità per Preventivi Veloci via Email o WhatsApp',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Contatto diretto e catalogo gratuito',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-sorgenti e corpi illuminanti LED, proiettori professionali, protezioni modulari, quadri, multiprese e componentistica elettrica costituiscono articoli di impiego costante in ogni realtà operativa del settore {SECTOR_SHORT}.
+mi presento volentieri alla Vostra struttura: sono {AGENT_NAME} di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) e Vi scrivo per sottoporre la nostra realtà alla Vostra valutazione come fornitore.
 
-All’interno di [IL_CATALISTINO_PDF] predisposto da [IDENTITA_IZZO] per {COMPANY_NAME}, tali referenze [ARTICOLI_ALTA_ROTAZIONE] sono già valorizzate col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG].
+Per farVi verificare subito i nostri prezzi senza attese, ho predisposto gratuitamente per Vostra comodità un accesso provvisorio a [IL_PORTALE_B2B] con lo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) già visibile in anteprima.
 
 {CREDENTIALS_BLOCK}
 
-Standard [CONFORMITA_QUALITA] e quotazioni nette chiare sostengono l’efficienza di ogni ordine.
+[AIUTO_PRIMA_LISTA]. Le credenziali provvisorie sono del tutto gratuite e non comportano alcun impegno.
 
-[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T064',
-    name: 'Accreditamento B2B — Posizione Profilata e Spedizione Celere',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    name: 'Referente Diretto — Nessuna Insistenza Commerciale, Massima Disponibilità',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Posizione commerciale B2B {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: 'Nota conoscitiva da {AGENT_NAME} (Izzo Distribuzione S.r.l.) per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-a nome di [IDENTITA_IZZO] ({AGENT_NAME}), comunichiamo di aver configurato per {COMPANY_NAME}{CITY_PAREN} una posizione B2B dedicata che coniuga ampiezza di gamma su {RECOMMENDED_FAMILY} ed evasione rapida in 24/48 ore lavorative.
+rispettiamo molto il lavoro quotidiano delle aziende e non amiamo le insistenze pubblicitarie: per questo Vi inviamo semplicemente un invito cortese a valutare [IDENTITA_IZZO] come possibile fornitore nel settore {SECTOR_SHORT}.
 
-Sulla prima fornitura l’anagrafica beneficia del parametro {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto) sull’intero assortimento 2gg [ZERO_MINIMO_ORDINE]:
+Qui sotto trovate delle credenziali provvisorie gratuite create solo per Vostra comodità e il link a [IL_CATALISTINO_PDF], oltre ai miei recapiti diretti qualora un giorno aveste bisogno di un confronto prezzi o di una fornitura.
 
 {CREDENTIALS_BLOCK}
 
-La documentazione in [IL_CATALISTINO_PDF] resta a disposizione dei Vostri referenti interni per ogni valutazione.
+[ACCESSO_SENZA_IMPEGNO]. Per un eventuale primo ordine di prova resta a disposizione lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T065',
-    name: 'Accreditamento B2B — Verifica Qualitativa Senza Vincoli Quantitativi',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Abilitazione listino B2B senza minimo d’ordine ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-spesso i canali all’ingrosso subordinano l’applicazione delle migliori condizioni al superamento di soglie minime elevate. Per consentire una verifica diretta della qualità dei prodotti e dell’efficienza logistica, presso [IDENTITA_IZZO] l’anagrafica di {COMPANY_NAME} dispone già del parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE].
-
-{CREDENTIALS_BLOCK}
-
-Anche un primo approvvigionamento mirato viene evaso in 24/48h con [CURA_IMBALLO].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T066',
-    name: 'Accreditamento B2B — Continuità di Approvvigionamento sul Comparto Elettrico e LED',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Canale distributivo 2gg ({DISCOUNT_FORMULA}) abilitato per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-affiancare alla propria organizzazione un partner distributivo B2B in grado di spedire in 24/48 ore consente di rispondere con tempestività a qualsiasi richiesta tecnica o commessa urgente.
-
-Attraverso [IL_PORTALE_B2B], i referenti di {COMPANY_NAME} visualizzano in tempo reale disponibilità 2gg e quotazione netta riservata ({DISCOUNT_FORMULA} sulla prima fornitura):
-
-{CREDENTIALS_BLOCK}
-
-[QUOTAZIONI_SU_COMMESSA]. [FRASE_DISPONIBILITA] ({AGENT_NAME}).
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T067',
-    name: 'Accreditamento B2B — Parametro Netto Effettivo di Fascia Primaria',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
+    name: 'Referente Diretto — Assistenza Dedicata su Liste Materiali e Commesse',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Quotazione netta riservata ({NET_DISCOUNT_PCT}% da listino su 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-operare con una condizione {DISCOUNT_FORMULA} in cascata determina sulla prima fornitura uno sconto netto effettivo pari al **{NET_DISCOUNT_PCT}% rispetto al listino ufficiale** [CLAUSOLA_SOLO_2GG].
-
-È il parametro istituzionale di benvenuto che [IDENTITA_IZZO] ha deliberato a favore di {COMPANY_NAME} per avviare un rapporto di fornitura trasparente e continuativo:
-
-{CREDENTIALS_BLOCK}
-
-[INVITO_CLIC_PDF] [PUO_VISIONARE] analiticamente le quotazioni nette per singola referenza.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T068',
-    name: 'Accreditamento B2B — Conferma Ufficiale di Abilitazione Anagrafica',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Conferma abilitazione anagrafica B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Presentazione fornitore e supporto preventivi B2B — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-confermiamo la regolare abilitazione della posizione anagrafica B2B intestata a {COMPANY_NAME} sulla piattaforma di [IDENTITA_IZZO].
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per presentarVi il nostro servizio di fornitura B2B su [SETTORI_MERCEOLOGICI] e invitarVi a valutarci tra i Vostri fornitori.
 
-Il profilo comprende i seguenti parametri operativi:
-• Sconto B2B di categoria {BASE_DISCOUNT}% + agevolazione {EXTRA_DISCOUNT}% in cascata [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG];
-• [IL_CATALISTINO_PDF] già valorizzato coi prezzi netti dedicati;
-• [TEMPI_RESA] e referente commerciale assegnato ({AGENT_NAME}).
+Oltre a lasciarVi gratuitamente per Vostra comodità [LE_CREDENZIALI] per consultare i prezzi netti online, il nostro referente {AGENT_NAME} è a Vostra disposizione per affiancarVi su richieste specifiche: [QUOTAZIONI_SU_COMMESSA].
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T069',
-    name: 'Accreditamento B2B — Regolarità di Rifornimento da Deposito Centrale',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Approvvigionamenti rapidi 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-garantire continuità di disponibilità sui materiali più richiesti senza appesantire i costi fissi di stoccaggio richiede un polo distributivo puntuale. In [IDENTITA_IZZO] manteniamo scorte strutturate presso [NOSTRO_DEPOSITO] [RICAMBIO_COSTANTE] per servire le aziende accreditate in 24/48 ore.
-
-Riportiamo di seguito [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] predisposti per {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} attivo sul primo ordine 2gg:
-
-{CREDENTIALS_BLOCK}
-
-[AIUTO_PRIMA_LISTA].
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T070',
-    name: 'Accreditamento B2B — Comunicazione di Servizio per la Direzione',
-    angleGroup: 'Accreditamento_Anagrafica_B2B',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. — Prospetto B2B 2gg ({DISCOUNT_FORMULA}) per {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-[APERTURA_BREVE] da [IDENTITA_IZZO]: abbiamo emesso a favore della Vostra società [IL_CATALISTINO_PDF] con condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], [ZERO_MINIMO_ORDINE].
-
-{CREDENTIALS_BLOCK}
-
-Per ogni esigenza informativa o commerciale rimane a disposizione il referente assegnato ({AGENT_NAME}).
-
-[SALUTO_CHIUSURA]`,
-  },
-
-  // ==========================================================================
-  // GRUPPO 8 (T071 - T080): AFFIANCAMENTO FORNITORI & CANALE B2B PARALLELO
-  // ==========================================================================
-  {
-    code: 'T071',
-    name: 'Canale Complementare — Affiancamento Rispettoso ai Fornitori Storici',
-    angleGroup: 'Canale_Fornitura_Complementare',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Accreditamento secondo canale B2B ({DISCOUNT_FORMULA} su 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-siamo consapevoli che una realtà strutturata come la Vostra dispone già di fornitori consolidati, e la presente comunicazione non intende in alcun modo interferire con gli equilibri esistenti.
-
-L’intento di [IDENTITA_IZZO] è mettere formalmente a Vostra disposizione un canale distributivo B2B già accreditato [RUOLO_SECONDO_CANALE]. Per renderne immediatamente apprezzabile l’utilizzo, [ABBIAMO_ATTIVATO] sulla prima fornitura di {COMPANY_NAME} il parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
-
-{CREDENTIALS_BLOCK}
-
-I riferimenti restano attivi a disposizione del Vostro Ufficio Acquisti per ogni futura verifica comparativa o esigenza 24/48h.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T072',
-    name: 'Canale Complementare — Continuità di Approvvigionamento Senza Burocrazia',
-    angleGroup: 'Canale_Fornitura_Complementare',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Canale di fornitura complementare 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-nella gestione professionale degli acquisti disporre di un ulteriore fornitore già codificato e con condizioni chiare tutela l’azienda qualora sui canali abituali si registrino allungamenti dei tempi di consegna o rigidità di listino.
-
-Presso [IDENTITA_IZZO] l’iter amministrativo per {COMPANY_NAME} è già stato perfezionato: [LE_CREDENZIALI] sono attive, [IL_CATALISTINO_PDF] è consultabile e il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] è operativo [ZERO_MINIMO_ORDINE].
-
-{CREDENTIALS_BLOCK}
-
-Il tutto [INCISO_SENZA_VINCOLO] e [DOPO_PRIMO_ORDINE].
-
-[FRASE_DISPONIBILITA] ({AGENT_NAME}).
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T073',
-    name: 'Canale Complementare — Valutazione Comparativa Trasparente',
-    angleGroup: 'Canale_Fornitura_Complementare',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Prospetto comparativo listino 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-esaminare un secondo listino B2B accreditato rappresenta una buona prassi gestionale che richiede pochi minuti e consente spesso di individuare interessanti margini di ottimizzazione sui costi d’acquisto.
-
-A tal fine, da [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [IL_CATALISTINO_PDF] relativo a {RECOMMENDED_FAMILY} con parametro 1ª fornitura {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG] riservato a {COMPANY_NAME}:
-
-{CREDENTIALS_BLOCK}
-
-[ACCESSO_SENZA_IMPEGNO], con piena operatività di spedizione in 24/48 ore lavorative.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T074',
-    name: 'Canale Complementare — Zero Obblighi Contrattuali o Volumi Minimi Annui',
-    angleGroup: 'Canale_Fornitura_Complementare',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Posizione B2B esente da vincoli ({DISCOUNT_FORMULA} 1ª fornitura) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
-
-numerosi operatori professionali scelgono di mantenere attiva una posizione presso [IDENTITA_IZZO] per la linearità delle condizioni applicate: nessun obbligo di volume annuo, zero oneri di tenuta conto, [ZERO_MINIMO_ORDINE] e [STOCK_REALE] evadibile in 24/48h.
-
-Abbiamo formalizzato tale configurazione a nome di {COMPANY_NAME}{CITY_PAREN} comprensiva dell’agevolazione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
-
-{CREDENTIALS_BLOCK}
-
-{BRANDS_NOTE}
+L’accesso provvisorio è puramente conoscitivo e senza impegno, e include già l’agevolazione di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
-    code: 'T075',
-    name: 'Canale Complementare — Approccio Discreto e Istituzionale',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    code: 'T066',
+    name: 'Referente Diretto — Un Contatto Semplice tra Aziende',
+    angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti di accesso magazzino B2B 24/48h — {COMPANY_NAME}{CITY_PAREN}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    subjectTemplate: 'Piacere di presentarci a {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-trasmettiamo con la massima discrezione da parte di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI]) le credenziali di accesso al nostro polo logistico 2gg, affinché siano già disponibili presso i Vostri uffici in caso di necessità.
+Vi scrivo con piacere a nome di [IDENTITA_IZZO]: non ci conosciamo ancora e il senso di questa email è semplicemente presentarci con discrezione, invitandoVi a valutarci come fornitore quando potrà farVi comodo.
 
-Al primo utilizzo {COMPANY_NAME} usufruirà automaticamente della condizione {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+Per permetterVi di vedere subito chi siamo, cosa trattiamo e con quali prezzi lavoriamo, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e preparato [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-Nel rispetto della Vostra operatività non seguiranno solleciti telefonici: il referente assegnato ({AGENT_NAME}) rimane a disposizione qualora desideraste approfondire.
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete provarci con un primo ordine anche piccolo, troverete attivo lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T067',
+    name: 'Referente Diretto — Chiarezza nelle Risposte e Cura del Cliente',
+    angleGroup: 'Presentazione_Referente',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_TIPO_DOC] — Izzo Distribuzione S.r.l. al servizio di {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+in [IDENTITA_IZZO] lavoriamo ogni giorno per [SUPPORTARE_LAVORO] {COMPANY_NAME} e delle realtà professionali che cercano un fornitore [AGGETTIVO_SOLIDO_M] su [SETTORI_MERCEOLOGICI].
+
+Vi invitiamo volentieri a valutarci partendo da una libera consultazione del nostro catalogo: a questo scopo [ABBIAMO_PREPARATO] [LE_CREDENZIALI], totalmente gratuite e senza alcun vincolo, accompagnate dal supporto diretto di {AGENT_NAME}.
+
+{CREDENTIALS_BLOCK}
+
+Qualora decideste di testare il nostro servizio, sul primo acquisto è previsto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA], [ZERO_MINIMO_ORDINE] e con [FLUSSO_RAPIDO].
+
+[PROMESSA_FIDUCIA]
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T068',
+    name: 'Referente Diretto — Invito a Salvare i Nostri Recapiti Aziendali',
+    angleGroup: 'Presentazione_Referente',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: 'Recapiti commerciali e catalogo B2B gratuito [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[APERTURA_BREVE] affinché possiate, se lo riterrete utile, conservare i riferimenti di [IDENTITA_IZZO] tra i fornitori da interpellare per le linee {RECOMMENDED_FAMILY}.
+
+Per Vostra comodità abbiamo incluso qui sotto sia un accesso ospite gratuito al nostro portale B2B (con sconto di benvenuto {DISCOUNT_FORMULA} sul primo ordine), sia tutti i nostri recapiti diretti e riferimenti societari completi in calce.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Restiamo a disposizione [PER_OGNI_ESIGENZA], [OPZIONE_TELEFONATA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T069',
+    name: 'Referente Diretto — Dal Primo Sguardo al Catalogo al Supporto Quotidiano',
+    angleGroup: 'Presentazione_Referente',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] — Un saluto a {COMPANY_NAME} da Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+ci presentiamo a {COMPANY_NAME} con la massima semplicità: siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], e saremmo lieti di essere valutati come Vostro possibile fornitore B2B.
+
+Per renderVi immediata la consultazione dei prezzi riservati alle Partite IVA, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD], affiancate dalla disponibilità diretta del nostro ufficio commerciale ([CONTATTO_UMANO_VERO]).
+
+{CREDENTIALS_BLOCK}
+
+Nessun costo e nessun impegno: solo la comodità di verificare quando vorrete il nostro catalogo e lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T070',
+    name: 'Referente Diretto — Lettera Aperta di Presentazione Commerciale',
+    angleGroup: 'Presentazione_Referente',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Invito a valutare Izzo Distribuzione S.r.l. come fornitore — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+mi chiamo {AGENT_NAME} e seguo i rapporti con le aziende per [IDENTITA_IZZO]. Vi scrivo perché ci farebbe davvero piacere far conoscere il nostro catalogo alla Vostra realtà e invitarVi a valutarci come fornitore per [SETTORI_MERCEOLOGICI].
+
+Per agevolarVi senza chiederVi alcuna registrazione, ho lasciato attive gratuitamente delle credenziali provvisorie di consultazione e un estratto PDF illustrato con lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Se avrete piacere di scriverci anche solo per un confronto prezzi, sarò lieto di risponderVi personalmente.
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+
+  // ==========================================================================
+  // GRUPPO 8 (T071 - T080): FORNITORE ALTERNATIVO DA AFFIANCARE CON LIBERTÀ
+  // ==========================================================================
+  {
+    code: 'T071',
+    name: 'Fornitore Alternativo — Un Canale B2B in Più Accanto ai Fornitori Abituali',
+    angleGroup: 'Fornitore_Alternativo',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Un fornitore B2B in più da valutare senza impegno — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[ATTACCO_UFFICIO_ACQUISTI]. Proprio con questo spirito ci permettiamo di presentarVi [IDENTITA_IZZO], invitandoVi a valutarci [RUOLO_SECONDO_CANALE].
+
+Non chiediamo di cambiare le Vostre abitudini, ma semplicemente di dare uno sguardo quando Vi è comodo al nostro catalogo di [SETTORI_MERCEOLOGICI]: per questo [ABBIAMO_ATTIVATO] gratuitamente per Vostra comodità [LE_CREDENZIALI].
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Qualora su qualche articolo ci trovaste convenienti e voleste fare una prova, è già pronto lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T072',
+    name: 'Fornitore Alternativo — Utile per Confronti Rapidi e Fabbisogni Mirati',
+    angleGroup: 'Fornitore_Alternativo',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Un’alternativa B2B comoda e trasparente',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+
+[ATTACCO_CANTIERE]. Con questa email desideriamo presentarVi [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) e invitarVi a valutarci come fornitore complementare per la Vostra attività.
+
+Per offrirVi uno strumento pronto all’uso [QUANDO_SERVE_SUBITO], [ABBIAMO_PREPARATO] [LE_CREDENZIALI] su [IL_PORTALE_B2B] e [IL_CATALISTINO_PDF].
+
+{CREDENTIALS_BLOCK}
+
+La consultazione è gratuita e totalmente libera da impegni; in più, per un eventuale primo acquisto conoscitivo è previsto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE], [VANTAGGIO_ZERO_SCORTE].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T073',
+    name: 'Fornitore Alternativo — Libertà di Sceglierci Solo Quando Conviene',
+    angleGroup: 'Fornitore_Alternativo',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Invito a valutarci tra i fornitori di {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
+
+sappiamo bene che ogni azienda strutturata collabora già con propri fornitori di fiducia. Il motivo per cui Vi scriviamo da [IDENTITA_IZZO] è semplicemente proporci come un’ulteriore opzione seria e trasparente da consultare in totale libertà.
+
+Solo per Vostra comodità [ABBIAMO_ATTIVATO] un accesso provvisorio gratuito al nostro portale B2B, così possiate verificare in qualsiasi momento se su {RECOMMENDED_FAMILY} possiamo offrirVi un vantaggio concreto.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Sul primo ordine di prova troverete attivo lo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE], [DOPO_PRIMO_ORDINE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T074',
+    name: 'Fornitore Alternativo — Flessibilità sugli Ordini Piccoli e Medi',
+    angleGroup: 'Fornitore_Alternativo',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_RAPIDITA] — Un riferimento B2B flessibile per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+[APERTURA_BREVE] per sottoporre [IDENTITA_IZZO] alla Vostra valutazione come fornitore agile, pensato per [EVITARE_DISAGI].
+
+Che si tratti di integrare pochi pezzi o di quotare una fornitura più ampia, lavoriamo [ZERO_MINIMO_ORDINE] e con [DESTINAZIONE_FLESSIBILE]. Qui sotto trovate delle credenziali provvisorie gratuite create unicamente per farVi consultare comodamente catalogo e listini.
+
+{CREDENTIALS_BLOCK}
+
+[ACCESSO_SENZA_IMPEGNO]. Per il primo ordine conoscitivo è inoltre disponibile lo sconto {DISCOUNT_FORMULA} [AMBITO_DISPONIBILITA].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T075',
+    name: 'Fornitore Alternativo — Un Secondo Riscontro Sempre Accessibile H24',
+    angleGroup: 'Fornitore_Alternativo',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Catalogo B2B consultabile liberamente [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+poter controllare a qualsiasi ora disponibilità e prezzo netto su un secondo portale B2B è spesso un aiuto prezioso nella preparazione dei preventivi. Per questo Vi invitiamo a conoscere [IDENTITA_IZZO] e a valutarci come fornitore.
+
+Per evitarVi procedure di iscrizione, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] [NOTA_CAMBIO_PASSWORD], insieme a [IL_CATALISTINO_PDF].
+
+{CREDENTIALS_BLOCK}
+
+L’accesso è gratuito e senza alcun vincolo commerciale; qualora decideste di effettuare una prima fornitura di prova, potrete beneficiare dello sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T076',
-    name: 'Canale Complementare — Supporto sulle Carenze Temporanee di Mercato',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    name: 'Fornitore Alternativo — Valutazione Graduale Senza Alcuna Fretta',
+    angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Disponibilità immediata 2gg ({DISCOUNT_FORMULA}) a supporto di {COMPANY_NAME}',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-anche nelle catene di fornitura più efficienti possono verificarsi temporanee indisponibilità su specifici codici tecnici. In tali circostanze [NOSTRO_DEPOSITO] di [IDENTITA_IZZO] costituisce un concreto supporto operativo per {COMPANY_NAME}.
+[VERBO_CONTATTARE] [IDENTITA_IZZO] con l’auspicio di farci conoscere da {COMPANY_NAME} [RUOLO_SECONDO_CANALE] nel comparto {SECTOR_SHORT}.
 
-Tramite l’utenza che [ABBIAMO_ATTIVATO] qui di seguito è possibile verificare in tempo reale i quantitativi pronti 2gg e perfezionare l’ordine col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO]:
+Crediamo nelle collaborazioni che nascono con gradualità e fiducia: per questo non Vi chiediamo alcun impegno, ma lasciamo semplicemente a Vostra disposizione [LE_CREDENZIALI] per dare uno sguardo gratuito ai nostri prodotti quando avrete tempo.
 
 {CREDENTIALS_BLOCK}
 
-Garantiamo [TEMPI_RESA] [COPERTURA_ITALIA].
+[ACCESSO_SENZA_IMPEGNO]. A titolo di benvenuto resta predisposto lo sconto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
 
-[FRASE_DISPONIBILITA] [COME_RISPONDERE].
+[PROMESSA_FIDUCIA]
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T077',
-    name: 'Canale Complementare — Verifica Operativa su una Singola Fornitura',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    name: 'Fornitore Alternativo — Risparmio di Tempo nelle Verifiche Quotidiane',
+    angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accreditamento fornitura di verifica 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] — Uno strumento gratuito di confronto prezzi per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-la valutazione più attendibile di un distributore B2B scaturisce sempre dal riscontro diretto su una prima fornitura concreta, anche di entità contenuta, verificando precisione documentale, integrità dei colli e rispetto delle tempistiche.
+nel lavoro d’ufficio e di cantiere poter verificare in un attimo se un materiale è disponibile e quanto costa al netto permette di [EVITARE_DISAGI]. Con questa idea Vi presentiamo [IDENTITA_IZZO] e Vi invitiamo a valutarci come fornitore.
 
-Proprio per agevolare tale verifica, [IDENTITA_IZZO] ha associato a {COMPANY_NAME} la condizione {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE] unitamente a [IL_CATALISTINO_PDF]:
+[INVITO_MORBIDO_CATALISTINO]
 
 {CREDENTIALS_BLOCK}
 
-[PROMESSA_FIDUCIA]
+[ACCESSO_SENZA_IMPEGNO]. Oltre alla consultazione libera di [SETTORI_MERCEOLOGICI], per un eventuale primo ordine è già attivo [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[AIUTO_PRIMA_LISTA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T078',
-    name: 'Canale Complementare — Diversificazione Qualificata delle Fonti d’Acquisto',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    name: 'Fornitore Alternativo — Affiancamento su Elettrico, Illuminazione e Minuteria',
+    angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Diversificazione fornitori B2B {SECTOR_SHORT} ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Presentazione B2B Izzo Distribuzione S.r.l. — Invito libero per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-affiancare più fonti qualificate di approvvigionamento sulle referenze [ARTICOLI_ALTA_ROTAZIONE] consente alle aziende strutturate di migliorare i parametri medi d’acquisto e garantire continuità esecutiva.
+ci fa piacere presentarVi [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], invitandoVi a valutare il nostro catalogo come risorsa aggiuntiva per gli acquisti di {COMPANY_NAME}.
 
-In quest’ottica [IDENTITA_IZZO] [METTIAMO_A_DISPOSIZIONE] [CANALE_RISERVATO] intestato a {COMPANY_NAME} con quotazione 1ª fornitura {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG]:
+Trattando sia materiale elettrico e illuminazione LED sia fissaggio e utensileria, spesso riusciamo a essere un valido appoggio sulle forniture correnti [IMPIEGO_PRATICO]. Per Vostra comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI], gratuite e senza alcun impegno.
 
 {CREDENTIALS_BLOCK}
 
-[AIUTO_PRIMA_LISTA].
+Se un giorno vorrete provarci, troverete già pronto lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE] con [TEMPI_RESA].
+
+[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T079',
-    name: 'Canale Complementare — Comunicazione da Archiviare per l’Ufficio Acquisti',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    name: 'Fornitore Alternativo — Serietà Commerciale Come Unico Biglietto da Visita',
+    angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Riferimenti B2B da archiviare per l’Ufficio Acquisti di {COMPANY_NAME} ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Invito a conoscere Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-qualora nell’immediato non aveste approvvigionamenti in programma, suggeriamo di conservare la presente nota o inoltrarla al referente acquisti di {COMPANY_NAME}: riporta [LE_CREDENZIALI] già abilitate presso [IDENTITA_IZZO] e l’accesso a [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+quando ci si propone a un’azienda che non ci conosce ancora, contano solo i fatti: [VALORE_PUNTUALITA]. È su queste basi che Vi invitiamo a valutare [IDENTITA_IZZO] tra i Vostri fornitori B2B.
+
+Per consentirVi di verificare direttamente il nostro modo di lavorare, [METTIAMO_A_DISPOSIZIONE] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], senza alcun costo né vincolo.
 
 {CREDENTIALS_BLOCK}
 
-Alla prima esigenza di materiale elettrico, illuminazione LED o forniture tecniche in 24/48 ore disporrete già di una posizione immediatamente operativa.
+In caso di una prima fornitura conoscitiva potrete inoltre contare sullo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T080',
-    name: 'Canale Complementare — Collaborazione Flessibile Orientata al Servizio',
-    angleGroup: 'Canale_Fornitura_Complementare',
+    name: 'Fornitore Alternativo — Un Invito Aperto per Ogni Esigenza Futura',
+    angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Rapporto di fornitura B2B flessibile ({DISCOUNT_FORMULA} su 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: '[OGG_FORMULA_PROMO] — Presentazione Izzo Distribuzione S.r.l. a {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] operiamo per offrire alle aziende del territorio una soluzione distributiva [AGGETTIVO_VELOCE_F], trasparente e competitiva sulle linee {RECOMMENDED_FAMILY}.
+[APERTURA_BREVE]: con [IDENTITA_IZZO] operiamo [COPERTURA_ITALIA] al servizio delle Partite IVA e desideriamo invitarVi a valutarci liberamente come fornitore alternativo.
 
-Abbiamo pertanto predisposto per {COMPANY_NAME} sia la documentazione PDF di consultazione immediata sia l’utenza B2B con condizione riservata {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Per Vostra esclusiva comodità lasciamo qui sotto delle credenziali temporanee gratuite per visitare [IL_PORTALE_B2B] quando preferite, con lo sconto di benvenuto {DISCOUNT_FORMULA} già predisposto per un eventuale primo ordine [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
+[ACCESSO_SENZA_IMPEGNO]. [QUOTAZIONI_SU_COMMESSA].
+
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 9 (T081 - T090): COMUNICAZIONE ESECUTIVA SINTETICA ALLA DIREZIONE
+  // GRUPPO 9 (T081 - T090): NOTA CONOSCITIVA BREVE & ESSENZIALE
   // ==========================================================================
   {
     code: 'T081',
-    name: 'Nota Esecutiva — Prospetto Essenziale di Abilitazione',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Presentazione Essenziale in Tre Punti Chiari',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Izzo Distribuzione S.r.l. | Abilitazione B2B {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Breve presentazione fornitore B2B [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-trasmettiamo in forma sintetica da parte di [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]) i riferimenti della posizione B2B attivata a nome della Vostra società:
+Vi rubiamo meno di un minuto per presentarVi [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) e invitarVi a valutarci come possibile fornitore su [SETTORI_MERCEOLOGICI].
+
+Solo per Vostra comodità, gratuitamente e senza alcun impegno, [ABBIAMO_ATTIVATO] un accesso provvisorio al nostro catalogo B2B e un estratto PDF con lo sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo ordine [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Condizioni operative: [ZERO_MINIMO_ORDINE], disponibilità reale 24/48h e referente commerciale assegnato ({AGENT_NAME}).
+[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T082',
-    name: 'Nota Esecutiva — Trasmissione Parametri Prima Fornitura 2gg',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Biglietto da Visita Digitale con Accesso Gratuito',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: '[OGG_TIPO_DOC] ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Biglietto da visita B2B per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-comunichiamo in estrema sintesi i parametri riservati che [IDENTITA_IZZO] ha associato alla Vostra ragione sociale per la prima fornitura [CLAUSOLA_SOLO_2GG] ({NET_DISCOUNT_PCT}% di sconto netto effettivo da listino):
+considerate pure questa breve email come un semplice biglietto da visita di [IDENTITA_IZZO], con l’invito a valutarci liberamente come fornitore B2B quando ne avrete occasione.
+
+Per permetterVi di dare uno sguardo immediato ai nostri articoli e prezzi netti senza registrazioni, lasciamo a Vostra disposizione delle credenziali provvisorie totalmente gratuite e non vincolanti.
 
 {CREDENTIALS_BLOCK}
 
-Il prospetto PDF è immediatamente consultabile dal collegamento dedicato. Per qualsiasi chiarimento è attivo il riscontro diretto a questa email.
+Qualora voleste un giorno provare il servizio, sul primo ordine è attivo lo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T083',
-    name: 'Nota Esecutiva — Comunicazione Rapida alla Direzione Operativa',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Invito Sintetico per l’Ufficio Acquisti',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Credenziali B2B e listino 24/48h ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-per agevolare una lettura immediata anche in mobilità, riepilogo a nome di [IDENTITA_IZZO] ({AGENT_NAME}) l’abilitazione predisposta per {COMPANY_NAME} sul listino Pronta Consegna 2gg col parametro {DISCOUNT_FORMULA} sulla prima fornitura [ZERO_MINIMO_ORDINE]:
+[VERBO_CONTATTARE] [IDENTITA_IZZO] per farci conoscere dalla Vostra struttura e invitarVi a valutare senza impegno il nostro listino riservato alle aziende del comparto {SECTOR_SHORT}.
 
-{CREDENTIALS_BLOCK}
-
-L’utenza e il prospetto PDF restano stabilmente attivi a disposizione della Vostra struttura.
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T084',
-    name: 'Nota Esecutiva — Notifica Ufficiale di Attivazione Utenza',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Attivazione utenza B2B {COMPANY_NAME} — Parametro {DISCOUNT_FORMULA} (Linea 2gg)',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
-
-informiamo che presso [IDENTITA_IZZO] risulta attiva da data odierna l’utenza B2B riservata a {COMPANY_NAME} ({SECTOR_SHORT}), configurata con condizione {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] e [TEMPI_RESA]:
+Qui sotto riportiamo per Vostra comodità le credenziali provvisorie gratuite di consultazione su [IL_PORTALE_B2B] e il link al Catalistino PDF, dove è già prevista l’agevolazione di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
 
 {CREDENTIALS_BLOCK}
 
 [ACCESSO_SENZA_IMPEGNO].
+
+[PRE_SALUTO_FINALE]
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T084',
+    name: 'Nota Breve — Chiarezza Immediata su Chi Siamo e Cosa Offriamo',
+    angleGroup: 'Nota_Conoscitiva_Breve',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Presentazione Izzo Distribuzione S.r.l. e catalogo B2B gratuito per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+
+[CONNETTIVO_SINTESI] Vi scriviamo da [IDENTITA_IZZO] per presentarci come distributore B2B di [SETTORI_MERCEOLOGICI] e invitarVi a valutarci tra i Vostri fornitori.
+
+Per farVi consultare comodamente i prezzi netti riservati alle Partite IVA abbiamo creato un accesso ospite gratuito e senza alcun vincolo, accompagnato da [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} qualora voleste effettuare una prima prova [ZERO_MINIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+Restiamo volentieri a disposizione ai recapiti in calce [PER_OGNI_ESIGENZA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T085',
-    name: 'Nota Esecutiva — Quadro Unificato Documentazione PDF e Accesso Portale',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Un Minuto per Verificare la Nostra Convenienza',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Documentazione PDF e accesso B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] — {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-abbiamo riunito nel prospetto sottostante sia [IL_CATALISTINO_PDF] sia [LE_CREDENZIALI] emesse da [IDENTITA_IZZO] a favore di {COMPANY_NAME}, con parametro riservato {DISCOUNT_FORMULA} già calcolato sulla linea Pronta Consegna 2gg:
+non conoscendoci ancora, abbiamo voluto presentarVi [IDENTITA_IZZO] nel modo più semplice e rispettoso del Vostro tempo: un invito libero a valutarci come fornitore attraverso i nostri prodotti e i nostri prezzi reali.
+
+[INVITO_MORBIDO_CATALISTINO]
 
 {CREDENTIALS_BLOCK}
 
-Il referente assegnato ({AGENT_NAME}) resta a diretta disposizione per ogni approfondimento.
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete metterci alla prova su un primo ordine, troverete già applicabile lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T086',
-    name: 'Nota Esecutiva — Riepilogo Puntuale Condizioni Abilitate',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Riferimenti Diretti e Portale Ospite Gratuito',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Riepilogo condizioni B2B attivate per {COMPANY_NAME} ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    subjectTemplate: '[OGG_RAPIDITA] — Contatto conoscitivo B2B per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-nell’accreditare il servizio distributivo di [IDENTITA_IZZO], confermiamo i parametri abilitati a favore di {COMPANY_NAME}:
-• **Parametro {DISCOUNT_FORMULA} in cascata** sulla prima fornitura [CLAUSOLA_SOLO_2GG];
-• **Assenza di minimo d’ordine** ed evasione rapida in 24/48h;
-• **Documentazione PDF riservata** immediatamente consultabile.
+[APERTURA_BREVE]: con [IDENTITA_IZZO] forniamo all’ingrosso {RECOMMENDED_FAMILY} [COPERTURA_ITALIA] e ci farebbe piacere essere valutati dalla Vostra azienda come fornitore.
+
+Le credenziali provvisorie nel riquadro seguente sono state predisposte gratuitamente solo per Vostra comodità di consultazione, senza alcun costo né contratto, e includono lo sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo acquisto.
 
 {CREDENTIALS_BLOCK}
+
+[AIUTO_PRIMA_LISTA].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T087',
-    name: 'Nota Esecutiva — Trasmissione Formale Ufficio Commerciale',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Presentazione Sobria Senza Formalità',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Rif. anagrafica {COMPANY_NAME}{CITY_PAREN} — Listino 2gg ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: 'Invito a consultare il catalogo B2B Izzo Distribuzione S.r.l. — {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-tramite il collegamento riportato nel riquadro seguente trasmettiamo [IL_CATALISTINO_PDF] emesso da [IDENTITA_IZZO] per la Vostra ragione sociale, completo di credenziali di autenticazione B2B e parametro 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG].
+Vi contattiamo da [IDENTITA_IZZO] con il piacere di sottoporre il nostro catalogo B2B alla valutazione di {COMPANY_NAME} per le forniture di [SETTORI_MERCEOLOGICI].
+
+Per evitarVi moduli o attese, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI]: potete usarle gratuitamente anche solo per curiosità o confronto prezzi, sapendo che per una prima prova d’ordine è disponibile lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Per quotazioni su distinta o chiarimenti amministrativi potete rispondere direttamente alla presente.
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T088',
-    name: 'Nota Esecutiva — Riscontro Rapido sui Codici di Maggior Consumo',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Scheda Sintetica Condizioni di Benvenuto',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Verifica quotazioni nette 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_FORMULA_PROMO] ({DISCOUNT_FORMULA}) [OGG_PER_AZIENDA] {COMPANY_NAME} — Nota conoscitiva',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-per una verifica rapida ed essenziale delle nostre condizioni, è sufficiente aprire [IL_CATALISTINO_PDF] di [IDENTITA_IZZO] dal riquadro sottostante ed esaminare il prezzo netto finito ({DISCOUNT_FORMULA}) sulle referenze di Vostro più frequente utilizzo:
+desideriamo presentarVi sinteticamente [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], invitandoVi a valutarci liberamente come fornitore B2B.
+
+Per Vostra comodità abbiamo preparato un accesso ospite gratuito al portale e un prospetto PDF illustrativo, con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) utilizzabile senza minimo d’ordine qualora decideste di testarci.
 
 {CREDENTIALS_BLOCK}
 
-L’utenza riportata consente in ogni momento la consultazione integrale del portale e delle giacenze 24/48h.
+[ACCESSO_SENZA_IMPEGNO].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T089',
-    name: 'Nota Esecutiva — Sintesi Istituzionale Direzione Commerciale',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Un Saluto Commerciale Discreto e Trasparente',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Condizioni riservate prima fornitura {DISCOUNT_FORMULA} (Linea 2gg) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    subjectTemplate: 'Presentazione fornitore B2B Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-da parte di [IDENTITA_IZZO] ([QUALIFICA_DISTRIBUTORE]) [CONNETTIVO_SINTESI]
+Vi inviamo questa nota conoscitiva per far conoscere [IDENTITA_IZZO] alla Vostra azienda e invitarVi a valutare con calma il nostro servizio di fornitura all’ingrosso.
+
+Nel riquadro sottostante trovate [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], predisposti gratuitamente per Vostra sola comodità, oltre allo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-Tutte le referenze soggette al parametro {DISCOUNT_FORMULA} vengono spedite da [NOSTRO_DEPOSITO] in 24/48 ore lavorative, [ZERO_MINIMO_ORDINE].
+[PROMESSA_FIDUCIA]
 
-[FRASE_DISPONIBILITA] ({AGENT_NAME}).
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T090',
-    name: 'Nota Esecutiva — Invio Riferimenti Diretti Referente e Portale',
-    angleGroup: 'Comunicazione_Esecutiva_Sintetica',
+    name: 'Nota Breve — Consultazione Immediata e Contatto Umano',
+    angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Comunicazione {AGENT_NAME} per {COMPANY_NAME} — Prospetto 2gg ({DISCOUNT_FORMULA})',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. | Invito conoscitivo B2B per {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-trasmetto in forma sintetica il collegamento a [IL_CATALISTINO_PDF] e i parametri di accesso al portale di [IDENTITA_IZZO] abilitati a favore di {COMPANY_NAME} con condizione 1ª fornitura {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG]:
+siamo [IDENTITA_IZZO] e ci occupiamo di distribuzione B2B di [SETTORI_MERCEOLOGICI]: Vi scriviamo semplicemente per invitarVi a valutarci come possibile fornitore.
+
+Per comodità Vi lasciamo delle credenziali provvisorie gratuite per guardare listini e disponibilità su [IL_PORTALE_B2B] (con benvenuto {DISCOUNT_FORMULA} su un eventuale primo ordine), restando sempre disponibili ai recapiti aziendali qui in calce.
 
 {CREDENTIALS_BLOCK}
 
-Per ogni necessità operativa potete fare riferimento diretto al sottoscritto ([CONTATTO_UMANO_VERO]).
+[ACCESSO_SENZA_IMPEGNO].
 
 [SALUTO_CHIUSURA]`,
   },
 
   // ==========================================================================
-  // GRUPPO 10 (T091 - T100): PRESIDIO TERRITORIALE & PARTNERSHIP B2B CONTINUATIVA
+  // GRUPPO 10 (T091 - T100): SUPPORTO ALLE AZIENDE DEL TERRITORIO & PREVENTIVI
   // ==========================================================================
   {
     code: 'T091',
-    name: 'Sviluppo Territoriale — Potenziamento Servizio Diretto sull’Area',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Invito Conoscitivo per le Realtà di Zona',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Servizio forniture B2B 24/48h su {CITY} — Posizione riservata a {COMPANY_NAME}',
+    subjectTemplate: 'Presentazione Izzo Distribuzione S.r.l. alle aziende di {CITY} — {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-nell’ambito del potenziamento del servizio distributivo diretto di [IDENTITA_IZZO] a favore degli operatori qualificati [CONTESTO_ZONA] {CITY} attivi nel comparto {SECTOR_SHORT}, abbiamo riservato una specifica abilitazione alla Vostra società.
+[CONTESTO_ZONA] {CITY}, ci fa particolarmente piacere presentare [IDENTITA_IZZO] alla Vostra realtà e invitarVi a valutarci liberamente come fornitore B2B.
 
-Nello specifico [ABBIAMO_PREPARATO] [IL_CATALISTINO_PDF] relativo alle linee {RECOMMENDED_FAMILY} e attivato il parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG], garantendo [TEMPI_RESA] presso la Vostra sede di {CITY}.
+Trattiamo all’ingrosso [SETTORI_MERCEOLOGICI], [COPERTURA_ITALIA]. Unicamente per Vostra comodità, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] così possiate consultare senza alcun impegno articoli e prezzi netti.
 
 {CREDENTIALS_BLOCK}
 
+[ACCESSO_SENZA_IMPEGNO]. Per un eventuale primo ordine di prova presso {CITY} è già disponibile lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
 [FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T092',
-    name: 'Sviluppo Territoriale — Capacità Logistica Nazionale e Referente Dedicato',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Spedizioni Curate e Preventivi Dedicati',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: '[OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — [OGG_TIPO_DOC] ({DISCOUNT_FORMULA})',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Forniture B2B e listino gratuito',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-il modello operativo di [IDENTITA_IZZO] è strutturato per mettere a disposizione delle aziende [CONTESTO_ZONA] {CITY} la profondità di stock di un polo logistico centrale 24/48h, affiancata dalla continuità relazionale di un referente dedicato ({AGENT_NAME}).
+[VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE], con il desiderio di farci conoscere da {COMPANY_NAME} e invitarVi a valutarci tra i Vostri fornitori per il comparto {SECTOR_SHORT}.
 
-Per avviare tale collaborazione [ABBIAMO_ATTIVATO] a favore di {COMPANY_NAME} [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Serviamo regolarmente gli operatori di {CITY} con [TEMPI_RESA] e [DESTINAZIONE_FLESSIBILE]. Per permetterVi di verificare comodamente la nostra convenienza, [ABBIAMO_PREPARATO] [LE_CREDENZIALI] gratuite e senza vincoli.
 
 {CREDENTIALS_BLOCK}
 
-{BRANDS_NOTE}
+Oltre ai listini già scontati con la formula di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO], siamo sempre disponibili per offerte dedicate: [QUOTAZIONI_SU_COMMESSA].
 
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T093',
-    name: 'Sviluppo Territoriale — Impostazione Orientata a Rapporti B2B Stabili',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Un Partner Vicino anche a Distanza',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Accreditamento partnership di fornitura B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    subjectTemplate: 'Un contatto B2B per le forniture di {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione S.r.l.',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_REFERENTE],
 
-la politica commerciale di [IDENTITA_IZZO] è orientata alla costruzione di rapporti di fornitura B2B continuativi e qualificati con le realtà strutturate [PER_IL_COMPARTO] {SECTOR_SHORT}.
+[CONTESTO_ZONA] {CITY}, desideriamo presentarVi con semplicità [IDENTITA_IZZO] e invitarVi a valutare il nostro servizio di fornitura B2B su {RECOMMENDED_FAMILY}.
 
-Consapevoli che ogni collaborazione solida nasce da una verifica concreta sul campo, [METTIAMO_A_DISPOSIZIONE] una prima fornitura [ZERO_MINIMO_ORDINE] assistita dal parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e da [IL_CATALISTINO_PDF] dedicato a {COMPANY_NAME}.
+Anche a distanza lavoriamo con grande vicinanza al cliente ([CONTATTO_UMANO_VERO]) e con massima chiarezza sui prezzi: per Vostra comodità abbiamo predisposto gratuitamente delle credenziali provvisorie per visitare [IL_PORTALE_B2B] quando preferite.
 
 {CREDENTIALS_BLOCK}
 
-[PROMESSA_FIDUCIA]
+[ACCESSO_SENZA_IMPEGNO]. Se vorrete metterci alla prova con una prima fornitura, troverete già pronto [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T094',
-    name: 'Sviluppo Territoriale — Collegamenti Giornalieri Corriere Espresso sulla Provincia',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Servizio Snello per Cantieri, Studi e Punti Vendita',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Copertura logistica 24/48h per {COMPANY_NAME}{CITY_PAREN} | Condizioni {DISCOUNT_FORMULA}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: '[OGG_RAPIDITA] [OGG_PER_AZIENDA] {COMPANY_NAME}{CITY_PAREN} — Presentazione B2B',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-attraverso partenze giornaliere da [NOSTRO_DEPOSITO] con corrieri espressi nazionali, [IDENTITA_IZZO] presidia regolarmente con consegne in 24/48h l’area di {CITY}, operando [DESTINAZIONE_FLESSIBILE].
+[ATTACCO_CANTIERE]. Con questo spirito presentiamo [IDENTITA_IZZO] a {COMPANY_NAME}, invitandoVi a valutarci come possibile fornitore per le Vostre attività su {CITY}.
 
-A favore di {COMPANY_NAME} [ABBIAMO_PREPARATO] una posizione immediatamente operativa su [SETTORI_MERCEOLOGICI] col parametro {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+[INVITO_MORBIDO_CATALISTINO]
 
 {CREDENTIALS_BLOCK}
 
-Operiamo [CERTEZZA_EVASIONE] e con rigorosa [CURA_IMBALLO]. Per ogni informazione siamo contattabili [COME_RISPONDERE].
+L’accesso provvisorio è completamente gratuito e senza impegno; qualora decideste di testare il nostro servizio, potrete contare sullo sconto di benvenuto {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [ZERO_MINIMO_ORDINE] e su [CURA_IMBALLO].
+
+[FRASE_DISPONIBILITA], [COME_RISPONDERE].
 
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T095',
-    name: 'Sviluppo Territoriale — Comunicazione Riservata agli Operatori Qualificati',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Quotazioni su Misura su Computi e Liste Materiali',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Accreditamento riservato operatori B2B — {COMPANY_NAME} ({DISCOUNT_FORMULA})',
+    htmlLayoutVariant: 'compact_memo',
+    subjectTemplate: 'Preventivi B2B senza impegno e catalogo gratuito [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-nell’ambito dell’accreditamento degli operatori professionali del comparto {SECTOR_SHORT} presenti su {CITY}, la Direzione Commerciale di [IDENTITA_IZZO] ha predisposto una posizione riservata intestata a {COMPANY_NAME}.
+ci permettiamo di presentare [IDENTITA_IZZO] alla Vostra azienda con un doppio invito senza alcun impegno: valutarci tramite il catalogo online oppure metterci alla prova su una richiesta di preventivo.
 
-Tramite il quadro riepilogativo sottostante [PUO_VISIONARE] [IL_CATALISTINO_PDF] valorizzato col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e utilizzare [LE_CREDENZIALI] [INCISO_SENZA_VINCOLO]:
+Per Vostra comodità [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] su [IL_PORTALE_B2B], già configurate con lo sconto di benvenuto {DISCOUNT_FORMULA} per un eventuale primo ordine [ZERO_MINIMO_ORDINE].
 
 {CREDENTIALS_BLOCK}
 
-[QUOTAZIONI_SU_COMMESSA].
+[ACCESSO_SENZA_IMPEGNO]. [AIUTO_PRIMA_LISTA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T096',
-    name: 'Sviluppo Territoriale — Continuità di Stock e Assistenza nel Tempo',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Supporto agli Operatori Professionali con P.IVA',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'accent_stripe',
-    subjectTemplate: 'Partner distributivo B2B 24/48h per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Izzo Distribuzione S.r.l. — Invito di valutazione fornitore per {COMPANY_NAME}{CITY_PAREN}',
+    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-collaborare con una [QUALIFICA_DISTRIBUTORE] quale [IDENTITA_IZZO] consente di fare affidamento tutto l’anno su [STOCK_REALE], listini trasparenti e un referente dedicato ({AGENT_NAME}) a supporto degli acquisti su {RECOMMENDED_FAMILY}.
+[APERTURA_BREVE]: da [IDENTITA_IZZO] affianchiamo [TARGET_PROFESSIONALE] anche nell’area di {CITY}, offrendo una distribuzione B2B diretta su [SETTORI_MERCEOLOGICI].
 
-L’attivazione non prevede alcun vincolo: sulla prima fornitura 2gg {COMPANY_NAME} dispone già di [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+Poiché non ci conosciamo ancora, abbiamo voluto metterVi nella condizione più comoda e trasparente possibile per valutarci: qui sotto trovate delle credenziali provvisorie gratuite per consultare listini e disponibilità, oltre a [IL_CATALISTINO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA], [COME_RISPONDERE] [OPZIONE_TELEFONATA].
+[ACCESSO_SENZA_IMPEGNO]. Per una eventuale prima fornitura conoscitiva resta riservato a {COMPANY_NAME} lo sconto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[PROMESSA_FIDUCIA]
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T097',
-    name: 'Sviluppo Territoriale — Innovazione Digitale B2B e Serietà Commerciale',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Flessibilità di Consegna in Sede o Destinazione Operativa',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Organizzazione B2B e Pronta Consegna 2gg ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
+    htmlLayoutVariant: 'clean_table',
+    subjectTemplate: '[OGG_TIPO_DOC] — Servizio forniture B2B [OGG_PER_AZIENDA] {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
 
-in [IDENTITA_IZZO] affianchiamo a un’infrastruttura digitale B2B evoluta e a [IL_CATALISTINO_PDF] in costante aggiornamento i principi cardine della distribuzione professionale: rispetto rigoroso delle tempistiche concordate, controllo qualità in spedizione e rapporto diretto col referente.
+nel sottoporre [IDENTITA_IZZO] alla Vostra cortese valutazione come fornitore B2B, desideriamo evidenziare la praticità operativa con cui seguiamo le aziende su {CITY} e in tutta Italia: [FLUSSO_RAPIDO], [DESTINAZIONE_FLESSIBILE].
 
-Con questa impostazione dedichiamo a {COMPANY_NAME}{CITY_PAREN} la condizione di primo accreditamento {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG]:
+Per farVi esaminare in autonomia assortimento e prezzi netti riservati, [ABBIAMO_ATTIVATO] gratuitamente per Vostra comodità [LE_CREDENZIALI].
 
 {CREDENTIALS_BLOCK}
 
-[AIUTO_PRIMA_LISTA].
+La consultazione non comporta alcun costo né impegno; se vorrete effettuare un primo ordine di prova, troverete già pronto lo sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
+[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+
 [SALUTO_CHIUSURA]`,
   },
   {
     code: 'T098',
-    name: 'Sviluppo Territoriale — Riferimento Provinciale Area Clienti Direzionali',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    name: 'Aziende del Territorio — Un Contatto Diretto per Rifornimenti e Nuove Commesse',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'compact_memo',
-    subjectTemplate: 'Area Clienti B2B {CITY} ({DISCOUNT_FORMULA} 1ª fornitura) — {COMPANY_NAME}',
-    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
-
-in qualità di referente ({AGENT_NAME}) incaricato da [IDENTITA_IZZO] per i rapporti con le aziende professionali della Vostra area provinciale, confermo l’abilitazione del profilo B2B di {COMPANY_NAME} col parametro {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG] e [ZERO_MINIMO_ORDINE]:
-
-{CREDENTIALS_BLOCK}
-
-La documentazione contenuta in [IL_CATALISTINO_PDF] è immediatamente scaricabile; per qualsiasi riscontro operativo resto direttamente reperibile [COME_RISPONDERE].
-
-[SALUTO_CHIUSURA]`,
-  },
-  {
-    code: 'T099',
-    name: 'Sviluppo Territoriale — Condizioni di Primo Impianto e Regime Ordinario B2B',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
-    targetCategory: 'ALL',
-    htmlLayoutVariant: 'clean_table',
-    subjectTemplate: 'Parametri B2B riservati a {COMPANY_NAME} — 1ª fornitura {DISCOUNT_FORMULA} e Listino {BASE_DISCOUNT}%',
+    htmlLayoutVariant: 'plain_personal',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] [OGG_PER_AZIENDA] {COMPANY_NAME} ({CITY})',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},
 
-l’accreditamento predisposto da [IDENTITA_IZZO] a favore di {COMPANY_NAME} definisce condizioni chiare sia per la verifica iniziale sia per la gestione ordinaria successiva:
-• **Prima fornitura conoscitiva**: applicazione del parametro {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) [CLAUSOLA_SOLO_2GG] [ZERO_MINIMO_ORDINE];
-• **Forniture successive**: mantenimento stabile del listino professionale {BASE_DISCOUNT}% e quotazioni dedicate [PER_IL_COMPARTO] {SECTOR_SHORT}.
+[CONTESTO_ZONA] {CITY}, Vi scriviamo da [IDENTITA_IZZO] con il piacere di presentarci e invitarVi a valutarci come fornitore [IMPIEGO_PRATICO].
+
+Per risparmiarVi moduli di registrazione qualora voleste dare uno sguardo ai nostri prezzi, lasciamo a Vostra disposizione [LE_CREDENZIALI] e [IL_CATALISTINO_PDF] [DETTAGLIO_CONTENUTO_PDF].
 
 {CREDENTIALS_BLOCK}
 
-[ACCESSO_SENZA_IMPEGNO].
+[ACCESSO_SENZA_IMPEGNO]. In caso di interesse per un primo acquisto conoscitivo potrete usufruire dello sconto di benvenuto {DISCOUNT_FORMULA} [ZERO_MINIMO_ORDINE].
+
 [PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
   {
-    code: 'T100',
-    name: 'Sviluppo Territoriale — Comunicazione Ufficiale di Accreditamento al Portale B2B',
-    angleGroup: 'Sviluppo_Rete_Territoriale',
+    code: 'T099',
+    name: 'Aziende del Territorio — Trasparenza Aziendale e Condizioni Chiare',
+    angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
-    htmlLayoutVariant: 'executive_card',
-    subjectTemplate: 'Comunicazione ufficiale di accreditamento B2B — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
+    htmlLayoutVariant: 'accent_stripe',
+    subjectTemplate: 'Presentazione istituzionale Izzo Distribuzione S.r.l. [OGG_PER_AZIENDA] {COMPANY_NAME}',
     bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME}, [SALUTO_GIORNATA]
 
-con la presente la Direzione Commerciale di [IDENTITA_IZZO] ([SETTORI_MERCEOLOGICI]) trasmette i riferimenti ufficiali relativi all’apertura della posizione B2B intestata a {COMPANY_NAME}.
+riteniamo che per valutare serenamente un nuovo fornitore a distanza servano due elementi: la massima trasparenza sui prezzi e riferimenti aziendali chiari e verificabili. Con questo spirito Vi presentiamo [IDENTITA_IZZO].
 
-L’anagrafica è già pienamente abilitata per la consultazione di [IL_CATALISTINO_PDF] e per l’applicazione sulla prima fornitura del parametro riservato {DISCOUNT_FORMULA} [CLAUSOLA_SOLO_2GG], con [TEMPI_RESA] [COPERTURA_ITALIA]:
+In calce a questa comunicazione riportiamo tutti i nostri dati societari e recapiti diretti, mentre nel riquadro qui sotto lasciamo gratuitamente per Vostra comodità [LE_CREDENZIALI] per visionare catalogo, schede tecniche e lo sconto di benvenuto {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO].
 
 {CREDENTIALS_BLOCK}
 
-[FRASE_DISPONIBILITA] [PER_OGNI_ESIGENZA].
+[ACCESSO_SENZA_IMPEGNO]. Restiamo a Vostra disposizione [PER_OGNI_ESIGENZA], [COME_RISPONDERE].
+
+[SALUTO_CHIUSURA]`,
+  },
+  {
+    code: 'T100',
+    name: 'Aziende del Territorio — Invito Finale a Conoscerci Senza Impegno',
+    angleGroup: 'Supporto_Aziende_Territorio',
+    targetCategory: 'ALL',
+    htmlLayoutVariant: 'executive_card',
+    subjectTemplate: 'Invito a valutare Izzo Distribuzione S.r.l. — Catalogo e credenziali gratuite per {COMPANY_NAME}',
+    bodyTemplate: `[SALUTO_UFFICIO] {COMPANY_NAME},
+
+chiudiamo la nostra presentazione con un invito molto semplice e trasparente: quando avrete qualche minuto, provate a valutare [IDENTITA_IZZO] come possibile fornitore per i materiali di [SETTORI_MERCEOLOGICI].
+
+Esclusivamente per Vostra comodità, gratuitamente e senza alcun impegno né contratto, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] su [IL_PORTALE_B2B] e preparato [IL_CATALISTINO_PDF], includendo anche [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} ({NET_DISCOUNT_PCT}% netto) per chi volesse metterci alla prova su un primo ordine [ZERO_MINIMO_ORDINE].
+
+{CREDENTIALS_BLOCK}
+
+[PROMESSA_FIDUCIA]
+
+[PRE_SALUTO_FINALE]
 [SALUTO_CHIUSURA]`,
   },
 ];

@@ -101,7 +101,7 @@ export const B2B_CLUSTER_REGISTRY: Record<CanonicalB2BCluster, B2BClusterConfig>
     commercialCategory: 'RIV',
     baseDiscount: 50,
     atecoDefault: '46.69.20',
-    recommendedFamily: 'Catalogo Completo Pronta Consegna 2gg (Illuminazione LED, Materiale Elettrico & Minuteria)',
+    recommendedFamily: 'Illuminazione LED, Materiale Elettrico, Quadristica, Fissaggio & Minuteria Professionale',
     catalogKeywords: ['lampadina', 'proiettore', 'plafoniera', 'magnetotermico', 'multipresa', 'strip led'],
     queries: [
       'forniture materiale elettrico',

@@ -99,16 +99,25 @@ async function resolveAgentForProspect(
       .catch(() => null);
 
     if (found) {
-      const fullName =
+      const code = (found.zucchettiCode || '').trim() || DEFAULT_AGENT_CODE;
+      const isSavoia =
+        found.id === DEFAULT_AGENT_ID ||
+        code === DEFAULT_AGENT_CODE ||
+        found.username.toLowerCase().includes('savoia');
+      const rawFullName =
         `${found.firstName || ''} ${found.lastName || ''}`.trim() ||
-        (found.companyName || '').trim() ||
-        found.username;
+        (found.companyName || '').trim();
+      const fullName = rawFullName || (isSavoia ? DEFAULT_AGENT_NAME : found.username);
       return {
         id: found.id,
-        code: (found.zucchettiCode || '').trim() || DEFAULT_AGENT_CODE,
+        code,
         name: fullName,
-        email: (found.email || '').trim() || env.BREVO_SENDER_EMAIL || 'info@izzodistribuzione.it',
-        phone: (found.phone || '').trim() || '',
+        email:
+          (found.email || '').trim() ||
+          (isSavoia
+            ? 'daniele.savoia@izzodistribuzione.com'
+            : env.BREVO_SENDER_EMAIL || 'daniele.savoia@izzodistribuzione.com'),
+        phone: (found.phone || '').trim() || '+39 389 0129832',
       };
     }
   }
@@ -117,8 +126,8 @@ async function resolveAgentForProspect(
     id: DEFAULT_AGENT_ID,
     code: DEFAULT_AGENT_CODE,
     name: DEFAULT_AGENT_NAME,
-    email: env.BREVO_SENDER_EMAIL || 'daniele.savoia@izzodistribuzione.it',
-    phone: '+39 0823 123456',
+    email: 'daniele.savoia@izzodistribuzione.com',
+    phone: '+39 389 0129832',
   };
 }
 
@@ -463,16 +472,16 @@ export async function prepareOutreachPackageForProspect(
       ? Number(configRow?.rivExtraDiscountPct ?? 10)
       : Number(configRow?.istExtraDiscountPct ?? 10);
   const discountFormulaLabel = `${baseDiscount}% + ${extraDiscountPct}%`;
-  const catalistinoTitle = `Catalistino B2B Riservato — ${prospect.companyName}`;
-  const catalistinoSubtitle = `Condizioni riservate di prima fornitura — Parametro ${discountFormulaLabel}`;
+  const catalistinoTitle = `Catalistino Illustrativo per ${prospect.companyName}`;
+  const catalistinoSubtitle = `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${discountFormulaLabel}`;
   const minOrderAmountText =
-    configRow?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura';
+    configRow?.minOrderAmountText || "Nessun minimo d'ordine";
   const freeShippingText =
     configRow?.freeShippingText ||
-    'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)';
+    'Spedizione curata e tracciata in tutta Italia';
   const paymentTermsText =
     configRow?.paymentTermsText ||
-    `Condizioni B2B riservate con referente assegnato ${resolvedAgent.name}`;
+    `Consultazione gratuita e referente dedicato ${resolvedAgent.name}`;
   const attachCatalogPdf = configRow?.attachCatalogPdf ?? true;
 
   let promo = await b2bPrisma.b2BPromoProspect.findFirst({
@@ -553,7 +562,7 @@ export async function prepareOutreachPackageForProspect(
   let firstPurchaseRuleId: string | null = promo.firstPurchaseRuleId || null;
   if (enableFirstPurchaseRule && extraDiscountPct > 0) {
     firstPurchaseRuleId = `sdr_fp_${promo.id}`;
-    const ruleName = `Primo Acquisto (${discountFormulaLabel} Solo 2gg) — ${promo.companyName}`;
+    const ruleName = `Benvenuto Primo Ordine (${discountFormulaLabel}) — ${promo.companyName}`;
     const upperUsername = promo.username.toUpperCase();
 
     await b2bPrisma.b2BDiscountRule.upsert({

@@ -686,18 +686,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           discountTargetType: 'ALL_2GG',
           discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: String(
-            body.offerTitle || 'Condizioni riservate di prima fornitura B2B'
+            body.offerTitle || 'Invito a valutarci come fornitore B2B e sconto di benvenuto sul primo ordine'
           ),
           minOrderAmountText: String(
-            body.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura'
+            body.minOrderAmountText || "Nessun minimo d'ordine"
           ),
           freeShippingText: String(
             body.freeShippingText ||
-              'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)'
+              'Spedizione curata e tracciata in tutta Italia'
           ),
           paymentTermsText: String(
             body.paymentTermsText ||
-              'Condizioni B2B riservate con referente assegnato Daniele Savoia'
+              'Credenziali provvisorie gratuite e senza impegno con referente commerciale dedicato'
           ),
           customCommercialNotes: body.customCommercialNotes
             ? String(body.customCommercialNotes)
@@ -922,15 +922,13 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const effectiveNetPct = Number(
           (100 - (100 - baseDiscountNum) * (1 - extraFirstPurchasePct / 100)).toFixed(2)
         );
-        const catalistinoTitle = `Catalistino B2B Riservato — ${prospect.companyName}`;
-        const catalistinoSubtitle = `Condizioni riservate di prima fornitura — Parametro ${discountFormulaLabel}`;
+        const catalistinoTitle = `Catalistino Illustrativo per ${prospect.companyName}`;
+        const catalistinoSubtitle = `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${discountFormulaLabel}`;
 
-        // Regola FIRST_PURCHASE rigorosamente ristretta a ALL_2GG ("Solo Pronta Consegna 2gg")
-        // allineata sia su b2b_discount_rules (OS) sia su b2b_agent_discount_rules (Storefront B2B)
         let firstPurchaseRuleId: string | null = promoProspect.firstPurchaseRuleId || null;
         if (config.enableFirstPurchaseRule && extraFirstPurchasePct > 0) {
           const ruleId = `sdr_fp_${promoProspect.id}`;
-          const ruleName = `Primo Acquisto (${discountFormulaLabel} Solo 2gg) — ${prospect.companyName}`;
+          const ruleName = `Benvenuto Primo Ordine (${discountFormulaLabel}) — ${prospect.companyName}`;
           const upperUsername = promoProspect.username.toUpperCase();
 
           const newRule = await b2bPrisma.b2BDiscountRule.upsert({
@@ -2553,12 +2551,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           tempPasswordPlain: 'Izzo!8Kx4P2',
           baseDiscount,
           extraFirstPurchasePct: config.enableFirstPurchaseRule ? extraFirstPurchasePct : 0,
-          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
+          offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
           minOrderAmountText: config.minOrderAmountText,
           freeShippingText: config.freeShippingText,
           paymentTermsText: config.paymentTermsText,
           customCommercialNotes: config.customCommercialNotes,
-          smartCatalogUrl: 'https://www.izzodistribuzione.it/offerta-riservata/demo-simulatore',
+          smartCatalogUrl: 'https://www.izzodistribuzione.it/offerta/demo-presentazione',
           agentName: resolvedAgent.name,
           agentCode: resolvedAgent.code,
           agentEmail: resolvedAgent.email,
@@ -2619,7 +2617,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         data: {
           code,
           name: String(body.name || `Modello Personalizzato ${code}`).trim(),
-          angleGroup: String(body.angleGroup || 'Ufficio_Acquisti').trim(),
+          angleGroup: String(body.angleGroup || 'Presentazione_Fornitore').trim(),
           targetCategory: ['ALL', 'IST', 'RIV'].includes(
             String(body.targetCategory || 'ALL').toUpperCase()
           )
@@ -2880,7 +2878,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         `${normalizeBaseUsername(prospect.companyName)}${
           prospect.province ? `.${prospect.province.toLowerCase()}` : ''
         }`;
-      const passwordToUse = promoProspect?.tempPassword || 'Izzo!Temp2gg';
+      const passwordToUse = promoProspect?.tempPassword || 'Izzo!8Kx4P2';
 
       const tailored = await generateCombinatorialOutreachEmail(
         {
@@ -2896,15 +2894,15 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           baseDiscount: baseDiscountNum,
           extraFirstPurchasePct:
             config?.enableFirstPurchaseRule !== false ? extraFirstPurchasePct : 0,
-          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
+          offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
           minOrderAmountText:
-            config?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura',
+            config?.minOrderAmountText || "Nessun minimo d'ordine",
           freeShippingText:
             config?.freeShippingText ||
-            'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)',
+            'Spedizione curata e tracciata in tutta Italia',
           paymentTermsText:
             config?.paymentTermsText ||
-            'Condizioni B2B riservate con referente assegnato Daniele Savoia',
+            'Credenziali provvisorie gratuite e senza impegno con referente commerciale dedicato',
           customCommercialNotes: config?.customCommercialNotes,
           smartCatalogUrl: smartUrls.storefrontOfferUrl,
           agentName: resolvedAgent.name,
@@ -3039,15 +3037,15 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           tempPasswordPlain: promo.tempPassword,
           baseDiscount: baseDiscountNum,
           extraFirstPurchasePct: config?.enableFirstPurchaseRule !== false ? extraPct : 0,
-          offerTitle: `Condizioni riservate di prima fornitura — Parametro ${formula}`,
+          offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
           minOrderAmountText:
-            config?.minOrderAmountText || 'Nessun vincolo di minimo d’ordine sulla prima fornitura',
+            config?.minOrderAmountText || "Nessun minimo d'ordine",
           freeShippingText:
             config?.freeShippingText ||
-            'Evasione 24/48h in tutta Italia dal Polo Logistico Centrale (Linea 2gg)',
+            'Spedizione curata e tracciata in tutta Italia',
           paymentTermsText:
             config?.paymentTermsText ||
-            'Condizioni B2B riservate con referente assegnato Daniele Savoia',
+            'Credenziali provvisorie gratuite e senza impegno con referente commerciale dedicato',
           customCommercialNotes: config?.customCommercialNotes,
           smartCatalogUrl: smartUrls.storefrontOfferUrl,
           agentName: resolvedAgent.name,

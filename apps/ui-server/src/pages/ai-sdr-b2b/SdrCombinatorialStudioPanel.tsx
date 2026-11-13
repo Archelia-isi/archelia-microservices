@@ -33,36 +33,36 @@ interface SdrCombinatorialStudioPanelProps {
 }
 
 const ANGLE_LABELS: Record<string, string> = {
-  Ufficio_Acquisti: '🏢 Ufficio Acquisti & Approvvigionamenti',
-  Continuità_Logistica_24_48h: '🚚 Continuità Logistica & Evasione 24/48h',
-  Condizioni_Quadro_Riservate: '📑 Condizioni Quadro & Sconto 1ª Fornitura',
-  Referente_Direzionale: '👤 Presentazione Diretta Referente B2B',
-  Documentazione_Listino_PDF: '📄 Trasmissione Prospetto & Listino PDF',
-  Qualificazione_Gamma_Tecnica: '⚙️ Qualificazione Gamma & Copertura Tecnica',
-  Accreditamento_Anagrafica_B2B: '🔐 Accreditamento Anagrafica & Portale B2B',
-  Canale_Fornitura_Complementare: '🤝 Canale di Fornitura Complementare',
-  Comunicazione_Esecutiva_Sintetica: '📋 Nota Esecutiva Sintetica Direzione',
-  Sviluppo_Rete_Territoriale: '📍 Presidio & Sviluppo Rete Territoriale',
+  Presentazione_Fornitore: '🤝 Presentazione Fornitore & Invito a Conoscerci',
+  Valutazione_Listino_B2B: '📊 Valutazione Trasparente Listino & Prezzi Netti',
+  Credenziali_Comodita: '🔑 Credenziali Provvisorie Gratuite per Comodità',
+  Sconto_Benvenuto_Prova: '🎁 Sconto di Benvenuto 1° Ordine Senza Impegno',
+  Catalogo_Illustrativo_PDF: '📄 Catalistino Illustrativo PDF Riservato',
+  Gamma_Tecnica_Completa: '⚙️ Gamma Elettrico, LED, Quadristica & Fissaggio',
+  Presentazione_Referente: '👤 Contatto Umano Diretto col Referente B2B',
+  Fornitore_Alternativo: '🏢 Fornitore Alternativo da Affiancare in Libertà',
+  Nota_Conoscitiva_Breve: '📋 Nota Conoscitiva Breve & Discreta',
+  Supporto_Aziende_Territorio: '📍 Supporto & Preventivi per le Aziende del Territorio',
 };
 
 const LAYOUT_LABELS: Record<string, string> = {
-  executive_card: 'Card Istituzionale Esecutiva',
-  plain_personal: 'Stile Lettera Direzionale Sobria',
-  compact_memo: 'Prospetto Memo Compatto Ardesia',
+  executive_card: 'Card Istituzionale Sobria',
+  plain_personal: 'Stile Lettera Diretta',
+  compact_memo: 'Riquadro Compatto Ardesia',
   accent_stripe: 'Fascia Istituzionale Blu Navy',
-  clean_table: 'Tabella Tecnica Ufficio Acquisti',
+  clean_table: 'Tabella Chiara Ufficio Acquisti',
 };
 
 const TOKEN_CATEGORY_LABELS: Record<string, string> = {
-  '01_Saluti_Apertura': '1. Formule di Saluto Istituzionale (es. Spettabile / Gentilissima)',
-  '02_Oggetto_Email': '2. Lessico Istituzionale per Oggetto Email',
-  '03_Presentazione_Azienda': '3. Identità Societaria Izzo Distribuzione S.r.l.',
-  '04_Contesto_Cliente': '4. Riferimenti ad Azienda, Operatività e Approvvigionamenti',
-  '05_Offerta_Sconti': '5. Inquadramento Commerciale, Sconti e Condizioni 1ª Fornitura',
-  '06_Magazzino_Consegna': '6. Polo Logistico Centrale 2gg ed Evasione 24/48h',
-  '07_Portale_Credenziali': '7. Portale B2B Accreditato, Credenziali e Prospetto PDF',
-  '08_Referente_Supporto': '8. Referente Commerciale Assegnato e Assistenza',
-  '09_Chiusura_Saluti': '9. Formule di Congedo Istituzionale e Informativa B2B',
+  '01_Saluti_Apertura': '1. Saluti Cortesi & Invito a Valutarci come Fornitore',
+  '02_Oggetto_Email': '2. Oggetti Chiari di Presentazione Fornitore B2B',
+  '03_Presentazione_Azienda': '3. Presentazione Izzo Distribuzione S.r.l.',
+  '04_Contesto_Cliente': '4. Riferimenti a Settore, Prodotti e Lavoro Quotidiano',
+  '05_Offerta_Sconti': '5. Sconto di Benvenuto 1° Ordine & Trasparenza Prezzi',
+  '06_Magazzino_Consegna': '6. Pronta Disponibilità & Cura nelle Spedizioni',
+  '07_Portale_Credenziali': '7. Credenziali Provvisorie Gratuite per Comodità & PDF',
+  '08_Referente_Supporto': '8. Referente Umano Diretto & Preventivi Senza Impegno',
+  '09_Chiusura_Saluti': '9. Saluti Finali Cortesi & Nota Informativa B2B',
 };
 
 const QUICK_HELP_TOKENS = [
@@ -71,9 +71,10 @@ const QUICK_HELP_TOKENS = [
   '[VERBO_CONTATTARE]',
   '[IDENTITA_IZZO]',
   '[ABBIAMO_ATTIVATO]',
+  '[LE_CREDENZIALI]',
+  '[ACCESSO_SENZA_IMPEGNO]',
   '[IL_CATALISTINO_PDF]',
   '[IL_DOPPIO_SCONTO]',
-  '[CLAUSOLA_SOLO_2GG]',
   '[ZERO_MINIMO_ORDINE]',
   '[FRASE_DISPONIBILITA]',
   '[SALUTO_CHIUSURA]',
@@ -210,12 +211,12 @@ export default function SdrCombinatorialStudioPanel({
     setEditingTemplate({
       code: '',
       name: '',
-      angleGroup: 'Ufficio_Acquisti',
+      angleGroup: 'Presentazione_Fornitore',
       targetCategory: 'ALL',
       htmlLayoutVariant: 'executive_card',
       subjectTemplate:
-        '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — [OGG_RAPIDITA] ({DISCOUNT_FORMULA})',
-      bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},\n\n[APERTURA_BREVE], [VERBO_CONTATTARE] [IDENTITA_IZZO], [QUALIFICA_IZZO] per [SETTORI_MERCEOLOGICI].\n\nPer la Vostra sede di {CITY} [ABBIAMO_ATTIVATO] [IL_CATALISTINO_PDF] con [IL_DOPPIO_SCONTO] pari al {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [CLAUSOLA_SOLO_2GG] ([TEMPI_RESA]).\n\n{CREDENTIALS_BLOCK}\n\n[ZERO_MINIMO_ORDINE]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].\n\n[SALUTO_CHIUSURA]`,
+        '[OGG_TIPO_DOC] [OGG_PER_AZIENDA] {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+      bodyTemplate: `[SALUTO_AZIENDA] {COMPANY_NAME},\n\n[APERTURA_BREVE] e invitarVi a valutarci liberamente come fornitore B2B. Siamo [IDENTITA_IZZO], [QUALIFICA_DISTRIBUTORE] per [SETTORI_MERCEOLOGICI].\n\nUnicamente per Vostra comodità, [ABBIAMO_ATTIVATO] [LE_CREDENZIALI] e [IL_CATALISTINO_PDF], con [IL_DOPPIO_SCONTO] {DISCOUNT_FORMULA} [SUL_PRIMO_ACQUISTO] [ZERO_MINIMO_ORDINE].\n\n{CREDENTIALS_BLOCK}\n\n[ACCESSO_SENZA_IMPEGNO]. [FRASE_DISPONIBILITA], [COME_RISPONDERE].\n\n[SALUTO_CHIUSURA]`,
       isActive: true,
     });
   };

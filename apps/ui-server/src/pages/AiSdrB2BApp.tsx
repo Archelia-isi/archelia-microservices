@@ -600,12 +600,12 @@ export default function AiSdrB2BApp() {
       const a = document.createElement('a');
       const safeName = String(companyName || 'Cliente_B2B').replace(/[^a-zA-Z0-9_-]+/g, '_');
       a.href = url;
-      a.download = `Catalistino_2gg_${safeName}.pdf`;
+      a.download = `Catalistino_Illustrativo_${safeName}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Catalistino PDF 2gg scaricato!', { id: 'sdr-pdf' });
+      toast.success('Catalistino PDF scaricato!', { id: 'sdr-pdf' });
     } catch {
       toast.error('Impossibile generare il Catalistino PDF', { id: 'sdr-pdf' });
     }
@@ -640,21 +640,26 @@ export default function AiSdrB2BApp() {
     const extraPct = cat?.extraFirstPurchasePct ?? 10;
     const formula = `${basePct}% + ${extraPct}%`;
     const agentName = promo?.assignedAgentName || config.defaultAgentName || 'Daniele Savoia';
-    const defaultSubject = `Comunicazione commerciale riservata per ${p?.companyName || 'Cliente B2B'} — Parametro ${formula}`;
-    const defaultBody = `Spettabile ${p?.companyName || 'Azienda'},
+    const defaultSubject = `Invito a valutarci come fornitore B2B per ${p?.companyName || 'Cliente B2B'} — Izzo Distribuzione S.r.l.`;
+    const defaultBody = `Gentile ${p?.companyName || 'Azienda'},
 
-La presente comunicazione proviene dalla Divisione Commerciale B2B di Izzo Distribuzione S.r.l., operatore specializzato nella distribuzione all’ingrosso di materiale elettrico, illuminotecnica professionale e automazione.
+Ci permettiamo di scriverVi per presentarVi brevemente Izzo Distribuzione S.r.l., realtà specializzata nella distribuzione B2B di materiale elettrico, illuminazione LED, quadristica e fissaggio, e invitarVi a valutarci liberamente come fornitore.
 
-Abbiamo predisposto il prospetto catalistino riservato a ${p?.companyName || 'Voi'} con condizione di prima fornitura pari al ${formula}, applicabile sugli articoli disponibili presso il polo logistico centrale (evasione 24/48h).
+Unicamente per Vostra comodità, in modo gratuito e senza alcun impegno, abbiamo preparato delle credenziali provvisorie per consultare il nostro catalogo B2B e i prezzi netti riservati, accompagnate da uno sconto di benvenuto del ${formula} qualora decideste in futuro di metterci alla prova su un primo ordine (nessun minimo d'ordine).
 
-• Portale B2B Accreditato: https://www.izzodistribuzione.it/login
-• Codice Utente: ${promo?.username || '(premi Genera Credenziali)'}
-• Credenziale Temporanea: ${promo?.tempPassword || '(premi Genera Credenziali)'}
-• Referente Assegnato: ${agentName}
+• Portale B2B: https://www.izzodistribuzione.it/login
+• Username provvisoria: ${promo?.username || '(premi Genera Credenziali)'}
+• Password temporanea: ${promo?.tempPassword || '(premi Genera Credenziali)'}
+• Referente commerciale: ${agentName}
 
-Distinti saluti,
-${agentName} — Divisione Commerciale B2B
-Izzo Distribuzione S.r.l.`;
+Cordiali saluti,
+
+${agentName}
+Responsabile commerciale — Izzo Distribuzione S.r.l.
+Tel / WhatsApp: +39 389 0129832
+Email: daniele.savoia@izzodistribuzione.com
+Portale B2B: https://www.izzodistribuzione.it
+Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049`;
 
     setDraftSubjectInput(firstDraft?.subject || defaultSubject);
     setDraftBodyInput(firstDraft?.bodyText || defaultBody);

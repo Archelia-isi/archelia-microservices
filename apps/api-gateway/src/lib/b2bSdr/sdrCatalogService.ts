@@ -57,31 +57,43 @@ export async function getAvailableB2BAgents(): Promise<SdrAgentInfo[]> {
 
   const map = new Map<string, SdrAgentInfo>();
 
-  // Always guarantee Daniele Savoia (003) as primary default option
+  // Always guarantee Daniele Savoia as primary default option (internal code 003 never shown externally)
   map.set(DEFAULT_AGENT_ID, {
     id: DEFAULT_AGENT_ID,
     code: DEFAULT_AGENT_CODE,
-    name: DEFAULT_AGENT_NAME,
-    email: env.BREVO_SENDER_EMAIL || 'daniele.savoia@izzodistribuzione.it',
-    phone: '+39 0823 123456',
-    username: 'daniele.savoia',
+    name: 'Daniele Savoia',
+    email: 'daniele.savoia@izzodistribuzione.com',
+    phone: '+39 389 0129832',
+    username: 'savoia.daniele',
     isDefault: true,
   });
 
   for (const ag of dbAgents) {
-    const fullName =
-      `${ag.firstName || ''} ${ag.lastName || ''}`.trim() ||
-      (ag.companyName || '').trim() ||
-      ag.username;
     const code = (ag.zucchettiCode || '').trim() || (ag.id === DEFAULT_AGENT_ID ? DEFAULT_AGENT_CODE : '');
+    const isSavoia =
+      ag.id === DEFAULT_AGENT_ID ||
+      code === DEFAULT_AGENT_CODE ||
+      ag.username.toLowerCase().includes('savoia');
+    const rawFullName =
+      `${ag.firstName || ''} ${ag.lastName || ''}`.trim() ||
+      (ag.companyName || '').trim();
+    const fullName = rawFullName || (isSavoia ? 'Daniele Savoia' : ag.username);
+    const resolvedEmail =
+      (ag.email || '').trim() ||
+      (isSavoia
+        ? 'daniele.savoia@izzodistribuzione.com'
+        : env.BREVO_SENDER_EMAIL || 'daniele.savoia@izzodistribuzione.com');
+    const resolvedPhone =
+      (ag.phone || '').trim() || (isSavoia ? '+39 389 0129832' : '+39 389 0129832');
+
     map.set(ag.id, {
       id: ag.id,
       code: code || '003',
       name: fullName,
-      email: (ag.email || '').trim() || env.BREVO_SENDER_EMAIL || 'info@izzodistribuzione.it',
-      phone: (ag.phone || '').trim() || '',
+      email: resolvedEmail,
+      phone: resolvedPhone,
       username: ag.username,
-      isDefault: ag.id === DEFAULT_AGENT_ID || code === DEFAULT_AGENT_CODE,
+      isDefault: isSavoia,
     });
   }
 
@@ -229,9 +241,9 @@ export async function generateProspectReservedCatalogPdf(options: {
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 32);
-  const pdfFileName = `Catalistino_Riservato_2gg_${safeCompanySlug || prospect.id}.pdf`;
+  const pdfFileName = `Catalistino_Illustrativo_${safeCompanySlug || prospect.id}.pdf`;
 
-  const cacheKey = `sdr:catalog:pdf:v1:${prospect.id}:${baseDiscount}:${extraDiscount}:${maxProducts}:${agent.code}`;
+  const cacheKey = `sdr:catalog:pdf:v2:${prospect.id}:${baseDiscount}:${extraDiscount}:${maxProducts}:${agent.code}`;
   if (!options.forceRefresh) {
     try {
       const cachedRaw = await redisConnection.get(cacheKey);
@@ -327,7 +339,7 @@ export async function generateProspectReservedCatalogPdf(options: {
       netPrice,
       discountPct: effectiveDiscountPct,
       discountLabel: discountFormula,
-      discountExpiresFormatted: 'Sul primo acquisto (Solo 2gg)',
+      discountExpiresFormatted: 'Benvenuto 1° ordine',
       stockMain: p.stockMain,
       stockEk: 0,
       stockTotal: p.stockMain,
@@ -340,17 +352,17 @@ export async function generateProspectReservedCatalogPdf(options: {
 
   if (itemsForPdf.length === 0) {
     throw new Error(
-      'Nessun articolo in Pronta Consegna 2gg disponibile su Typesense per generare il Catalistino PDF.'
+      'Nessun articolo immediatamente disponibile su Typesense per generare il Catalistino PDF.'
     );
   }
 
   const pdfRes = await generateAgentCatalogPdfAction({
-    catalogTitle: `Catalistino Riservato a ${prospect.companyName}`,
-    catalogSubtitle: `${config?.offerTitle || 'Offerta esclusiva valida per il primo acquisto'} — Sconto ${discountFormula} Pronta Consegna 2gg`,
+    catalogTitle: `Catalistino Illustrativo per ${prospect.companyName}`,
+    catalogSubtitle: `Invito a valutare Izzo Distribuzione S.r.l. come fornitore — Sconto di benvenuto ${discountFormula} sul 1° ordine`,
     clientName: `${prospect.companyName}${prospect.city ? ` (${prospect.city})` : ''}`,
     clientCode: (prospect.promotedUsername || '').toUpperCase() || undefined,
-    agentName: `${agent.name} (Cod. ${agent.code})`,
-    filterSummary: `Selezione Pronta Consegna 2gg (Deposito Principale 24/48h) • Sconto Riservato ${discountFormula} (${effectiveDiscountPct}% netto) valido sul 1° Acquisto`,
+    agentName: `${agent.name} — Izzo Distribuzione S.r.l.`,
+    filterSummary: `Consultazione gratuita e senza impegno • Articoli in pronta disponibilità • Sconto di benvenuto ${discountFormula} (${effectiveDiscountPct}% netto) senza minimo d'ordine`,
     priceMode: 'LIST_AND_NET',
     stockMode: 'BADGE_ONLY',
     baseDiscount,
