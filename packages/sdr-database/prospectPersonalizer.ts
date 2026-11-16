@@ -22,11 +22,17 @@ export interface ProspectIntelligenceSummary {
   foundationYear: string | null;
   certificationsLabel: string | null;
   salutoPersonalizzato: string;
+  salutoUmano1a1: string;
   intestazioneOggetto: string;
   fraseContestoDb: string;
   incisoContestoDb: string;
+  contestoTerritorioFallback: string;
+  scenarioMestiereSettore: string;
   scopoFornituraSettore: string;
   lineeProdottiIzzo: string;
+  prodottiProsa: string;
+  prodottiCompatti: string;
+  prodottiMatriceReparti: string;
   chiusuraSettore: string;
 }
 
@@ -631,6 +637,176 @@ function buildTailoredProductBullets(
   }
 }
 
+function buildStructuralSectorVariants(
+  cluster: CanonicalB2BCluster,
+  companyClean: string,
+  domainClean: string | null,
+  areaLabel: string,
+  civilBrandMatched: string | null,
+  specializations: string[]
+): {
+  prodottiProsa: string;
+  prodottiCompatti: string;
+  prodottiMatriceReparti: string;
+  scenarioMestiereSettore: string;
+} {
+  const compatProse = civilBrandMatched
+    ? `compatibili con gli standard installativi ${civilBrandMatched} già impiegati nelle Vostre commesse`
+    : 'compatibili con i principali standard installativi presenti sul mercato';
+  const webRef = domainClean ? ` (${domainClean})` : '';
+  const hasEvOrPv = specializations.some((s) => /ricarica EV|fotovoltaic/i.test(s));
+
+  switch (cluster) {
+    case 'Ferramenta':
+      return {
+        prodottiProsa:
+          'elettroutensili Kombo e Kombo Pro 20V Brushless con soluzioni espositive da banco, abrasivi e punte SDS-Plus Elmark, fascettatura e fissaggio Surelock, schiume e sigillanti tecnici Penosil, multiprese e adattatori Omega, serie civile Mapam e sorgenti LED Stellar',
+        prodottiCompatti:
+          'elettroutensili Kombo Pro 20V Brushless, abrasivi Elmark, fascette e fissaggio Surelock, chimico Penosil, elettrico Omega/Mapam e LED Stellar',
+        prodottiMatriceReparti: [
+          '• **Elettroutensili & Taglio** → *Kombo / Kombo Pro 20V Brushless*, dischi e punte *Elmark*',
+          '• **Fissaggio & Chimico** → Fascettatura e ancoranti *Surelock*, schiume e sigillanti *Penosil*',
+          '• **Elettrico & Luce da Banco** → Multiprese/spine *Omega*, serie civile *Mapam*, sorgenti LED *Stellar*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Al banco di una ferramenta professionale come ${companyClean} su ${areaLabel}${webRef}, lavorare con linee certificate riservate alle Partite IVA e non inflazionate sul web al dettaglio permette di servire artigiani e manutentori mantenendo un ricarico sano e ripetibile.`,
+      };
+
+    case 'Rivendita_Edile':
+      return {
+        prodottiProsa:
+          'quadri cantiere stagni IP65 e scatole d’incasso Marlanvil ed Elmark, prese industriali CEE e avvolgicavo Omega, elettroutensili Kombo Pro 20V Brushless, dischi diamantati e foratura Elmark, sistemi di fissaggio Surelock, schiume e sigillanti Penosil e proiettori LED ad alta potenza Stellar',
+        prodottiCompatti:
+          'elettroutensili Kombo Pro 20V, dischi diamantati Elmark, schiume e siliconi Penosil, fissaggio Surelock, quadri cantiere e prese CEE Omega/Marlanvil e LED Stellar',
+        prodottiMatriceReparti: [
+          '• **Elettrico & Cantiere** → Quadri IP65 *Marlanvil / Elmark*, prese CEE *Omega*, serie civile *Mapam*',
+          '• **Utensileria & Taglio** → Linea *Kombo Pro 20V Brushless*, dischi diamantati e SDS-Plus *Elmark*',
+          '• **Chimico, Fissaggio & LED** → Schiume/sigillanti *Penosil*, fissaggio *Surelock*, proiettori LED *Stellar*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Per una rivendita edile e tecnica come ${companyClean} su ${areaLabel}${webRef}, affiancare al materiale pesante reparti ad alta rotazione di utensileria, chimico, fissaggio ed elettrico da cantiere consente di alzare la marginalità media per scontrino e commessa.`,
+      };
+
+    case 'Illuminazione':
+      return {
+        prodottiProsa: `lampadari, sospensioni, faretti architetturali e sistemi a binario Stellar ed Elmark, strip LED professionali 24V con profili in alluminio, corpi illuminanti da esterno IP65, moduli dimmer smart Proxe / Sonoff e serie civile estetica Mapam (${compatProse})`,
+        prodottiCompatti:
+          'sospensioni, faretti, binari, strip LED 24V con profili in alluminio e outdoor IP65 Stellar/Elmark, serie civile Mapam e dimmer smart Proxe / Sonoff',
+        prodottiMatriceReparti: [
+          '• **Decorativo & Architetturale** → Sospensioni, applique, faretti e sistemi a binario *Stellar / Elmark*',
+          '• **Sistemi Lineari & Outdoor** → Strip LED 24V, profili in alluminio, alimentatori slim e IP65 *Stellar*',
+          '• **Punto Luce & Smart Control** → Serie civile estetica *Mapam* e moduli dimmer Wi-Fi/Zigbee *Proxe / Sonoff*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Nelle forniture illuminotecniche per showroom, retail e strutture ricettive seguite da realtà come ${companyClean} su ${areaLabel}${webRef}, abbinare collezioni decorative a linee tecniche LED ad alto margine consente di chiudere il pacchetto completo con forte competitività.`,
+      };
+
+    case 'Quadrista':
+      return {
+        prodottiProsa:
+          'interruttori magnetotermici, differenziali, scatolati, contattori, relè termici, sezionatori e pulsanteria industriale Elmark, carpenteria e casse stagne IP65 Marlanvil ed Elmark, pressacavi IP68, morsettiere, fascettatura industriale Surelock e armature LED ad alta efficienza Stellar',
+        prodottiCompatti:
+          'modulari DIN, scatolati, contattori, sezionatori e pressacavi IP68 Elmark, casse e quadri IP65 Marlanvil, cablaggio Surelock e armature LED Stellar',
+        prodottiMatriceReparti: [
+          '• **Protezione & Manovra** → Magnetotermici, differenziali, scatolati, contattori e sezionatori *Elmark*',
+          '• **Carpenteria & Cablaggio** → Casse e quadri IP65 *Marlanvil / Elmark*, pressacavi IP68, fascette *Surelock*',
+          '• **Illuminazione Industriale** → Armature stagne IP65 e proiettori high-bay LED *Stellar*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Chi assembla quadri di distribuzione e automazione come ${companyClean} su ${areaLabel}${webRef} conosce bene quanto incidano sul margine di commessa la tenuta dei listini e la pronta reperibilità su carpenteria stagna, organi di manovra e accessori di cablaggio.`,
+      };
+
+    case 'Impresa_Edile':
+      return {
+        prodottiProsa: `quadri elettrici da cantiere e scatole da incasso Marlanvil, prese industriali CEE e avvolgicavo Omega, serie civile per capitolati Mapam e contenitori Idrobox IP55 (${compatProse}), proiettori e corpi illuminanti LED Stellar, schiume e sigillanti Penosil, fissaggio Surelock ed elettroutensili Kombo Pro 20V`,
+        prodottiCompatti:
+          'quadri cantiere e incasso Marlanvil, prese CEE Omega, serie civile Mapam e Idrobox IP55, illuminazione LED Stellar, chimico Penosil, fissaggio Surelock e utensili Kombo Pro 20V',
+        prodottiMatriceReparti: [
+          '• **Cantiere & Incasso** → Quadri stagni IP65 e scatole *Marlanvil*, prese CEE e avvolgicavo *Omega*',
+          '• **Capitolati Civili** → Serie civile *Mapam* e contenitori stagni *Idrobox IP55* compatibili',
+          '• **Posa, Chimico & Luce** → Proiettori LED *Stellar*, sigillanti *Penosil*, fissaggio *Surelock*, utensili *Kombo Pro 20V*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Nella gestione cantieri di nuova costruzione e ristrutturazione come quelli curati da ${companyClean} su ${areaLabel}${webRef}, accentrare su un unico canale B2B diretto dotazioni elettriche, serie civile, illuminazione, fissaggio e sigillanti riduce sensibilmente i costi di approvvigionamento.`,
+      };
+
+    case 'Termoidraulica_Clima':
+      return {
+        prodottiProsa:
+          'quadri stagni IP65, magnetotermici, differenziali, contattori HVAC e scaricatori SPD Elmark e Marlanvil, staffaggio, ancoranti e fascette UV/acciaio Surelock, schiume e sigillanti tecnici Penosil, spine e multiprese Omega, contenitori Idrobox IP55 ed elettroutensili Kombo Pro 20V Brushless',
+        prodottiCompatti:
+          'quadri IP65, protezioni e contattori HVAC Elmark/Marlanvil, staffaggio e fascette Surelock, sigillanti Penosil, prese Omega ed elettroutensili Kombo Pro 20V',
+        prodottiMatriceReparti: [
+          '• **Comando & Protezione HVAC** → Quadri IP65, magnetotermici, differenziali e contattori *Elmark / Marlanvil*',
+          '• **Staffaggio & Sigillatura** → Ancoranti e fascette UV/acciaio *Surelock*, schiume e siliconi *Penosil*',
+          '• **Utensileria & Cantiere** → Linea brushless *Kombo Pro 20V*, prese/multiprese *Omega*, LED *Stellar*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Spesso nelle imprese termoidrauliche e HVAC come ${companyClean} su ${areaLabel}${webRef} i materiali elettrici di comando/protezione, le scatole stagne, il fissaggio e i sigillanti vengono acquistati in modo frammentato a condizioni meno favorevoli rispetto al materiale idraulico principale.`,
+      };
+
+    case 'Fotovoltaico_Rinnovabili':
+      return {
+        prodottiProsa: `scaricatori di sovratensione SPD AC/DC, sezionatori, portafusibili, interruttori modulari e quadri stagni IP65 Elmark e Marlanvil, tubazione rigida RK, pressacavi IP68, fascettatura resistente UV e in acciaio Surelock, sigillanti Penosil, corpi illuminanti LED Stellar e serie civile Mapam (${compatProse})`,
+        prodottiCompatti:
+          'scaricatori SPD AC/DC, sezionatori, quadri stagni IP65 e pressacavi IP68 Elmark/Marlanvil, fascette UV/acciaio Surelock, sigillanti Penosil e LED Stellar',
+        prodottiMatriceReparti: [
+          '• **Protezione Impianti & Solare** → Scaricatori SPD, sezionatori, modulari e quadri IP65 *Elmark / Marlanvil*',
+          '• **Canalizzazione & Fissaggio UV** → Tubazione RK, pressacavi IP68 *Elmark*, fascette UV/acciaio *Surelock*, chimico *Penosil*',
+          '• **Relamping LED & Smart** → Illuminazione professionale *Stellar* e moduli smart *Proxe / Sonoff*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Nelle installazioni fotovoltaiche e di efficienza energetica seguite da realtà come ${companyClean} su ${areaLabel}${webRef}, la disponibilità immediata a listino diretto di protezioni SPD, quadri stagni, pressacavi e fissaggio per esterno incide in modo netto sui tempi e sui costi di cantiere.`,
+      };
+
+    case 'Sicurezza_Automazione':
+      return {
+        prodottiProsa: `telecamere IP PoE, alimentatori stabilizzati DIN, moduli smart Wi-Fi/Zigbee Proxe / Sonoff, cassette di derivazione IP65, quadri e pressacavi IP68 Marlanvil ed Elmark, proiettori perimetrali LED Stellar, serie civile Mapam (${compatProse}), fissaggio Surelock ed elettroutensili Kombo Pro 20V`,
+        prodottiCompatti:
+          'telecamere IP PoE, alimentatori DIN, cassette IP65 e pressacavi IP68 Marlanvil/Elmark, moduli smart Proxe / Sonoff, proiettori LED Stellar e fissaggio Surelock',
+        prodottiMatriceReparti: [
+          '• **TVCC & Smart Building** → Telecamere IP PoE, alimentatori DIN e moduli Wi-Fi/Zigbee *Proxe / Sonoff*',
+          '• **Contenitori & Protezione Linea** → Cassette IP65 e quadri *Marlanvil / Elmark*, pressacavi IP68, *Idrobox IP55*',
+          '• **Perimetrale & Installazione** → Proiettori LED *Stellar*, fissaggio *Surelock*, utensili *Kombo Pro 20V*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Per chi realizza impianti di sicurezza, TVCC e automazione come ${companyClean} su ${areaLabel}${webRef}, approvvigionare a listino B2B diretto contenitori stagni, alimentazione, apparati PoE, smart control e minuteria di posa permette di ottimizzare il costo complessivo di ogni installazione.`,
+      };
+
+    case 'Architetto_Ingegnere':
+      return {
+        prodottiProsa: `corpi illuminanti architetturali, pannelli UGR per uffici, sistemi a binario e strip LED 24V con profili in alluminio Stellar ed Elmark, serie civile Mapam con placche in vetro, metallo e tecnopolimero (${compatProse}), comandi smart Proxe / Sonoff e quadristica certificata CE Marlanvil ed Elmark`,
+        prodottiCompatti:
+          'corpi illuminanti LED UGR, binari e strip LED 24V con profili in alluminio Stellar/Elmark, serie civile Mapam, smart control Proxe / Sonoff e quadristica CE Marlanvil',
+        prodottiMatriceReparti: [
+          '• **Illuminotecnica & Terziario** → Faretti, binari, pannelli UGR e strip LED 24V con profili *Stellar / Elmark*',
+          '• **Estetica Punto Luce** → Serie civile *Mapam* (vetro, metallo, tecnopolimero) e comandi smart *Proxe / Sonoff*',
+          '• **Quadristica Certificata CE** → Centralini rasomuro/incasso *Marlanvil* e protezioni modulari *Elmark*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Nei progetti residenziali, direzionali e commerciali seguiti da studi come ${companyClean} su ${areaLabel}${webRef}, coniugare resa illuminotecnica, coordinamento estetico dei punti comando e sostenibilità del computo metrico richiede linee certificate con quotazioni B2B trasparenti.`,
+      };
+
+    case 'Serramentista':
+      return {
+        prodottiProsa:
+          'schiume poliuretaniche ad alta resa e siliconi neutri certificati Penosil, tasselli, ancoranti e fascettatura Surelock, elettroutensili brushless Kombo Pro 20V con dischi e punte Elmark, oltre ad alimentatori slim, profili in alluminio, strip LED 24V Stellar e comandi elettrici Mapam / Proxe',
+        prodottiCompatti:
+          'schiume poliuretaniche e siliconi neutri Penosil, viteria e fissaggio Surelock, elettroutensili brushless Kombo Pro 20V e profili strip LED 24V Stellar',
+        prodottiMatriceReparti: [
+          '• **Sigillatura & Posa Infissi** → Schiume poliuretaniche e siliconi neutri *Penosil*, fissaggio *Surelock*',
+          '• **Officina & Montaggio** → Avvitatori, trapani e smerigliatrici *Kombo Pro 20V*, taglio/punte *Elmark*',
+          '• **LED Integrato & Comando** → Strip LED 24V e profili alluminio *Stellar*, pulsanti comando *Mapam / Proxe*',
+        ].join('\n'),
+        scenarioMestiereSettore: `Nella produzione e posa qualificata di serramenti e carpenteria svolta da aziende come ${companyClean} su ${areaLabel}${webRef}, la continuità qualitativa di schiume, sigillanti neutri, ancoraggi ed elettroutensili incide ogni giorno sui tempi di montaggio e sulla tenuta dell’opera.`,
+      };
+
+    case 'Installatore_Civile':
+    default:
+      return {
+        prodottiProsa: `serie civile Mapam e contenitori Idrobox IP55 (${compatProse}), oltre a scatole e centralini stagni Marlanvil, protezioni modulari${hasEvOrPv ? ' e scaricatori SPD' : ''} e pressacavi IP68 Elmark, illuminazione LED Stellar, dispositivi smart Proxe / Sonoff e fissaggio Surelock`,
+        prodottiCompatti: `serie civile Mapam e Idrobox IP55, incasso e centralini IP65 Marlanvil, modulari DIN${hasEvOrPv ? '/SPD' : ''} Elmark, illuminazione LED Stellar e moduli smart Proxe / Sonoff`,
+        prodottiMatriceReparti: [
+          `• **Civile & Incasso** → *Mapam* e *Idrobox IP55* (${civilBrandMatched ? `compatibili standard ${civilBrandMatched}` : 'compatibili standard mercato'}), scatole e centralini *Marlanvil*`,
+          `• **Quadro & Posa** → Modulari DIN${hasEvOrPv ? ', SPD' : ''}, tubazione RK e pressacavi IP68 *Elmark*, fissaggio *Surelock*`,
+          '• **Luce & Smart** → Corpi illuminanti e strip LED 24V *Stellar*, moduli smart *Proxe / Sonoff*, TVCC IP PoE',
+        ].join('\n'),
+        scenarioMestiereSettore: `Quando si quota o si realizza un impianto elettrico civile o terziario — come nell’attività di ${companyClean} su ${areaLabel}${webRef} — disporre di un canale B2B diretto e compatibile su serie civile, quadristica e illuminazione LED consente di difendere il margine operativo senza compromessi tecnici.`,
+      };
+  }
+}
+
 export function composeProspectIntelligence(
   input: BuildOutreachEmailInput,
   pickIndexFn: (len: number) => number
@@ -774,6 +950,30 @@ export function composeProspectIntelligence(
     incisoContestoDb = baseIncisi[pickIndexFn(baseIncisi.length)];
   }
 
+  let salutoUmano1a1: string;
+  if (decisionMakerClean) {
+    const dmHuman = [
+      `Buongiorno ${decisionMakerClean},`,
+      `Gentile ${decisionMakerClean},`,
+    ];
+    salutoUmano1a1 = dmHuman[pickIndexFn(dmHuman.length)];
+  } else {
+    const corpHuman = [
+      `Buongiorno ai Referenti Acquisti di ${companyClean},`,
+      `Buongiorno,`,
+      `Gentili Referenti di ${companyClean},`,
+    ];
+    salutoUmano1a1 = corpHuman[pickIndexFn(corpHuman.length)];
+  }
+
+  const fallbackTerritoryOptions = [
+    `Seguendo ${sectorInfo.sectorPlural} operativi su ${areaLabel}, contattiamo la Vostra struttura per presentare Izzo Distribuzione S.r.l.`,
+    `Operando a supporto di ${sectorInfo.sectorPlural} attivi su ${areaLabel}, sottoponiamo alla Vostra valutazione il canale all’ingrosso di Izzo Distribuzione S.r.l.`,
+    `Collaborando con ${sectorInfo.sectorPlural} attivi su ${areaLabel}, sintetizziamo i riferimenti B2B di Izzo Distribuzione S.r.l.`,
+  ];
+  const contestoTerritorioFallback =
+    fallbackTerritoryOptions[pickIndexFn(fallbackTerritoryOptions.length)];
+
   const scopoFornituraSettore =
     sectorInfo.scopoVariants[pickIndexFn(sectorInfo.scopoVariants.length)];
   const chiusuraSettore =
@@ -783,6 +983,14 @@ export function composeProspectIntelligence(
     civilBrandMatched,
     specializations,
     pickIndexFn(4)
+  );
+  const structuralVariants = buildStructuralSectorVariants(
+    cluster,
+    companyClean,
+    domainClean,
+    areaLabel,
+    civilBrandMatched,
+    specializations
   );
 
   return {
@@ -803,11 +1011,17 @@ export function composeProspectIntelligence(
     foundationYear,
     certificationsLabel,
     salutoPersonalizzato,
+    salutoUmano1a1,
     intestazioneOggetto,
     fraseContestoDb,
     incisoContestoDb,
+    contestoTerritorioFallback,
+    scenarioMestiereSettore: structuralVariants.scenarioMestiereSettore,
     scopoFornituraSettore,
     lineeProdottiIzzo,
+    prodottiProsa: structuralVariants.prodottiProsa,
+    prodottiCompatti: structuralVariants.prodottiCompatti,
+    prodottiMatriceReparti: structuralVariants.prodottiMatriceReparti,
     chiusuraSettore,
   };
 }

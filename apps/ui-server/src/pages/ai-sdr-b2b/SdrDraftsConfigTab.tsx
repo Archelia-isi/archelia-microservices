@@ -197,10 +197,10 @@ export default function SdrDraftsConfigTab({
                     size="sm"
                     icon={<Shuffle size={14} />}
                     onClick={onRerollReadyDrafts}
-                    disabled={!canWrite || loading || readyDrafts.length === 0}
-                    title="Rigenera testi e sinonimi tutti diversi per le bozze pronte mantenendo intatte username e password"
+                    disabled={!canWrite || loading || drafts.length === 0}
+                    title="Rigenera impostazioni strutturali e sinonimi tutti diversi per le bozze in coda"
                   >
-                    Rigenera Tutte Uniche ({readyDrafts.length})
+                    Rigenera Tutte Uniche ({readyDrafts.length > 0 ? readyDrafts.length : drafts.length})
                   </Button>
                   <Button
                     variant="primary"
@@ -260,7 +260,7 @@ export default function SdrDraftsConfigTab({
                                 Madre {d.templateCode}
                               </Badge>
                             )}
-                            <span>Step {d.sequenceStep || 1} • Smart Link Catalistino 2gg incluso</span>
+                            <span>Step {d.sequenceStep || 1} • Smart Link Catalistino PDF incluso</span>
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '11.5px' }}>

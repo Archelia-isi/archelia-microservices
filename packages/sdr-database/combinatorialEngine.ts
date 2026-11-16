@@ -617,37 +617,75 @@ function renderCredentialsHtmlBlock(
   </div>`;
 }
 
+function formatInlineRichTextToHtml(rawEscaped: string): string {
+  let out = rawEscaped;
+  // Backtick code spans `...` (evita linkificazione dentro `...` se contiene solo user/pass, ma se contiene URL rendilo cliccabile)
+  out = out.replace(/`([^`]+)`/g, (_m, inner: string) => {
+    if (/^https?:\/\//i.test(inner.trim())) {
+      const u = inner.trim();
+      return `<a href="${u}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${u}</a>`;
+    }
+    return `<code style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:13px;">${inner}</code>`;
+  });
+  // Bold **...**
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italic *...*
+  out = out.replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1<em>$2</em>');
+  // Bare URLs https://... (non già dentro href="...")
+  out = out.replace(/(^|[\s(>])(https?:\/\/[^\s<)"']+)/g, (_m, pre: string, url: string) => {
+    const cleanUrl = url.replace(/[.,;:]+$/, '');
+    const trailing = url.slice(cleanUrl.length);
+    return `${pre}<a href="${cleanUrl}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${cleanUrl}</a>${trailing}`;
+  });
+  return out;
+}
+
 function formatTextBlockToHtml(blockText: string): string {
-  const lines = blockText.split('\n').map((l) => l.trim()).filter(Boolean);
-  const allBullets = lines.length > 0 && lines.every((l) => /^[-•]\s+/.test(l));
+  const rawLines = blockText.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (rawLines.length === 0) return '';
+
+  // Se il blocco inizia con "---" (filetto divisorio) seguito da righe compatte
+  if (rawLines[0] === '---') {
+    const rest = rawLines.slice(1).join('\n');
+    const restHtml = rest ? formatTextBlockToHtml(rest) : '';
+    return `<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0 10px 0;" />\n${restHtml}`;
+  }
+
+  const allBullets = rawLines.every((l) => /^[-•]\s+/.test(l));
   if (allBullets) {
-    const items = lines
+    const items = rawLines
       .map((l) => {
-        const content = escapeHtml(l.replace(/^[-•]\s+/, '')).replace(
-          /\*\*([^*]+)\*\*/g,
-          '<strong>$1</strong>'
-        );
+        const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^[-•]\s+/, '')));
         return `<li style="margin-bottom: 6px;">${content}</li>`;
       })
       .join('\n');
     return `<ul style="margin: 8px 0 14px 0; padding-left: 20px;">\n${items}\n</ul>`;
   }
 
+  const allNumbered = rawLines.length >= 2 && rawLines.every((l) => /^\d+[.)]\s+/.test(l));
+  if (allNumbered) {
+    const items = rawLines
+      .map((l) => {
+        const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^\d+[.)]\s+/, '')));
+        return `<li style="margin-bottom: 7px;">${content}</li>`;
+      })
+      .join('\n');
+    return `<ol style="margin: 8px 0 14px 0; padding-left: 20px;">\n${items}\n</ol>`;
+  }
+
   // Blocco misto intro + elenco puntato nello stesso paragrafo
-  const firstBulletIdx = lines.findIndex((l) => /^[-•]\s+/.test(l));
+  const firstBulletIdx = rawLines.findIndex((l) => /^[-•]\s+/.test(l));
   if (firstBulletIdx > 0) {
-    const introLines = lines.slice(0, firstBulletIdx);
-    const bulletLines = lines.slice(firstBulletIdx);
+    const introLines = rawLines.slice(0, firstBulletIdx);
+    const bulletLines = rawLines.slice(firstBulletIdx);
     if (bulletLines.every((l) => /^[-•]\s+/.test(l))) {
-      const introHtml = escapeHtml(introLines.join('\n'))
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br/>');
+      const introHtml = formatInlineRichTextToHtml(escapeHtml(introLines.join('\n'))).replace(
+        /\n/g,
+        '<br/>'
+      );
       const items = bulletLines
         .map((l) => {
-          const content = escapeHtml(l.replace(/^[-•]\s+/, '')).replace(
-            /\*\*([^*]+)\*\*/g,
-            '<strong>$1</strong>'
-          );
+          const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^[-•]\s+/, '')));
           return `<li style="margin-bottom: 6px;">${content}</li>`;
         })
         .join('\n');
@@ -655,9 +693,7 @@ function formatTextBlockToHtml(blockText: string): string {
     }
   }
 
-  const formatted = escapeHtml(blockText)
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br/>');
+  const formatted = formatInlineRichTextToHtml(escapeHtml(blockText)).replace(/\n/g, '<br/>');
   return `<p style="margin: 0 0 12px 0;">${formatted}</p>`;
 }
 
@@ -776,16 +812,106 @@ function executeCombinatorialSynthesis(
     : null;
 
   const loginUrl = `https://www.izzodistribuzione.it/login?u=${encodeURIComponent(input.username)}`;
+  const loginDisplayUrl = 'https://www.izzodistribuzione.it/login';
+  const offerUrlFinal = input.smartCatalogUrl || loginUrl;
+  const listinoRuoloLabel = intel.isReseller ? 'Rivenditori' : 'operatori Partita IVA';
+  const conditionInlineShort = intel.isReseller
+    ? `listino Rivendita ${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}`
+    : `sconto riservato ${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}`;
 
-  const resolveClientVariables = (txt: string, credentialsPlaceholder: string): string => {
+  // 1) {CREDENZIALI_PROSA} — pura prosa discorsiva senza box né elenchi
+  const credenzialiProsaOptions = [
+    `Per consentirVi di confrontare in autonomia i nostri prezzi netti senza moduli di registrazione e senza alcun vincolo commerciale, abbiamo predisposto un accesso provvisorio di consultazione su ${loginDisplayUrl} (utente \`${input.username}\`, password temporanea \`${input.tempPasswordPlain}\`), affiancato da un estratto illustrativo del catalistino in PDF consultabile su ${offerUrlFinal}, dove è già recepita la condizione riservata (${conditionInlineShort}).`,
+    `Ai soli fini di una verifica tecnica ed economica senza alcun impegno, abbiamo reso disponibile un profilo conoscitivo gratuito su ${loginDisplayUrl} con credenziali \`${input.username}\` / \`${input.tempPasswordPlain}\` e un estratto PDF diretto su ${offerUrlFinal}, già allineati a ${conditionInlineShort}.`,
+    `Qualora voleste verificare il posizionamento dei nostri prezzi netti, potete accedere liberamente e senza vincoli a ${loginDisplayUrl} utilizzando l’utente provvisorio \`${input.username}\` e la password \`${input.tempPasswordPlain}\`, oppure sfogliare direttamente il prospetto PDF selezionato su ${offerUrlFinal} (${conditionInlineShort}).`,
+  ];
+  const credenzialiProsa =
+    credenzialiProsaOptions[pickIndex(credenzialiProsaOptions.length, seedCursor)];
+
+  // 2) {CREDENZIALI_RIGA_FLASH} — barra compatta per note flash esecutive
+  const credenzialiRigaFlashOptions = [
+    `Portale ${loginDisplayUrl} — Utente: \`${input.username}\` — Password: \`${input.tempPasswordPlain}\` — Estratto PDF: ${offerUrlFinal}`,
+    `Login: ${loginDisplayUrl} | Utente: \`${input.username}\` | Password: \`${input.tempPasswordPlain}\` | PDF: ${offerUrlFinal}`,
+    `${loginDisplayUrl} (\`${input.username}\` / \`${input.tempPasswordPlain}\`) — Prospetto PDF: ${offerUrlFinal}`,
+  ];
+  const credenzialiRigaFlash =
+    credenzialiRigaFlashOptions[pickIndex(credenzialiRigaFlashOptions.length, seedCursor)];
+
+  // 3) {CREDENZIALI_PS} — Post-Scriptum finale isolato dal corpo principale
+  const credenzialiPsOptions = [
+    `**P.S.** Unicamente per agevolare una verifica autonoma di catalogo e prezzi netti senza registrazioni né impegni, abbiamo predisposto un accesso provvisorio su ${loginDisplayUrl} (Utente: \`${input.username}\` — Password: \`${input.tempPasswordPlain}\`, già configurato con ${conditionInlineShort}) e un estratto PDF diretto su ${offerUrlFinal}.`,
+    `**P.S. Consultazione listino B2B (${discountFormulaLabel} sul 1° ordine, ${cleanMinOrderText.toLowerCase()}):** lasciamo attive a titolo conoscitivo e gratuito le credenziali provvisorie \`${input.username}\` / \`${input.tempPasswordPlain}\` su ${loginDisplayUrl} e il prospetto PDF riservato su ${offerUrlFinal}.`,
+    `**P.S.** Qualora preferiste verificare subito a video giacenze e prezzi netti (${conditionInlineShort}), potete utilizzare senza alcun vincolo l’accesso provvisorio su ${loginDisplayUrl} (\`${input.username}\` / \`${input.tempPasswordPlain}\`) o scaricare l’estratto PDF da ${offerUrlFinal}.`,
+  ];
+  const credenzialiPs =
+    credenzialiPsOptions[pickIndex(credenzialiPsOptions.length, seedCursor)];
+
+  // 4) {CREDENZIALI_FILETTO} — divisorio orizzontale + 2 righe essenziali
+  const credenzialiFiletto = [
+    '---',
+    `**Accesso conoscitivo gratuito e non vincolante (${discountFormulaLabel} a cascata sul 1° ordine, ${cleanMinOrderText.toLowerCase()}):**`,
+    `Portale: ${loginDisplayUrl} | Utente: \`${input.username}\` | Password: \`${input.tempPasswordPlain}\` | Estratto PDF: ${offerUrlFinal}`,
+  ].join('\n');
+
+  // 5) {SCHEDA_QUALIFICA_FORNITORE} — scheda strutturata Ufficio Acquisti (Testo + HTML Tabellare)
+  const schedaQualificaPlain = [
+    `SCHEDA SINTETICA FORNITORE B2B — ${intel.companyClean}`,
+    `- Ragione sociale: Izzo Distribuzione S.r.l. (P.IVA 01868260629 — REA BN-309049)`,
+    `- Linee per il Vostro comparto: ${intel.prodottiCompatti}`,
+    `- Condizione operativa: ${conditionInlineShort}, ${cleanFreeShippingText}`,
+    `- Portale B2B (gratuito): ${loginDisplayUrl} (Utente: ${input.username} | Password: ${input.tempPasswordPlain})`,
+    `- Estratto Catalistino PDF: ${offerUrlFinal}`,
+  ].join('\n');
+
+  const schedaQualificaHtml = `<div style="margin: 14px 0;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13.3px;">
+      <tr style="background: #f1f5f9;">
+        <td colspan="2" style="padding: 8px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">
+          SCHEDA SINTETICA QUALIFICA FORNITORE B2B — ${escapeHtml(intel.companyClean)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 32%; font-weight: 600;">Fornitore B2B</td>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><strong>Izzo Distribuzione S.r.l.</strong> (P.IVA 01868260629 — REA BN-309049)</td>
+      </tr>
+      <tr>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Linee di comparto</td>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(intel.prodottiCompatti)}</td>
+      </tr>
+      <tr>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Condizione 1° ordine</td>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(conditionInlineShort)}</td>
+      </tr>
+      <tr>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Portale B2B (gratuito)</td>
+        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(loginUrl)}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${loginDisplayUrl}</a> — User: <code>${escapeHtml(input.username)}</code> | Pass: <code>${escapeHtml(input.tempPasswordPlain)}</code></td>
+      </tr>
+      <tr>
+        <td style="padding: 7px 12px; color: #475569; font-weight: 600;">Estratto PDF diretto</td>
+        <td style="padding: 7px 12px;"><a href="${escapeHtml(offerUrlFinal)}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${escapeHtml(offerUrlFinal)}</a></td>
+      </tr>
+    </table>
+  </div>`;
+
+  const resolveClientVariables = (
+    txt: string,
+    credentialsPlaceholder: string,
+    schedaQualificaSlot: string
+  ): string => {
     const map: Record<string, string> = {
       COMPANY_NAME: intel.companyClean,
       SALUTO_PERSONALIZZATO: intel.salutoPersonalizzato,
+      SALUTO_UMANO_1A1: intel.salutoUmano1a1,
       INTESTAZIONE_OGGETTO: intel.intestazioneOggetto,
       FRASE_CONTESTO_DB: intel.fraseContestoDb,
       INCISO_CONTESTO_DB: intel.incisoContestoDb,
+      CONTESTO_TERRITORIO_FALLBACK: intel.contestoTerritorioFallback,
+      SCENARIO_MESTIERE_SETTORE: intel.scenarioMestiereSettore,
       SCOPO_FORNITURA_SETTORE: intel.scopoFornituraSettore,
       LINEE_PRODOTTI_IZZO: intel.lineeProdottiIzzo,
+      PRODOTTI_PROSA: intel.prodottiProsa,
+      PRODOTTI_COMPATTI: intel.prodottiCompatti,
+      PRODOTTI_MATRICE_REPARTI: intel.prodottiMatriceReparti,
       CHIUSURA_SETTORE: intel.chiusuraSettore,
       CITY: cityLabel,
       CITY_PAREN: cityParen,
@@ -797,6 +923,8 @@ function executeCombinatorialSynthesis(
       BASE_DISCOUNT: String(input.baseDiscount),
       EXTRA_DISCOUNT: String(input.extraFirstPurchasePct),
       NET_DISCOUNT_PCT: String(effectiveNetPct),
+      LISTINO_RUOLO: listinoRuoloLabel,
+      CONDIZIONE_BREVE: conditionInlineShort,
       OFFER_TITLE: cleanOfferTitle,
       MIN_ORDER_TEXT: cleanMinOrderText,
       SHIPPING_TEXT: cleanFreeShippingText,
@@ -804,13 +932,19 @@ function executeCombinatorialSynthesis(
         input.paymentTermsText,
         'Condizioni B2B riservate'
       ),
-      LOGIN_URL: loginUrl,
+      LOGIN_URL: loginDisplayUrl,
+      OFFER_URL: offerUrlFinal,
+      SMART_CATALOG_URL: offerUrlFinal,
       USERNAME: input.username,
       TEMP_PASSWORD: input.tempPasswordPlain,
-      SMART_CATALOG_URL: input.smartCatalogUrl || loginUrl,
       AGENT_NAME: agentDisplayName,
       AGENT_PHONE: agentPhoneFinal,
       AGENT_EMAIL: agentEmailFinal,
+      CREDENZIALI_PROSA: credenzialiProsa,
+      CREDENZIALI_RIGA_FLASH: credenzialiRigaFlash,
+      CREDENZIALI_PS: credenzialiPs,
+      CREDENZIALI_FILETTO: credenzialiFiletto,
+      SCHEDA_QUALIFICA_FORNITORE: schedaQualificaSlot,
       CREDENTIALS_BLOCK: credentialsPlaceholder,
     };
 
@@ -822,12 +956,16 @@ function executeCombinatorialSynthesis(
   // Sintesi Oggetto
   const rawSubjectWithTokens = replaceDynamicTokens(chosenTemplate.subjectTemplate);
   const resolvedSubject = polishSubjectTypography(
-    resolveClientVariables(rawSubjectWithTokens, '')
+    resolveClientVariables(rawSubjectWithTokens, '', '')
   );
 
-  // Sintesi Corpo
+  // Sintesi Corpo — aggiunge {CREDENTIALS_BLOCK} di fallback solo se il modello non usa alcuna forma di credenziali
   let rawBodyTemplate = chosenTemplate.bodyTemplate;
-  if (!rawBodyTemplate.includes('{CREDENTIALS_BLOCK}')) {
+  const hasAnyCredentialVar =
+    /\{(CREDENTIALS_BLOCK|CREDENZIALI_PROSA|CREDENZIALI_RIGA_FLASH|CREDENZIALI_PS|CREDENZIALI_FILETTO|SCHEDA_QUALIFICA_FORNITORE|USERNAME)\}/.test(
+      rawBodyTemplate
+    );
+  if (!hasAnyCredentialVar) {
     rawBodyTemplate = `${rawBodyTemplate.trim()}\n\n{CREDENTIALS_BLOCK}`;
   }
   const bodyAfterTokens = replaceDynamicTokens(rawBodyTemplate);
@@ -847,7 +985,7 @@ function executeCombinatorialSynthesis(
   });
 
   const resolvedBodyCore = polishBodyTypography(
-    resolveClientVariables(bodyAfterTokens, plainCredentials)
+    resolveClientVariables(bodyAfterTokens, plainCredentials, schedaQualificaPlain)
   );
 
   const signaturePlainLines = [
@@ -863,7 +1001,7 @@ function executeCombinatorialSynthesis(
 
   const bodyText = `${resolvedBodyCore}\n${signaturePlainLines.join('\n')}`;
 
-  // Sintesi HTML con 5 layout istituzionali
+  // Sintesi HTML con layout fedele alla struttura della mail
   const layoutVariant = (
     ['executive_card', 'plain_personal', 'compact_memo', 'accent_stripe', 'clean_table'].includes(
       chosenTemplate.htmlLayoutVariant
@@ -873,8 +1011,9 @@ function executeCombinatorialSynthesis(
   ) as HtmlLayoutVariant;
 
   const htmlSentinel = '___SDR_HTML_CREDENTIALS_SLOT___';
+  const htmlSchedaSentinel = '___SDR_HTML_SCHEDA_QUALIFICA_SLOT___';
   const bodyForHtmlCore = polishBodyTypography(
-    resolveClientVariables(bodyAfterTokens, htmlSentinel)
+    resolveClientVariables(bodyAfterTokens, htmlSentinel, htmlSchedaSentinel)
   );
 
   const htmlCredentials = renderCredentialsHtmlBlock(layoutVariant, {
@@ -899,15 +1038,18 @@ function executeCombinatorialSynthesis(
       const trimmed = block.trim();
       if (!trimmed) return '';
       if (trimmed === htmlSentinel) return htmlCredentials;
-      if (trimmed.includes(htmlSentinel)) {
-        const parts = trimmed.split(htmlSentinel);
-        return parts
-          .map((part, idx) => {
-            const pClean = part.trim();
-            const pHtml = pClean ? formatTextBlockToHtml(pClean) : '';
-            return idx < parts.length - 1 ? `${pHtml}${htmlCredentials}` : pHtml;
-          })
-          .join('\n');
+      if (trimmed === htmlSchedaSentinel) return schedaQualificaHtml;
+      if (trimmed.includes(htmlSentinel) || trimmed.includes(htmlSchedaSentinel)) {
+        const replaced = trimmed
+          .split(htmlSentinel)
+          .map((seg) =>
+            seg
+              .split(htmlSchedaSentinel)
+              .map((sub) => (sub.trim() ? formatTextBlockToHtml(sub.trim()) : ''))
+              .join(schedaQualificaHtml)
+          )
+          .join(htmlCredentials);
+        return replaced;
       }
       return formatTextBlockToHtml(trimmed);
     })
@@ -928,7 +1070,10 @@ function executeCombinatorialSynthesis(
   </p>
 </div>`;
 
-  const cleanPlainText = bodyText.replace(/\*\*([^*]+)\*\*/g, '$1');
+  const cleanPlainText = bodyText
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1');
 
   return {
     subject: resolvedSubject,

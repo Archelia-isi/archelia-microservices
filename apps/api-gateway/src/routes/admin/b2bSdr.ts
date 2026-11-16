@@ -2992,7 +2992,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         `${normalizeBaseUsername(prospect.companyName)}${
           prospect.province ? `.${prospect.province.toLowerCase()}` : ''
         }`;
-      const passwordToUse = promoProspect?.tempPassword || 'Izzo!8Kx4P2';
+      const passwordToUse = promoProspect?.tempPassword || '{{GENERATA_ALL_ATTIVAZIONE}}';
 
       const tailored = await generateCombinatorialOutreachEmail(
         {
@@ -3038,78 +3038,90 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         }
       );
 
-      let savedDraft = existingDraft;
-      if (hasRealCredentials) {
-        savedDraft = existingDraft
-          ? await sdrPrisma.sdrOutreachDraft.update({
-              where: { id: existingDraft.id },
-              data: {
-                subject: tailored.subject,
-                bodyText: tailored.bodyText,
-                bodyHtml: tailored.bodyHtml,
-                templateCode: tailored.templateCode,
-                trackingToken,
-                attachedCatalogUrl:
-                  config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
-                status:
-                  existingDraft.status === 'Inviata'
-                    ? existingDraft.status
-                    : 'Bozza_Pronta',
-              },
-            })
-          : await sdrPrisma.sdrOutreachDraft.create({
-              data: {
-                prospectId: prospect.id,
-                sequenceStep: 1,
-                subject: tailored.subject,
-                bodyText: tailored.bodyText,
-                bodyHtml: tailored.bodyHtml,
-                templateCode: tailored.templateCode,
-                trackingToken,
-                attachedCatalogUrl:
-                  config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
-                assignedAgentId: resolvedAgent.id,
-                assignedAgentCode: resolvedAgent.code,
-                status: 'Bozza_Pronta',
-              },
-            });
-      }
+      const targetStatus = hasRealCredentials
+        ? existingDraft?.status === 'Inviata'
+          ? 'Inviata'
+          : 'Bozza_Pronta'
+        : 'Template_Da_Attivare';
+
+      const savedDraft = existingDraft
+        ? await sdrPrisma.sdrOutreachDraft.update({
+            where: { id: existingDraft.id },
+            data: {
+              subject: tailored.subject,
+              bodyText: tailored.bodyText,
+              bodyHtml: tailored.bodyHtml,
+              templateCode: tailored.templateCode,
+              trackingToken,
+              attachedCatalogUrl:
+                config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
+              status: targetStatus,
+            },
+          })
+        : await sdrPrisma.sdrOutreachDraft.create({
+            data: {
+              prospectId: prospect.id,
+              sequenceStep: 1,
+              subject: tailored.subject,
+              bodyText: tailored.bodyText,
+              bodyHtml: tailored.bodyHtml,
+              templateCode: tailored.templateCode,
+              trackingToken,
+              attachedCatalogUrl:
+                config?.attachCatalogPdf !== false ? smartUrls.apiPdfDownloadUrl : null,
+              assignedAgentId: resolvedAgent.id,
+              assignedAgentCode: resolvedAgent.code,
+              status: targetStatus,
+            },
+          });
 
       return reply.send({
         success: true,
-        savedToDb: hasRealCredentials,
+        savedToDb: true,
         draft: savedDraft,
         generated: tailored,
         message: hasRealCredentials
-          ? `Nuova combinazione generata e salvata: Modello ${tailored.templateCode} (${tailored.tokensReplacedCount} varianti lessicali)!`
-          : `Anteprima generata col Modello ${tailored.templateCode}. Premi "Genera Credenziali + Bozza" per attivare username e password reali.`,
+          ? `Nuova impostazione generata e salvata: Modello ${tailored.templateCode} (${tailored.tokensReplacedCount} varianti lessicali)!`
+          : `Bozza aggiornata col Modello ${tailored.templateCode} (resta disattivata finché non premi "Genera Credenziali & Bozza").`,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
 
-  // Rigenera in blocco combinazioni uniche (100×108) per tutte le bozze in stato Bozza_Pronta
+  // Rigenera in blocco combinazioni e impostazioni strutturali uniche (100×108) per le bozze in coda
   fastify.post('/api/admin/sdr/combinatorial/reroll-ready-drafts', async (request, reply) => {
     try {
       const body = (request.body || {}) as { draftIds?: number[]; limit?: number };
       const requestedIds = Array.isArray(body.draftIds)
         ? body.draftIds.map((n) => Number(n)).filter((n) => !Number.isNaN(n))
         : [];
+      const takeLimit = Math.min(200, Math.max(1, Number(body.limit || 100)));
 
-      const readyDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
+      let targetDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
         where:
           requestedIds.length > 0
-            ? { id: { in: requestedIds }, status: 'Bozza_Pronta' }
+            ? { id: { in: requestedIds }, status: { in: ['Bozza_Pronta', 'Template_Da_Attivare'] } }
             : { status: 'Bozza_Pronta' },
-        take: Math.min(200, Math.max(1, Number(body.limit || 150))),
+        take: takeLimit,
+        orderBy: { updatedAt: 'desc' },
         include: { prospect: true },
       });
 
-      if (readyDrafts.length === 0) {
+      // Se non ci sono Bozza_Pronta ancora attivate, rigeneriamo le prime bozze visibili in coda (mantenendole Template_Da_Attivare)
+      if (targetDrafts.length === 0) {
+        targetDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
+          where: { status: 'Template_Da_Attivare' },
+          take: takeLimit,
+          orderBy: { updatedAt: 'desc' },
+          include: { prospect: true },
+        });
+      }
+
+      if (targetDrafts.length === 0) {
         return reply.status(400).send({
           success: false,
-          error: 'Nessuna bozza in stato Bozza_Pronta da rigenerare.',
+          error: 'Nessuna bozza disponibile da rigenerare.',
         });
       }
 
@@ -3118,7 +3130,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         config?.defaultAgentId || config?.defaultAgentCode
       );
 
-      const promoIds = readyDrafts
+      const promoIds = targetDrafts
         .map((d) => d.prospect?.promoProspectId)
         .filter((id): id is string => Boolean(id));
       const promoRows =
@@ -3127,14 +3139,29 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           : [];
       const promoMap = new Map(promoRows.map((pr) => [pr.id, pr]));
 
+      // Rotazione mescolata 1..100 così ogni riga consecutiva usa un'impostazione strutturale diversa!
+      const shuffledNumbers = Array.from({ length: 100 }, (_, i) => i + 1).sort(
+        () => Math.random() - 0.5
+      );
+
       let updatedCount = 0;
       const usedTemplates = new Set<string>();
 
-      for (const d of readyDrafts) {
+      for (let idx = 0; idx < targetDrafts.length; idx++) {
+        const d = targetDrafts[idx];
         const p = d.prospect;
         if (!p) continue;
         const promo = p.promoProspectId ? promoMap.get(p.promoProspectId) : null;
-        if (!promo?.username || !promo?.tempPassword) continue;
+        const hasRealCreds = Boolean(promo?.username && promo?.tempPassword);
+
+        const usernameToUse = hasRealCreds
+          ? promo!.username
+          : `${normalizeBaseUsername(p.companyName)}${
+              p.province ? `.${p.province.toLowerCase()}` : ''
+            }`;
+        const passwordToUse = hasRealCreds
+          ? promo!.tempPassword!
+          : '{{GENERATA_ALL_ATTIVAZIONE}}';
 
         const clusterCfg = resolveClusterConfig(p.categoryCluster);
         const isRiv =
@@ -3147,40 +3174,52 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const trackingToken = d.trackingToken || generateTrackingToken();
         const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
 
+        // Selezioniamo i codici saltando di +5 (es. T001, T006, T011...) per alternare continuamente le 20 famiglie strutturali!
+        const tplNum = shuffledNumbers[idx % shuffledNumbers.length];
+        const forcedCode = `T${String(tplNum).padStart(3, '0')}`;
+
         const unpackedMeta = unpackProspectRichData(p);
-        const tailored = await generateCombinatorialOutreachEmail({
-          prospectId: p.id,
-          companyName: p.companyName,
-          city: p.city,
-          province: p.province,
-          region: p.region,
-          website: p.website,
-          atecoCode: p.atecoCode,
-          categoryCluster: clusterCfg.cluster,
-          brandsDetected: p.brandsDetected,
-          decisionMaker: unpackedMeta.decisionMaker,
-          richMetadata:
-            p.richMetadata && typeof p.richMetadata === 'object' ? (p.richMetadata as any) : null,
-          username: promo.username,
-          tempPasswordPlain: promo.tempPassword,
-          baseDiscount: baseDiscountNum,
-          extraFirstPurchasePct: config?.enableFirstPurchaseRule !== false ? extraPct : 0,
-          offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
-          minOrderAmountText:
-            config?.minOrderAmountText || "Nessun minimo d'ordine",
-          freeShippingText:
-            config?.freeShippingText ||
-            'Spedizione curata e tracciata in tutta Italia',
-          paymentTermsText:
-            config?.paymentTermsText ||
-            'Credenziali provvisorie gratuite e senza impegno con referente commerciale dedicato',
-          customCommercialNotes: config?.customCommercialNotes,
-          smartCatalogUrl: smartUrls.storefrontOfferUrl,
-          agentName: resolvedAgent.name,
-          agentCode: resolvedAgent.code,
-          agentEmail: resolvedAgent.email,
-          agentPhone: resolvedAgent.phone,
-        });
+        const tailored = await generateCombinatorialOutreachEmail(
+          {
+            prospectId: p.id,
+            companyName: p.companyName,
+            city: p.city,
+            province: p.province,
+            region: p.region,
+            website: p.website,
+            atecoCode: p.atecoCode,
+            categoryCluster: clusterCfg.cluster,
+            brandsDetected: p.brandsDetected,
+            decisionMaker: unpackedMeta.decisionMaker,
+            richMetadata:
+              p.richMetadata && typeof p.richMetadata === 'object'
+                ? (p.richMetadata as any)
+                : null,
+            username: usernameToUse,
+            tempPasswordPlain: passwordToUse,
+            baseDiscount: baseDiscountNum,
+            extraFirstPurchasePct: config?.enableFirstPurchaseRule !== false ? extraPct : 0,
+            offerTitle: `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${formula}`,
+            minOrderAmountText:
+              config?.minOrderAmountText || "Nessun minimo d'ordine",
+            freeShippingText:
+              config?.freeShippingText ||
+              'Spedizione curata e tracciata in tutta Italia',
+            paymentTermsText:
+              config?.paymentTermsText ||
+              'Credenziali provvisorie gratuite e senza impegno con referente commerciale dedicato',
+            customCommercialNotes: config?.customCommercialNotes,
+            smartCatalogUrl: smartUrls.storefrontOfferUrl,
+            agentName: resolvedAgent.name,
+            agentCode: resolvedAgent.code,
+            agentEmail: resolvedAgent.email,
+            agentPhone: resolvedAgent.phone,
+          },
+          {
+            forceTemplateCode: forcedCode,
+            isPreview: !hasRealCreds,
+          }
+        );
 
         await sdrPrisma.sdrOutreachDraft.update({
           where: { id: d.id },
@@ -3190,6 +3229,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             bodyHtml: tailored.bodyHtml,
             templateCode: tailored.templateCode,
             trackingToken,
+            status: hasRealCreds ? 'Bozza_Pronta' : 'Template_Da_Attivare',
           },
         });
 
