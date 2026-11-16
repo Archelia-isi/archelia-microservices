@@ -145,16 +145,17 @@ export async function sendBrevoAgentAlert(params: {
   htmlContent: string;
   tag?: string;
 }): Promise<{ sent: boolean; dryRun: boolean; detail: string }> {
-  if (!env.ENABLE_GLOBAL_WRITES) {
+  const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+  if (!isSdrLive) {
     addSdrLog(
       'BREVO-ALERT',
-      `[DRY-RUN] Notifica Agente bloccata da ENABLE_GLOBAL_WRITES=false -> A: ${params.toEmail} | Oggetto: "${params.subject}"`,
+      `[DRY-RUN] Notifica Agente bloccata da ENABLE_SDR_LIVE_OUTREACH=false -> A: ${params.toEmail} | Oggetto: "${params.subject}"`,
       'INFO'
     );
     return {
       sent: false,
       dryRun: true,
-      detail: 'ENABLE_GLOBAL_WRITES=false (Dry-Run attivo)',
+      detail: 'ENABLE_SDR_LIVE_OUTREACH=false (Dry-Run attivo)',
     };
   }
 

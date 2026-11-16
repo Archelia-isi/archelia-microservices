@@ -220,9 +220,11 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         .reduce((sum, a) => sum + Number(a.effectiveDailyLimit || 0), 0);
       const sentTodayTotal = inboxAccounts.reduce((sum, a) => sum + Number(a.sentToday || 0), 0);
 
+      const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
       return reply.send({
         success: true,
-        enableGlobalWrites: env.ENABLE_GLOBAL_WRITES,
+        enableGlobalWrites: isSdrLive,
+        enableSdrLiveOutreach: isSdrLive,
         kpis: {
           totalProspects,
           emailProntaCount,
@@ -1251,10 +1253,11 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const newStatus = env.ENABLE_GLOBAL_WRITES ? 'In_Coda_SMTP' : 'Inviata_Dry_Run';
+      const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+      const newStatus = isSdrLive ? 'In_Coda_SMTP' : 'Inviata_Dry_Run';
       await sdrPrisma.sdrOutreachDraft.updateMany({
         where: { id: { in: validDraftIds } },
-        data: env.ENABLE_GLOBAL_WRITES
+        data: isSdrLive
           ? { status: newStatus }
           : { status: newStatus, sentAt: new Date() },
       });
@@ -1266,9 +1269,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       addSdrLog(
         'OUTREACH',
-        env.ENABLE_GLOBAL_WRITES
+        isSdrLive
           ? `Accodate ${validDraftIds.length} email B2B verificate sul Pool 60 Caselle Aruba (Time-Fencing + Jitter attivi).`
-          : `[DRY-RUN SICUREZZA] Simulate e accodate ${validDraftIds.length} email B2B sul Pool Aruba (ENABLE_GLOBAL_WRITES=false).`,
+          : `[DRY-RUN SICUREZZA] Simulate e accodate ${validDraftIds.length} email B2B sul Pool Aruba (ENABLE_SDR_LIVE_OUTREACH=false).`,
         'SUCCESS'
       );
 
@@ -1276,10 +1279,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         success: true,
         dispatchedCount: validDraftIds.length,
         blockedUnsafeCount: blockedReasons.length,
-        dryRun: !env.ENABLE_GLOBAL_WRITES,
-        message: env.ENABLE_GLOBAL_WRITES
+        dryRun: !isSdrLive,
+        message: isSdrLive
           ? `${validDraftIds.length} email B2B accodate sul Pool 60 Caselle Aruba con Time-Fencing e Jitter anti-spam.`
-          : `[DRY-RUN SICUREZZA] ${validDraftIds.length} email simulate sul Pool Aruba (ENABLE_GLOBAL_WRITES=false).`,
+          : `[DRY-RUN SICUREZZA] ${validDraftIds.length} email simulate sul Pool Aruba (ENABLE_SDR_LIVE_OUTREACH=false).`,
       });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });

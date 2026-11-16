@@ -131,6 +131,8 @@ async function resolveAgentForProspect(
   };
 }
 
+const IS_SDR_LIVE = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+
 async function sendBrevoReplyAlertToAgent(params: {
   agent: ResolvedAgent;
   companyName: string;
@@ -142,7 +144,7 @@ async function sendBrevoReplyAlertToAgent(params: {
   snippet: string;
   sentiment: string;
 }): Promise<boolean> {
-  if (!env.ENABLE_GLOBAL_WRITES) {
+  if (!IS_SDR_LIVE) {
     pushSdrConsoleLog(
       'BREVO-ALERT',
       `[DRY-RUN] Alert risposta IMAP per Agente ${params.agent.name} (${params.agent.email}) simulato — Prospect: ${params.companyName} (${params.sentiment})`,
@@ -906,8 +908,8 @@ async function dispatchSingleOutreachEmail(draftId: number) {
   // Seleziona la casella migliore dal Pool 60 Aruba
   const selected = await selectAvailableArubaMailbox();
 
-  // MODALITÀ DRY-RUN OBBLIGATORIA SE ENABLE_GLOBAL_WRITES === false
-  if (!env.ENABLE_GLOBAL_WRITES) {
+  // MODALITÀ DRY-RUN SE ENABLE_SDR_LIVE_OUTREACH === false
+  if (!IS_SDR_LIVE) {
     const senderLabel = selected ? selected.acc.email : 'pool-aruba-dryrun@izzodistribuzioneb2b.it';
     pushSdrConsoleLog(
       'DRY-RUN-SMTP',
@@ -1076,7 +1078,7 @@ async function scheduleDispatchBatchWithJitter(draftIds: number[]) {
   const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
 
   // In Dry-Run eseguiamo subito la simulazione per dare feedback istantaneo in console e DB
-  if (!env.ENABLE_GLOBAL_WRITES) {
+  if (!IS_SDR_LIVE) {
     const results = [];
     for (const did of draftIds) {
       try {
@@ -1564,6 +1566,7 @@ function startHealthServerIfConfigured() {
           ok: true,
           service: MODULE_NAME,
           enableGlobalWrites: env.ENABLE_GLOBAL_WRITES,
+          enableSdrLiveOutreach: IS_SDR_LIVE,
           timestamp: new Date().toISOString(),
         })
       );
@@ -1623,7 +1626,7 @@ async function startWorker() {
   }, 30 * 60 * 1000);
 
   log.info(
-    `🚀 Worker AI-SDR Outreach & IMAP Kill-Switch (Pool 60 Caselle Aruba | ENABLE_GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
+    `🚀 Worker AI-SDR Outreach & IMAP Kill-Switch (Pool 60 Caselle Aruba | SDR_LIVE=${IS_SDR_LIVE} | GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
     { module: MODULE_NAME }
   );
 }

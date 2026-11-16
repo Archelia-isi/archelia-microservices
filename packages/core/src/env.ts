@@ -67,6 +67,13 @@ const envSchema = z.object({
       z.boolean()
     )
     .default(false),
+
+  ENABLE_SDR_LIVE_OUTREACH: z
+    .preprocess(
+      (val) => val === true || String(val || '').trim().toLowerCase() === 'true' || String(val || '').trim() === '1',
+      z.boolean()
+    )
+    .default(false),
 });
 
 function loadEnv() {
