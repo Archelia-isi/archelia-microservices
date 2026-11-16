@@ -92,16 +92,16 @@ export default async function PublicSdrOfferPage({
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
-              ⚡ Catalistino B2B Riservato • Pronta Consegna 2gg (24/48h)
+              Presentazione Fornitore B2B • Estratto Catalistino Riservato
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Proposta Commerciale riservata a {offer.companyName}
+              Prospetto Commerciale riservato a {offer.companyName}
             </h1>
             <p className="text-gray-300 text-sm md:text-base max-w-3xl">
-              {offer.offerTitle} — Sconto Riservato{' '}
-              <strong className="text-amber-400">{offer.discountFormula}</strong> attivo
-              automaticamente a carrello sul 1° acquisto per tutti gli articoli disponibili nel
-              Deposito Principale (2gg).
+              {offer.offerTitle} — Sconto riservato{' '}
+              <strong className="text-amber-400">{offer.discountFormula}</strong> a cascata
+              associato all&apos;eventuale primo ordine sugli articoli in pronta disponibilità a
+              magazzino. Consultazione gratuita e priva di qualsiasi vincolo commerciale.
             </p>
             <div className="flex flex-wrap gap-3 pt-1 text-xs text-gray-300">
               <span className="px-3 py-1.5 rounded-lg bg-white/10">
@@ -121,7 +121,7 @@ export default async function PublicSdrOfferPage({
             {offer.username && (
               <div className="text-xs text-gray-200 bg-black/40 rounded-lg px-3 py-2 border border-white/10">
                 <span className="block text-gray-400 uppercase text-[10px] font-bold">
-                  Username Portale B2B Attivo
+                  Utente Provvisorio di Consultazione (Gratuito)
                 </span>
                 <code className="text-sm font-bold text-amber-300">{offer.username}</code>
               </div>
@@ -131,14 +131,14 @@ export default async function PublicSdrOfferPage({
               href={pdfDownloadUrl}
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-500 text-black font-bold text-sm hover:bg-amber-400 transition shadow"
             >
-              📥 Scarica Catalistino PDF 2gg
+              📥 Scarica Estratto Catalistino PDF
             </a>
 
             <Link
-              href="/login"
+              href={offer.username ? `/login?u=${encodeURIComponent(offer.username)}` : '/login'}
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-gray-900 font-bold text-sm hover:bg-gray-100 transition"
             >
-              🔑 Accedi al Portale B2B e Ordina →
+              🔑 Accedi al Portale B2B →
             </Link>
           </div>
         </div>
@@ -148,7 +148,7 @@ export default async function PublicSdrOfferPage({
       <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-5 py-3.5 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm font-bold text-gray-800">
-            📄 Anteprima Diretta Catalistino Pronta Consegna 2gg — {offer.companyName} (Sconto{' '}
+            📄 Anteprima Estratto Catalistino Riservato — {offer.companyName} (Condizione 1° ordine{' '}
             {offer.discountFormula})
           </div>
           <a
@@ -166,6 +166,15 @@ export default async function PublicSdrOfferPage({
           />
         </div>
       </section>
+
+      {/* FOOTER SOCIETARIO IZZO DISTRIBUZIONE S.R.L. */}
+      <footer className="text-center text-xs text-gray-500 py-4 border-t border-gray-200">
+        <strong>Izzo Distribuzione S.r.l.</strong> — Sede legale: Contrada Piano Cappelle 8, 82100
+        Benevento (BN) — P.IVA 01868260629 — REA BN-309049 — Portale B2B:{' '}
+        <a href="https://www.izzodistribuzione.it" className="underline hover:text-gray-800">
+          www.izzodistribuzione.it
+        </a>
+      </footer>
     </main>
   );
 }
