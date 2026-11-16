@@ -221,10 +221,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const sentTodayTotal = inboxAccounts.reduce((sum, a) => sum + Number(a.sentToday || 0), 0);
 
       const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+      const interceptEmail = String(env.SDR_TEST_INTERCEPT_EMAIL || '').trim().toLowerCase() || null;
       return reply.send({
         success: true,
         enableGlobalWrites: isSdrLive,
         enableSdrLiveOutreach: isSdrLive,
+        sdrTestInterceptEmail: interceptEmail,
         kpis: {
           totalProspects,
           emailProntaCount,

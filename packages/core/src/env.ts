@@ -74,6 +74,8 @@ const envSchema = z.object({
       z.boolean()
     )
     .default(false),
+
+  SDR_TEST_INTERCEPT_EMAIL: z.string().default(''),
 });
 
 function loadEnv() {

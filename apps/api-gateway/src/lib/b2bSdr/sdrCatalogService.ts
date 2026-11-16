@@ -146,6 +146,8 @@ export async function sendBrevoAgentAlert(params: {
   tag?: string;
 }): Promise<{ sent: boolean; dryRun: boolean; detail: string }> {
   const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+  const interceptTo = String(env.SDR_TEST_INTERCEPT_EMAIL || '').trim().toLowerCase();
+  const effectiveToEmail = interceptTo || params.toEmail;
   if (!isSdrLive) {
     addSdrLog(
       'BREVO-ALERT',
@@ -183,7 +185,7 @@ export async function sendBrevoAgentAlert(params: {
           name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
           email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
         },
-        to: [{ email: params.toEmail, name: params.toName }],
+        to: [{ email: effectiveToEmail, name: params.toName }],
         subject: params.subject,
         htmlContent: params.htmlContent,
         tags: params.tag ? [params.tag] : ['sdr-agent-alert'],

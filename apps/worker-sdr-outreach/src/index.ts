@@ -132,6 +132,7 @@ async function resolveAgentForProspect(
 }
 
 const IS_SDR_LIVE = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
+const SDR_INTERCEPT_TO = String(env.SDR_TEST_INTERCEPT_EMAIL || '').trim().toLowerCase();
 
 async function sendBrevoReplyAlertToAgent(params: {
   agent: ResolvedAgent;
@@ -179,7 +180,7 @@ async function sendBrevoReplyAlertToAgent(params: {
           name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
           email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
         },
-        to: [{ email: params.agent.email, name: params.agent.name }],
+        to: [{ email: SDR_INTERCEPT_TO || params.agent.email, name: params.agent.name }],
         replyTo: { email: params.fromEmail, name: params.companyName },
         subject: `🔥 [RISPOSTA LEAD B2B] ${params.companyName} (${params.city || 'IT'}) ha risposto! [${params.sentiment}]`,
         tags: ['sdr-imap-reply-alert'],
@@ -943,8 +944,8 @@ async function dispatchSingleOutreachEmail(draftId: number) {
     };
   }
 
-  // INVIO REALE (ENABLE_GLOBAL_WRITES === true): Time-Fencing Lun-Ven + Jitter + Aruba SSL 465
-  const fenceDelayMs = computeTimeFencingDelayMs(config || {});
+  // INVIO REALE: Time-Fencing Lun-Ven + Jitter + Aruba SSL 465 (bypass pausa pranzo in modalità Intercettore Test)
+  const fenceDelayMs = SDR_INTERCEPT_TO ? 0 : computeTimeFencingDelayMs(config || {});
   if (fenceDelayMs > 0) {
     const jitterMs =
       computeGaussianJitterSeconds(
@@ -987,6 +988,14 @@ async function dispatchSingleOutreachEmail(draftId: number) {
     throw new Error(`Password SMTP non configurata per la casella ${inbox.email}`);
   }
 
+  // BLOCCO FISICO ANTI-INVIO A TERZI QUANDO SDR_TEST_INTERCEPT_EMAIL È ATTIVO
+  const finalSmtpRecipient = SDR_INTERCEPT_TO || recipientEmail;
+  if (SDR_INTERCEPT_TO && finalSmtpRecipient !== SDR_INTERCEPT_TO) {
+    throw new Error(
+      `BLOCCO SICUREZZA INTERCETTORE: destinatario ${finalSmtpRecipient} diverso da ${SDR_INTERCEPT_TO}`
+    );
+  }
+
   const senderDomain = inbox.email.split('@')[1] || 'izzodistribuzioneb2b.it';
   const customMessageId = `<sdr.${draft.id}.${Date.now()}.${crypto
     .randomBytes(4)
@@ -1008,7 +1017,7 @@ async function dispatchSingleOutreachEmail(draftId: number) {
   try {
     await transporter.sendMail({
       from: `"${inbox.displayName}" <${inbox.email}>`,
-      to: recipientEmail,
+      to: finalSmtpRecipient,
       replyTo: inbox.email,
       subject: draft.subject,
       text: draft.bodyText,
@@ -1016,6 +1025,7 @@ async function dispatchSingleOutreachEmail(draftId: number) {
       messageId: customMessageId,
       headers: {
         'X-Auto-Response-Suppress': 'OOF, AutoReply',
+        ...(SDR_INTERCEPT_TO ? { 'X-SDR-Original-Company-Email': recipientEmail } : {}),
       },
     });
     transporter.close();
@@ -1032,7 +1042,7 @@ async function dispatchSingleOutreachEmail(draftId: number) {
       sdrPrisma.sdrOutreachDraft.update({
         where: { id: draft.id },
         data: {
-          status: 'Inviata',
+          status: SDR_INTERCEPT_TO ? 'Inviata_Dry_Run' : 'Inviata',
           senderInboxId: inbox.id,
           messageIdHeader: customMessageId,
           sentAt: new Date(),
@@ -1041,22 +1051,26 @@ async function dispatchSingleOutreachEmail(draftId: number) {
       sdrPrisma.sdrProspect.update({
         where: { id: draft.prospectId },
         data: {
-          pipelineStatus: 'Email_Inviata',
+          pipelineStatus: SDR_INTERCEPT_TO ? 'Inviata_Dry_Run' : 'Email_Inviata',
         },
       }),
     ]);
 
     pushSdrConsoleLog(
       'SMTP-ARUBA',
-      `Email inviata con successo da ${inbox.email} (${inbox.sentToday + 1}/${selected.effectiveLimit} W${selected.warmupWeek}) -> ${recipientEmail} (${draft.prospect.companyName})`,
+      SDR_INTERCEPT_TO
+        ? `[INTERCETTATO -> ${finalSmtpRecipient}] Da ${inbox.email} (per azienda ${draft.prospect.companyName}, email reale ${recipientEmail} NON contattata)`
+        : `Email inviata con successo da ${inbox.email} (${inbox.sentToday + 1}/${selected.effectiveLimit} W${selected.warmupWeek}) -> ${recipientEmail} (${draft.prospect.companyName})`,
       'SUCCESS'
     );
 
     return {
       dryRun: false,
+      interceptedTo: SDR_INTERCEPT_TO || null,
       draftId: draft.id,
       senderEmail: inbox.email,
-      recipientEmail,
+      recipientEmail: finalSmtpRecipient,
+      originalCompanyEmail: recipientEmail,
       messageId: customMessageId,
     };
   } catch (smtpErr: any) {
@@ -1096,7 +1110,7 @@ async function scheduleDispatchBatchWithJitter(draftIds: number[]) {
     1,
     await sdrPrisma.sdrInboxAccount.count({ where: { isActive: true } })
   );
-  const baseFenceDelay = computeTimeFencingDelayMs(config || {});
+  const baseFenceDelay = SDR_INTERCEPT_TO ? 0 : computeTimeFencingDelayMs(config || {});
   const minJ = config?.jitterMinSeconds || 180;
   const maxJ = config?.jitterMaxSeconds || 420;
 
@@ -1105,9 +1119,10 @@ async function scheduleDispatchBatchWithJitter(draftIds: number[]) {
     const did = Number(draftIds[idx]);
     if (Number.isNaN(did)) continue;
     const waveNumber = Math.floor(idx / activeCount);
-    const slotJitterMs =
-      waveNumber * computeGaussianJitterSeconds(minJ, maxJ) * 1000 +
-      Math.floor(Math.random() * 45000);
+    const slotJitterMs = SDR_INTERCEPT_TO
+      ? idx * 4500
+      : waveNumber * computeGaussianJitterSeconds(minJ, maxJ) * 1000 +
+        Math.floor(Math.random() * 45000);
 
     await sdrOutreachQueue.add(
       SDR_JOBS.DISPATCH_SINGLE,
@@ -1567,6 +1582,7 @@ function startHealthServerIfConfigured() {
           service: MODULE_NAME,
           enableGlobalWrites: env.ENABLE_GLOBAL_WRITES,
           enableSdrLiveOutreach: IS_SDR_LIVE,
+          sdrTestInterceptEmail: SDR_INTERCEPT_TO || null,
           timestamp: new Date().toISOString(),
         })
       );
@@ -1626,7 +1642,7 @@ async function startWorker() {
   }, 30 * 60 * 1000);
 
   log.info(
-    `🚀 Worker AI-SDR Outreach & IMAP Kill-Switch (Pool 60 Caselle Aruba | SDR_LIVE=${IS_SDR_LIVE} | GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
+    `🚀 Worker AI-SDR Outreach & IMAP Kill-Switch (Pool 60 Caselle Aruba | SDR_LIVE=${IS_SDR_LIVE} | INTERCEPT_TO=${SDR_INTERCEPT_TO || 'OFF'} | GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
     { module: MODULE_NAME }
   );
 }
