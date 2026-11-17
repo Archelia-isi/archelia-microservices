@@ -11,6 +11,8 @@ import {
   FileText,
   BookOpen,
   Inbox,
+  ShieldCheck,
+  Clock,
 } from 'lucide-react';
 import GlassPanel from '../../components/ui/GlassPanel';
 import Badge from '../../components/ui/Badge';
@@ -18,6 +20,7 @@ import Button from '../../components/ui/Button';
 import TextInput from '../../components/ui/TextInput';
 import Select from '../../components/ui/Select';
 import Modal from '../../components/ui/Modal';
+import toast from 'react-hot-toast';
 import { sanitizeEmailHtml } from './constants';
 import SdrCombinatorialStudioPanel, {
   type CombinatorialSubMode,
@@ -34,6 +37,7 @@ interface SdrDraftsConfigTabProps {
   config: SdrOutreachConfigState;
   setConfig: (cfg: SdrOutreachConfigState) => void;
   b2bAgents: SdrB2BAgentOption[];
+  statsKpis?: any;
   enableGlobalWrites: boolean;
   onDispatchOutreach: (draftIds?: number[]) => void;
   onRerollSingleDraft: (prospectId: number) => void;
@@ -43,6 +47,58 @@ interface SdrDraftsConfigTabProps {
   onOpenDossier: (prospectId: number) => void;
   onDownloadCatalogPdf: (prospectId: number, companyName: string) => void;
   onCopySmartLink: (prospectId: number) => void;
+}
+
+function resolveDraftStepMeta(
+  d: any,
+  step2Days = 10,
+  step3Days = 5
+): {
+  code: '1' | '1B' | '2' | '3';
+  label: string;
+  variant: 'neutral' | 'success' | 'primary' | 'warning';
+  detail: string;
+} {
+  const rawStep = Number(d?.sequenceStep || 1);
+  const tpl = String(d?.templateCode || '').toUpperCase();
+  const subj = String(d?.subject || '').trim();
+
+  if (
+    rawStep === 10 ||
+    tpl.includes('1B') ||
+    tpl.includes('CONSENT') ||
+    tpl.includes('CONSENSO') ||
+    (rawStep === 1 && /^re:/i.test(subj))
+  ) {
+    return {
+      code: '1B',
+      label: 'Step 1B • Risposta Sì',
+      variant: 'success',
+      detail: 'Invio dopo 15–25 min • 1 solo link offerta, zero password',
+    };
+  }
+  if (rawStep === 2 || tpl.includes('STEP2') || tpl.includes('STEP_2')) {
+    return {
+      code: '2',
+      label: `Step 2 • +${step2Days}gg Link`,
+      variant: 'primary',
+      detail: 'Follow-up sobrio senza risposta • 1 solo link offerta',
+    };
+  }
+  if (rawStep === 3 || tpl.includes('STEP3') || tpl.includes('STEP_3')) {
+    return {
+      code: '3',
+      label: `Step 3 • +${step3Days}gg Caldi`,
+      variant: 'warning',
+      detail: 'Nota 1-a-1 solo per chi ha aperto PDF/Portale senza ordinare',
+    };
+  }
+  return {
+    code: '1',
+    label: 'Step 1 • Conversazione Pura',
+    variant: 'neutral',
+    detail: 'Zero link • Zero password • Contatto umano 1-a-1',
+  };
 }
 
 export default function SdrDraftsConfigTab({
@@ -55,6 +111,7 @@ export default function SdrDraftsConfigTab({
   config,
   setConfig,
   b2bAgents,
+  statsKpis,
   enableGlobalWrites,
   onDispatchOutreach,
   onRerollSingleDraft,
@@ -67,13 +124,32 @@ export default function SdrDraftsConfigTab({
 }: SdrDraftsConfigTabProps) {
   const [draftsSection, setDraftsSection] = useState<'queue' | CombinatorialSubMode>('queue');
   const [draftStatusFilter, setDraftStatusFilter] = useState<string>('ALL');
+  const [draftStepFilter, setDraftStepFilter] = useState<'ALL' | '1' | '1B' | '2' | '3'>('ALL');
   const [draftSearch, setDraftSearch] = useState<string>('');
   const [previewDraft, setPreviewDraft] = useState<any | null>(null);
+  const [liveCredits, setLiveCredits] = useState<{
+    provider?: string;
+    balance?: number | null;
+    checking?: boolean;
+  }>({});
+
+  const step2Days = Number(config.step2DelayDays ?? 10);
+  const step3Days = Number(config.step3WarmDelayDays ?? 5);
 
   if (mode === 'drafts') {
     const readyDrafts = drafts.filter((d) => d.status === 'Bozza_Pronta');
+    const stepCounts = { '1': 0, '1B': 0, '2': 0, '3': 0 };
+    drafts.forEach((d) => {
+      const m = resolveDraftStepMeta(d, step2Days, step3Days);
+      stepCounts[m.code] += 1;
+    });
+
     const filteredDrafts = drafts.filter((d) => {
       if (draftStatusFilter !== 'ALL' && d.status !== draftStatusFilter) return false;
+      if (draftStepFilter !== 'ALL') {
+        const m = resolveDraftStepMeta(d, step2Days, step3Days);
+        if (m.code !== draftStepFilter) return false;
+      }
       if (draftSearch.trim()) {
         const q = draftSearch.toLowerCase();
         const hay = `${d.subject || ''} ${d.templateCode || ''} ${d.prospect?.companyName || ''} ${d.prospect?.ordinaryEmail || ''}`.toLowerCase();
@@ -215,6 +291,41 @@ export default function SdrDraftsConfigTab({
                   </Button>
                 </div>
               </div>
+
+              {/* FILTRO PER STEP DELLA SEQUENZA ANTI-SPAM A 3 TEMPI */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  marginTop: '10px',
+                  paddingTop: '10px',
+                  borderTop: '1px solid var(--color-border)',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--color-text-muted)', marginRight: '4px' }}>
+                  SEQUENZA 3 TEMPI:
+                </span>
+                {(
+                  [
+                    { id: 'ALL', label: `Tutti gli Step (${drafts.length})` },
+                    { id: '1', label: `Step 1 • Conversazione Pura (${stepCounts['1']})` },
+                    { id: '1B', label: `Step 1B • Risposta Sì (${stepCounts['1B']})` },
+                    { id: '2', label: `Step 2 • +${step2Days}gg Link (${stepCounts['2']})` },
+                    { id: '3', label: `Step 3 • +${step3Days}gg Caldi (${stepCounts['3']})` },
+                  ] as const
+                ).map((sBtn) => (
+                  <Button
+                    key={sBtn.id}
+                    variant={draftStepFilter === sBtn.id ? 'primary' : 'secondary'}
+                    size="sm"
+                    onClick={() => setDraftStepFilter(sBtn.id)}
+                  >
+                    {sBtn.label}
+                  </Button>
+                ))}
+              </div>
             </GlassPanel>
 
             <GlassPanel padding="none" radius="lg" style={{ overflowX: 'auto' }}>
@@ -244,7 +355,9 @@ export default function SdrDraftsConfigTab({
                       </td>
                     </tr>
                   ) : (
-                    filteredDrafts.map((d: any) => (
+                    filteredDrafts.map((d: any) => {
+                      const stepMeta = resolveDraftStepMeta(d, step2Days, step3Days);
+                      return (
                       <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ fontWeight: 800 }}>{d.prospect?.companyName || `Lead #${d.prospectId}`}</div>
@@ -252,15 +365,18 @@ export default function SdrDraftsConfigTab({
                             {d.prospect?.ordinaryEmail || '—'}
                           </div>
                         </td>
-                        <td style={{ padding: '10px 12px', maxWidth: '390px' }}>
+                        <td style={{ padding: '10px 12px', maxWidth: '410px' }}>
                           <div style={{ fontWeight: 700 }}>{d.subject}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', alignItems: 'center', marginTop: '2px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', alignItems: 'center', marginTop: '3px', flexWrap: 'wrap' }}>
+                            <Badge variant={stepMeta.variant} size="sm">
+                              {stepMeta.label}
+                            </Badge>
                             {d.templateCode && (
                               <Badge variant="neutral" size="sm">
                                 Madre {d.templateCode}
                               </Badge>
                             )}
-                            <span>Step {d.sequenceStep || 1} • Smart Link Catalistino PDF incluso</span>
+                            <span>{stepMeta.detail}</span>
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '11.5px' }}>
@@ -341,7 +457,8 @@ export default function SdrDraftsConfigTab({
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -531,6 +648,160 @@ export default function SdrDraftsConfigTab({
             value={config.paymentTermsText || ''}
             onChange={(e) => setConfig({ ...config, paymentTermsText: e.target.value })}
           />
+        </div>
+      </GlassPanel>
+
+      {/* PULIZIA AUTOMATICA PRE-INVIO EMAIL ("MAN MANO CHE INVII" — EMAIL-VALIDATION.ORG EU / MILLIONVERIFIER) */}
+      <GlassPanel padding="lg" radius="lg">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '15px' }}>
+              <ShieldCheck size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              Pulizia Automatica Pre-Invio Email (&quot;Man Mano che Invii&quot;)
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Supporta nativamente <strong>email-validation.org (EU GDPR `ev_live_...`)</strong> e <strong>MillionVerifier</strong>: verifica ogni email una sola volta prima del 1° invio su Aruba e sposta le inesistenti in &quot;Solo Telefono / WhatsApp&quot;.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Badge
+              variant={
+                config.hasMillionVerifierKey || (config.millionVerifierApiKey || '').trim().length > 0
+                  ? 'success'
+                  : 'warning'
+              }
+              size="sm"
+            >
+              {config.hasMillionVerifierKey || (config.millionVerifierApiKey || '').trim().length > 0
+                ? `ATTIVO • ${liveCredits.provider || config.emailVerifierProvider || statsKpis?.emailVerifierProvider || 'Provider API'}`
+                : 'IN ATTESA API KEY (FALLBACK DNS MX ATTIVO)'}
+            </Badge>
+            {(liveCredits.balance ?? statsKpis?.emailVerifierCredits) != null && (
+              <Badge variant="primary" size="sm">
+                💳 Crediti residui:{' '}
+                {Number(liveCredits.balance ?? statsKpis?.emailVerifierCredits ?? 0).toLocaleString(
+                  'it-IT'
+                )}
+              </Badge>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={Boolean(liveCredits.checking)}
+              onClick={async () => {
+                try {
+                  setLiveCredits((prev) => ({ ...prev, checking: true }));
+                  const res = await fetch(`${apiUrl}/api/admin/sdr/email-verifier/credits`, {
+                    headers: authHeaders(),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setLiveCredits({
+                      provider: data.provider,
+                      balance: data.balance,
+                      checking: false,
+                    });
+                    toast.success(data.message || 'Connessione API verifica email attiva!');
+                  } else {
+                    setLiveCredits((prev) => ({ ...prev, checking: false }));
+                    toast.error(data.error || data.message || 'Verifica crediti non riuscita');
+                  }
+                } catch {
+                  setLiveCredits((prev) => ({ ...prev, checking: false }));
+                  toast.error('Errore di connessione durante la verifica crediti');
+                }
+              }}
+            >
+              {liveCredits.checking ? 'Verifica...' : 'Verifica Crediti API'}
+            </Button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginBottom: '14px',
+          }}
+        >
+          <Badge variant="success" size="sm">
+            🟢 Valide: {Number(statsKpis?.emailValidCount || 0).toLocaleString('it-IT')}
+          </Badge>
+          <Badge variant="danger" size="sm">
+            🔴 Invalide spostate in Telefono:{' '}
+            {Number(
+              statsKpis?.emailInvalidMovedToPhoneCount ?? statsKpis?.emailInvalidCount ?? 0
+            ).toLocaleString('it-IT')}
+          </Badge>
+          <Badge variant="warning" size="sm">
+            🟡 Catch-All (max 1/g per casella):{' '}
+            {Number(statsKpis?.emailCatchAllCount || 0).toLocaleString('it-IT')}
+          </Badge>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', alignItems: 'end' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, paddingBottom: '8px' }}>
+            <input
+              type="checkbox"
+              checked={config.enableMillionVerifier !== false}
+              onChange={(e) => setConfig({ ...config, enableMillionVerifier: e.target.checked })}
+            />
+            Attiva verifica automatica pre-invio MillionVerifier
+          </label>
+          <TextInput
+            label="Chiave API Verifica Email (ev_live_... email-validation.org EU oppure MillionVerifier)"
+            type="password"
+            placeholder="ev_live_... oppure API Key MillionVerifier"
+            value={config.millionVerifierApiKey || ''}
+            onChange={(e) => setConfig({ ...config, millionVerifierApiKey: e.target.value })}
+          />
+        </div>
+      </GlassPanel>
+
+      {/* SEQUENZA ANTI-SPAM A 3 TEMPI (STEP 1 -> STEP 1B / STEP 2 +10GG -> STEP 3 +5GG CALDI) */}
+      <GlassPanel padding="lg" radius="lg">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '15px' }}>
+              <Clock size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              Sequenza Email Anti-Spam a 3 Tempi (Conversazione Pura → Link → Solo Caldi)
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Step 1 senza link né password • Step 1B automatico dopo 15–25 min se il cliente risponde &quot;Sì&quot; • Step 2 con 1 link offerta • Step 3 solo per chi apre il PDF/Portale senza ordinare (si ferma subito se Daniele segna il cliente chiamato).
+            </div>
+          </div>
+          <Badge variant="primary" size="sm">STESSA CASELLA ARUBA PER INTERA CONVERSAZIONE</Badge>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '10px' }}>
+          <TextInput
+            label="Giorni Attesa Step 2 (chi non ha risposto allo Step 1)"
+            type="number"
+            min={1}
+            max={60}
+            value={String(config.step2DelayDays ?? 10)}
+            onChange={(e) =>
+              setConfig({ ...config, step2DelayDays: Math.max(1, Number(e.target.value) || 10) })
+            }
+          />
+          <TextInput
+            label="Giorni Attesa Step 3 Solo Caldi (dopo apertura PDF / Login senza ordine)"
+            type="number"
+            min={1}
+            max={30}
+            value={String(config.step3WarmDelayDays ?? 5)}
+            onChange={(e) =>
+              setConfig({ ...config, step3WarmDelayDays: Math.max(1, Number(e.target.value) || 5) })
+            }
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Badge variant="neutral" size="sm">Step 1 • Conversazione Pura (Giorno 1)</Badge>
+          <Badge variant="success" size="sm">Step 1B • Risposta Sì (15–25 min)</Badge>
+          <Badge variant="primary" size="sm">Step 2 • +{config.step2DelayDays ?? 10}gg Link</Badge>
+          <Badge variant="warning" size="sm">Step 3 • +{config.step3WarmDelayDays ?? 5}gg Caldi</Badge>
         </div>
       </GlassPanel>
 

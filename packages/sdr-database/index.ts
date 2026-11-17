@@ -414,23 +414,49 @@ export function decryptSdrSecret(storedValue?: string | null): string {
 }
 
 // ============================================================================
-// 4. RAMP-UP AUTOMATICO 3 SETTIMANE PER POOL CASELLE ARUBA (5 -> 10 -> 15/g)
+// 4. RAMP-UP "PARTENZA MORBIDA 14GG" PER POOL 60 CASELLE ARUBA (2 -> 3 -> 5 -> 10+/g)
 // ============================================================================
 
-export function computeEffectiveInboxDailyLimit(account: {
-  warmupEnabled?: boolean | null;
-  warmupStartedAt?: Date | string | null;
-  dailyLimit?: number | null;
-  targetDailyLimit?: number | null;
-}): {
+export type SdrSpeedProfile = 'PRUDENT_WARMUP' | 'SOFT_14D' | 'STANDARD' | 'FULL_REGIME';
+
+export function computeEffectiveInboxDailyLimit(
+  account: {
+    warmupEnabled?: boolean | null;
+    warmupStartedAt?: Date | string | null;
+    dailyLimit?: number | null;
+    targetDailyLimit?: number | null;
+    speedProfile?: string | null;
+  },
+  speedProfileOverride?: string | { speedProfile?: string | null } | null
+): {
   effectiveDailyLimit: number;
-  warmupWeek: 1 | 2 | 3;
+  warmupWeek: 1 | 2 | 3 | 4;
   daysActive: number;
+  phaseLabel: string;
 } {
   const target = Math.max(1, Number(account.targetDailyLimit || account.dailyLimit || 15));
-  if (account.warmupEnabled === false) {
+  const resolvedProfile = String(
+    (typeof speedProfileOverride === 'string'
+      ? speedProfileOverride
+      : speedProfileOverride?.speedProfile) ||
+      account.speedProfile ||
+      'PRUDENT_WARMUP'
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    account.warmupEnabled === false &&
+    resolvedProfile !== 'PRUDENT_WARMUP' &&
+    resolvedProfile !== 'SOFT_14D'
+  ) {
     const fixed = Math.max(1, Number(account.dailyLimit || target));
-    return { effectiveDailyLimit: fixed, warmupWeek: 3, daysActive: 21 };
+    return {
+      effectiveDailyLimit: fixed,
+      warmupWeek: 4,
+      daysActive: 28,
+      phaseLabel: `Regime fisso (${fixed}/g)`,
+    };
   }
 
   const startedMs = account.warmupStartedAt
@@ -438,24 +464,77 @@ export function computeEffectiveInboxDailyLimit(account: {
     : Date.now();
   const daysActive = Math.max(0, Math.floor((Date.now() - startedMs) / 86_400_000));
 
-  if (daysActive < 7) {
+  if (resolvedProfile === 'FULL_REGIME') {
     return {
-      effectiveDailyLimit: Math.min(target, 5),
+      effectiveDailyLimit: target,
+      warmupWeek: 4,
+      daysActive,
+      phaseLabel: `Pieno Regime (${target}/g)`,
+    };
+  }
+
+  if (resolvedProfile === 'STANDARD') {
+    if (daysActive < 7) {
+      const lim = Math.min(target, 5);
+      return {
+        effectiveDailyLimit: lim,
+        warmupWeek: 1,
+        daysActive,
+        phaseLabel: `Marcia Standard Settimana 1 (${lim}/g)`,
+      };
+    }
+    const lim = Math.min(target, 10);
+    return {
+      effectiveDailyLimit: lim,
+      warmupWeek: daysActive < 14 ? 2 : 3,
+      daysActive,
+      phaseLabel: `Marcia Standard (${lim}/g)`,
+    };
+  }
+
+  // Default: PRUDENT_WARMUP / SOFT_14D ("Partenza Morbida 14gg": 2/g W1 -> 3/g W2 -> 5/g W3 -> 10+ dopo)
+  if (daysActive < 7) {
+    const lim = Math.min(target, 2);
+    return {
+      effectiveDailyLimit: lim,
       warmupWeek: 1,
       daysActive,
+      phaseLabel: `Partenza Morbida Settimana 1 (${lim}/g)`,
     };
   }
   if (daysActive < 14) {
+    const lim = Math.min(target, 3);
     return {
-      effectiveDailyLimit: Math.min(target, 10),
+      effectiveDailyLimit: lim,
       warmupWeek: 2,
       daysActive,
+      phaseLabel: `Partenza Morbida Settimana 2 (${lim}/g)`,
     };
   }
+  if (daysActive < 21) {
+    const lim = Math.min(target, 5);
+    return {
+      effectiveDailyLimit: lim,
+      warmupWeek: 3,
+      daysActive,
+      phaseLabel: `Consolidamento Settimana 3 (${lim}/g)`,
+    };
+  }
+  if (daysActive < 28) {
+    const lim = Math.min(target, 10);
+    return {
+      effectiveDailyLimit: lim,
+      warmupWeek: 4,
+      daysActive,
+      phaseLabel: `Regime Settimana 4 (${lim}/g)`,
+    };
+  }
+  const fullLim = Math.max(10, target);
   return {
-    effectiveDailyLimit: target,
-    warmupWeek: 3,
+    effectiveDailyLimit: Math.min(target, fullLim),
+    warmupWeek: 4,
     daysActive,
+    phaseLabel: `Regime Consolidato (${Math.min(target, fullLim)}/g)`,
   };
 }
 
@@ -486,8 +565,8 @@ export interface BuildOutreachEmailInput {
   brandsDetected?: string | string[] | null;
   decisionMaker?: string | null;
   richMetadata?: Record<string, any> | null;
-  username: string;
-  tempPasswordPlain: string;
+  username?: string | null;
+  tempPasswordPlain?: string | null;
   baseDiscount: number;
   extraFirstPurchasePct: number;
   offerTitle: string;
@@ -500,6 +579,8 @@ export interface BuildOutreachEmailInput {
   agentCode: string;
   agentEmail?: string | null;
   agentPhone?: string | null;
+  senderInboxEmail?: string | null;
+  sequenceStep?: number | null;
 }
 
 import {

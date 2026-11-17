@@ -181,6 +181,40 @@ export default function SdrProspectsTableTab({
         })}
       </div>
 
+      {/* CONTATORI PULIZIA PRE-INVIO MILLIONVERIFIER */}
+      <GlassPanel padding="sm" radius="lg">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+            fontSize: '12px',
+          }}
+        >
+          <div style={{ fontWeight: 800 }}>
+            🛡️ Verifica Email Pre-Invio (&quot;Man Mano che Invii&quot; — email-validation.org EU / MillionVerifier)
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Badge variant="success" size="sm">
+              🟢 Valide: {Number(prospectsSummary.emailValidCount || 0).toLocaleString('it-IT')}
+            </Badge>
+            <Badge variant="danger" size="sm">
+              🔴 Invalide spostate in Telefono:{' '}
+              {Number(
+                prospectsSummary.emailInvalidMovedToPhoneCount ??
+                  prospectsSummary.emailInvalidCount ??
+                  0
+              ).toLocaleString('it-IT')}
+            </Badge>
+            <Badge variant="warning" size="sm">
+              🟡 Catch-All: {Number(prospectsSummary.emailCatchAllCount || 0).toLocaleString('it-IT')}
+            </Badge>
+          </div>
+        </div>
+      </GlassPanel>
+
       {/* PILLS DEGLI 11 CLUSTER CANONICI DB CON CONTEGGIO REALE */}
       <GlassPanel padding="sm" radius="lg">
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -517,15 +551,29 @@ export default function SdrProspectsTableTab({
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {p.ordinaryEmail ? (
-                        <div
-                          onClick={() => onCopyValue(p.ordinaryEmail, 'Email')}
-                          style={{ fontWeight: 700, color: '#16a34a', cursor: 'pointer' }}
-                        >
-                          ✉️ {p.ordinaryEmail}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span
+                            onClick={() => onCopyValue(p.ordinaryEmail, 'Email')}
+                            style={{ fontWeight: 700, color: '#16a34a', cursor: 'pointer' }}
+                          >
+                            ✉️ {p.ordinaryEmail}
+                          </span>
+                          {p.emailVerifyStatus === 'VALID' && (
+                            <Badge variant="success" size="sm">🟢 Valida</Badge>
+                          )}
+                          {p.emailVerifyStatus === 'CATCH_ALL' && (
+                            <Badge variant="warning" size="sm">🟡 Catch-All</Badge>
+                          )}
+                          {p.emailVerifyStatus === 'INVALID' && (
+                            <Badge variant="danger" size="sm">🔴 Invalida</Badge>
+                          )}
                         </div>
                       ) : (
-                        <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
-                          Nessuna email ordinaria
+                        <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span>Nessuna email ordinaria</span>
+                          {p.emailVerifyStatus === 'INVALID' && (
+                            <Badge variant="danger" size="sm">🔴 Spostata in Telefono</Badge>
+                          )}
                         </div>
                       )}
                       {p.phone && (

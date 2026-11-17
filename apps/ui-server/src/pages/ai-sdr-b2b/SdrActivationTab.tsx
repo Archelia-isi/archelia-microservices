@@ -147,7 +147,7 @@ export default function SdrActivationTab({
               </tr>
             ) : (
               activeRows.map((item: any) => {
-                const pId = item.prospectId || item.prospect?.id;
+                const pId = item.sdrProspectId || item.prospectId || item.prospect?.id;
                 const openCount = Number(item.catalogOpenCount || 0);
                 return (
                   <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -213,6 +213,16 @@ export default function SdrActivationTab({
                       {item.firstLoginAt && (
                         <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700, marginTop: '3px' }}>
                           🔑 1° Login: {new Date(item.firstLoginAt).toLocaleString('it-IT')}
+                        </div>
+                      )}
+                      {item.lastReplyAt && (
+                        <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700, marginTop: '3px' }}>
+                          💬 Risposta mail: {new Date(item.lastReplyAt).toLocaleString('it-IT')}
+                        </div>
+                      )}
+                      {item.agentContactedAt && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 700, marginTop: '3px' }}>
+                          📞 Chiamato da Agente (follow-up auto in pausa)
                         </div>
                       )}
                     </td>

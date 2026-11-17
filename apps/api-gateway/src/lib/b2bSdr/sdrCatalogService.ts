@@ -238,6 +238,31 @@ export async function generateProspectReservedCatalogPdf(options: {
   const agent = await resolveSdrAgent(prospect.assignedAgentId || prospect.assignedAgentCode);
   const maxProducts = Math.min(160, Math.max(24, Number(config?.catalogMaxProducts || 120)));
 
+  const promoProspect = prospect.promoProspectId
+    ? await b2bPrisma.b2BPromoProspect.findUnique({
+        where: { id: prospect.promoProspectId },
+        select: { username: true, tempPassword: true },
+      })
+    : await b2bPrisma.b2BPromoProspect.findFirst({
+        where: {
+          OR: [
+            { sdrProspectId: prospect.id },
+            ...(prospect.ordinaryEmail
+              ? [{ email: prospect.ordinaryEmail.trim().toLowerCase() }]
+              : []),
+          ],
+        },
+        select: { username: true, tempPassword: true },
+      });
+
+  const resolvedUsername = (promoProspect?.username || prospect.promotedUsername || '').trim();
+  const resolvedTempPassword = promoProspect?.tempPassword || null;
+  const credsFingerprint = crypto
+    .createHash('sha256')
+    .update(`${resolvedUsername}|${resolvedTempPassword || 'ACTIVATED'}`)
+    .digest('hex')
+    .slice(0, 10);
+
   const safeCompanySlug = prospect.companyName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -246,7 +271,7 @@ export async function generateProspectReservedCatalogPdf(options: {
     .slice(0, 32);
   const pdfFileName = `Catalistino_Illustrativo_${safeCompanySlug || prospect.id}.pdf`;
 
-  const cacheKey = `sdr:catalog:pdf:v2:${prospect.id}:${baseDiscount}:${extraDiscount}:${maxProducts}:${agent.code}`;
+  const cacheKey = `sdr:catalog:pdf:v3:${prospect.id}:${baseDiscount}:${extraDiscount}:${maxProducts}:${agent.code}:${credsFingerprint}`;
   if (!options.forceRefresh) {
     try {
       const cachedRaw = await redisConnection.get(cacheKey);
@@ -359,17 +384,30 @@ export async function generateProspectReservedCatalogPdf(options: {
     );
   }
 
+  const portalLoginUrl = `${b2bBase}/login`;
+  const reservedCredentials = resolvedUsername
+    ? {
+        portalUrl: portalLoginUrl,
+        username: resolvedUsername,
+        tempPassword: resolvedTempPassword,
+        discountFormula,
+        agentName: agent.name,
+        agentPhone: agent.phone || '+39 389 0129832',
+      }
+    : undefined;
+
   const pdfRes = await generateAgentCatalogPdfAction({
     catalogTitle: `Catalistino Illustrativo per ${prospect.companyName}`,
     catalogSubtitle: `Invito a valutare Izzo Distribuzione S.r.l. come fornitore — Sconto di benvenuto ${discountFormula} sul 1° ordine`,
     clientName: `${prospect.companyName}${prospect.city ? ` (${prospect.city})` : ''}`,
-    clientCode: (prospect.promotedUsername || '').toUpperCase() || undefined,
+    clientCode: resolvedUsername.toUpperCase() || undefined,
     agentName: `${agent.name} — Izzo Distribuzione S.r.l.`,
     filterSummary: `Consultazione gratuita e senza impegno • Articoli in pronta disponibilità • Sconto di benvenuto ${discountFormula} (${effectiveDiscountPct}% netto) senza minimo d'ordine`,
     priceMode: 'LIST_AND_NET',
     stockMode: 'BADGE_ONLY',
     baseDiscount,
     extraDiscount,
+    reservedCredentials,
     items: itemsForPdf,
   });
 

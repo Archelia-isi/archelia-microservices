@@ -46,6 +46,7 @@ export const PIPELINE_STATUS_OPTIONS = [
   { value: 'Loggato_Senza_Ordine', label: '🔥 Loggato Senza Ordine' },
   { value: 'Risposta_Ricevuta', label: '💬 Risposta Ricevuta (Kill-Switch)' },
   { value: 'Convertito', label: '🏆 Convertito (1° Ordine)' },
+  { value: 'Bounce_Invalido', label: '🔴 Email Invalida (MillionVerifier)' },
   { value: 'Pec_Scartata', label: '🛡️ PEC Scartata' },
   { value: 'Disiscritto', label: '⛔ Disiscritto / Bounce' },
 ];
@@ -62,21 +63,21 @@ export const ARUBA_B2B_DOMAINS = [
 export const SPEED_GEAR_OPTIONS = [
   {
     id: 'prudente' as const,
-    title: '🟢 Marcia 1 — Prudente',
-    subtitle: '5 mail/casella = 300/giorno',
-    detail: 'Ideale per avvio ultra-sicuro sui nuovi domini',
+    title: '🟢 Marcia 1 — Partenza Morbida 14gg',
+    subtitle: '2-3 mail/casella = 120-180/g → poi 300/g',
+    detail: 'Settimana 1: 2/casella (120/g) • Settimana 2: 3/casella (180/g) • Poi 300/g',
   },
   {
     id: 'intermedia' as const,
     title: '🔵 Marcia 2 — Intermedia',
     subtitle: '10 mail/casella = 600/giorno',
-    detail: 'Velocità bilanciata per domini rodati',
+    detail: 'Velocità bilanciata per domini già riscaldati',
   },
   {
     id: 'rampup_auto' as const,
-    title: '🚀 Ramp-Up Auto 3 Settimane',
-    subtitle: '5 → 10 → 15 mail/casella',
-    detail: 'Scala automaticamente da 300 a 900 mail/giorno',
+    title: '🚀 Ramp-Up Auto Progressivo',
+    subtitle: '2 → 3 → 5 → 10+ mail/casella',
+    detail: 'Scala gradualmente da 120-180/g fino a regime sulle 60 caselle',
   },
   {
     id: 'regime_pieno' as const,

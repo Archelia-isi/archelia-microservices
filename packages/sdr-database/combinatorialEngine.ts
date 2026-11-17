@@ -12,6 +12,8 @@ import {
 } from './combinatorialTemplates';
 import {
   composeProspectIntelligence,
+  cleanCompanyDisplayName,
+  extractVerifiedDecisionMaker,
   type ProspectIntelligenceSummary,
 } from './prospectPersonalizer';
 
@@ -75,6 +77,50 @@ export interface GenerateCombinatorialOptions {
   deterministicSeed?: number | null;
 }
 
+export interface SdrSequenceFollowupInput {
+  prospectId?: number | null;
+  companyName: string;
+  city?: string | null;
+  province?: string | null;
+  categoryCluster?: string | null;
+  commercialCategory?: string | null;
+  decisionMaker?: string | null;
+  richMetadata?: Record<string, any> | null;
+  originalSubject?: string | null;
+  previousSubject?: string | null;
+  subject?: string | null;
+  smartCatalogUrl?: string | null;
+  offerUrl?: string | null;
+  trackingToken?: string | null;
+  baseDiscount?: number | null;
+  extraFirstPurchasePct?: number | null;
+  minOrderAmountText?: string | null;
+  agentName?: string | null;
+  agentPhone?: string | null;
+  agentEmail?: string | null;
+  senderInboxEmail?: string | null;
+  deterministicSeed?: number | null;
+}
+
+export type ConsentReplyEmailInput = SdrSequenceFollowupInput;
+export type Step2FollowupEmailInput = SdrSequenceFollowupInput;
+export type Step3WarmFollowupEmailInput = SdrSequenceFollowupInput;
+
+export interface SdrSequenceEmailOutput {
+  subject: string;
+  bodyText: string;
+  bodyHtml: string;
+  sequenceStep: number;
+  templateCode: string;
+  discountFormulaLabel: string;
+}
+
+export const IZZO_LEGAL_COMPANY_LINE =
+  'Izzo Distribuzione S.r.l. — Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049';
+
+export const DEFAULT_OPTOUT_B2B_NOTE =
+  'Comunicazione B2B rivolta a operatori professionali. Per non ricevere ulteriori comunicazioni è sufficiente rispondere "STOP".';
+
 interface CachedLibrary {
   loadedAt: number;
   templates: ActiveEmailTemplateRecord[];
@@ -96,6 +142,105 @@ function escapeHtml(val?: string | null): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function isValidEmailFormat(val?: string | null): boolean {
+  if (!val) return false;
+  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val.trim());
+}
+
+/**
+ * Risolve l'email mostrata nella firma in calce garantendo che non compaia mai un dominio
+ * diverso non presidiato da IMAP (es. @izzodistribuzione.com).
+ */
+export function resolveSignatureSenderEmail(
+  senderInboxEmail?: string | null,
+  agentEmail?: string | null
+): string {
+  const inboxClean = (senderInboxEmail || '').trim().toLowerCase();
+  if (isValidEmailFormat(inboxClean) && !inboxClean.endsWith('@izzodistribuzione.com')) {
+    return inboxClean;
+  }
+  const agentClean = (agentEmail || '').trim().toLowerCase();
+  if (
+    isValidEmailFormat(agentClean) &&
+    !agentClean.endsWith('@izzodistribuzione.com') &&
+    !agentClean.includes('noreply') &&
+    !agentClean.startsWith('info@')
+  ) {
+    return agentClean;
+  }
+  return 'daniele.savoia@izzodistribuzioneb2b.it';
+}
+
+/**
+ * Allinea al 100% l'indirizzo Email nella firma in calce (testo + HTML) con la casella Aruba
+ * effettiva che sta spedendo il messaggio via SMTP, senza iniettare tag <a href> cliccabili.
+ */
+export function applySenderEmailToDraftSignature(
+  bodyText: string | null | undefined,
+  bodyHtml: string | null | undefined,
+  senderEmail: string | null | undefined
+): { bodyText: string; bodyHtml: string } {
+  const rawText = String(bodyText || '');
+  const rawHtml = String(bodyHtml || '');
+  const cleanSender = (senderEmail || '').trim().toLowerCase();
+
+  if (!isValidEmailFormat(cleanSender)) {
+    return {
+      bodyText: rawText,
+      bodyHtml: rawHtml || renderMinimalOutlookHtmlFromPlain(rawText),
+    };
+  }
+
+  let updatedText = rawText
+    .replace(
+      /(\bEmail:\s*)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi,
+      `$1${cleanSender}`
+    )
+    .replace(/[a-zA-Z0-9._%+-]+@izzodistribuzione\.com\b/gi, cleanSender);
+
+  // Se la firma non conteneva ancora "Email: ...", lo garantisce accanto al telefono se presente
+  if (!updatedText.toLowerCase().includes(cleanSender)) {
+    updatedText = updatedText.replace(
+      /(Tel\s*\/\s*WhatsApp:\s*[^\n—]+)(?:\s*—\s*Email:[^\n]*)?/i,
+      `$1 — Email: ${cleanSender}`
+    );
+  }
+
+  let updatedHtml = rawHtml
+    ? rawHtml
+        // Rimuove eventuali vecchi <a href="mailto:..."> nella riga Email: e allinea al mittente Aruba
+        .replace(
+          /(\bEmail:\s*)(?:<a\b[^>]*>)?\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*(?:<\/a>)?/gi,
+          `$1${escapeHtml(cleanSender)}`
+        )
+        // Rimuove eventuali vecchi <a href="tel:..."> nella firma per mantenere conteggio link zero/uno
+        .replace(
+          /<a\b[^>]*href=["']tel:[^"']*["'][^>]*>([^<]+)<\/a>/gi,
+          '$1'
+        )
+        .replace(
+          /mailto:[a-zA-Z0-9._%+-]+@izzodistribuzione\.com\b/gi,
+          `mailto:${escapeHtml(cleanSender)}`
+        )
+        .replace(
+          /[a-zA-Z0-9._%+-]+@izzodistribuzione\.com\b/gi,
+          escapeHtml(cleanSender)
+        )
+    : renderMinimalOutlookHtmlFromPlain(updatedText);
+
+  if (!updatedHtml.toLowerCase().includes(escapeHtml(cleanSender).toLowerCase())) {
+    updatedHtml = updatedHtml.replace(
+      /(Tel\s*\/\s*WhatsApp:\s*[^<\n—]+)(?:\s*—\s*Email:[^<\n]*)?/i,
+      `$1 — Email: ${escapeHtml(cleanSender)}`
+    );
+  }
+
+  return {
+    bodyText: updatedText,
+    bodyHtml: updatedHtml,
+  };
 }
 
 function buildFallbackLibrary(): CachedLibrary {
@@ -121,9 +266,8 @@ function buildFallbackLibrary(): CachedLibrary {
 }
 
 /**
- * Popola in modo idempotente le 100 email madri e i 108 gruppi di parole dinamiche nel DB SDR.
- * Con `overwriteDefaults: true` riallinea tutte le 100 Email Madri (targetCategory = ALL)
- * e tutti i 108 gruppi lessicali ufficiali di Izzo Distribuzione S.r.l.
+ * Popola in modo idempotente le 100 email madri (Step 1 conversazione umana pura)
+ * e i 108 gruppi di parole dinamiche nel DB SDR.
  */
 export async function seedCombinatorialLibraryInDb(options?: {
   syncMissing?: boolean;
@@ -432,6 +576,9 @@ function normalizeItalianArticulatedPrepositions(text: string): string {
 function polishSubjectTypography(rawSubject: string): string {
   const cleaned = normalizeItalianArticulatedPrepositions(rawSubject)
     .replace(/`/g, '')
+    .replace(/\bpassword\b/gi, 'codice riservato')
+    .replace(/\busername\b/gi, 'profilo riservato')
+    .replace(/https?:\/\/\S+/gi, '')
     .replace(/\s+/g, ' ')
     .replace(/\s+([,.:;!?])/g, '$1')
     .trim();
@@ -469,232 +616,104 @@ function sanitizeExternalCopy(raw?: string | null, fallback = ''): string {
   );
 }
 
-function renderCredentialsPlainBlock(vars: {
-  boxTitle: string;
-  isReseller: boolean;
-  discountFormulaLabel: string;
-  loginUrl: string;
-  labelUsername: string;
-  username: string;
-  labelPassword: string;
-  tempPasswordPlain: string;
-  minOrderAmountText: string;
-  smartCatalogUrl?: string | null;
-  customCommercialNotes?: string | null;
-}): string {
-  const conditionLine = vars.isReseller
-    ? `listino rivendita ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`
-    : `sconto riservato ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`;
+function stripMarkdownAndForbiddenStep1Tokens(
+  rawText: string,
+  forbiddenLiterals: Array<string | null | undefined> = []
+): string {
+  let out = rawText
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/https?:\/\/[^\s<)"']+/gi, '')
+    .replace(/(?<![@.-])\bwww\.[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<)"']*)?/gi, '')
+    .replace(/(?<![@.-])\bizzodistribuzione\.(?:it|com)(?:\/[^\s<)"']*)?/gi, 'Izzo Distribuzione S.r.l.')
+    .replace(/\bpassword\b/gi, 'abilitazione riservata')
+    .replace(/\busername\b/gi, 'profilo riservato');
 
-  const rows = [
-    `${vars.boxTitle}:`,
-    `- Portale B2B: ${vars.loginUrl}`,
-    `- ${vars.labelUsername}: ${vars.username}`,
-    `- ${vars.labelPassword}: ${vars.tempPasswordPlain}`,
-    vars.smartCatalogUrl
-      ? `- Estratto Catalistino PDF: ${vars.smartCatalogUrl}`
-      : '',
-    `- Condizione 1° ordine: ${conditionLine}`,
-    vars.customCommercialNotes ? `- Nota commerciale: ${vars.customCommercialNotes}` : '',
-  ].filter(Boolean);
+  for (const lit of forbiddenLiterals) {
+    const cleanLit = String(lit || '').trim();
+    if (cleanLit.length >= 4) {
+      out = out.split(cleanLit).join('');
+    }
+  }
 
-  return rows.join('\n');
+  return out
+    .split('\n')
+    .map((l) =>
+      l
+        .replace(/^-{3,}$/, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\s+([,.;:])/g, '$1')
+        .trimEnd()
+    )
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
-function renderCredentialsHtmlBlock(
-  variant: HtmlLayoutVariant,
-  vars: {
-    boxTitle: string;
-    ctaLabel: string;
-    companyName: string;
-    isReseller: boolean;
-    discountFormulaLabel: string;
-    loginUrl: string;
-    labelUsername: string;
-    username: string;
-    labelPassword: string;
-    tempPasswordPlain: string;
-    minOrderAmountText: string;
-    smartCatalogUrl?: string | null;
-    customCommercialNotes?: string | null;
+/**
+ * Converte testo puro in HTML minimale stile mail scritta a mano da Outlook:
+ * `<div style="font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size: 14.5px; line-height: 1.6; color: #111111;">`
+ * con soli `<p>` e `<br/>` (e, solo se `singleAllowedUrl` è valorizzato in Step 1B / Step 2, 1 singolo `<a href>`).
+ */
+export function renderMinimalOutlookHtmlFromPlain(
+  plainFullText: string,
+  options?: {
+    singleAllowedUrl?: string | null;
+    signatureStartMarker?: string | null;
   }
 ): string {
-  const conditionLine = vars.isReseller
-    ? `listino rivendita ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`
-    : `sconto riservato ${vars.discountFormulaLabel} a cascata, ${vars.minOrderAmountText.toLowerCase()}`;
+  const allowedUrl = (options?.singleAllowedUrl || '').trim();
+  let linkInjected = false;
 
-  const ctaHtml = vars.smartCatalogUrl
-    ? `<div style="margin: 12px 0 2px 0;">
-        <a href="${escapeHtml(vars.smartCatalogUrl)}" target="_blank" rel="noopener" style="display: inline-block; background: ${
-          variant === 'accent_stripe'
-            ? '#1e3a8a'
-            : variant === 'clean_table'
-              ? '#166534'
-              : variant === 'compact_memo'
-                ? '#334155'
-                : '#0f172a'
-        }; color: #ffffff; font-weight: 600; text-decoration: none; padding: 9px 16px; border-radius: 5px; font-size: 13px;">
-          ${escapeHtml(vars.ctaLabel)}
-        </a>
-      </div>`
-    : '';
+  const paragraphs = String(plainFullText || '')
+    .trim()
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
-  if (variant === 'plain_personal') {
-    return `<div style="margin: 16px 0; padding: 12px 16px; border-left: 3px solid #334155; background: #f8fafc; font-size: 13.8px; line-height: 1.65;">
-      <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)}:</div>
-      <div>• <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
-      <div>• <strong>${escapeHtml(vars.labelUsername)}:</strong> <code>${escapeHtml(vars.username)}</code></div>
-      <div>• <strong>${escapeHtml(vars.labelPassword)}:</strong> <code>${escapeHtml(vars.tempPasswordPlain)}</code></div>
-      ${vars.smartCatalogUrl ? `<div>• <strong>Estratto Catalistino PDF:</strong> <a href="${escapeHtml(vars.smartCatalogUrl)}" style="color: #0f172a;">${escapeHtml(vars.smartCatalogUrl)}</a></div>` : ''}
-      <div>• <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
-      ${vars.customCommercialNotes ? `<div>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
-    </div>`;
-  }
+  const renderedParagraphs = paragraphs.map((block, idx) => {
+    const isLegalFooter =
+      idx === paragraphs.length - 1 &&
+      (block.includes('P.IVA 01868260629') || block.includes('STOP'));
 
-  if (variant === 'compact_memo') {
-    return `<div style="margin: 15px 0; padding: 14px 16px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
-      <div style="font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-      <div style="font-size: 13.5px; line-height: 1.65;">
-        <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e293b; font-weight: 600;">www.izzodistribuzione.it/login</a><br/>
-        <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code> &nbsp;|&nbsp;
-        <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code><br/>
-        <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}
-      </div>
-      ${ctaHtml}
-    </div>`;
-  }
+    let escaped = escapeHtml(block);
 
-  if (variant === 'accent_stripe') {
-    return `<div style="margin: 16px 0; border: 1px solid #cbd5e1; border-top: 3px solid #1e3a8a; border-radius: 6px; padding: 15px 16px; background: #f8fafc; font-size: 13.8px; line-height: 1.65;">
-      <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)}</div>
-      <div><strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #1e3a8a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
-      <div><strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
-      <div><strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
-      <div><strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
-      ${vars.customCommercialNotes ? `<div><strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
-      ${ctaHtml}
-    </div>`;
-  }
-
-  if (variant === 'clean_table') {
-    return `<div style="margin: 16px 0;">
-      <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13.5px;">
-        <tr style="background: #f1f5f9;">
-          <td colspan="2" style="padding: 8px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">
-            ${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 36%;">Portale B2B</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(vars.loginUrl)}" style="color: #166534; font-weight: 600;">www.izzodistribuzione.it/login</a></td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${escapeHtml(vars.labelUsername)}</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><code>${escapeHtml(vars.username)}</code></td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${escapeHtml(vars.labelPassword)}</td>
-          <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><code>${escapeHtml(vars.tempPasswordPlain)}</code></td>
-        </tr>
-        <tr>
-          <td style="padding: 7px 12px; color: #475569;">Condizione 1° ordine</td>
-          <td style="padding: 7px 12px; color: #0f172a; font-weight: 600;">${escapeHtml(conditionLine)}</td>
-        </tr>
-      </table>
-      ${ctaHtml}
-    </div>`;
-  }
-
-  // Default: executive_card
-  return `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0f172a; border-radius: 6px; padding: 15px 16px; margin: 16px 0; font-size: 13.8px; line-height: 1.65;">
-    <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">${escapeHtml(vars.boxTitle)} — ${escapeHtml(vars.companyName)}</div>
-    <div>• <strong>Portale B2B:</strong> <a href="${escapeHtml(vars.loginUrl)}" style="color: #0f172a; font-weight: 600;">https://www.izzodistribuzione.it/login</a></div>
-    <div>• <strong>${escapeHtml(vars.labelUsername)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.username)}</code></div>
-    <div>• <strong>${escapeHtml(vars.labelPassword)}:</strong> <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">${escapeHtml(vars.tempPasswordPlain)}</code></div>
-    <div>• <strong>Condizione 1° ordine:</strong> ${escapeHtml(conditionLine)}</div>
-    ${vars.customCommercialNotes ? `<div>• <strong>Nota:</strong> ${escapeHtml(vars.customCommercialNotes)}</div>` : ''}
-    ${ctaHtml}
-  </div>`;
-}
-
-function formatInlineRichTextToHtml(rawEscaped: string): string {
-  let out = rawEscaped;
-  // Backtick code spans `...` (evita linkificazione dentro `...` se contiene solo user/pass, ma se contiene URL rendilo cliccabile)
-  out = out.replace(/`([^`]+)`/g, (_m, inner: string) => {
-    if (/^https?:\/\//i.test(inner.trim())) {
-      const u = inner.trim();
-      return `<a href="${u}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${u}</a>`;
-    }
-    return `<code style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:13px;">${inner}</code>`;
-  });
-  // Bold **...**
-  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  // Italic *...*
-  out = out.replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1<em>$2</em>');
-  // Bare URLs https://... (non già dentro href="...")
-  out = out.replace(/(^|[\s(>])(https?:\/\/[^\s<)"']+)/g, (_m, pre: string, url: string) => {
-    const cleanUrl = url.replace(/[.,;:]+$/, '');
-    const trailing = url.slice(cleanUrl.length);
-    return `${pre}<a href="${cleanUrl}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${cleanUrl}</a>${trailing}`;
-  });
-  return out;
-}
-
-function formatTextBlockToHtml(blockText: string): string {
-  const rawLines = blockText.split('\n').map((l) => l.trim()).filter(Boolean);
-  if (rawLines.length === 0) return '';
-
-  // Se il blocco inizia con "---" (filetto divisorio) seguito da righe compatte
-  if (rawLines[0] === '---') {
-    const rest = rawLines.slice(1).join('\n');
-    const restHtml = rest ? formatTextBlockToHtml(rest) : '';
-    return `<hr style="border: none; border-top: 1px solid #cbd5e1; margin: 14px 0 10px 0;" />\n${restHtml}`;
-  }
-
-  const allBullets = rawLines.every((l) => /^[-•]\s+/.test(l));
-  if (allBullets) {
-    const items = rawLines
-      .map((l) => {
-        const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^[-•]\s+/, '')));
-        return `<li style="margin-bottom: 6px;">${content}</li>`;
-      })
-      .join('\n');
-    return `<ul style="margin: 8px 0 14px 0; padding-left: 20px;">\n${items}\n</ul>`;
-  }
-
-  const allNumbered = rawLines.length >= 2 && rawLines.every((l) => /^\d+[.)]\s+/.test(l));
-  if (allNumbered) {
-    const items = rawLines
-      .map((l) => {
-        const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^\d+[.)]\s+/, '')));
-        return `<li style="margin-bottom: 7px;">${content}</li>`;
-      })
-      .join('\n');
-    return `<ol style="margin: 8px 0 14px 0; padding-left: 20px;">\n${items}\n</ol>`;
-  }
-
-  // Blocco misto intro + elenco puntato nello stesso paragrafo
-  const firstBulletIdx = rawLines.findIndex((l) => /^[-•]\s+/.test(l));
-  if (firstBulletIdx > 0) {
-    const introLines = rawLines.slice(0, firstBulletIdx);
-    const bulletLines = rawLines.slice(firstBulletIdx);
-    if (bulletLines.every((l) => /^[-•]\s+/.test(l))) {
-      const introHtml = formatInlineRichTextToHtml(escapeHtml(introLines.join('\n'))).replace(
-        /\n/g,
-        '<br/>'
+    if (allowedUrl && !linkInjected && block.includes(allowedUrl)) {
+      const escapedUrl = escapeHtml(allowedUrl);
+      escaped = escaped.replace(
+        escapedUrl,
+        `<a href="${escapedUrl}" style="color: #0b57d0; text-decoration: underline;">${escapedUrl}</a>`
       );
-      const items = bulletLines
-        .map((l) => {
-          const content = formatInlineRichTextToHtml(escapeHtml(l.replace(/^[-•]\s+/, '')));
-          return `<li style="margin-bottom: 6px;">${content}</li>`;
-        })
-        .join('\n');
-      return `<p style="margin: 0 0 8px 0;">${introHtml}</p>\n<ul style="margin: 4px 0 14px 0; padding-left: 20px;">\n${items}\n</ul>`;
+      linkInjected = true;
     }
-  }
 
-  const formatted = formatInlineRichTextToHtml(escapeHtml(blockText)).replace(/\n/g, '<br/>');
-  return `<p style="margin: 0 0 12px 0;">${formatted}</p>`;
+    const withLineBreaks = escaped.replace(/\n/g, '<br/>');
+
+    if (isLegalFooter) {
+      return `<p style="margin: 12px 0 0 0; font-size: 12px; color: #555555;">${withLineBreaks}</p>`;
+    }
+    return `<p style="margin: 0 0 12px 0;">${withLineBreaks}</p>`;
+  });
+
+  return `<div style="font-family: -apple-system, Segoe UI, Arial, sans-serif; font-size: 14.5px; line-height: 1.6; color: #111111;">\n  ${renderedParagraphs.join('\n  ')}\n</div>`;
+}
+
+function buildCoherentSignatureBlock(params: {
+  agentDisplayName: string;
+  firmaReparto: string;
+  agentPhoneFinal: string;
+  senderEmailFinal: string;
+  optOutNote: string;
+}): string {
+  return [
+    `${params.agentDisplayName}`,
+    `${params.firmaReparto} — Izzo Distribuzione S.r.l.`,
+    `Tel / WhatsApp: ${params.agentPhoneFinal} — Email: ${params.senderEmailFinal}`,
+    '',
+    `${IZZO_LEGAL_COMPANY_LINE}`,
+    `${params.optOutNote}`,
+  ].join('\n');
 }
 
 function executeCombinatorialSynthesis(
@@ -730,6 +749,22 @@ function executeCombinatorialSynthesis(
       pool[pickIndex(pool.length, seedCursor)] || buildFallbackLibrary().templates[0];
   }
 
+  // Se nel DB fosse rimasto un vecchio template con segnaposto {LOGIN_URL}/{TEMP_PASSWORD}, usa la versione allineata Step 1
+  const cleanCodeMatch = DEFAULT_EMAIL_TEMPLATES.find(
+    (t) => t.code.toUpperCase() === chosenTemplate!.code.toUpperCase()
+  );
+  const activeBodySource =
+    /\{(LOGIN_URL|OFFER_URL|SMART_CATALOG_URL|USERNAME|TEMP_PASSWORD)\}|password|username/i.test(
+      chosenTemplate.bodyTemplate
+    ) && cleanCodeMatch
+      ? cleanCodeMatch.bodyTemplate
+      : chosenTemplate.bodyTemplate;
+  const activeSubjectSource =
+    /credenzial|pdf|abilitazion|password|username/i.test(chosenTemplate.subjectTemplate) &&
+    cleanCodeMatch
+      ? cleanCodeMatch.subjectTemplate
+      : chosenTemplate.subjectTemplate;
+
   const replacedTraces: ReplacedTokenTrace[] = [];
   const usedVariantByToken = new Map<string, string>();
 
@@ -761,10 +796,6 @@ function executeCombinatorialSynthesis(
     });
   };
 
-  const boxTitle = drawTokenValue('TITOLO_BOX_OFFERTA');
-  const ctaLabel = drawTokenValue('CTA_BOTTONE_PDF');
-  const labelUsername = drawTokenValue('LABEL_USERNAME');
-  const labelPassword = drawTokenValue('LABEL_PASSWORD');
   const firmaReparto = drawTokenValue('REPARTO_FIRMA');
   const optOutNote = drawTokenValue('NOTA_LEGALE_OPTOUT');
 
@@ -787,13 +818,10 @@ function executeCombinatorialSynthesis(
       ? rawAgentPhone
       : '+39 389 0129832';
 
-  const rawAgentEmail = (input.agentEmail || '').trim();
-  const agentEmailFinal =
-    rawAgentEmail &&
-    !rawAgentEmail.toLowerCase().includes('noreply') &&
-    !rawAgentEmail.toLowerCase().startsWith('info@')
-      ? rawAgentEmail
-      : 'daniele.savoia@izzodistribuzione.com';
+  const senderEmailFinal = resolveSignatureSenderEmail(
+    input.senderInboxEmail,
+    input.agentEmail
+  );
 
   const cleanOfferTitle = sanitizeExternalCopy(
     input.offerTitle,
@@ -807,97 +835,46 @@ function executeCombinatorialSynthesis(
     input.freeShippingText,
     'spedizione tracciata in tutta Italia'
   );
-  const cleanCustomNotes = input.customCommercialNotes
-    ? sanitizeExternalCopy(input.customCommercialNotes, '')
-    : null;
 
-  const loginUrl = `https://www.izzodistribuzione.it/login?u=${encodeURIComponent(input.username)}`;
-  const loginDisplayUrl = 'https://www.izzodistribuzione.it/login';
-  const offerUrlFinal = input.smartCatalogUrl || loginUrl;
   const listinoRuoloLabel = intel.isReseller ? 'Rivenditori' : 'operatori Partita IVA';
   const conditionInlineShort = intel.isReseller
     ? `listino Rivendita ${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}`
-    : `sconto riservato ${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}`;
+    : `sconto di benvenuto ${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}`;
 
-  // 1) {CREDENZIALI_PROSA} — pura prosa discorsiva senza box né elenchi
-  const credenzialiProsaOptions = [
-    `Per consentirVi di confrontare in autonomia i nostri prezzi netti senza moduli di registrazione e senza alcun vincolo commerciale, abbiamo predisposto un accesso provvisorio di consultazione su ${loginDisplayUrl} (utente \`${input.username}\`, password temporanea \`${input.tempPasswordPlain}\`), affiancato da un estratto illustrativo del catalistino in PDF consultabile su ${offerUrlFinal}, dove è già recepita la condizione riservata (${conditionInlineShort}).`,
-    `Ai soli fini di una verifica tecnica ed economica senza alcun impegno, abbiamo reso disponibile un profilo conoscitivo gratuito su ${loginDisplayUrl} con credenziali \`${input.username}\` / \`${input.tempPasswordPlain}\` e un estratto PDF diretto su ${offerUrlFinal}, già allineati a ${conditionInlineShort}.`,
-    `Qualora voleste verificare il posizionamento dei nostri prezzi netti, potete accedere liberamente e senza vincoli a ${loginDisplayUrl} utilizzando l’utente provvisorio \`${input.username}\` e la password \`${input.tempPasswordPlain}\`, oppure sfogliare direttamente il prospetto PDF selezionato su ${offerUrlFinal} (${conditionInlineShort}).`,
+  // Step 1 — Inviti discorsivi puri a rispondere alla mail (ZERO link, ZERO credenziali/password)
+  const invitoRispostaProsaOptions = [
+    `Se può esserVi utile per un confronto prezzi senza alcun impegno, rispondete pure con un cenno a questa mail e Vi trasmettiamo qui l’estratto del nostro listino netto riservato insieme a un accesso gratuito di consultazione, con ${conditionInlineShort}.`,
+    `Qualora voleste valutare il posizionamento dei nostri prezzi netti rispetto agli attuali fornitori, basta rispondere anche con un breve «Sì» a questa comunicazione e Vi inviamo subito il prospetto PDF riservato alla Vostra categoria insieme a un profilo conoscitivo gratuito (${conditionInlineShort}).`,
+    `Ove di Vostro interesse per una libera verifica tecnica ed economica, rispondendo con un cenno a questa email Vi giriamo direttamente l’estratto del catalistino netto riservato e un’abilitazione gratuita di sola lettura, già valorizzati con ${conditionInlineShort}.`,
+    `Se desiderate confrontare in autonomia i nostri listini riservati alle Partite IVA (${conditionInlineShort}), rispondete pure a questa mail e provvediamo a trasmetterVi qui l’estratto PDF selezionato per il Vostro comparto insieme all’accesso gratuito di consultazione.`,
   ];
-  const credenzialiProsa =
-    credenzialiProsaOptions[pickIndex(credenzialiProsaOptions.length, seedCursor)];
+  const invitoRispostaProsa =
+    invitoRispostaProsaOptions[pickIndex(invitoRispostaProsaOptions.length, seedCursor)];
 
-  // 2) {CREDENZIALI_RIGA_FLASH} — barra compatta per note flash esecutive
-  const credenzialiRigaFlashOptions = [
-    `Portale ${loginDisplayUrl} — Utente: \`${input.username}\` — Password: \`${input.tempPasswordPlain}\` — Estratto PDF: ${offerUrlFinal}`,
-    `Login: ${loginDisplayUrl} | Utente: \`${input.username}\` | Password: \`${input.tempPasswordPlain}\` | PDF: ${offerUrlFinal}`,
-    `${loginDisplayUrl} (\`${input.username}\` / \`${input.tempPasswordPlain}\`) — Prospetto PDF: ${offerUrlFinal}`,
+  const invitoRispostaFlashOptions = [
+    `Se può esserVi utile per un confronto prezzi, rispondete pure con un cenno a questa mail e Vi trasmettiamo qui l’estratto del listino netto riservato insieme a un accesso gratuito di consultazione (${conditionInlineShort}).`,
+    `Per ricevere qui il prospetto PDF dei prezzi netti riservati e un accesso gratuito di sola lettura (${discountFormulaLabel} sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}), basta rispondere con un breve «Sì» a questa mail.`,
+    `Qualora voleste esaminare senza vincoli il nostro listino riservato (${conditionInlineShort}), rispondete pure con un cenno alla presente e Vi inviamo subito l’estratto PDF e l’abilitazione gratuita di consultazione.`,
   ];
-  const credenzialiRigaFlash =
-    credenzialiRigaFlashOptions[pickIndex(credenzialiRigaFlashOptions.length, seedCursor)];
+  const invitoRispostaFlash =
+    invitoRispostaFlashOptions[pickIndex(invitoRispostaFlashOptions.length, seedCursor)];
 
-  // 3) {CREDENZIALI_PS} — Post-Scriptum finale isolato dal corpo principale
-  const credenzialiPsOptions = [
-    `**P.S.** Unicamente per agevolare una verifica autonoma di catalogo e prezzi netti senza registrazioni né impegni, abbiamo predisposto un accesso provvisorio su ${loginDisplayUrl} (Utente: \`${input.username}\` — Password: \`${input.tempPasswordPlain}\`, già configurato con ${conditionInlineShort}) e un estratto PDF diretto su ${offerUrlFinal}.`,
-    `**P.S. Consultazione listino B2B (${discountFormulaLabel} sul 1° ordine, ${cleanMinOrderText.toLowerCase()}):** lasciamo attive a titolo conoscitivo e gratuito le credenziali provvisorie \`${input.username}\` / \`${input.tempPasswordPlain}\` su ${loginDisplayUrl} e il prospetto PDF riservato su ${offerUrlFinal}.`,
-    `**P.S.** Qualora preferiste verificare subito a video giacenze e prezzi netti (${conditionInlineShort}), potete utilizzare senza alcun vincolo l’accesso provvisorio su ${loginDisplayUrl} (\`${input.username}\` / \`${input.tempPasswordPlain}\`) o scaricare l’estratto PDF da ${offerUrlFinal}.`,
+  const invitoRispostaPsOptions = [
+    `P.S. Se può esserVi utile per un confronto prezzi senza impegno, rispondete pure con un cenno a questa mail e Vi trasmettiamo qui l’estratto del nostro listino netto riservato insieme a un accesso gratuito di consultazione (${conditionInlineShort}).`,
+    `P.S. Qualora voleste verificare i nostri prezzi netti (${discountFormulaLabel} a cascata sul primo ordine eventuale, ${cleanMinOrderText.toLowerCase()}), basta rispondere anche con un semplice «Sì» a questa email per ricevere il prospetto PDF riservato e l’abilitazione conoscitiva gratuita.`,
+    `P.S. Su un Vostro breve cenno di risposta a questa comunicazione, provvediamo a inviarVi qui l’estratto del catalistino netto riservato e un accesso gratuito di sola consultazione (${conditionInlineShort}).`,
   ];
-  const credenzialiPs =
-    credenzialiPsOptions[pickIndex(credenzialiPsOptions.length, seedCursor)];
+  const invitoRispostaPs =
+    invitoRispostaPsOptions[pickIndex(invitoRispostaPsOptions.length, seedCursor)];
 
-  // 4) {CREDENZIALI_FILETTO} — divisorio orizzontale + 2 righe essenziali
-  const credenzialiFiletto = [
-    '---',
-    `**Accesso conoscitivo gratuito e non vincolante (${discountFormulaLabel} a cascata sul 1° ordine, ${cleanMinOrderText.toLowerCase()}):**`,
-    `Portale: ${loginDisplayUrl} | Utente: \`${input.username}\` | Password: \`${input.tempPasswordPlain}\` | Estratto PDF: ${offerUrlFinal}`,
+  const schedaQualificaPlainStep1 = [
+    `Riferimenti operativi Izzo Distribuzione S.r.l. (P.IVA 01868260629 — REA BN-309049):`,
+    `- Comparto seguito per ${intel.companyClean}: ${intel.prodottiCompatti}`,
+    `- Condizione riservata nuovi partner: ${conditionInlineShort}, ${cleanFreeShippingText}`,
+    `- Referente commerciale diretto: ${agentDisplayName} (${agentPhoneFinal})`,
   ].join('\n');
 
-  // 5) {SCHEDA_QUALIFICA_FORNITORE} — scheda strutturata Ufficio Acquisti (Testo + HTML Tabellare)
-  const schedaQualificaPlain = [
-    `SCHEDA SINTETICA FORNITORE B2B — ${intel.companyClean}`,
-    `- Ragione sociale: Izzo Distribuzione S.r.l. (P.IVA 01868260629 — REA BN-309049)`,
-    `- Linee per il Vostro comparto: ${intel.prodottiCompatti}`,
-    `- Condizione operativa: ${conditionInlineShort}, ${cleanFreeShippingText}`,
-    `- Portale B2B (gratuito): ${loginDisplayUrl} (Utente: ${input.username} | Password: ${input.tempPasswordPlain})`,
-    `- Estratto Catalistino PDF: ${offerUrlFinal}`,
-  ].join('\n');
-
-  const schedaQualificaHtml = `<div style="margin: 14px 0;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 13.3px;">
-      <tr style="background: #f1f5f9;">
-        <td colspan="2" style="padding: 8px 12px; font-weight: 700; color: #0f172a; border-bottom: 1px solid #cbd5e1;">
-          SCHEDA SINTETICA QUALIFICA FORNITORE B2B — ${escapeHtml(intel.companyClean)}
-        </td>
-      </tr>
-      <tr>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; width: 32%; font-weight: 600;">Fornitore B2B</td>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><strong>Izzo Distribuzione S.r.l.</strong> (P.IVA 01868260629 — REA BN-309049)</td>
-      </tr>
-      <tr>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Linee di comparto</td>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;">${escapeHtml(intel.prodottiCompatti)}</td>
-      </tr>
-      <tr>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Condizione 1° ordine</td>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${escapeHtml(conditionInlineShort)}</td>
-      </tr>
-      <tr>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0; color: #475569; font-weight: 600;">Portale B2B (gratuito)</td>
-        <td style="padding: 7px 12px; border-bottom: 1px solid #e2e8f0;"><a href="${escapeHtml(loginUrl)}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${loginDisplayUrl}</a> — User: <code>${escapeHtml(input.username)}</code> | Pass: <code>${escapeHtml(input.tempPasswordPlain)}</code></td>
-      </tr>
-      <tr>
-        <td style="padding: 7px 12px; color: #475569; font-weight: 600;">Estratto PDF diretto</td>
-        <td style="padding: 7px 12px;"><a href="${escapeHtml(offerUrlFinal)}" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600;">${escapeHtml(offerUrlFinal)}</a></td>
-      </tr>
-    </table>
-  </div>`;
-
-  const resolveClientVariables = (
-    txt: string,
-    credentialsPlaceholder: string,
-    schedaQualificaSlot: string
-  ): string => {
+  const resolveClientVariables = (txt: string): string => {
     const map: Record<string, string> = {
       COMPANY_NAME: intel.companyClean,
       SALUTO_PERSONALIZZATO: intel.salutoPersonalizzato,
@@ -932,20 +909,24 @@ function executeCombinatorialSynthesis(
         input.paymentTermsText,
         'Condizioni B2B riservate'
       ),
-      LOGIN_URL: loginDisplayUrl,
-      OFFER_URL: offerUrlFinal,
-      SMART_CATALOG_URL: offerUrlFinal,
-      USERNAME: input.username,
-      TEMP_PASSWORD: input.tempPasswordPlain,
       AGENT_NAME: agentDisplayName,
       AGENT_PHONE: agentPhoneFinal,
-      AGENT_EMAIL: agentEmailFinal,
-      CREDENZIALI_PROSA: credenzialiProsa,
-      CREDENZIALI_RIGA_FLASH: credenzialiRigaFlash,
-      CREDENZIALI_PS: credenzialiPs,
-      CREDENZIALI_FILETTO: credenzialiFiletto,
-      SCHEDA_QUALIFICA_FORNITORE: schedaQualificaSlot,
-      CREDENTIALS_BLOCK: credentialsPlaceholder,
+      AGENT_EMAIL: senderEmailFinal,
+      INVITO_RISPOSTA_PROSA: invitoRispostaProsa,
+      INVITO_RISPOSTA_FLASH: invitoRispostaFlash,
+      INVITO_RISPOSTA_PS: invitoRispostaPs,
+      // Compatibilità con eventuali template custom: mappati tutti all'invito umano senza link né password
+      CREDENZIALI_PROSA: invitoRispostaProsa,
+      CREDENZIALI_RIGA_FLASH: invitoRispostaFlash,
+      CREDENZIALI_PS: invitoRispostaPs,
+      CREDENZIALI_FILETTO: invitoRispostaFlash,
+      SCHEDA_QUALIFICA_FORNITORE: schedaQualificaPlainStep1,
+      CREDENTIALS_BLOCK: invitoRispostaProsa,
+      LOGIN_URL: 'il nostro portale B2B riservato',
+      OFFER_URL: 'l’estratto del catalistino riservato',
+      SMART_CATALOG_URL: 'l’estratto del catalistino riservato',
+      USERNAME: 'profilo riservato',
+      TEMP_PASSWORD: 'abilitazione riservata',
     };
 
     return txt.replace(/\{([A-Z0-9_]+)\}/g, (full, varName: string) => {
@@ -953,137 +934,47 @@ function executeCombinatorialSynthesis(
     });
   };
 
-  // Sintesi Oggetto
-  const rawSubjectWithTokens = replaceDynamicTokens(chosenTemplate.subjectTemplate);
-  const resolvedSubject = polishSubjectTypography(
-    resolveClientVariables(rawSubjectWithTokens, '', '')
-  );
+  // Sintesi Oggetto Step 1
+  const rawSubjectWithTokens = replaceDynamicTokens(activeSubjectSource);
+  const resolvedSubject = polishSubjectTypography(resolveClientVariables(rawSubjectWithTokens));
 
-  // Sintesi Corpo — aggiunge {CREDENTIALS_BLOCK} di fallback solo se il modello non usa alcuna forma di credenziali
-  let rawBodyTemplate = chosenTemplate.bodyTemplate;
-  const hasAnyCredentialVar =
-    /\{(CREDENTIALS_BLOCK|CREDENZIALI_PROSA|CREDENZIALI_RIGA_FLASH|CREDENZIALI_PS|CREDENZIALI_FILETTO|SCHEDA_QUALIFICA_FORNITORE|USERNAME)\}/.test(
+  // Sintesi Corpo Step 1
+  let rawBodyTemplate = activeBodySource;
+  const hasAnyInviteVar =
+    /\{(INVITO_RISPOSTA_PROSA|INVITO_RISPOSTA_FLASH|INVITO_RISPOSTA_PS|CREDENZIALI_PROSA|CREDENZIALI_RIGA_FLASH|CREDENZIALI_PS|CREDENZIALI_FILETTO|CREDENTIALS_BLOCK)\}|rispond/i.test(
       rawBodyTemplate
     );
-  if (!hasAnyCredentialVar) {
-    rawBodyTemplate = `${rawBodyTemplate.trim()}\n\n{CREDENTIALS_BLOCK}`;
+  if (!hasAnyInviteVar) {
+    rawBodyTemplate = `${rawBodyTemplate.trim()}\n\n{INVITO_RISPOSTA_PROSA}`;
   }
+
   const bodyAfterTokens = replaceDynamicTokens(rawBodyTemplate);
+  const resolvedBodyCoreRaw = polishBodyTypography(resolveClientVariables(bodyAfterTokens));
+  const cleanBodyCore = stripMarkdownAndForbiddenStep1Tokens(resolvedBodyCoreRaw, [
+    input.username,
+    input.tempPasswordPlain,
+  ]);
 
-  const plainCredentials = renderCredentialsPlainBlock({
-    boxTitle,
-    isReseller: intel.isReseller,
-    discountFormulaLabel,
-    loginUrl,
-    labelUsername,
-    username: input.username,
-    labelPassword,
-    tempPasswordPlain: input.tempPasswordPlain,
-    minOrderAmountText: cleanMinOrderText,
-    smartCatalogUrl: input.smartCatalogUrl,
-    customCommercialNotes: cleanCustomNotes,
-  });
-
-  const resolvedBodyCore = polishBodyTypography(
-    resolveClientVariables(bodyAfterTokens, plainCredentials, schedaQualificaPlain)
-  );
-
-  const signaturePlainLines = [
-    '',
+  const signaturePlain = buildCoherentSignatureBlock({
     agentDisplayName,
-    `${firmaReparto} — Izzo Distribuzione S.r.l.`,
-    `Tel / WhatsApp: ${agentPhoneFinal} — Email: ${agentEmailFinal}`,
-    `Portale B2B: https://www.izzodistribuzione.it`,
-    `Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049`,
-    '',
+    firmaReparto,
+    agentPhoneFinal,
+    senderEmailFinal,
     optOutNote,
-  ];
-
-  const bodyText = `${resolvedBodyCore}\n${signaturePlainLines.join('\n')}`;
-
-  // Sintesi HTML con layout fedele alla struttura della mail
-  const layoutVariant = (
-    ['executive_card', 'plain_personal', 'compact_memo', 'accent_stripe', 'clean_table'].includes(
-      chosenTemplate.htmlLayoutVariant
-    )
-      ? chosenTemplate.htmlLayoutVariant
-      : 'executive_card'
-  ) as HtmlLayoutVariant;
-
-  const htmlSentinel = '___SDR_HTML_CREDENTIALS_SLOT___';
-  const htmlSchedaSentinel = '___SDR_HTML_SCHEDA_QUALIFICA_SLOT___';
-  const bodyForHtmlCore = polishBodyTypography(
-    resolveClientVariables(bodyAfterTokens, htmlSentinel, htmlSchedaSentinel)
-  );
-
-  const htmlCredentials = renderCredentialsHtmlBlock(layoutVariant, {
-    boxTitle,
-    ctaLabel,
-    companyName: intel.companyClean,
-    isReseller: intel.isReseller,
-    discountFormulaLabel,
-    loginUrl,
-    labelUsername,
-    username: input.username,
-    labelPassword,
-    tempPasswordPlain: input.tempPasswordPlain,
-    minOrderAmountText: cleanMinOrderText,
-    smartCatalogUrl: input.smartCatalogUrl,
-    customCommercialNotes: cleanCustomNotes,
   });
 
-  const htmlParagraphs = bodyForHtmlCore
-    .split(/\n{2,}/)
-    .map((block) => {
-      const trimmed = block.trim();
-      if (!trimmed) return '';
-      if (trimmed === htmlSentinel) return htmlCredentials;
-      if (trimmed === htmlSchedaSentinel) return schedaQualificaHtml;
-      if (trimmed.includes(htmlSentinel) || trimmed.includes(htmlSchedaSentinel)) {
-        const replaced = trimmed
-          .split(htmlSentinel)
-          .map((seg) =>
-            seg
-              .split(htmlSchedaSentinel)
-              .map((sub) => (sub.trim() ? formatTextBlockToHtml(sub.trim()) : ''))
-              .join(schedaQualificaHtml)
-          )
-          .join(htmlCredentials);
-        return replaced;
-      }
-      return formatTextBlockToHtml(trimmed);
-    })
-    .filter(Boolean)
-    .join('\n');
-
-  const bodyHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #0f172a; line-height: 1.62; max-width: 650px; font-size: 14.5px;">
-  ${htmlParagraphs}
-  <div style="margin-top: 18px; padding-top: 12px; border-top: 1px solid #cbd5e1; font-size: 13.5px; line-height: 1.55; color: #1e293b;">
-    <strong style="color: #0f172a; font-size: 14.5px;">${escapeHtml(agentDisplayName)}</strong><br/>
-    <span>${escapeHtml(firmaReparto)} — <strong>Izzo Distribuzione S.r.l.</strong></span><br/>
-    <span>Tel / WhatsApp: <a href="tel:${escapeHtml(agentPhoneFinal.replace(/\s+/g, ''))}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentPhoneFinal)}</a> — Email: <a href="mailto:${escapeHtml(agentEmailFinal)}" style="color: #0f172a; text-decoration: none;">${escapeHtml(agentEmailFinal)}</a></span><br/>
-    <span>Portale B2B: <a href="https://www.izzodistribuzione.it" target="_blank" rel="noopener" style="color: #0f172a; font-weight: 600; text-decoration: none;">https://www.izzodistribuzione.it</a></span><br/>
-    <span style="display: inline-block; margin-top: 4px; font-size: 12px; color: #475569;">Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049</span>
-  </div>
-  <p style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 11.5px; color: #64748b;">
-    ${escapeHtml(optOutNote)}
-  </p>
-</div>`;
-
-  const cleanPlainText = bodyText
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1$2')
-    .replace(/`([^`]+)`/g, '$1');
+  const bodyText = `${cleanBodyCore}\n\n${signaturePlain}`;
+  const bodyHtml = renderMinimalOutlookHtmlFromPlain(bodyText);
 
   return {
     subject: resolvedSubject,
-    bodyText: cleanPlainText,
+    bodyText,
     bodyHtml,
     discountFormulaLabel,
     templateCode: chosenTemplate.code,
     templateName: chosenTemplate.name,
     angleGroup: chosenTemplate.angleGroup,
-    htmlLayoutVariant: layoutVariant,
+    htmlLayoutVariant: 'plain_personal',
     tokensReplacedCount: replacedTraces.length,
     replacedTokensPreview: replacedTraces,
     prospectIntelligence: {
@@ -1102,8 +993,351 @@ function executeCombinatorialSynthesis(
   };
 }
 
+// ============================================================================
+// SEQUENZA ANTI-SPAM A 3 TEMPI: STEP 1B ("SÌ"), STEP 2 (+10GG), STEP 3 (+5GG CALDI)
+// ============================================================================
+
+function resolveFollowupCommonContext(input: SdrSequenceFollowupInput) {
+  const catCfg = resolveClusterConfig(input.categoryCluster, input.commercialCategory);
+  const isRiv =
+    String(input.commercialCategory || '').toUpperCase() === 'RIV' ||
+    catCfg.commercialCategory === 'RIV';
+  const baseDiscount =
+    typeof input.baseDiscount === 'number' && input.baseDiscount > 0
+      ? input.baseDiscount
+      : isRiv
+        ? 50
+        : 40;
+  const extraPct =
+    typeof input.extraFirstPurchasePct === 'number' && input.extraFirstPurchasePct >= 0
+      ? input.extraFirstPurchasePct
+      : 10;
+  const discountFormulaLabel = extraPct > 0 ? `${baseDiscount}% + ${extraPct}%` : `${baseDiscount}%`;
+
+  const meta =
+    input.richMetadata && typeof input.richMetadata === 'object'
+      ? (input.richMetadata as Record<string, any>)
+      : {};
+  const vatOfficialName = meta.vat_official_name ? String(meta.vat_official_name) : null;
+  const companyClean = cleanCompanyDisplayName(input.companyName, vatOfficialName);
+  const decisionMaker = extractVerifiedDecisionMaker(
+    input.decisionMaker || meta.decision_maker || null,
+    input.companyName,
+    vatOfficialName
+  );
+
+  const seedCursor =
+    typeof input.deterministicSeed === 'number'
+      ? { val: Math.abs(Math.floor(input.deterministicSeed)) || 1 }
+      : input.prospectId
+        ? { val: Math.abs(Math.floor(input.prospectId)) || 1 }
+        : null;
+
+  const rawOrigSubj = String(
+    input.originalSubject || input.previousSubject || input.subject || ''
+  ).trim();
+  const strippedOrigSubj = rawOrigSubj.replace(/^(?:re|r|fwd|i):\s*/gi, '').trim();
+  const replySubject = strippedOrigSubj
+    ? `Re: ${strippedOrigSubj}`
+    : `Re: Presentazione fornitore B2B per ${companyClean} — Izzo Distribuzione S.r.l.`;
+
+  const rawSmartUrl = String(input.smartCatalogUrl || input.offerUrl || '').trim();
+  const smartCatalogUrl = rawSmartUrl
+    ? rawSmartUrl
+    : input.trackingToken
+      ? `https://www.izzodistribuzione.it/offerta/${encodeURIComponent(String(input.trackingToken).trim())}`
+      : 'https://www.izzodistribuzione.it';
+
+  const rawAgentName = (input.agentName || '').trim();
+  const agentDisplayName =
+    !rawAgentName || rawAgentName.toLowerCase() === 'savoia.daniele'
+      ? 'Daniele Savoia'
+      : sanitizeExternalCopy(rawAgentName, 'Daniele Savoia');
+
+  const rawAgentPhone = (input.agentPhone || '').trim();
+  const agentPhoneFinal =
+    rawAgentPhone && !rawAgentPhone.includes('0823 123456')
+      ? rawAgentPhone
+      : '+39 389 0129832';
+
+  const senderEmailFinal = resolveSignatureSenderEmail(
+    input.senderInboxEmail,
+    input.agentEmail
+  );
+
+  const minOrderClean = sanitizeExternalCopy(
+    input.minOrderAmountText,
+    "senza minimo d'ordine"
+  ).toLowerCase();
+
+  return {
+    companyClean,
+    decisionMaker,
+    seedCursor,
+    replySubject,
+    smartCatalogUrl,
+    discountFormulaLabel,
+    minOrderClean,
+    agentDisplayName,
+    agentPhoneFinal,
+    senderEmailFinal,
+  };
+}
+
 /**
- * Motore Combinatorio Principale DB-backed (100 Email Madri × 108 Gruppi di Parole Dinamiche + Intelligence DB Prospect).
+ * STEP 1B — Risposta automatica (dopo 15-25 min) a chi risponde "Sì" / consenso semplice.
+ * Regole:
+ * - Oggetto: `Re: <subject originale>`
+ * - 1 SOLO link pulito (`smartCatalogUrl`) in tutta l'email
+ * - ZERO parola "Password" o "Username", zero tabelle/bottoni pesanti
+ * - Spiega che dalla pagina può scaricare il Catalistino PDF riservato (che contiene anche le credenziali da conservare)
+ *   ed entrare con 1 clic nel portale coi prezzi netti già scontati.
+ */
+export function generateConsentReplyEmail(
+  input: ConsentReplyEmailInput
+): SdrSequenceEmailOutput {
+  const ctx = resolveFollowupCommonContext(input);
+  const greeting = ctx.decisionMaker
+    ? `Gentile ${ctx.decisionMaker},`
+    : `Gentili Referenti di ${ctx.companyClean},`;
+
+  const variants = [
+    [
+      greeting,
+      `Vi ringrazio per il cortese riscontro.`,
+      `Come anticipato, Vi lascio qui il collegamento riservato predisposto per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Aprendo questa pagina potete entrare direttamente con 1 clic nel nostro portale B2B con i prezzi netti già calcolati (sconto di benvenuto ${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}) e scaricare il Vostro Catalistino PDF riservato, all’interno del quale trovate stampate anche le credenziali riservate da conservare per i futuri accessi.`,
+      `Per qualsiasi verifica su articoli specifici o per quotare una distinta materiali potete rispondermi direttamente a questa mail o scrivermi su WhatsApp al ${ctx.agentPhoneFinal}.`,
+      `Un cordiale saluto,`,
+    ],
+    [
+      greeting,
+      `grazie per avermi risposto.`,
+      `Ecco il collegamento riservato dedicato a ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Da questa pagina potete sia entrare subito con 1 clic nel catalogo completo coi Vostri prezzi netti riservati (${ctx.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${ctx.minOrderClean}), sia scaricare il Catalistino PDF personalizzato che riporta stampate al suo interno le credenziali riservate da tenere in archivio.`,
+      `Resto a Vostra completa disposizione qui via mail o telefonicamente per ogni eventuale esigenza o preventivo su commessa.`,
+      `Cordiali saluti,`,
+    ],
+    [
+      greeting,
+      `grazie per il riscontro. Vi trasmetto subito la pagina riservata che ho abilitato per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Dal collegamento qui sopra potete accedere con 1 solo clic al portale B2B in libera consultazione (${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}) oppure scaricare sul computer o telefono il Catalistino PDF riservato, dove trovate indicate anche le credenziali personali da conservare.`,
+      `Se avete una lista materiali su cui confrontare le nostre quotazioni nette, giratemela pure in risposta quando volete.`,
+      `Buon lavoro e cordiali saluti,`,
+    ],
+    [
+      greeting,
+      `Vi ringrazio per l’interesse e per il rapido cenno di risposta.`,
+      `Trovate tutto pronto per ${ctx.companyClean} a questo collegamento riservato:\n${ctx.smartCatalogUrl}`,
+      `Dalla pagina potete entrare immediatamente con 1 clic nel portale coi prezzi netti a Voi dedicati (${ctx.discountFormulaLabel} in cascata sul primo ordine eventuale, ${ctx.minOrderClean}) e scaricare l’estratto Catalistino in PDF, che contiene anche le credenziali riservate stampate all’interno per averle sempre a portata di mano.`,
+      `Resto personalmente a disposizione ai recapiti in calce per qualsiasi approfondimento.`,
+      `Distinti saluti,`,
+    ],
+    [
+      greeting,
+      `grazie del cortese riscontro. Come promesso, ecco l’accesso riservato predisposto per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Aprendo il collegamento potete consultare subito con 1 clic l’intero portale B2B valorizzato al netto (${ctx.discountFormulaLabel} a cascata sul primo eventuale ordine, ${ctx.minOrderClean}) e scaricare il Catalistino PDF dedicato, nel quale sono riportate anche le credenziali riservate da conservare per le prossime consultazioni.`,
+      `Per qualsiasi necessità o quotazione dedicata potete rispondermi direttamente qui.`,
+      `Un cordiale saluto,`,
+    ],
+  ];
+
+  const vIdx = pickIndex(variants.length, ctx.seedCursor);
+  const chosenParagraphs = variants[vIdx];
+
+  const signaturePlain = buildCoherentSignatureBlock({
+    agentDisplayName: ctx.agentDisplayName,
+    firmaReparto: 'Referente commerciale B2B',
+    agentPhoneFinal: ctx.agentPhoneFinal,
+    senderEmailFinal: ctx.senderEmailFinal,
+    optOutNote: DEFAULT_OPTOUT_B2B_NOTE,
+  });
+
+  const bodyText = `${chosenParagraphs.join('\n\n')}\n\n${signaturePlain}`
+    .replace(/\bpassword\b/gi, 'chiave riservata')
+    .replace(/\busername\b/gi, 'profilo riservato');
+
+  const bodyHtml = renderMinimalOutlookHtmlFromPlain(bodyText, {
+    singleAllowedUrl: ctx.smartCatalogUrl,
+  });
+
+  return {
+    subject: ctx.replySubject,
+    bodyText,
+    bodyHtml,
+    sequenceStep: 10,
+    templateCode: `STEP1B_CONSENT_V${vIdx + 1}`,
+    discountFormulaLabel: ctx.discountFormulaLabel,
+  };
+}
+
+/**
+ * STEP 2 — Follow-up sobrio a Giorno +10 se il prospect non ha risposto allo Step 1.
+ * Regole:
+ * - Oggetto: `Re: <subject originale>`
+ * - 1 SOLO link pulito (`smartCatalogUrl`), zero insistenza
+ * - ZERO parola "Password" o "Username", zero tabelle/bottoni pesanti
+ */
+export function generateStep2FollowupEmail(
+  input: Step2FollowupEmailInput
+): SdrSequenceEmailOutput {
+  const ctx = resolveFollowupCommonContext(input);
+  const greeting = ctx.decisionMaker
+    ? `Gentile ${ctx.decisionMaker},`
+    : `Gentili Referenti di ${ctx.companyClean},`;
+
+  const variants = [
+    [
+      greeting,
+      `riprendo brevemente la mia precedente comunicazione solo per evitarVi perdite di tempo in passaggi intermedi.`,
+      `Qualora in occasione di prossime forniture voleste verificare in autonomia e senza alcun impegno i nostri listini netti B2B (${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}), Vi lascio direttamente qui il collegamento riservato predisposto per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Da questa pagina potete entrare con 1 clic nel portale oppure scaricare il Catalistino PDF riservato, che riporta all’interno anche le credenziali di consultazione da conservare in archivio.`,
+      `Resto a disposizione per eventuali quotazioni su distinta materiali e Vi auguro buon lavoro.`,
+      `Cordiali saluti,`,
+    ],
+    [
+      greeting,
+      `mi permetto una sola breve nota a completamento della precedente email inviata a ${ctx.companyClean}.`,
+      `Per consentirVi di tenere agli atti i nostri riferimenti senza dover rispondere se siete impegnati in cantiere o in ufficio, Vi lascio direttamente il collegamento riservato di consultazione (${ctx.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${ctx.minOrderClean}):\n${ctx.smartCatalogUrl}`,
+      `Aprendo il collegamento potete consultare subito con 1 clic i prezzi netti a portale o scaricare il Catalistino PDF dedicato con le credenziali riservate stampate all’interno.`,
+      `Un cordiale saluto,`,
+    ],
+    [
+      greeting,
+      `riprendo sinteticamente la mia precedente presentazione di Izzo Distribuzione S.r.l. solo per lasciarVi a disposizione diretta il prospetto riservato a ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Senza alcuna formalità né vincolo commerciale, da quella pagina potete scaricare l’estratto del Catalistino PDF (comprensivo delle credenziali da conservare) ed entrare con 1 clic nell’area B2B già configurata con lo sconto ${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}.`,
+      `Per qualsiasi confronto futuro resto raggiungibile ai recapiti qui sotto.`,
+      `Distinti saluti,`,
+    ],
+    [
+      greeting,
+      `a integrazione della mia nota precedente, e per evitarVi qualsiasi perdita di tempo, Vi trasmetto direttamente il collegamento riservato predisposto per l’ufficio acquisti di ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Potrete utilizzarlo liberamente quando Vi sarà più comodo per scaricare il Catalistino PDF coi prezzi netti (che include le credenziali riservate da archiviare) o accedere con 1 clic al portale B2B completo (${ctx.discountFormulaLabel} a cascata sul primo eventuale ordine, ${ctx.minOrderClean}).`,
+      `Cordialmente,`,
+    ],
+    [
+      greeting,
+      `Vi scrivo un’ultima breve riga in coda alla precedente comunicazione per lasciarVi direttamente il riferimento operativo preparato per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Dal collegamento potete entrare con 1 clic nel catalogo B2B coi prezzi netti riservati (${ctx.discountFormulaLabel} in cascata sul primo ordine eventuale, ${ctx.minOrderClean}) oppure salvare il Catalistino PDF che riporta all’interno anche le credenziali riservate di consultazione.`,
+      `Rimanendo a disposizione anche per preventivi rapidi su distinta materiali, porgo cordiali saluti.`,
+    ],
+    [
+      greeting,
+      `riprendo brevemente la mia precedente mail unicamente per lasciarVi agli atti l’accesso conoscitivo gratuito di Izzo Distribuzione S.r.l. dedicato a ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
+      `Quando avrete necessità di confrontare disponibilità e quotazioni nette (${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}), da quella pagina potrete entrare con 1 clic nel portale o scaricare il Catalistino PDF completo delle credenziali da conservare.`,
+      `Un cordiale saluto e buon lavoro,`,
+    ],
+  ];
+
+  const vIdx = pickIndex(variants.length, ctx.seedCursor);
+  const chosenParagraphs = variants[vIdx];
+
+  const signaturePlain = buildCoherentSignatureBlock({
+    agentDisplayName: ctx.agentDisplayName,
+    firmaReparto: 'Referente commerciale B2B',
+    agentPhoneFinal: ctx.agentPhoneFinal,
+    senderEmailFinal: ctx.senderEmailFinal,
+    optOutNote: DEFAULT_OPTOUT_B2B_NOTE,
+  });
+
+  const bodyText = `${chosenParagraphs.join('\n\n')}\n\n${signaturePlain}`
+    .replace(/\bpassword\b/gi, 'chiave riservata')
+    .replace(/\busername\b/gi, 'profilo riservato');
+
+  const bodyHtml = renderMinimalOutlookHtmlFromPlain(bodyText, {
+    singleAllowedUrl: ctx.smartCatalogUrl,
+  });
+
+  return {
+    subject: ctx.replySubject,
+    bodyText,
+    bodyHtml,
+    sequenceStep: 2,
+    templateCode: `STEP2_FOLLOWUP_V${vIdx + 1}`,
+    discountFormulaLabel: ctx.discountFormulaLabel,
+  };
+}
+
+/**
+ * STEP 3 — Brevissima nota cortese 1-a-1 a Giorno +5 SOLO per i Lead Caldi che hanno aperto
+ * davvero il PDF/Portale ma non hanno ancora ordinato né sono stati chiamati dall'agente.
+ * Regole:
+ * - ZERO link cliccabili (0 http/https/<a href>)
+ * - ZERO parola "Password" o "Username"
+ * - Stop definitivo agli invii automatici dopo questo messaggio.
+ */
+export function generateStep3WarmFollowupEmail(
+  input: Step3WarmFollowupEmailInput
+): SdrSequenceEmailOutput {
+  const ctx = resolveFollowupCommonContext(input);
+  const greeting = ctx.decisionMaker
+    ? `Buongiorno ${ctx.decisionMaker},`
+    : `Buongiorno ai Referenti di ${ctx.companyClean},`;
+
+  const variants = [
+    [
+      greeting,
+      `Vi lascio solo un brevissimo saluto personale a chiusura dei riferimenti inviati nei giorni scorsi per ${ctx.companyClean}.`,
+      `Se per una commessa in corso o per il magazzino può esserVi utile mettere alla prova i nostri prezzi netti su una distinta materiali specifica, potete rispondermi direttamente a questa mail (o su WhatsApp al ${ctx.agentPhoneFinal}) e Vi preparo personalmente una quotazione dedicata senza impegno.`,
+      `Non invierò ulteriori messaggi automatici: conservate pure i miei recapiti per qualsiasi futura esigenza.`,
+      `Buon lavoro e cordiali saluti,`,
+    ],
+    [
+      greeting,
+      `Vi scrivo un’ultima nota molto rapida per non arrecare alcun disturbo operativo a ${ctx.companyClean}.`,
+      `Qualora voleste verificare la nostra competitività su specifici codici ad alta rotazione o su un computo materiali, rispondete pure a questa mail con l’elenco articoli e Vi rispondo personalmente in giornata con la migliore offerta riservata (${ctx.discountFormulaLabel} sul primo ordine eventuale, ${ctx.minOrderClean}).`,
+      `Chiudo qui i ricontatti automatici e resto semplicemente a Vostra disposizione per il futuro.`,
+      `Un cordiale saluto,`,
+    ],
+    [
+      greeting,
+      `chiudo con questa brevissima comunicazione il nostro contatto informativo per ${ctx.companyClean}, così da non intasare la Vostra casella.`,
+      `Se in occasione dei prossimi acquisti aveste piacere di confrontare una quotazione su misura su una Vostra lista materiali, basta rispondere a questa email o contattarmi al ${ctx.agentPhoneFinal}.`,
+      `Grazie per l’attenzione e buon proseguimento di lavoro,`,
+    ],
+    [
+      greeting,
+      `mi permetto un solo saluto conclusivo in merito alla presentazione di Izzo Distribuzione S.r.l. inviata a ${ctx.companyClean}.`,
+      `Resto a Vostra completa disposizione qualora voleste sottopormi in risposta una distinta articoli di prova per verificare sul concreto servizio e prezzi netti (${ctx.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${ctx.minOrderClean}). Non seguiranno altre comunicazioni automatiche.`,
+      `Cordiali saluti,`,
+    ],
+    [
+      greeting,
+      `Vi lascio un ultimo sintetico riferimento personale per ${ctx.companyClean} prima di archiviare la pratica senza ulteriori solleciti.`,
+      `Se aveste bisogno di quotare rapidamente una lista materiali elettrica, LED, fissaggio o utensileria per un confronto diretto coi Vostri attuali fornitori, rispondete pure quando volete a questa mail e me ne occupo personalmente.`,
+      `Un cordiale saluto,`,
+    ],
+  ];
+
+  const vIdx = pickIndex(variants.length, ctx.seedCursor);
+  const chosenParagraphs = variants[vIdx];
+
+  const signaturePlain = buildCoherentSignatureBlock({
+    agentDisplayName: ctx.agentDisplayName,
+    firmaReparto: 'Referente commerciale B2B',
+    agentPhoneFinal: ctx.agentPhoneFinal,
+    senderEmailFinal: ctx.senderEmailFinal,
+    optOutNote: DEFAULT_OPTOUT_B2B_NOTE,
+  });
+
+  const cleanBodyCore = stripMarkdownAndForbiddenStep1Tokens(
+    chosenParagraphs.join('\n\n')
+  );
+  const cleanText = `${cleanBodyCore}\n\n${signaturePlain}`;
+  const bodyHtml = renderMinimalOutlookHtmlFromPlain(cleanText);
+
+  return {
+    subject: ctx.replySubject,
+    bodyText: cleanText,
+    bodyHtml,
+    sequenceStep: 3,
+    templateCode: `STEP3_WARM_V${vIdx + 1}`,
+    discountFormulaLabel: ctx.discountFormulaLabel,
+  };
+}
+
+/**
+ * Motore Combinatorio Principale DB-backed (Step 1 Conversazione Umana Pura: 100 Email Madri × 108 Gruppi Lessicali + Intelligence DB Prospect).
  * Se `prospectId` corrisponde a un lead reale nel DB e mancano `website`/`richMetadata` in input,
  * li idrata automaticamente dalla tabella `sdr_prospects`.
  */

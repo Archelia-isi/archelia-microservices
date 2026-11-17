@@ -32,6 +32,9 @@ model SdrProspect {
   isPecVerified       Boolean           @default(false) @map("is_pec_verified")
   pecRejectedLog      String?           @map("pec_rejected_log")
   pecCamerale         String?           @map("pec_camerale")
+  emailVerifyStatus   String?           @map("email_verify_status") // "VALID" | "INVALID" | "CATCH_ALL" | "UNKNOWN"
+  emailVerifiedAt     DateTime?         @map("email_verified_at")
+  emailVerifyProvider String?           @map("email_verify_provider")
   
   section             String            @default("Senza_Email") // Email_Pronta, Senza_Email, PEC_Scartata
   leadScore           Int               @default(0) @map("lead_score")
@@ -53,6 +56,9 @@ model SdrProspect {
   promotedAt          DateTime?         @map("promoted_at")
   assignedAgentId     String?           @default("cmtu64h1c0000jk0sb1ho1o49") @map("assigned_agent_id")
   assignedAgentCode   String?           @default("003") @map("assigned_agent_code")
+  agentContactedAt    DateTime?         @map("agent_contacted_at")
+  agentCallNote       String?           @map("agent_call_note")
+  autoFollowupPaused  Boolean           @default(false) @map("auto_followup_paused")
   
   sentinelAttempts    Int               @default(0) @map("sentinel_attempts")
   lastSentinelCheckAt DateTime?         @map("last_sentinel_check_at")
@@ -67,6 +73,7 @@ model SdrProspect {
   @@index([commercialCategory])
   @@index([region, province, city])
   @@index([pipelineStatus])
+  @@index([emailVerifyStatus])
   @@index([section, lastSentinelCheckAt])
   @@map("sdr_prospects")
 }
@@ -150,8 +157,14 @@ model SdrOutreachConfig {
   afternoonWindow           String   @default("14:00-17:30") @map("afternoon_window")
   jitterMinSeconds          Int      @default(180) @map("jitter_min_seconds")
   jitterMaxSeconds          Int      @default(420) @map("jitter_max_seconds")
-  speedProfile              String   @default("PRUDENT_WARMUP") @map("speed_profile") // PRUDENT_WARMUP | STANDARD | FULL_REGIME
+  speedProfile              String   @default("PRUDENT_WARMUP") @map("speed_profile") // PRUDENT_WARMUP | SOFT_14D | STANDARD | FULL_REGIME
   sentinelEnabled           Boolean  @default(true) @map("sentinel_enabled")
+
+  // 5. Verifica Pre-Invio MillionVerifier & Sequenza Anti-Spam a 3 Tempi
+  enableMillionVerifier     Boolean  @default(true) @map("enable_million_verifier")
+  millionVerifierApiKey     String?  @map("million_verifier_api_key")
+  step2DelayDays            Int      @default(10) @map("step2_delay_days")
+  step3WarmDelayDays        Int      @default(5) @map("step3_warm_delay_days")
 
   updatedAt                 DateTime @updatedAt @map("updated_at")
   @@map("sdr_outreach_configs")

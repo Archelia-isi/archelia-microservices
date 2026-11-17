@@ -17,6 +17,7 @@ export interface SdrInboxAccountItem {
   effectiveDailyLimit?: number;
   warmupWeek?: number;
   warmupEnabled?: boolean;
+  phaseLabel?: string | null;
   sentToday: number;
   isActive: boolean;
   hasPassword?: boolean;
@@ -63,6 +64,13 @@ export interface SdrOutreachConfigState {
   morningWindow: string;
   afternoonWindow: string;
   sentinelEnabled: boolean;
+  enableMillionVerifier?: boolean;
+  millionVerifierApiKey?: string;
+  hasMillionVerifierKey?: boolean;
+  millionVerifierKeySource?: 'database' | 'env' | 'none';
+  emailVerifierProvider?: string;
+  step2DelayDays?: number;
+  step3WarmDelayDays?: number;
   defaultAgentCode?: string;
   defaultAgentName?: string;
   defaultAgentEmail?: string;

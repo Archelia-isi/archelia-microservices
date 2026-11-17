@@ -72,6 +72,7 @@ import {
   stopAutopilotMode,
   simulateInboxReply,
   getInboxReplyEvents,
+  redisConnection,
 } from '../../lib/b2bSdr/searchEngine.js';
 
 const DANIELE_SAVOIA_AGENT_ID = 'cmtu64h1c0000jk0sb1ho1o49';
@@ -129,17 +130,151 @@ function generateTempPassword(): string {
   return `Izzo!${suffix}`;
 }
 
-function sanitizeInboxAccount(acc: any) {
-  const ramp = computeEffectiveInboxDailyLimit(acc);
+function maskSecretKey(rawKey?: string | null): string {
+  const trimmed = String(rawKey || '').trim();
+  if (!trimmed) return '';
+  if (trimmed.length <= 6) return '••••••••';
+  return `••••••••••••${trimmed.slice(-4)}`;
+}
+
+function resolvePlainVerifierKey(rawStored?: string | null): string {
+  const raw = String(rawStored || '').trim();
+  if (!raw) return '';
+  try {
+    return decryptSdrSecret(raw).trim();
+  } catch {
+    return raw;
+  }
+}
+
+function detectEmailVerifierProvider(plainKey: string): string {
+  if (!plainKey) return 'DNS MX Fallback';
+  if (/^ev_(?:live|test)_/i.test(plainKey)) return 'email-validation.org (EU GDPR)';
+  return 'MillionVerifier';
+}
+
+function sanitizeOutreachConfigForAdmin(cfg: any) {
+  if (!cfg) return null;
+  const dbKey = resolvePlainVerifierKey(cfg.millionVerifierApiKey);
+  const envKey = resolvePlainVerifierKey(process.env.MILLIONVERIFIER_API_KEY);
+  const effectiveKey = dbKey || envKey;
+  return {
+    ...cfg,
+    millionVerifierApiKey: dbKey ? maskSecretKey(dbKey) : '',
+    hasMillionVerifierKey: Boolean(effectiveKey),
+    millionVerifierKeySource: dbKey ? 'database' : envKey ? 'env' : 'none',
+    emailVerifierProvider: detectEmailVerifierProvider(effectiveKey),
+  };
+}
+
+async function fetchEmailVerifierCreditsInfo(
+  plainKey: string,
+  forceRefresh = false
+): Promise<{
+  connected: boolean;
+  provider: string;
+  balance: number | null;
+  expiresAt?: string | null;
+}> {
+  const provider = detectEmailVerifierProvider(plainKey);
+  if (!plainKey) {
+    return { connected: false, provider, balance: null };
+  }
+
+  const cacheKey = `sdr:ev:credits:v1:${plainKey.slice(-6)}`;
+  if (!forceRefresh) {
+    try {
+      const cached = await redisConnection.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // ignore cache read error
+    }
+  }
+
+  try {
+    if (/^ev_(?:live|test)_/i.test(plainKey)) {
+      const endpoints = [
+        'https://api-eu.email-validation.org/v1/credits',
+        'https://api.email-validation.org/v1/credits',
+      ];
+      for (const url of endpoints) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 3500);
+        try {
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${plainKey}`,
+              Accept: 'application/json',
+            },
+            signal: ctrl.signal,
+          });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = (await res.json()) as Record<string, any>;
+            const balance =
+              typeof data.balance === 'number'
+                ? data.balance
+                : typeof data.credits === 'number'
+                  ? data.credits
+                  : null;
+            const info = {
+              connected: true,
+              provider,
+              balance,
+              expiresAt: data.expires_at || data.expiresAt || null,
+            };
+            await redisConnection
+              .set(cacheKey, JSON.stringify(info), 'EX', 300)
+              .catch(() => {});
+            return info;
+          }
+        } catch {
+          clearTimeout(timer);
+        }
+      }
+      return { connected: false, provider, balance: null };
+    }
+
+    // MillionVerifier classic endpoint
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3500);
+    const res = await fetch(
+      `https://api.millionverifier.com/api/v3/credits?api=${encodeURIComponent(plainKey)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = (await res.json()) as Record<string, any>;
+      const balance = typeof data.credits === 'number' ? data.credits : null;
+      const info = { connected: true, provider, balance, expiresAt: null };
+      await redisConnection.set(cacheKey, JSON.stringify(info), 'EX', 300).catch(() => {});
+      return info;
+    }
+  } catch {
+    // ignore network failure
+  }
+
+  return { connected: false, provider, balance: null };
+}
+
+function sanitizeInboxAccount(acc: any, speedProfileOverride?: string | null) {
+  const ramp = computeEffectiveInboxDailyLimit(acc, speedProfileOverride || undefined);
   const { smtpPasswordEnc, imapPasswordEnc, ...safe } = acc;
+  const hasPass = Boolean(
+    smtpPasswordEnc && smtpPasswordEnc !== 'DRY_RUN_TOKEN' && smtpPasswordEnc.length > 8
+  );
   return {
     ...safe,
-    hasPasswordConfigured: Boolean(
-      smtpPasswordEnc && smtpPasswordEnc !== 'DRY_RUN_TOKEN' && smtpPasswordEnc.length > 8
-    ),
+    hasPassword: hasPass,
+    hasPasswordConfigured: hasPass,
+    healthStatus: acc.lastTestStatus || 'OK',
+    lastError: acc.lastTestError || null,
+    lastTestedAt: acc.lastTestAt || null,
     effectiveDailyLimit: ramp.effectiveDailyLimit,
     warmupWeek: ramp.warmupWeek,
     daysActive: ramp.daysActive,
+    phaseLabel: (ramp as any).phaseLabel || null,
   };
 }
 
@@ -172,6 +307,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         promoPendingOrder,
         promoConverted,
         outreachConfig,
+        emailVerifyGroups,
+        emailInvalidMovedToPhoneCount,
       ] = await Promise.all([
         sdrPrisma.sdrProspect.count(),
         sdrPrisma.sdrProspect.count({ where: { section: 'Email_Pronta' } }),
@@ -212,9 +349,28 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           where: { status: 'CONVERTED' },
         }),
         sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } }),
+        sdrPrisma.sdrProspect.groupBy({
+          by: ['emailVerifyStatus'],
+          _count: { _all: true },
+        }),
+        sdrPrisma.sdrProspect.count({
+          where: { emailVerifyStatus: 'INVALID', section: 'Senza_Email' },
+        }),
       ]);
 
-      const inboxAccounts = rawInboxAccounts.map(sanitizeInboxAccount);
+      let emailValidCount = 0;
+      let emailInvalidCount = 0;
+      let emailCatchAllCount = 0;
+      for (const g of emailVerifyGroups) {
+        const st = String(g.emailVerifyStatus || '').toUpperCase();
+        if (st === 'VALID') emailValidCount += g._count._all;
+        else if (st === 'INVALID') emailInvalidCount += g._count._all;
+        else if (st === 'CATCH_ALL') emailCatchAllCount += g._count._all;
+      }
+
+      const inboxAccounts = rawInboxAccounts.map((acc) =>
+        sanitizeInboxAccount(acc, outreachConfig?.speedProfile)
+      );
       const totalDailyCapacity = inboxAccounts
         .filter((a) => a.isActive)
         .reduce((sum, a) => sum + Number(a.effectiveDailyLimit || 0), 0);
@@ -222,6 +378,14 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
       const interceptEmail = String(env.SDR_TEST_INTERCEPT_EMAIL || '').trim().toLowerCase() || null;
+      const sanitizedConfig = sanitizeOutreachConfigForAdmin(outreachConfig);
+      const effectiveEvKey =
+        resolvePlainVerifierKey(outreachConfig?.millionVerifierApiKey) ||
+        resolvePlainVerifierKey(process.env.MILLIONVERIFIER_API_KEY);
+      const evCreditsInfo = effectiveEvKey
+        ? await fetchEmailVerifierCreditsInfo(effectiveEvKey, false)
+        : { connected: false, provider: 'DNS MX Fallback', balance: null };
+
       return reply.send({
         success: true,
         enableGlobalWrites: isSdrLive,
@@ -237,6 +401,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           draftsCount,
           activeBozzaProntaCount,
           catalogOpenedCount,
+          promoOpenedCatalog: catalogOpenedCount,
           blacklistCount,
           promoTotal,
           promoContacted,
@@ -246,7 +411,17 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           activeInboxesCount: inboxAccounts.filter((a) => a.isActive).length,
           totalInboxesCount: inboxAccounts.length,
           totalDailyCapacity,
+          totalDailyPoolCapacity: totalDailyCapacity,
           sentTodayTotal,
+          totalSentToday: sentTodayTotal,
+          emailValidCount,
+          emailInvalidCount,
+          emailInvalidMovedToPhoneCount,
+          emailCatchAllCount,
+          hasMillionVerifierKey: Boolean(sanitizedConfig?.hasMillionVerifierKey),
+          emailVerifierProvider: evCreditsInfo.provider,
+          emailVerifierCredits: evCreditsInfo.balance,
+          emailVerifierConnected: evCreditsInfo.connected,
         },
         clusters: clusterGroups.map((g) => ({
           cluster: g.categoryCluster,
@@ -259,12 +434,40 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         })),
         sentinelRuns,
         inboxAccounts,
-        outreachConfig,
+        outreachConfig: sanitizedConfig,
       });
     } catch (error: any) {
       log.error(`Errore GET /api/admin/sdr/stats: ${error.message}`, {
         module: 'api-gateway:b2bSdr',
       });
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  fastify.get('/api/admin/sdr/email-verifier/credits', async (_request, reply) => {
+    try {
+      const cfg = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
+      const effectiveKey =
+        resolvePlainVerifierKey(cfg?.millionVerifierApiKey) ||
+        resolvePlainVerifierKey(process.env.MILLIONVERIFIER_API_KEY);
+      if (!effectiveKey) {
+        return reply.send({
+          success: false,
+          connected: false,
+          provider: 'DNS MX Fallback',
+          balance: null,
+          error: 'Nessuna API Key configurata (attivo fallback gratuito DNS MX).',
+        });
+      }
+      const info = await fetchEmailVerifierCreditsInfo(effectiveKey, true);
+      return reply.send({
+        success: info.connected,
+        ...info,
+        message: info.connected
+          ? `Connesso a ${info.provider}${info.balance !== null ? ` — ${info.balance.toLocaleString('it-IT')} crediti disponibili` : ''}!`
+          : `Impossibile contattare ${info.provider}. Verifica la chiave API.`,
+      });
+    } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
   });
@@ -288,8 +491,24 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const limit = Math.min(100, Math.max(10, parseInt(q.limit || '30', 10)));
       const skip = (page - 1) * limit;
 
+      const normalizeSectionParam = (rawSec?: string) => {
+        if (!rawSec || rawSec === 'ALL') return null;
+        if (rawSec === 'EMAIL_PRONTA') return 'Email_Pronta';
+        if (rawSec === 'SOLO_TELEFONO') return 'Senza_Email';
+        if (rawSec === 'PEC_SCARTATA') return 'PEC_Scartata';
+        return rawSec;
+      };
+
       const where: any = {};
-      if (q.section && q.section !== 'ALL') where.section = q.section;
+      const resolvedSection = normalizeSectionParam(q.section);
+      if (resolvedSection) where.section = resolvedSection;
+      if (q.emailVerifyStatus && q.emailVerifyStatus !== 'ALL') {
+        if (q.emailVerifyStatus === 'UNVERIFIED') {
+          where.emailVerifyStatus = null;
+        } else {
+          where.emailVerifyStatus = q.emailVerifyStatus;
+        }
+      }
       if (q.vatOnly === '1') where.vatNumber = { not: null };
       if (q.commercialCategory && q.commercialCategory !== 'ALL') {
         where.commercialCategory = q.commercialCategory;
@@ -407,39 +626,52 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       }
 
       const clusterWhere: any = { ...summaryWhere };
-      if (q.section && q.section !== 'ALL') clusterWhere.section = q.section;
+      if (resolvedSection) clusterWhere.section = resolvedSection;
 
-      const [prospects, total, sectionGroups, vatCount, clusterGroups] = await Promise.all([
-        sdrPrisma.sdrProspect.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy,
-          include: {
-            drafts: {
-              orderBy: { createdAt: 'desc' },
-              take: 1,
+      const [prospects, total, sectionGroups, vatCount, clusterGroups, emailVerifyGroups, invalidMovedPhoneCount] =
+        await Promise.all([
+          sdrPrisma.sdrProspect.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy,
+            include: {
+              drafts: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+              },
             },
-          },
-        }),
-        sdrPrisma.sdrProspect.count({ where }),
-        sdrPrisma.sdrProspect.groupBy({
-          by: ['section'],
-          where: summaryWhere,
-          _count: { _all: true },
-        }),
-        sdrPrisma.sdrProspect.count({
-          where: {
-            ...summaryWhere,
-            vatNumber: { not: null },
-          },
-        }),
-        sdrPrisma.sdrProspect.groupBy({
-          by: ['categoryCluster'],
-          where: clusterWhere,
-          _count: { _all: true },
-        }),
-      ]);
+          }),
+          sdrPrisma.sdrProspect.count({ where }),
+          sdrPrisma.sdrProspect.groupBy({
+            by: ['section'],
+            where: summaryWhere,
+            _count: { _all: true },
+          }),
+          sdrPrisma.sdrProspect.count({
+            where: {
+              ...summaryWhere,
+              vatNumber: { not: null },
+            },
+          }),
+          sdrPrisma.sdrProspect.groupBy({
+            by: ['categoryCluster'],
+            where: clusterWhere,
+            _count: { _all: true },
+          }),
+          sdrPrisma.sdrProspect.groupBy({
+            by: ['emailVerifyStatus'],
+            where: summaryWhere,
+            _count: { _all: true },
+          }),
+          sdrPrisma.sdrProspect.count({
+            where: {
+              ...summaryWhere,
+              emailVerifyStatus: 'INVALID',
+              section: 'Senza_Email',
+            },
+          }),
+        ]);
 
       // Enrich with b2b_promo_prospects live status if promoProspectId is present
       const promoIds = prospects
@@ -472,6 +704,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const unpacked = unpackProspectRichData(p);
         return {
           ...unpacked,
+          emailVerifyStatus: (p as any).emailVerifyStatus || null,
+          emailVerifiedAt: (p as any).emailVerifiedAt || null,
+          emailVerifyProvider: (p as any).emailVerifyProvider || null,
+          agentContactedAt: (p as any).agentContactedAt || null,
+          agentCallNote: (p as any).agentCallNote || null,
+          autoFollowupPaused: Boolean((p as any).autoFollowupPaused),
           latestDraft: (p as any).drafts?.[0] || null,
           promoProspect: p.promoProspectId ? promoMap.get(p.promoProspectId) || null : null,
         };
@@ -486,6 +724,16 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         if (sg.section === 'Email_Pronta') sumReady += sg._count._all;
         else if (sg.section === 'Senza_Email') sumPhone += sg._count._all;
         else if (sg.section === 'PEC_Scartata') sumPec += sg._count._all;
+      }
+
+      let emailValidCount = 0;
+      let emailInvalidCount = 0;
+      let emailCatchAllCount = 0;
+      for (const evg of emailVerifyGroups) {
+        const st = String(evg.emailVerifyStatus || '').toUpperCase();
+        if (st === 'VALID') emailValidCount += evg._count._all;
+        else if (st === 'INVALID') emailInvalidCount += evg._count._all;
+        else if (st === 'CATCH_ALL') emailCatchAllCount += evg._count._all;
       }
 
       const clusterCounts: Record<string, number> = {};
@@ -504,6 +752,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           pecOnly: sumPec,
           vatCount,
           viesCount: vatCount,
+          emailValidCount,
+          emailInvalidCount,
+          emailInvalidMovedToPhoneCount: invalidMovedPhoneCount,
+          emailCatchAllCount,
           clusterCounts,
         },
         pagination: {
@@ -574,12 +826,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           ? sdrPrisma.sdrOutreachDraft.findMany({
               where: {
                 prospectId: { in: sdrProspectIds },
-                sequenceStep: 1,
               },
-              orderBy: { createdAt: 'desc' },
+              orderBy: [{ catalogOpenCount: 'desc' }, { createdAt: 'desc' }],
               select: {
                 id: true,
                 prospectId: true,
+                sequenceStep: true,
                 trackingToken: true,
                 catalogOpenedAt: true,
                 catalogOpenCount: true,
@@ -611,17 +863,21 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           0
         );
         const sdrDraft = p.sdrProspectId ? draftBySdrId.get(p.sdrProspectId) || null : null;
-        const smartUrls = sdrDraft?.trackingToken
-          ? buildSmartCatalogOfferUrls(sdrDraft.trackingToken)
-          : null;
+        const resolvedToken = (p as any).smartOfferToken || sdrDraft?.trackingToken || null;
+        const smartUrls = resolvedToken ? buildSmartCatalogOfferUrls(resolvedToken) : null;
+        const mergedOpenCount = Math.max(
+          Number((p as any).catalogOpenCount || 0),
+          Number(sdrDraft?.catalogOpenCount || 0)
+        );
+        const mergedOpenedAt = (p as any).catalogOpenedAt || sdrDraft?.catalogOpenedAt || null;
         return {
           ...p,
           cartItemsCount,
           cartTotalUnits,
           firstPurchaseRule: ruleByClient.get(p.id) || null,
-          trackingToken: sdrDraft?.trackingToken || null,
-          catalogOpenedAt: sdrDraft?.catalogOpenedAt || null,
-          catalogOpenCount: Number(sdrDraft?.catalogOpenCount || 0),
+          trackingToken: resolvedToken,
+          catalogOpenedAt: mergedOpenedAt,
+          catalogOpenCount: mergedOpenCount,
           outreachDraftStatus: sdrDraft?.status || null,
           smartOfferUrl: smartUrls?.storefrontOfferUrl || smartUrls?.apiOfferUrl || null,
           catalogPdfUrl: smartUrls?.apiPdfDownloadUrl || null,
@@ -670,7 +926,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           data: { id: 'default' },
         });
       }
-      return reply.send({ success: true, config });
+      return reply.send({ success: true, config: sanitizeOutreachConfigForAdmin(config) });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
@@ -679,6 +935,20 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.put('/api/admin/sdr/config', async (request, reply) => {
     try {
       const body = request.body as Record<string, any>;
+      const rawMvKey =
+        body.millionVerifierApiKey !== undefined ? String(body.millionVerifierApiKey).trim() : undefined;
+      const shouldUpdateMvKey =
+        rawMvKey !== undefined && !rawMvKey.startsWith('••••');
+
+      const step2Days =
+        body.step2DelayDays !== undefined
+          ? Math.max(1, Math.min(60, Math.round(Number(body.step2DelayDays) || 10)))
+          : undefined;
+      const step3Days =
+        body.step3WarmDelayDays !== undefined
+          ? Math.max(1, Math.min(30, Math.round(Number(body.step3WarmDelayDays) || 5)))
+          : undefined;
+
       const config = await sdrPrisma.sdrOutreachConfig.upsert({
         where: { id: 'default' },
         create: {
@@ -687,7 +957,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           istExtraDiscountPct: Number(body.istExtraDiscountPct ?? 10),
           rivExtraDiscountPct: Number(body.rivExtraDiscountPct ?? 10),
           discountCalculationMode: 'EXTRA_CASCADE',
-          discountTargetType: 'ALL_2GG',
+          discountTargetType:
+            body.discountTargetType === 'ALL_CATALOG' ? 'ALL_CATALOG' : 'ALL_2GG',
           discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: String(
             body.offerTitle || 'Invito a valutarci come fornitore B2B e sconto di benvenuto sul primo ordine'
@@ -719,6 +990,10 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           morningWindow: String(body.morningWindow || '08:30-12:30'),
           afternoonWindow: String(body.afternoonWindow || '14:00-17:30'),
           sentinelEnabled: Boolean(body.sentinelEnabled ?? true),
+          enableMillionVerifier: Boolean(body.enableMillionVerifier ?? true),
+          millionVerifierApiKey: shouldUpdateMvKey ? rawMvKey || null : null,
+          step2DelayDays: step2Days ?? 10,
+          step3WarmDelayDays: step3Days ?? 5,
         },
         update: {
           enableFirstPurchaseRule:
@@ -730,7 +1005,8 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           rivExtraDiscountPct:
             body.rivExtraDiscountPct !== undefined ? Number(body.rivExtraDiscountPct) : undefined,
           discountCalculationMode: 'EXTRA_CASCADE',
-          discountTargetType: 'ALL_2GG',
+          discountTargetType:
+            body.discountTargetType === 'ALL_CATALOG' ? 'ALL_CATALOG' : 'ALL_2GG',
           discountTargetFiltersJson: { warehouseFilter: 'MAIN_2GG', only2gg: true },
           offerTitle: body.offerTitle,
           minOrderAmountText: body.minOrderAmountText,
@@ -754,9 +1030,17 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             body.sentinelEnabled !== undefined ? Boolean(body.sentinelEnabled) : undefined,
           defaultAgentId: body.defaultAgentId ? String(body.defaultAgentId) : undefined,
           defaultAgentCode: body.defaultAgentCode ? String(body.defaultAgentCode) : undefined,
+          defaultAgentName: body.defaultAgentName ? String(body.defaultAgentName) : undefined,
+          enableMillionVerifier:
+            body.enableMillionVerifier !== undefined
+              ? Boolean(body.enableMillionVerifier)
+              : undefined,
+          ...(shouldUpdateMvKey ? { millionVerifierApiKey: rawMvKey || null } : {}),
+          ...(step2Days !== undefined ? { step2DelayDays: step2Days } : {}),
+          ...(step3Days !== undefined ? { step3WarmDelayDays: step3Days } : {}),
         },
       });
-      return reply.send({ success: true, config });
+      return reply.send({ success: true, config: sanitizeOutreachConfigForAdmin(config) });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
@@ -1019,6 +1303,12 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           }
         }
 
+        const existingDraft = await sdrPrisma.sdrOutreachDraft.findFirst({
+          where: { prospectId: prospect.id, sequenceStep: 1 },
+        });
+        const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
+        const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
+
         const catalogFilename = `Catalistino_Riservato_${prospect.companyName
           .replace(/[^a-zA-Z0-9]+/g, '_')
           .slice(0, 28)}.pdf`;
@@ -1027,6 +1317,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           where: { id: promoProspect.id },
           data: {
             firstPurchaseRuleId,
+            smartOfferToken: trackingToken,
             orderDetailsSnapshot: {
               offerTitle: catalistinoSubtitle,
               minOrderAmountText: config.minOrderAmountText,
@@ -1054,12 +1345,6 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             },
           },
         });
-
-        const existingDraft = await sdrPrisma.sdrOutreachDraft.findFirst({
-          where: { prospectId: prospect.id, sequenceStep: 1 },
-        });
-        const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
-        const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
 
         const unpackedMeta = unpackProspectRichData(prospect);
         const tailored = await generateCombinatorialOutreachEmail({
@@ -1418,14 +1703,26 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const where: any = {};
       if (status && status !== 'ALL') where.status = status;
 
-      const drafts = await sdrPrisma.sdrOutreachDraft.findMany({
-        where,
-        orderBy: { updatedAt: 'desc' },
-        take: 100,
-        include: {
-          prospect: true,
-        },
-      });
+      const [rawDrafts, inboxes] = await Promise.all([
+        sdrPrisma.sdrOutreachDraft.findMany({
+          where,
+          orderBy: { updatedAt: 'desc' },
+          take: 150,
+          include: {
+            prospect: true,
+          },
+        }),
+        sdrPrisma.sdrInboxAccount.findMany({
+          select: { id: true, email: true, displayName: true },
+        }),
+      ]);
+
+      const inboxMap = new Map(inboxes.map((inb) => [inb.id, inb]));
+      const drafts = rawDrafts.map((d) => ({
+        ...d,
+        senderAccount: d.senderInboxId ? inboxMap.get(d.senderInboxId) || null : null,
+      }));
+
       return reply.send({ success: true, drafts });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
@@ -1540,25 +1837,43 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
   fastify.post('/api/admin/sdr/inboxes/speed-gear', async (request, reply) => {
     try {
       const body = (request.body || {}) as {
-        gear?: 'prudente' | 'intermedia' | 'rampup_auto' | 'regime';
+        gear?: 'prudente' | 'intermedia' | 'rampup_auto' | 'regime' | 'regime_pieno';
       };
       const gear = body.gear || 'rampup_auto';
 
       let updateData: Record<string, any>;
       let label: string;
+      let speedProfile = 'PRUDENT_WARMUP';
       if (gear === 'prudente') {
-        updateData = { warmupEnabled: false, dailyLimit: 5, targetDailyLimit: 15 };
-        label = 'Marcia 1 Prudente (5 email/giorno per casella = 300/giorno)';
+        updateData = {
+          warmupEnabled: true,
+          warmupStartedAt: new Date(),
+          dailyLimit: 2,
+          targetDailyLimit: 15,
+        };
+        speedProfile = 'PRUDENT_WARMUP';
+        label =
+          'Marcia 1 — Partenza Morbida 14gg (2-3 mail/casella = 120-180/g → poi 300/g)';
       } else if (gear === 'intermedia') {
         updateData = { warmupEnabled: false, dailyLimit: 10, targetDailyLimit: 15 };
+        speedProfile = 'STANDARD';
         label = 'Marcia 2 Intermedia (10 email/giorno per casella = 600/giorno)';
-      } else if (gear === 'regime') {
+      } else if (gear === 'regime' || gear === 'regime_pieno') {
         updateData = { warmupEnabled: false, dailyLimit: 15, targetDailyLimit: 15 };
+        speedProfile = 'FULL_REGIME';
         label = 'Marcia 3 Regime Pieno (15 email/giorno per casella = 900/giorno)';
       } else {
-        updateData = { warmupEnabled: true, dailyLimit: 5, targetDailyLimit: 15 };
-        label = 'Ramp-Up Automatico 3 Settimane (5 -> 10 -> 15 email/giorno)';
+        updateData = { warmupEnabled: true, dailyLimit: 3, targetDailyLimit: 15 };
+        speedProfile = 'PRUDENT_WARMUP';
+        label = 'Ramp-Up Automatico Morbido (2 → 3 → 5 → 10+ email/giorno per casella)';
       }
+
+      await sdrPrisma.sdrOutreachConfig
+        .update({
+          where: { id: 'default' },
+          data: { speedProfile },
+        })
+        .catch(() => {});
 
       const res = await sdrPrisma.sdrInboxAccount.updateMany({
         data: updateData,
@@ -1569,7 +1884,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const refreshed = await sdrPrisma.sdrInboxAccount.findMany({
         orderBy: [{ isActive: 'desc' }, { email: 'asc' }],
       });
-      const sanitized = refreshed.map(sanitizeInboxAccount);
+      const sanitized = refreshed.map((acc) => sanitizeInboxAccount(acc, speedProfile));
       const totalDailyCapacity = sanitized
         .filter((a) => a.isActive)
         .reduce((sum, a) => sum + Number(a.effectiveDailyLimit || 0), 0);
@@ -2274,8 +2589,24 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const format = (q.format || 'csv').toLowerCase();
       const maxRows = Math.min(10000, Math.max(10, parseInt(q.limit || '2500', 10)));
 
+      const normalizeSectionParam = (rawSec?: string) => {
+        if (!rawSec || rawSec === 'ALL') return null;
+        if (rawSec === 'EMAIL_PRONTA') return 'Email_Pronta';
+        if (rawSec === 'SOLO_TELEFONO') return 'Senza_Email';
+        if (rawSec === 'PEC_SCARTATA') return 'PEC_Scartata';
+        return rawSec;
+      };
+
       const where: any = {};
-      if (q.section && q.section !== 'ALL') where.section = q.section;
+      const resolvedSection = normalizeSectionParam(q.section);
+      if (resolvedSection) where.section = resolvedSection;
+      if (q.emailVerifyStatus && q.emailVerifyStatus !== 'ALL') {
+        if (q.emailVerifyStatus === 'UNVERIFIED') {
+          where.emailVerifyStatus = null;
+        } else {
+          where.emailVerifyStatus = q.emailVerifyStatus;
+        }
+      }
       if (q.commercialCategory && q.commercialCategory !== 'ALL') {
         where.commercialCategory = q.commercialCategory;
       }

@@ -781,6 +781,15 @@ export async function searchCatalogPredictiveAction(
   }
 }
 
+export interface ReservedPortalCredentialsPdfBox {
+  portalUrl: string;
+  username: string;
+  tempPassword?: string | null;
+  discountFormula: string;
+  agentName: string;
+  agentPhone: string;
+}
+
 export interface GenerateCatalogPdfInput {
   catalogTitle: string;
   catalogSubtitle?: string;
@@ -793,6 +802,7 @@ export interface GenerateCatalogPdfInput {
   baseDiscount: number;
   extraDiscount: number;
   elmarkDiscounts?: Record<string, number>;
+  reservedCredentials?: ReservedPortalCredentialsPdfBox;
   items: {
     sku: string;
     title: string;
@@ -1351,6 +1361,59 @@ export async function generateAgentCatalogPdfAction(
         )
       );
 
+      // Richiamo immediato in copertina se sono presenti le Credenziali Riservate Portale B2B
+      if (input.reservedCredentials && input.reservedCredentials.username) {
+        const creds = input.reservedCredentials;
+        const portalDisplay = creds.portalUrl || 'https://www.izzodistribuzione.it/login';
+        const passDisplay =
+          creds.tempPassword && creds.tempPassword.trim().length > 0
+            ? creds.tempPassword.trim()
+            : 'Password personale già attivata';
+
+        coverCmd.push('0.03 0.13 0.07 rg');
+        coverCmd.push('0.00 0.82 0.20 RG 1 w');
+        coverCmd.push('58 108 479 66 re B');
+        coverCmd.push('0.00 0.65 0.16 rg');
+        coverCmd.push('58 156 479 18 re f');
+        coverCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F2',
+            8.5,
+            '1 1 1',
+            161.5,
+            'CREDENZIALI RISERVATE PORTALE B2B — CONSERVA QUESTO PDF'
+          )
+        );
+        coverCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F2',
+            8.5,
+            '0.45 0.98 0.58',
+            139,
+            truncateText(
+              `Portale B2B: ${portalDisplay}   |   Utente: ${creds.username}`,
+              82
+            )
+          )
+        );
+        coverCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F1',
+            8.2,
+            '0.92 0.96 1.00',
+            120,
+            truncateText(
+              `Password: ${passDisplay}   |   1° Ordine: ${creds.discountFormula} senza minimo`,
+              88
+            )
+          )
+        );
+        pageUriAnnots[0].push({
+          rect: [58, 108, 537, 174],
+          uri: portalDisplay,
+        });
+      }
+
       // 7. Firma istituzionale integrata a piè di copertina
       coverCmd.push('0.14 0.20 0.28 RG 0.6 w');
       coverCmd.push('160 96 m 435 96 l S');
@@ -1379,10 +1442,13 @@ export async function generateAgentCatalogPdfAction(
 
     // =========================================================================
     // PAGINA 2 (index 1): PAGINA SUCCESSIVA CON I DATI DEL CATALOGO E DEL CLIENTE
-    // (Senza codici clienti interni, senza numero di articoli e senza numero di pagine)
+    // + RIQUADRO UFFICIALE CREDENZIALI RISERVATE PORTALE B2B (SE PRESENTE)
     // =========================================================================
     {
       const infoCmd: string[] = [];
+      const hasReservedCreds = Boolean(
+        input.reservedCredentials && input.reservedCredentials.username
+      );
 
       // Sfondo scuro istituzionale coordinato con la copertina
       infoCmd.push('0 0 0 rg');
@@ -1399,121 +1465,334 @@ export async function generateAgentCatalogPdfAction(
       infoCmd.push('0.00 0.65 0.15 RG 0.6 w');
       infoCmd.push('32 34 531 774 re S');
 
-      // Logo Izzo richiamato in alto
-      if (logoObjNum) {
-        const smallLogoW = 210;
-        const smallLogoH = 86;
-        const smallLogoX = (595 - smallLogoW) / 2;
-        const smallLogoY = 668;
-        infoCmd.push('q');
+      if (hasReservedCreds && input.reservedCredentials) {
+        const creds = input.reservedCredentials;
+        const portalDisplay = creds.portalUrl || 'https://www.izzodistribuzione.it/login';
+        const passDisplay =
+          creds.tempPassword && creds.tempPassword.trim().length > 0
+            ? creds.tempPassword.trim()
+            : 'Password personale già attivata';
+
+        // Logo Izzo compatto in testa
+        if (logoObjNum) {
+          const smallLogoW = 180;
+          const smallLogoH = 74;
+          const smallLogoX = (595 - smallLogoW) / 2;
+          const smallLogoY = 710;
+          infoCmd.push('q');
+          infoCmd.push(
+            `${smallLogoW.toFixed(1)} 0 0 ${smallLogoH.toFixed(1)} ${smallLogoX.toFixed(
+              1
+            )} ${smallLogoY.toFixed(1)} cm`
+          );
+          infoCmd.push('/ImLogo Do');
+          infoCmd.push('Q');
+        }
+
         infoCmd.push(
-          `${smallLogoW.toFixed(1)} 0 0 ${smallLogoH.toFixed(1)} ${smallLogoX.toFixed(
-            1
-          )} ${smallLogoY.toFixed(1)} cm`
+          drawCenteredPdfTextCmd(
+            '/F2',
+            8.2,
+            '0.68 0.74 0.84',
+            692,
+            'MATERIALE ELETTRICO   -   ILLUMINAZIONE   -   FERRAMENTA'
+          )
         );
-        infoCmd.push('/ImLogo Do');
-        infoCmd.push('Q');
-      }
 
-      infoCmd.push(
-        drawCenteredPdfTextCmd(
-          '/F2',
-          8.5,
-          '0.68 0.74 0.84',
-          644,
-          'MATERIALE ELETTRICO   -   ILLUMINAZIONE   -   FERRAMENTA'
-        )
-      );
+        // =====================================================================
+        // RIQUADRO UFFICIALE IN ALTO: CREDENZIALI RISERVATE PORTALE B2B
+        // =====================================================================
+        const boxX = 54;
+        const boxY = 474;
+        const boxW = 487;
+        const boxH = 204;
+        const labelX = boxX + 18;
+        const valX = boxX + 174;
 
-      infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
-      infoCmd.push('90 618 m 505 618 l S');
+        infoCmd.push('0.03 0.13 0.08 rg');
+        infoCmd.push('0.00 0.85 0.22 RG 1.4 w');
+        infoCmd.push(`${boxX} ${boxY} ${boxW} ${boxH} re B`);
 
-      // Titolo e Sottotitolo del Catalogo (con a capo automatico per non uscire mai dai bordi)
-      infoCmd.push(
-        drawCenteredPdfTextCmd(
-          '/F2',
-          9.5,
-          '0.00 0.88 0.22',
-          570,
-          'EDIZIONE CATALOGO PERSONALIZZATO B2B'
-        )
-      );
-
-      const titleLines = wrapTextLines(
-        (input.catalogTitle || 'Catalogo Prodotti Selezionati').toUpperCase(),
-        34,
-        2,
-        true
-      );
-      titleLines.forEach((tLine, tIdx) => {
+        // Fascia titolo superiore verde istituzionale
+        infoCmd.push('0.00 0.66 0.16 rg');
+        infoCmd.push(`${boxX} ${boxY + boxH - 30} ${boxW} 30 re f`);
         infoCmd.push(
-          drawCenteredPdfTextCmd('/F2', 17.5, '1 1 1', 538 - tIdx * 22, tLine)
+          drawCenteredPdfTextCmd(
+            '/F2',
+            10.2,
+            '1 1 1',
+            boxY + boxH - 19,
+            'CREDENZIALI RISERVATE PORTALE B2B — CONSERVA QUESTO PDF'
+          )
         );
-      });
 
-      const subBaseY = titleLines.length > 1 ? 490 : 508;
-      const subtitleSource =
-        input.catalogSubtitle ||
-        'Selezione tecnica ed economica riservata con condizioni commerciali dedicate';
-      const subtitleLines = wrapTextLines(subtitleSource, 62, 2, true);
-      subtitleLines.forEach((sLine, sIdx) => {
+        // Riga 1: Portale B2B
+        infoCmd.push(
+          `BT /F2 9.5 Tf 0.55 0.95 0.66 rg ${labelX} ${boxY + 148} Td (Portale B2B:) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 10 Tf 1 1 1 rg ${valX} ${boxY + 148} Td (${toPdfSafeLatin1(
+            truncateText(portalDisplay, 48)
+          )}) Tj ET`
+        );
+        pageUriAnnots[1].push({
+          rect: [valX - 2, boxY + 143, boxX + boxW - 14, boxY + 160],
+          uri: portalDisplay,
+        });
+
+        // Riga 2: Utente riservato
+        infoCmd.push(
+          `BT /F2 9.5 Tf 0.55 0.95 0.66 rg ${labelX} ${boxY + 122} Td (Utente riservato:) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 11 Tf 0.30 0.98 0.48 rg ${valX} ${boxY + 122} Td (${toPdfSafeLatin1(
+            truncateText(creds.username, 44)
+          )}) Tj ET`
+        );
+
+        // Riga 3: Password provvisoria
+        infoCmd.push(
+          `BT /F2 9.5 Tf 0.55 0.95 0.66 rg ${labelX} ${boxY + 96} Td (Password provvisoria:) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 10.5 Tf 1 1 1 rg ${valX} ${boxY + 96} Td (${toPdfSafeLatin1(
+            truncateText(passDisplay, 44)
+          )}) Tj ET`
+        );
+
+        // Riga 4: Condizione 1° ordine
+        infoCmd.push(
+          `BT /F2 9.5 Tf 0.55 0.95 0.66 rg ${labelX} ${boxY + 70} Td (${toPdfSafeLatin1(
+            'Condizione 1° ordine:'
+          )}) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 10 Tf 0.30 0.98 0.48 rg ${valX} ${boxY + 70} Td (${toPdfSafeLatin1(
+            truncateText(`${creds.discountFormula} a cascata senza minimo d'ordine`, 48)
+          )}) Tj ET`
+        );
+
+        // Riga 5: Referente dedicato
+        infoCmd.push(
+          `BT /F2 9.5 Tf 0.55 0.95 0.66 rg ${labelX} ${boxY + 44} Td (Referente dedicato:) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 10 Tf 1 1 1 rg ${valX} ${boxY + 44} Td (${toPdfSafeLatin1(
+            truncateText(`${creds.agentName} (${creds.agentPhone})`, 48)
+          )}) Tj ET`
+        );
+
+        // Linea divisoria interna + promemoria conservazione PDF
+        infoCmd.push('0.10 0.34 0.18 RG 0.6 w');
+        infoCmd.push(`${boxX + 16} ${boxY + 28} m ${boxX + boxW - 16} ${boxY + 28} l S`);
         infoCmd.push(
           drawCenteredPdfTextCmd(
             '/F1',
-            10,
-            '0.72 0.78 0.88',
-            subBaseY - sIdx * 15,
-            sLine
+            8.2,
+            '0.80 0.90 0.84',
+            boxY + 12,
+            'Conserva questo documento PDF sul tuo PC o telefono per ritrovare subito le tue credenziali B2B.'
           )
         );
-      });
 
-      // Divisore centrale
-      infoCmd.push('0.00 0.82 0.00 RG 1 w');
-      infoCmd.push('140 462 m 455 462 l S');
+        // Sezione sottostante: Titolo Catalogo + Destinatario & Riferimenti
+        infoCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F2',
+            9,
+            '0.00 0.88 0.22',
+            444,
+            'EDIZIONE CATALOGO PERSONALIZZATO B2B'
+          )
+        );
 
-      // Sezione Destinatario / Cliente Riservato (solo nome azienda, mai codici interni) e Dettagli Documento
-      const leftColX = 82;
-      const rightColX = 328;
-
-      infoCmd.push('0.18 0.24 0.34 RG 0.8 w');
-      infoCmd.push('297.5 332 m 297.5 428 l S');
-
-      infoCmd.push(
-        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${leftColX} 412 Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
-      );
-      if (input.clientName) {
-        const clientLines = wrapTextLines(input.clientName.toUpperCase(), 26, 2, true);
-        clientLines.forEach((cLine, cIdx) => {
+        const titleLines = wrapTextLines(
+          (input.catalogTitle || 'Catalogo Prodotti Selezionati').toUpperCase(),
+          38,
+          2,
+          true
+        );
+        titleLines.forEach((tLine, tIdx) => {
           infoCmd.push(
-            `BT /F2 12.5 Tf 1 1 1 rg ${leftColX} ${388 - cIdx * 17} Td (${toPdfSafeLatin1(
-              cLine
-            )}) Tj ET`
+            drawCenteredPdfTextCmd('/F2', 15.5, '1 1 1', 418 - tIdx * 19, tLine)
           );
         });
+
+        const subBaseY = titleLines.length > 1 ? 376 : 392;
+        const subtitleSource =
+          input.catalogSubtitle ||
+          'Selezione tecnica ed economica riservata con condizioni commerciali dedicate';
+        const subtitleLines = wrapTextLines(subtitleSource, 66, 2, true);
+        subtitleLines.forEach((sLine, sIdx) => {
+          infoCmd.push(
+            drawCenteredPdfTextCmd(
+              '/F1',
+              9.5,
+              '0.72 0.78 0.88',
+              subBaseY - sIdx * 14,
+              sLine
+            )
+          );
+        });
+
+        infoCmd.push('0.00 0.82 0.00 RG 0.9 w');
+        infoCmd.push('140 332 m 455 332 l S');
+
+        const leftColX = 82;
+        const rightColX = 328;
+
+        infoCmd.push('0.18 0.24 0.34 RG 0.8 w');
+        infoCmd.push('297.5 216 m 297.5 308 l S');
+
+        infoCmd.push(
+          `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${leftColX} 296 Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
+        );
+        if (input.clientName) {
+          const clientLines = wrapTextLines(input.clientName.toUpperCase(), 26, 2, true);
+          clientLines.forEach((cLine, cIdx) => {
+            infoCmd.push(
+              `BT /F2 12 Tf 1 1 1 rg ${leftColX} ${274 - cIdx * 16} Td (${toPdfSafeLatin1(
+                cLine
+              )}) Tj ET`
+            );
+          });
+        } else {
+          infoCmd.push(
+            `BT /F2 11.5 Tf 1 1 1 rg ${leftColX} 274 Td (PROFESSIONISTI E FERRAMENTA B2B) Tj ET`
+          );
+        }
+
+        infoCmd.push(
+          `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${rightColX} 296 Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F2 11 Tf 1 1 1 rg ${rightColX} 274 Td (Agente: ${toPdfSafeLatin1(
+            truncateText(input.agentName || 'Ufficio Commerciale', 24)
+          )}) Tj ET`
+        );
+        infoCmd.push(
+          `BT /F1 9.5 Tf 0.75 0.80 0.88 rg ${rightColX} 254 Td (Data emissione: ${dateStr}) Tj ET`
+        );
+
+        infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
+        infoCmd.push('90 194 m 505 194 l S');
       } else {
+        // Layout standard quando non ci sono credenziali provvisorie allegate
+        if (logoObjNum) {
+          const smallLogoW = 210;
+          const smallLogoH = 86;
+          const smallLogoX = (595 - smallLogoW) / 2;
+          const smallLogoY = 668;
+          infoCmd.push('q');
+          infoCmd.push(
+            `${smallLogoW.toFixed(1)} 0 0 ${smallLogoH.toFixed(1)} ${smallLogoX.toFixed(
+              1
+            )} ${smallLogoY.toFixed(1)} cm`
+          );
+          infoCmd.push('/ImLogo Do');
+          infoCmd.push('Q');
+        }
+
         infoCmd.push(
-          `BT /F2 11.5 Tf 1 1 1 rg ${leftColX} 388 Td (PROFESSIONISTI E FERRAMENTA B2B) Tj ET`
+          drawCenteredPdfTextCmd(
+            '/F2',
+            8.5,
+            '0.68 0.74 0.84',
+            644,
+            'MATERIALE ELETTRICO   -   ILLUMINAZIONE   -   FERRAMENTA'
+          )
+        );
+
+        infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
+        infoCmd.push('90 618 m 505 618 l S');
+
+        // Titolo e Sottotitolo del Catalogo (con a capo automatico per non uscire mai dai bordi)
+        infoCmd.push(
+          drawCenteredPdfTextCmd(
+            '/F2',
+            9.5,
+            '0.00 0.88 0.22',
+            570,
+            'EDIZIONE CATALOGO PERSONALIZZATO B2B'
+          )
+        );
+
+        const titleLines = wrapTextLines(
+          (input.catalogTitle || 'Catalogo Prodotti Selezionati').toUpperCase(),
+          34,
+          2,
+          true
+        );
+        titleLines.forEach((tLine, tIdx) => {
+          infoCmd.push(
+            drawCenteredPdfTextCmd('/F2', 17.5, '1 1 1', 538 - tIdx * 22, tLine)
+          );
+        });
+
+        const subBaseY = titleLines.length > 1 ? 490 : 508;
+        const subtitleSource =
+          input.catalogSubtitle ||
+          'Selezione tecnica ed economica riservata con condizioni commerciali dedicate';
+        const subtitleLines = wrapTextLines(subtitleSource, 62, 2, true);
+        subtitleLines.forEach((sLine, sIdx) => {
+          infoCmd.push(
+            drawCenteredPdfTextCmd(
+              '/F1',
+              10,
+              '0.72 0.78 0.88',
+              subBaseY - sIdx * 15,
+              sLine
+            )
+          );
+        });
+
+        // Divisore centrale
+        infoCmd.push('0.00 0.82 0.00 RG 1 w');
+        infoCmd.push('140 462 m 455 462 l S');
+
+        // Sezione Destinatario / Cliente Riservato (solo nome azienda, mai codici interni) e Dettagli Documento
+        const leftColX = 82;
+        const rightColX = 328;
+
+        infoCmd.push('0.18 0.24 0.34 RG 0.8 w');
+        infoCmd.push('297.5 332 m 297.5 428 l S');
+
+        infoCmd.push(
+          `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${leftColX} 412 Td (DESTINATARIO / CLIENTE RISERVATO) Tj ET`
+        );
+        if (input.clientName) {
+          const clientLines = wrapTextLines(input.clientName.toUpperCase(), 26, 2, true);
+          clientLines.forEach((cLine, cIdx) => {
+            infoCmd.push(
+              `BT /F2 12.5 Tf 1 1 1 rg ${leftColX} ${388 - cIdx * 17} Td (${toPdfSafeLatin1(
+                cLine
+              )}) Tj ET`
+            );
+          });
+        } else {
+          infoCmd.push(
+            `BT /F2 11.5 Tf 1 1 1 rg ${leftColX} 388 Td (PROFESSIONISTI E FERRAMENTA B2B) Tj ET`
+          );
+          infoCmd.push(
+            `BT /F1 9.5 Tf 0.70 0.76 0.86 rg ${leftColX} 368 Td (Selezione ufficiale Izzo Distribuzione) Tj ET`
+          );
+        }
+
+        infoCmd.push(
+          `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${rightColX} 412 Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
         );
         infoCmd.push(
-          `BT /F1 9.5 Tf 0.70 0.76 0.86 rg ${leftColX} 368 Td (Selezione ufficiale Izzo Distribuzione) Tj ET`
+          `BT /F2 11.5 Tf 1 1 1 rg ${rightColX} 388 Td (Agente: ${toPdfSafeLatin1(
+            truncateText(input.agentName || 'Ufficio Commerciale', 24)
+          )}) Tj ET`
         );
+        infoCmd.push(
+          `BT /F1 9.5 Tf 0.75 0.80 0.88 rg ${rightColX} 368 Td (Data emissione: ${dateStr}) Tj ET`
+        );
+
+        infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
+        infoCmd.push('90 282 m 505 282 l S');
       }
-
-      infoCmd.push(
-        `BT /F2 8.5 Tf 0.00 0.88 0.22 rg ${rightColX} 412 Td (DETTAGLI DOCUMENTO E RIFERIMENTI) Tj ET`
-      );
-      infoCmd.push(
-        `BT /F2 11.5 Tf 1 1 1 rg ${rightColX} 388 Td (Agente: ${toPdfSafeLatin1(
-          truncateText(input.agentName || 'Ufficio Commerciale', 24)
-        )}) Tj ET`
-      );
-      infoCmd.push(
-        `BT /F1 9.5 Tf 0.75 0.80 0.88 rg ${rightColX} 368 Td (Data emissione: ${dateStr}) Tj ET`
-      );
-
-      infoCmd.push('0.16 0.22 0.30 RG 0.7 w');
-      infoCmd.push('90 282 m 505 282 l S');
 
       // Nota commerciale e condizioni
       infoCmd.push(

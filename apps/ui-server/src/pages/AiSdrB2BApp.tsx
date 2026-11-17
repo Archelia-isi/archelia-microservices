@@ -153,6 +153,11 @@ export default function AiSdrB2BApp() {
     morningWindow: '08:30-12:30',
     afternoonWindow: '14:00-17:30',
     sentinelEnabled: true,
+    enableMillionVerifier: true,
+    millionVerifierApiKey: '',
+    hasMillionVerifierKey: false,
+    step2DelayDays: 10,
+    step3WarmDelayDays: 5,
     defaultAgentCode: '003',
     defaultAgentName: 'Daniele Savoia',
     defaultAgentEmail: '',
@@ -640,26 +645,20 @@ export default function AiSdrB2BApp() {
     const extraPct = cat?.extraFirstPurchasePct ?? 10;
     const formula = `${basePct}% + ${extraPct}%`;
     const agentName = promo?.assignedAgentName || config.defaultAgentName || 'Daniele Savoia';
-    const defaultSubject = `Invito a valutarci come fornitore B2B per ${p?.companyName || 'Cliente B2B'} — Izzo Distribuzione S.r.l.`;
-    const defaultBody = `Gentile ${p?.companyName || 'Azienda'},
+    const defaultSubject = `Forniture materiale elettrico e illuminazione per ${p?.companyName || 'Vostra Azienda'}`;
+    const defaultBody = `Buongiorno,
 
-Ci permettiamo di scriverVi per presentarVi brevemente Izzo Distribuzione S.r.l., realtà specializzata nella distribuzione B2B di materiale elettrico, illuminazione LED, quadristica e fissaggio, e invitarVi a valutarci liberamente come fornitore.
+mi permetto un rapido contatto per presentarVi Izzo Distribuzione S.r.l., distributore B2B di materiale elettrico, illuminazione LED, quadristica e ferramenta tecnica.
 
-Unicamente per Vostra comodità, in modo gratuito e senza alcun impegno, abbiamo preparato delle credenziali provvisorie per consultare il nostro catalogo B2B e i prezzi netti riservati, accompagnate da uno sconto di benvenuto del ${formula} qualora decideste in futuro di metterci alla prova su un primo ordine (nessun minimo d'ordine).
+Se può esserVi utile per un confronto prezzi senza alcun impegno, rispondete pure con un cenno a questa mail e Vi trasmetto qui l'estratto del nostro listino netto riservato insieme a un accesso gratuito di consultazione, con condizione di benvenuto ${formula} sul primo ordine eventuale (nessun minimo d'ordine).
 
-• Portale B2B: https://www.izzodistribuzione.it/login
-• Username provvisoria: ${promo?.username || '(premi Genera Credenziali)'}
-• Password temporanea: ${promo?.tempPassword || '(premi Genera Credenziali)'}
-• Referente commerciale: ${agentName}
-
-Cordiali saluti,
+Un cordiale saluto,
 
 ${agentName}
 Responsabile commerciale — Izzo Distribuzione S.r.l.
 Tel / WhatsApp: +39 389 0129832
-Email: daniele.savoia@izzodistribuzione.com
-Portale B2B: https://www.izzodistribuzione.it
-Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049`;
+Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 01868260629 — REA BN-309049
+Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e non invieremo altre note.`;
 
     setDraftSubjectInput(firstDraft?.subject || defaultSubject);
     setDraftBodyInput(firstDraft?.bodyText || defaultBody);
@@ -1343,6 +1342,7 @@ Sede legale: Contrada Piano Cappelle 8, 82100 Benevento (BN) — P.IVA 018682606
               config={config}
               setConfig={setConfig}
               b2bAgents={b2bAgents}
+              statsKpis={statsData?.kpis}
               enableGlobalWrites={Boolean(statsData?.enableGlobalWrites)}
               onDispatchOutreach={handleDispatchOutreach}
               onRerollSingleDraft={handleRerollSingleDraft}

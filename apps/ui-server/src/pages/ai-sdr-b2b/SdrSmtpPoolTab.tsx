@@ -296,9 +296,11 @@ export default function SdrSmtpPoolTab({
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     <Badge variant={inb.warmupEnabled ? 'primary' : 'neutral'} size="sm">
-                      {inb.warmupEnabled
-                        ? `Settimana ${inb.warmupWeek || 1} (${effLimit}/g)`
-                        : `Fisso (${effLimit}/g)`}
+                      {inb.phaseLabel
+                        ? inb.phaseLabel
+                        : inb.warmupEnabled
+                          ? `Settimana ${inb.warmupWeek || 1} (${effLimit}/g)`
+                          : `Fisso (${effLimit}/g)`}
                     </Badge>
                   </td>
                   <td style={{ padding: '10px 12px', minWidth: '130px' }}>
@@ -475,7 +477,7 @@ export default function SdrSmtpPoolTab({
                 checked={form.warmupEnabled}
                 onChange={(e) => setForm({ ...form, warmupEnabled: e.target.checked })}
               />
-              Ramp-Up 3 Settimane (5→10→15)
+              Partenza Morbida 14gg (2→3→5→10+/g)
             </label>
           </div>
         </div>
