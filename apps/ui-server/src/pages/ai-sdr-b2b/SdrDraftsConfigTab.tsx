@@ -51,7 +51,7 @@ interface SdrDraftsConfigTabProps {
 
 function resolveDraftStepMeta(
   d: any,
-  step2Days = 10,
+  step2Days = 5,
   step3Days = 5
 ): {
   code: '1' | '1B' | '2' | '3';
@@ -133,7 +133,7 @@ export default function SdrDraftsConfigTab({
     checking?: boolean;
   }>({});
 
-  const step2Days = Number(config.step2DelayDays ?? 10);
+  const step2Days = Number(config.step2DelayDays ?? 5);
   const step3Days = Number(config.step3WarmDelayDays ?? 5);
 
   if (mode === 'drafts') {
@@ -759,7 +759,7 @@ export default function SdrDraftsConfigTab({
         </div>
       </GlassPanel>
 
-      {/* SEQUENZA ANTI-SPAM A 3 TEMPI (STEP 1 -> STEP 1B / STEP 2 +10GG -> STEP 3 +5GG CALDI) */}
+      {/* SEQUENZA ANTI-SPAM A 3 TEMPI (STEP 1 -> STEP 1B / STEP 2 +5GG -> STEP 3 +5GG CALDI) */}
       <GlassPanel padding="lg" radius="lg">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
@@ -768,7 +768,7 @@ export default function SdrDraftsConfigTab({
               Sequenza Email Anti-Spam a 3 Tempi (Conversazione Pura → Link → Solo Caldi)
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Step 1 senza link né password • Step 1B automatico dopo 15–25 min se il cliente risponde &quot;Sì&quot; • Step 2 con 1 link offerta • Step 3 solo per chi apre il PDF/Portale senza ordinare (si ferma subito se Daniele segna il cliente chiamato).
+              Step 1 senza link né password • Step 1B automatico dopo 15–25 min se il cliente risponde &quot;Sì&quot; • Step 2 (+5gg) con 1 link offerta • Step 3 solo per chi apre il PDF/Portale senza ordinare (si ferma subito se Daniele segna il cliente chiamato).
             </div>
           </div>
           <Badge variant="primary" size="sm">STESSA CASELLA ARUBA PER INTERA CONVERSAZIONE</Badge>
@@ -780,9 +780,9 @@ export default function SdrDraftsConfigTab({
             type="number"
             min={1}
             max={60}
-            value={String(config.step2DelayDays ?? 10)}
+            value={String(config.step2DelayDays ?? 5)}
             onChange={(e) =>
-              setConfig({ ...config, step2DelayDays: Math.max(1, Number(e.target.value) || 10) })
+              setConfig({ ...config, step2DelayDays: Math.max(1, Number(e.target.value) || 5) })
             }
           />
           <TextInput
@@ -800,7 +800,7 @@ export default function SdrDraftsConfigTab({
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <Badge variant="neutral" size="sm">Step 1 • Conversazione Pura (Giorno 1)</Badge>
           <Badge variant="success" size="sm">Step 1B • Risposta Sì (15–25 min)</Badge>
-          <Badge variant="primary" size="sm">Step 2 • +{config.step2DelayDays ?? 10}gg Link</Badge>
+          <Badge variant="primary" size="sm">Step 2 • +{config.step2DelayDays ?? 5}gg Link</Badge>
           <Badge variant="warning" size="sm">Step 3 • +{config.step3WarmDelayDays ?? 5}gg Caldi</Badge>
         </div>
       </GlassPanel>

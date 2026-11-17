@@ -156,7 +156,7 @@ export default function AiSdrB2BApp() {
     enableMillionVerifier: true,
     millionVerifierApiKey: '',
     hasMillionVerifierKey: false,
-    step2DelayDays: 10,
+    step2DelayDays: 5,
     step3WarmDelayDays: 5,
     defaultAgentCode: '003',
     defaultAgentName: 'Daniele Savoia',

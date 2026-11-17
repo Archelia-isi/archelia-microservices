@@ -994,7 +994,7 @@ function executeCombinatorialSynthesis(
 }
 
 // ============================================================================
-// SEQUENZA ANTI-SPAM A 3 TEMPI: STEP 1B ("SÌ"), STEP 2 (+10GG), STEP 3 (+5GG CALDI)
+// SEQUENZA ANTI-SPAM A 3 TEMPI: STEP 1B ("SÌ"), STEP 2 (+5GG), STEP 3 (+5GG CALDI)
 // ============================================================================
 
 function resolveFollowupCommonContext(input: SdrSequenceFollowupInput) {
@@ -1172,7 +1172,7 @@ export function generateConsentReplyEmail(
 }
 
 /**
- * STEP 2 — Follow-up sobrio a Giorno +10 se il prospect non ha risposto allo Step 1.
+ * STEP 2 — Follow-up sobrio a Giorno +5 se il prospect non ha risposto allo Step 1.
  * Regole:
  * - Oggetto: `Re: <subject originale>`
  * - 1 SOLO link pulito (`smartCatalogUrl`), zero insistenza
@@ -1189,7 +1189,7 @@ export function generateStep2FollowupEmail(
   const variants = [
     [
       greeting,
-      `riprendo brevemente la mia precedente comunicazione solo per evitarVi perdite di tempo in passaggi intermedi.`,
+      `riprendo brevemente la mia comunicazione di qualche giorno fa solo per evitarVi perdite di tempo in passaggi intermedi.`,
       `Qualora in occasione di prossime forniture voleste verificare in autonomia e senza alcun impegno i nostri listini netti B2B (${ctx.discountFormulaLabel} a cascata sul primo ordine eventuale, ${ctx.minOrderClean}), Vi lascio direttamente qui il collegamento riservato predisposto per ${ctx.companyClean}:\n${ctx.smartCatalogUrl}`,
       `Da questa pagina potete entrare con 1 clic nel portale oppure scaricare il Catalistino PDF riservato, che riporta all’interno anche le credenziali di consultazione da conservare in archivio.`,
       `Resto a disposizione per eventuali quotazioni su distinta materiali e Vi auguro buon lavoro.`,

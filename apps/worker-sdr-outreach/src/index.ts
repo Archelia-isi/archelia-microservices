@@ -1544,7 +1544,7 @@ async function resolveConversationHeadersAndInboxForDraft(draft: {
     };
   }
 
-  // Step 2 (+10gg) o Step 3 (+5gg Caldi): In-Reply-To sul primo messaggio (o ultimo inviato)
+  // Step 2 (+5gg) o Step 3 (+5gg Caldi): In-Reply-To sul primo messaggio (o ultimo inviato)
   const step1MsgId =
     priorSentDrafts.find((d) => d.sequenceStep === STEP_1_INITIAL)?.messageIdHeader ||
     sentMsgIds[0] ||
@@ -2724,7 +2724,7 @@ async function pollAllActiveImapInboxes() {
 }
 
 // ============================================================================
-// 6. SCHEDULER AUTOMATICO STEP 2 (GIORNO +10) E STEP 3 (GIORNO +5 SOLO CALDI)
+// 6. SCHEDULER AUTOMATICO STEP 2 (GIORNO +5) E STEP 3 (GIORNO +5 SOLO CALDI)
 // ============================================================================
 
 let _followupSchedulerRunning = false;
@@ -2735,7 +2735,7 @@ export async function runAutomatedFollowupScheduler() {
 
   try {
     const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
-    const step2DelayDays = Math.max(1, Number(config?.step2DelayDays ?? 10));
+    const step2DelayDays = Math.max(1, Number(config?.step2DelayDays ?? 5));
     const step3WarmDelayDays = Math.max(1, Number(config?.step3WarmDelayDays ?? 5));
 
     const step2Cutoff = new Date(Date.now() - step2DelayDays * 86_400_000);
@@ -2750,7 +2750,7 @@ export async function runAutomatedFollowupScheduler() {
     const createdStep3Ids: number[] = [];
 
     // ------------------------------------------------------------------------
-    // FASE A: STEP 2 (`sequenceStep = 2`, Giorno +10)
+    // FASE A: STEP 2 (`sequenceStep = 2`, Giorno +5)
     // Prospect con Step 1 `Inviata` da >= step2DelayDays, zero risposte,
     // zero aperture catalogo/login, non in Opt-Out/Bounce, autoFollowupPaused === false,
     // e nessuna bozza `sequenceStep >= 2`.
@@ -3276,7 +3276,7 @@ async function startWorker() {
       .catch(() => {});
   }, 3 * 60 * 1000);
 
-  // Schedula ciclo automatico Step 2 (Giorno +10) e Step 3 (Giorno +5 Solo Caldi) + reset quote ogni 30 minuti
+  // Schedula ciclo automatico Step 2 (Giorno +5) e Step 3 (Giorno +5 Solo Caldi) + reset quote ogni 30 minuti
   setInterval(() => {
     resetDailyInboxQuotasIfNeeded().catch(() => {});
     sdrOutreachQueue

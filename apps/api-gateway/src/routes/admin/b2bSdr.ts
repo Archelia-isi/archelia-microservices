@@ -160,6 +160,8 @@ function sanitizeOutreachConfigForAdmin(cfg: any) {
   const effectiveKey = dbKey || envKey;
   return {
     ...cfg,
+    step2DelayDays: Number(cfg.step2DelayDays ?? 5),
+    step3WarmDelayDays: Number(cfg.step3WarmDelayDays ?? 5),
     millionVerifierApiKey: dbKey ? maskSecretKey(dbKey) : '',
     hasMillionVerifierKey: Boolean(effectiveKey),
     millionVerifierKeySource: dbKey ? 'database' : envKey ? 'env' : 'none',
@@ -942,7 +944,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const step2Days =
         body.step2DelayDays !== undefined
-          ? Math.max(1, Math.min(60, Math.round(Number(body.step2DelayDays) || 10)))
+          ? Math.max(1, Math.min(60, Math.round(Number(body.step2DelayDays) || 5)))
           : undefined;
       const step3Days =
         body.step3WarmDelayDays !== undefined
@@ -992,7 +994,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           sentinelEnabled: Boolean(body.sentinelEnabled ?? true),
           enableMillionVerifier: Boolean(body.enableMillionVerifier ?? true),
           millionVerifierApiKey: shouldUpdateMvKey ? rawMvKey || null : null,
-          step2DelayDays: step2Days ?? 10,
+          step2DelayDays: step2Days ?? 5,
           step3WarmDelayDays: step3Days ?? 5,
         },
         update: {

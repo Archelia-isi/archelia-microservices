@@ -163,7 +163,7 @@ model SdrOutreachConfig {
   // 5. Verifica Pre-Invio MillionVerifier & Sequenza Anti-Spam a 3 Tempi
   enableMillionVerifier     Boolean  @default(true) @map("enable_million_verifier")
   millionVerifierApiKey     String?  @map("million_verifier_api_key")
-  step2DelayDays            Int      @default(10) @map("step2_delay_days")
+  step2DelayDays            Int      @default(5) @map("step2_delay_days")
   step3WarmDelayDays        Int      @default(5) @map("step3_warm_delay_days")
 
   updatedAt                 DateTime @updatedAt @map("updated_at")
