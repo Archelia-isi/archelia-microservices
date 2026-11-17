@@ -44,10 +44,12 @@ export function isAutomatedSecurityScanner(
     return true;
   }
 
+  const queryObj = (request.query as Record<string, unknown> | undefined) || {};
   if (
     String(request.headers['x-sdr-ssr'] || '') === '1' ||
     String(request.headers['x-nextjs-ssr'] || '') === '1' ||
-    String((request.query as Record<string, unknown> | undefined)?.skipTrack || '') === '1'
+    String(queryObj.skipTrack || '') === '1' ||
+    String(queryObj.track || '') === '0'
   ) {
     return true;
   }
@@ -78,9 +80,17 @@ export function isAutomatedSecurityScanner(
     return true;
   }
 
-  // Gateway antivirus sandboxes often click links within 0-3s of SMTP delivery
-  if (draft?.sentAt) {
-    const elapsedMs = Date.now() - new Date(draft.sentAt).getTime();
+  // Gateway antivirus sandboxes often click links within 0-3s of SMTP delivery (supports multi-cycle lastOutreachSentAt)
+  const latestSentCandidate = (() => {
+    const dSent = draft?.sentAt ? new Date(draft.sentAt).getTime() : 0;
+    const pLastSent = (draft as any)?.prospect?.lastOutreachSentAt
+      ? new Date((draft as any).prospect.lastOutreachSentAt).getTime()
+      : 0;
+    const maxTs = Math.max(dSent || 0, pLastSent || 0);
+    return maxTs > 0 ? maxTs : null;
+  })();
+  if (latestSentCandidate) {
+    const elapsedMs = Date.now() - latestSentCandidate;
     if (elapsedMs >= 0 && elapsedMs < 3500) {
       return true;
     }
@@ -98,10 +108,26 @@ async function trackCatalogOpenAndNotifyAgent(
   const cleanToken = (token || '').trim();
   if (!cleanToken || cleanToken.length < 6) return null;
 
-  const draft = await sdrPrisma.sdrOutreachDraft.findUnique({
+  let draft = await sdrPrisma.sdrOutreachDraft.findUnique({
     where: { trackingToken: cleanToken },
     include: { prospect: true },
   });
+
+  if (!draft) {
+    const promoByToken = await b2bPrisma.b2BPromoProspect
+      .findFirst({
+        where: { smartOfferToken: cleanToken } as any,
+        select: { sdrProspectId: true },
+      })
+      .catch(() => null);
+    if (promoByToken?.sdrProspectId) {
+      draft = await sdrPrisma.sdrOutreachDraft.findFirst({
+        where: { prospectId: promoByToken.sdrProspectId },
+        orderBy: { createdAt: 'desc' },
+        include: { prospect: true },
+      });
+    }
+  }
 
   if (!draft || !draft.prospect) return null;
   const prospect = draft.prospect;
@@ -121,7 +147,9 @@ async function trackCatalogOpenAndNotifyAgent(
           mustChangePassword: true,
           status: true,
           discount: true,
-        },
+          catalogOpenCount: true,
+          catalogOpenedAt: true,
+        } as any,
       })
     : await b2bPrisma.b2BPromoProspect.findFirst({
         where: {
@@ -139,20 +167,34 @@ async function trackCatalogOpenAndNotifyAgent(
           mustChangePassword: true,
           status: true,
           discount: true,
-        },
+          catalogOpenCount: true,
+          catalogOpenedAt: true,
+        } as any,
       });
 
-  let openCount = draft.catalogOpenCount || 0;
-  let openedAt = draft.catalogOpenedAt || new Date();
+  const promoAny = promoProspectLookup as Record<string, any> | null;
+  let openCount = Math.max(
+    Number(draft.catalogOpenCount || 0),
+    Number(promoAny?.catalogOpenCount || 0)
+  );
+  const existingOpenedAt: Date | null = (() => {
+    const d1 = draft.catalogOpenedAt ? new Date(draft.catalogOpenedAt) : null;
+    const d2 = promoAny?.catalogOpenedAt ? new Date(promoAny.catalogOpenedAt) : null;
+    if (d1 && d2) return d1.getTime() >= d2.getTime() ? d1 : d2;
+    return d1 || d2 || null;
+  })();
+  let openedAt: Date | null = existingOpenedAt;
   let incrementedNow = false;
 
   if (shouldIncrement) {
     // 2s micro-debounce against React StrictMode double-effects while allowing real re-opens
-    const microDedupKey = `sdr:engage:micro:${draft.id}`;
-    const isDuplicateBurst = await redisConnection
-      .set(microDedupKey, '1', 'EX', 2, 'NX')
-      .then((res: string | null) => res !== 'OK')
-      .catch(() => false);
+    const microDedupKey = `sdr:engage:micro:${prospect.id}`;
+    const isDuplicateBurst = await Promise.race([
+      redisConnection
+        .set(microDedupKey, '1', 'EX', 2, 'NX')
+        .then((res: string | null) => res !== 'OK'),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 800)),
+    ]).catch(() => false);
 
     if (!isDuplicateBurst) {
       const now = new Date();
@@ -163,18 +205,46 @@ async function trackCatalogOpenAndNotifyAgent(
           catalogOpenCount: { increment: 1 },
         },
       });
-      openCount = updatedDraft.catalogOpenCount;
-      openedAt = updatedDraft.catalogOpenedAt || now;
+
+      // Nei Giri 2+ (se il link usa il token persistente della 1ª bozza), aggiorna SEMPRE
+      // anche la bozza attiva/inviata del giro corrente così catalogOpenedAt > loopDraft.sentAt
+      const currentCycle = Math.max(1, Number((prospect as any).outreachCycle || 1));
+      if (Number((draft as any).cycleNumber || 1) !== currentCycle) {
+        await sdrPrisma.sdrOutreachDraft
+          .updateMany({
+            where: {
+              prospectId: prospect.id,
+              cycleNumber: currentCycle,
+              id: { not: draft.id },
+              status: { in: ['Inviata', 'Inviata_Dry_Run'] },
+            } as any,
+            data: {
+              catalogOpenedAt: now,
+              catalogOpenCount: { increment: 1 },
+            },
+          })
+          .catch(() => {});
+      }
+
+      const nextOpenCount = Math.max(
+        Number(updatedDraft.catalogOpenCount || 0),
+        Number(promoAny?.catalogOpenCount || 0) + 1
+      );
+      openCount = nextOpenCount;
+      openedAt = now;
       incrementedNow = true;
 
       if (
-        prospect.pipelineStatus === 'Da_Contattare' ||
-        prospect.pipelineStatus === 'Nuovo' ||
-        prospect.pipelineStatus === 'Pronto_Invio' ||
-        prospect.pipelineStatus === 'Contattato' ||
-        prospect.pipelineStatus === 'Credenziali_Create' ||
-        prospect.pipelineStatus === 'Email_Inviata' ||
-        prospect.pipelineStatus === 'Inviata_Dry_Run'
+        ![
+          'Convertito',
+          'Opt_Out',
+          'Disiscritto',
+          'Bounce_Invalido',
+          'Ha_Risposto',
+          'Risposta_Ricevuta',
+          'Loggato_Senza_Ordine',
+          'Catalogo_Aperto',
+        ].includes(prospect.pipelineStatus)
       ) {
         await sdrPrisma.sdrProspect
           .update({
@@ -184,14 +254,14 @@ async function trackCatalogOpenAndNotifyAgent(
           .catch(() => {});
       }
 
-      // Sincronizza subito catalogOpenCount, catalogOpenedAt e smartOfferToken su b2b_promo_prospects
-      if (promoProspectLookup?.id) {
+      // Sincronizza SEMPRE catalogOpenedAt: now (l'ultima apertura umana effettiva), catalogOpenCount e smartOfferToken su b2b_promo_prospects
+      if (promoAny?.id) {
         await b2bPrisma.b2BPromoProspect
           .update({
-            where: { id: promoProspectLookup.id },
+            where: { id: promoAny.id },
             data: {
-              catalogOpenCount: openCount,
-              catalogOpenedAt: openedAt,
+              catalogOpenCount: nextOpenCount,
+              catalogOpenedAt: now,
               smartOfferToken: cleanToken,
             } as any,
           })
@@ -206,8 +276,8 @@ async function trackCatalogOpenAndNotifyAgent(
           .updateMany({
             where: { sdrProspectId: prospect.id },
             data: {
-              catalogOpenCount: openCount,
-              catalogOpenedAt: openedAt,
+              catalogOpenCount: nextOpenCount,
+              catalogOpenedAt: now,
               smartOfferToken: cleanToken,
             } as any,
           })
@@ -216,16 +286,18 @@ async function trackCatalogOpenAndNotifyAgent(
 
       addSdrLog(
         'TRACKER-PDF',
-        `[👀 APERTURA UMANA CATALISTINO] ${prospect.companyName} (${prospect.city}, ${prospect.province}) ha consultato l'Offerta / Catalistino Riservato (apertura #${openCount})!`,
+        `[👀 APERTURA UMANA CATALISTINO] ${prospect.companyName} (${prospect.city}, ${prospect.province}) ha consultato l'Offerta / Catalistino Riservato (apertura #${openCount}, giro ${currentCycle})!`,
         'SUCCESS'
       );
 
-      // Rate-limit instant Brevo alert per draft (1 alert every 30 min max)
-      const alertLockKey = `sdr:alert:open:${draft.id}`;
-      const alreadyAlertedRecently = await redisConnection
-        .set(alertLockKey, '1', 'EX', 1800, 'NX')
-        .then((res: string | null) => res !== 'OK')
-        .catch(() => false);
+      // Rate-limit instant Brevo alert per prospect (1 alert every 30 min max)
+      const alertLockKey = `sdr:alert:open:${prospect.id}`;
+      const alreadyAlertedRecently = await Promise.race([
+        redisConnection
+          .set(alertLockKey, '1', 'EX', 1800, 'NX')
+          .then((res: string | null) => res !== 'OK'),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 800)),
+      ]).catch(() => false);
 
       if (!alreadyAlertedRecently) {
         const agent = await resolveSdrAgent(
@@ -255,8 +327,8 @@ async function trackCatalogOpenAndNotifyAgent(
               <div><strong>Cluster:</strong> ${escapeHtml(catCfg.label)} [${catCfg.commercialCategory} ${catCfg.baseDiscount}% + ${extraPct}%]</div>
               <div><strong>Telefono / WhatsApp:</strong> ${escapeHtml(prospect.phone || prospect.whatsappPhone || 'N/D')}</div>
               <div><strong>Email:</strong> ${escapeHtml(prospect.ordinaryEmail || 'N/D')}</div>
-              <div><strong>Username Portale B2B:</strong> <code>${escapeHtml(promoProspectLookup?.username || prospect.promotedUsername || 'N/D')}</code></div>
-              <div><strong>Aperture umane registrate:</strong> <strong>${openCount}</strong> (ultima: ${openedAt.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })})</div>
+              <div><strong>Username Portale B2B:</strong> <code>${escapeHtml(promoAny?.username || prospect.promotedUsername || 'N/D')}</code></div>
+              <div><strong>Aperture umane registrate:</strong> <strong>${openCount}</strong> (ultima: ${now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })})</div>
             </div>
             <p style="font-size: 13px; color: #475569;">Suggerimento: trovi il lead già evidenziato tra i <strong>Lead Caldi da Gestire</strong> nella tua Area Agente sul Portale B2B.</p>
           </div>`,
@@ -291,10 +363,10 @@ async function trackCatalogOpenAndNotifyAgent(
     (100 - (100 - baseDiscount) * (1 - extraDiscount / 100)).toFixed(1)
   );
   const b2bBase = (env.B2B_PUBLIC_URL || 'https://www.izzodistribuzione.it').replace(/\/$/, '');
-  const username = promoProspectLookup?.username || prospect.promotedUsername || '';
-  const tempPassword = promoProspectLookup?.tempPassword || null;
-  const mustChangePassword = Boolean(promoProspectLookup?.mustChangePassword ?? true);
-  const promoProspectId = promoProspectLookup?.id || prospect.promoProspectId || null;
+  const username = String(promoAny?.username || prospect.promotedUsername || '');
+  const tempPassword: string | null = promoAny?.tempPassword || null;
+  const mustChangePassword = Boolean(promoAny?.mustChangePassword ?? true);
+  const promoProspectId: string | null = promoAny?.id || prospect.promoProspectId || null;
 
   return {
     draft,
@@ -575,7 +647,7 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
             <div class="cred-label">Utente Riservato</div>
             <div class="cred-val" id="sdr-user">${escapeHtml(ctx.username)}</div>
           </div>
-          <button type="button" class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(ctx.username)})">Copia</button>
+          <button type="button" class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(${escapeHtml(JSON.stringify(ctx.username))})">Copia</button>
         </div>
         <div class="cred-item">
           <div>
@@ -584,7 +656,7 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
           </div>
           ${
             ctx.tempPassword
-              ? `<button type="button" class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(${JSON.stringify(ctx.tempPassword)})">Copia</button>`
+              ? `<button type="button" class="copy-btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(${escapeHtml(JSON.stringify(ctx.tempPassword))})">Copia</button>`
               : ''
           }
         </div>

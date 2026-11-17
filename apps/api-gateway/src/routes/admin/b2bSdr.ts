@@ -153,15 +153,56 @@ function detectEmailVerifierProvider(plainKey: string): string {
   return 'MillionVerifier';
 }
 
+const LOOP_EXCLUDED_PIPELINE_STATUSES = [
+  'Opt_Out',
+  'Disiscritto',
+  'Bounce_Invalido',
+  'Ha_Risposto',
+  'Risposta_Ricevuta',
+  'Convertito',
+  'Pec_Scartata',
+];
+
+function resolveSdrSequenceStepLabel(
+  sequenceStep?: number | null,
+  cycleNumber = 1,
+  step2Days = 5,
+  step3Days = 5
+): string {
+  const step = Number(sequenceStep || 1);
+  const cycle = Math.max(1, Number(cycleNumber || 1));
+  if (step === 20) {
+    return cycle > 1
+      ? `🔄 Ricontatto Trimestrale + Link PDF (Giro ${cycle})`
+      : '🔄 Ricontatto Trimestrale + Link PDF';
+  }
+  if (step === 10) return 'Step 1B • Risposta Sì';
+  if (step === 2) return `Step 2 • +${step2Days}gg Link`;
+  if (step === 3) {
+    return cycle > 1
+      ? `Step 3 • +${step3Days}gg Caldi (Giro ${cycle})`
+      : `Step 3 • +${step3Days}gg Caldi`;
+  }
+  return 'Step 1 • Conversazione Pura';
+}
+
 function sanitizeOutreachConfigForAdmin(cfg: any) {
   if (!cfg) return null;
   const dbKey = resolvePlainVerifierKey(cfg.millionVerifierApiKey);
   const envKey = resolvePlainVerifierKey(process.env.MILLIONVERIFIER_API_KEY);
   const effectiveKey = dbKey || envKey;
+  const rawCooldown = Number(cfg.loopCooldownDays ?? 90);
+  const safeCooldownDays = Math.max(
+    90,
+    Number.isFinite(rawCooldown) && rawCooldown > 0 ? Math.round(rawCooldown) : 90
+  );
   return {
     ...cfg,
     step2DelayDays: Number(cfg.step2DelayDays ?? 5),
     step3WarmDelayDays: Number(cfg.step3WarmDelayDays ?? 5),
+    autoFeederEnabled: Boolean(cfg.autoFeederEnabled ?? false),
+    loopEnabled: cfg.loopEnabled !== undefined ? Boolean(cfg.loopEnabled) : true,
+    loopCooldownDays: safeCooldownDays,
     millionVerifierApiKey: dbKey ? maskSecretKey(dbKey) : '',
     hasMillionVerifierKey: Boolean(effectiveKey),
     millionVerifierKeySource: dbKey ? 'database' : envKey ? 'env' : 'none',
@@ -186,7 +227,10 @@ async function fetchEmailVerifierCreditsInfo(
   const cacheKey = `sdr:ev:credits:v1:${plainKey.slice(-6)}`;
   if (!forceRefresh) {
     try {
-      const cached = await redisConnection.get(cacheKey);
+      const cached = await Promise.race<string | null>([
+        redisConnection.get(cacheKey),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
+      ]);
       if (cached) return JSON.parse(cached);
     } catch {
       // ignore cache read error
@@ -226,9 +270,10 @@ async function fetchEmailVerifierCreditsInfo(
               balance,
               expiresAt: data.expires_at || data.expiresAt || null,
             };
-            await redisConnection
-              .set(cacheKey, JSON.stringify(info), 'EX', 300)
-              .catch(() => {});
+            await Promise.race([
+              redisConnection.set(cacheKey, JSON.stringify(info), 'EX', 300),
+              new Promise((resolve) => setTimeout(resolve, 600)),
+            ]).catch(() => {});
             return info;
           }
         } catch {
@@ -250,7 +295,10 @@ async function fetchEmailVerifierCreditsInfo(
       const data = (await res.json()) as Record<string, any>;
       const balance = typeof data.credits === 'number' ? data.credits : null;
       const info = { connected: true, provider, balance, expiresAt: null };
-      await redisConnection.set(cacheKey, JSON.stringify(info), 'EX', 300).catch(() => {});
+      await Promise.race([
+        redisConnection.set(cacheKey, JSON.stringify(info), 'EX', 300),
+        new Promise((resolve) => setTimeout(resolve, 600)),
+      ]).catch(() => {});
       return info;
     }
   } catch {
@@ -381,6 +429,172 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const isSdrLive = Boolean(env.ENABLE_SDR_LIVE_OUTREACH || env.ENABLE_GLOBAL_WRITES);
       const interceptEmail = String(env.SDR_TEST_INTERCEPT_EMAIL || '').trim().toLowerCase() || null;
       const sanitizedConfig = sanitizeOutreachConfigForAdmin(outreachConfig);
+      const loopCooldownDays = Math.max(
+        90,
+        Number(sanitizedConfig?.loopCooldownDays ?? outreachConfig?.loopCooldownDays ?? 90) || 90
+      );
+      const loopCutoffDate = new Date(Date.now() - loopCooldownDays * 24 * 60 * 60 * 1000);
+
+      // Esclusioni incrociate sacre (ordini/conversioni/chiamate Daniele su b2b_promo_prospects + risposte/bounce/opt-out in sdr_inbox_events)
+      const [excludedPromos, excludedInboxEvents] = await Promise.all([
+        b2bPrisma.b2BPromoProspect
+          .findMany({
+            where: {
+              OR: [
+                { status: { in: ['CONVERTED', 'ORDER_PENDING_APPROVAL'] as any } },
+                { convertedToUserId: { not: null } },
+                { firstOrderId: { not: null } },
+                { autoFollowupPaused: true },
+                { agentContactedAt: { not: null } },
+                { lastReplyAt: { not: null } },
+                { orders: { some: {} } },
+              ],
+            },
+            select: { id: true, sdrProspectId: true },
+          })
+          .catch(() => []),
+        sdrPrisma.sdrInboxEvent
+          .findMany({
+            where: {
+              eventType: { in: ['REPLY', 'OPT_OUT', 'BOUNCE'] },
+              prospectId: { not: null },
+            },
+            select: { prospectId: true },
+          })
+          .catch(() => []),
+      ]);
+
+      const excludedPromoIds = Array.from(
+        new Set(excludedPromos.map((p) => p.id).filter(Boolean))
+      );
+      const excludedSdrIds = Array.from(
+        new Set([
+          ...excludedPromos
+            .map((p) => p.sdrProspectId)
+            .filter((id): id is number => typeof id === 'number' && !Number.isNaN(id)),
+          ...excludedInboxEvents
+            .map((ev) => ev.prospectId)
+            .filter((id): id is number => typeof id === 'number' && !Number.isNaN(id)),
+        ])
+      );
+
+      const [
+        virginReadyCount,
+        loopWaitingCooldownCount,
+        loopReadyEligibleCount,
+        multiCycleProspectsCount,
+      ] = await Promise.all([
+        sdrPrisma.sdrProspect.count({
+          where: {
+            section: 'Email_Pronta',
+            pipelineStatus: 'Da_Contattare',
+            autoFollowupPaused: false,
+            agentContactedAt: null,
+            lastOutreachSentAt: null,
+            AND: [
+              { OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }] },
+              ...(excludedSdrIds.length > 0 ? [{ id: { notIn: excludedSdrIds } }] : []),
+            ],
+            drafts: {
+              none: {
+                status: { not: 'Template_Da_Attivare' },
+              },
+            },
+          },
+        }),
+        sdrPrisma.sdrProspect.count({
+          where: {
+            section: 'Email_Pronta',
+            autoFollowupPaused: false,
+            agentContactedAt: null,
+            promotedB2bUserId: null,
+            pipelineStatus: { notIn: ['Da_Contattare', ...LOOP_EXCLUDED_PIPELINE_STATUSES] },
+            drafts: {
+              none: {
+                status: { in: ['Bozza_Pronta', 'In_Coda_SMTP'] },
+              },
+            },
+            AND: [
+              { OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }] },
+              ...(excludedSdrIds.length > 0 ? [{ id: { notIn: excludedSdrIds } }] : []),
+              ...(excludedPromoIds.length > 0
+                ? [
+                    {
+                      OR: [
+                        { promoProspectId: null },
+                        { promoProspectId: { notIn: excludedPromoIds } },
+                      ],
+                    },
+                  ]
+                : []),
+              {
+                OR: [
+                  { lastOutreachSentAt: { gt: loopCutoffDate } },
+                  {
+                    lastOutreachSentAt: null,
+                    drafts: {
+                      some: {
+                        status: 'Inviata',
+                        sentAt: { gt: loopCutoffDate },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+        sdrPrisma.sdrProspect.count({
+          where: {
+            section: 'Email_Pronta',
+            autoFollowupPaused: false,
+            agentContactedAt: null,
+            promotedB2bUserId: null,
+            pipelineStatus: { notIn: ['Da_Contattare', ...LOOP_EXCLUDED_PIPELINE_STATUSES] },
+            drafts: {
+              none: {
+                status: { in: ['Bozza_Pronta', 'In_Coda_SMTP'] },
+              },
+            },
+            AND: [
+              { OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }] },
+              ...(excludedSdrIds.length > 0 ? [{ id: { notIn: excludedSdrIds } }] : []),
+              ...(excludedPromoIds.length > 0
+                ? [
+                    {
+                      OR: [
+                        { promoProspectId: null },
+                        { promoProspectId: { notIn: excludedPromoIds } },
+                      ],
+                    },
+                  ]
+                : []),
+              {
+                OR: [
+                  { lastOutreachSentAt: { lte: loopCutoffDate } },
+                  {
+                    lastOutreachSentAt: null,
+                    drafts: {
+                      some: {
+                        status: 'Inviata',
+                        sentAt: { lte: loopCutoffDate },
+                      },
+                      none: {
+                        status: 'Inviata',
+                        sentAt: { gt: loopCutoffDate },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+        sdrPrisma.sdrProspect.count({
+          where: { outreachCycle: { gt: 1 } },
+        }),
+      ]);
+
       const effectiveEvKey =
         resolvePlainVerifierKey(outreachConfig?.millionVerifierApiKey) ||
         resolvePlainVerifierKey(process.env.MILLIONVERIFIER_API_KEY);
@@ -424,6 +638,24 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           emailVerifierProvider: evCreditsInfo.provider,
           emailVerifierCredits: evCreditsInfo.balance,
           emailVerifierConnected: evCreditsInfo.connected,
+          virginReadyCount,
+          loopWaitingCooldownCount,
+          loopReadyEligibleCount,
+          multiCycleProspectsCount,
+          autoFeederEnabled: Boolean(sanitizedConfig?.autoFeederEnabled ?? false),
+          loopEnabled:
+            sanitizedConfig?.loopEnabled !== undefined ? Boolean(sanitizedConfig.loopEnabled) : true,
+          loopCooldownDays,
+        },
+        loopStats: {
+          virginReadyCount,
+          loopWaitingCooldownCount,
+          loopReadyEligibleCount,
+          multiCycleProspectsCount,
+          autoFeederEnabled: Boolean(sanitizedConfig?.autoFeederEnabled ?? false),
+          loopEnabled:
+            sanitizedConfig?.loopEnabled !== undefined ? Boolean(sanitizedConfig.loopEnabled) : true,
+          loopCooldownDays,
         },
         clusters: clusterGroups.map((g) => ({
           cluster: g.categoryCluster,
@@ -520,6 +752,16 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       }
       if (q.pipelineStatus && q.pipelineStatus !== 'ALL') {
         where.pipelineStatus = q.pipelineStatus;
+      }
+      if (q.outreachCycle && q.outreachCycle !== 'ALL') {
+        if (q.outreachCycle === 'MULTI') {
+          where.outreachCycle = { gt: 1 };
+        } else {
+          const parsedCycle = parseInt(q.outreachCycle, 10);
+          if (!Number.isNaN(parsedCycle) && parsedCycle >= 1) {
+            where.outreachCycle = parsedCycle;
+          }
+        }
       }
       if (q.region && q.region !== 'ALL') {
         where.region = { contains: q.region, mode: 'insensitive' };
@@ -704,15 +946,35 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
 
       const enriched = prospects.map((p) => {
         const unpacked = unpackProspectRichData(p);
+        const outreachCycle = Math.max(1, Number((p as any).outreachCycle || 1));
+        const rawLatestDraft = (p as any).drafts?.[0] || null;
+        const latestDraft = rawLatestDraft
+          ? {
+              ...rawLatestDraft,
+              cycleNumber: Math.max(1, Number(rawLatestDraft.cycleNumber || outreachCycle)),
+              outreachCycle,
+              sequenceStepLabel: resolveSdrSequenceStepLabel(
+                rawLatestDraft.sequenceStep,
+                Math.max(1, Number(rawLatestDraft.cycleNumber || outreachCycle))
+              ),
+            }
+          : null;
         return {
           ...unpacked,
+          outreachCycle,
+          cycleNumber: latestDraft?.cycleNumber || outreachCycle,
+          cycleCompletedAt: (p as any).cycleCompletedAt || null,
+          lastOutreachSentAt: (p as any).lastOutreachSentAt || null,
+          usedLoopTemplateCodes: Array.isArray((p as any).usedLoopTemplateCodes)
+            ? (p as any).usedLoopTemplateCodes
+            : [],
           emailVerifyStatus: (p as any).emailVerifyStatus || null,
           emailVerifiedAt: (p as any).emailVerifiedAt || null,
           emailVerifyProvider: (p as any).emailVerifyProvider || null,
           agentContactedAt: (p as any).agentContactedAt || null,
           agentCallNote: (p as any).agentCallNote || null,
           autoFollowupPaused: Boolean((p as any).autoFollowupPaused),
-          latestDraft: (p as any).drafts?.[0] || null,
+          latestDraft,
           promoProspect: p.promoProspectId ? promoMap.get(p.promoProspectId) || null : null,
         };
       });
@@ -834,6 +1096,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
                 id: true,
                 prospectId: true,
                 sequenceStep: true,
+                cycleNumber: true,
                 trackingToken: true,
                 catalogOpenedAt: true,
                 catalogOpenCount: true,
@@ -852,9 +1115,22 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       }
 
       const draftBySdrId = new Map<number, any>();
+      const maxOpenedAtBySdrId = new Map<number, Date>();
+      const maxOpenCountBySdrId = new Map<number, number>();
       for (const dr of sdrDrafts) {
         if (!draftBySdrId.has(dr.prospectId)) {
           draftBySdrId.set(dr.prospectId, dr);
+        }
+        if (dr.catalogOpenedAt) {
+          const dt = new Date(dr.catalogOpenedAt);
+          const prev = maxOpenedAtBySdrId.get(dr.prospectId);
+          if (!prev || dt.getTime() > prev.getTime()) {
+            maxOpenedAtBySdrId.set(dr.prospectId, dt);
+          }
+        }
+        const cnt = Number(dr.catalogOpenCount || 0);
+        if (cnt > (maxOpenCountBySdrId.get(dr.prospectId) || 0)) {
+          maxOpenCountBySdrId.set(dr.prospectId, cnt);
         }
       }
 
@@ -869,9 +1145,20 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const smartUrls = resolvedToken ? buildSmartCatalogOfferUrls(resolvedToken) : null;
         const mergedOpenCount = Math.max(
           Number((p as any).catalogOpenCount || 0),
-          Number(sdrDraft?.catalogOpenCount || 0)
+          p.sdrProspectId ? Number(maxOpenCountBySdrId.get(p.sdrProspectId) || 0) : 0
         );
-        const mergedOpenedAt = (p as any).catalogOpenedAt || sdrDraft?.catalogOpenedAt || null;
+        const promoOpenedAt = (p as any).catalogOpenedAt
+          ? new Date((p as any).catalogOpenedAt)
+          : null;
+        const draftLatestOpenedAt = p.sdrProspectId
+          ? maxOpenedAtBySdrId.get(p.sdrProspectId) || null
+          : null;
+        const mergedOpenedAt =
+          promoOpenedAt && draftLatestOpenedAt
+            ? promoOpenedAt.getTime() >= draftLatestOpenedAt.getTime()
+              ? promoOpenedAt
+              : draftLatestOpenedAt
+            : promoOpenedAt || draftLatestOpenedAt || null;
         return {
           ...p,
           cartItemsCount,
@@ -950,6 +1237,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         body.step3WarmDelayDays !== undefined
           ? Math.max(1, Math.min(30, Math.round(Number(body.step3WarmDelayDays) || 5)))
           : undefined;
+      const loopCooldownDays =
+        body.loopCooldownDays !== undefined
+          ? Math.max(
+              90,
+              Math.min(
+                730,
+                Number.isFinite(Number(body.loopCooldownDays))
+                  ? Math.round(Number(body.loopCooldownDays))
+                  : 90
+              )
+            )
+          : undefined;
 
       const config = await sdrPrisma.sdrOutreachConfig.upsert({
         where: { id: 'default' },
@@ -996,6 +1295,9 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           millionVerifierApiKey: shouldUpdateMvKey ? rawMvKey || null : null,
           step2DelayDays: step2Days ?? 5,
           step3WarmDelayDays: step3Days ?? 5,
+          autoFeederEnabled: Boolean(body.autoFeederEnabled ?? false),
+          loopEnabled: body.loopEnabled !== undefined ? Boolean(body.loopEnabled) : true,
+          loopCooldownDays: loopCooldownDays ?? 90,
         },
         update: {
           enableFirstPurchaseRule:
@@ -1040,6 +1342,11 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           ...(shouldUpdateMvKey ? { millionVerifierApiKey: rawMvKey || null } : {}),
           ...(step2Days !== undefined ? { step2DelayDays: step2Days } : {}),
           ...(step3Days !== undefined ? { step3WarmDelayDays: step3Days } : {}),
+          ...(body.autoFeederEnabled !== undefined
+            ? { autoFeederEnabled: Boolean(body.autoFeederEnabled) }
+            : {}),
+          ...(body.loopEnabled !== undefined ? { loopEnabled: Boolean(body.loopEnabled) } : {}),
+          ...(loopCooldownDays !== undefined ? { loopCooldownDays } : {}),
         },
       });
       return reply.send({ success: true, config: sanitizeOutreachConfigForAdmin(config) });
@@ -1704,8 +2011,22 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const status = q.status;
       const where: any = {};
       if (status && status !== 'ALL') where.status = status;
+      if (q.sequenceStep && q.sequenceStep !== 'ALL') {
+        const parsedStep = parseInt(q.sequenceStep, 10);
+        if (!Number.isNaN(parsedStep)) where.sequenceStep = parsedStep;
+      }
+      if (q.cycleNumber && q.cycleNumber !== 'ALL') {
+        if (q.cycleNumber === 'MULTI') {
+          where.cycleNumber = { gt: 1 };
+        } else {
+          const parsedCycle = parseInt(q.cycleNumber, 10);
+          if (!Number.isNaN(parsedCycle) && parsedCycle >= 1) {
+            where.cycleNumber = parsedCycle;
+          }
+        }
+      }
 
-      const [rawDrafts, inboxes] = await Promise.all([
+      const [rawDrafts, inboxes, config] = await Promise.all([
         sdrPrisma.sdrOutreachDraft.findMany({
           where,
           orderBy: { updatedAt: 'desc' },
@@ -1717,13 +2038,34 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         sdrPrisma.sdrInboxAccount.findMany({
           select: { id: true, email: true, displayName: true },
         }),
+        sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } }),
       ]);
 
+      const step2Days = Number(config?.step2DelayDays ?? 5);
+      const step3Days = Number(config?.step3WarmDelayDays ?? 5);
       const inboxMap = new Map(inboxes.map((inb) => [inb.id, inb]));
-      const drafts = rawDrafts.map((d) => ({
-        ...d,
-        senderAccount: d.senderInboxId ? inboxMap.get(d.senderInboxId) || null : null,
-      }));
+      const drafts = rawDrafts.map((d) => {
+        const prospectOutreachCycle = Math.max(1, Number((d.prospect as any)?.outreachCycle || 1));
+        const cycleNumber = Math.max(1, Number((d as any).cycleNumber || prospectOutreachCycle));
+        return {
+          ...d,
+          cycleNumber,
+          outreachCycle: prospectOutreachCycle,
+          sequenceStepLabel: resolveSdrSequenceStepLabel(
+            d.sequenceStep,
+            cycleNumber,
+            step2Days,
+            step3Days
+          ),
+          prospect: d.prospect
+            ? {
+                ...d.prospect,
+                outreachCycle: prospectOutreachCycle,
+              }
+            : null,
+          senderAccount: d.senderInboxId ? inboxMap.get(d.senderInboxId) || null : null,
+        };
+      });
 
       return reply.send({ success: true, drafts });
     } catch (error: any) {
@@ -2618,6 +2960,16 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       if (q.pipelineStatus && q.pipelineStatus !== 'ALL') {
         where.pipelineStatus = q.pipelineStatus;
       }
+      if (q.outreachCycle && q.outreachCycle !== 'ALL') {
+        if (q.outreachCycle === 'MULTI') {
+          where.outreachCycle = { gt: 1 };
+        } else {
+          const parsedCycle = parseInt(q.outreachCycle, 10);
+          if (!Number.isNaN(parsedCycle) && parsedCycle >= 1) {
+            where.outreachCycle = parsedCycle;
+          }
+        }
+      }
       if (q.region && q.region !== 'ALL') {
         where.region = { contains: q.region, mode: 'insensitive' };
       }
@@ -3305,6 +3657,18 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             : Promise.resolve(null),
       ]);
 
+      if (
+        existingDraft &&
+        ['Inviata', 'Inviata_Dry_Run', 'In_Coda_SMTP', 'Risposta_Ricevuta'].includes(
+          existingDraft.status
+        )
+      ) {
+        return reply.status(400).send({
+          success: false,
+          error: `La 1ª email per ${prospect.companyName} è già nello stato "${existingDraft.status}": impossibile rigenerarla per non alterare lo storico oggetto della conversazione.`,
+        });
+      }
+
       const resolvedAgent = await resolveSdrAgent(
         prospect.assignedAgentId ||
           prospect.assignedAgentCode ||
@@ -3439,17 +3803,21 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       let targetDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
         where:
           requestedIds.length > 0
-            ? { id: { in: requestedIds }, status: { in: ['Bozza_Pronta', 'Template_Da_Attivare'] } }
-            : { status: 'Bozza_Pronta' },
+            ? {
+                id: { in: requestedIds },
+                sequenceStep: 1,
+                status: { in: ['Bozza_Pronta', 'Template_Da_Attivare'] },
+              }
+            : { sequenceStep: 1, status: 'Bozza_Pronta' },
         take: takeLimit,
         orderBy: { updatedAt: 'desc' },
         include: { prospect: true },
       });
 
-      // Se non ci sono Bozza_Pronta ancora attivate, rigeneriamo le prime bozze visibili in coda (mantenendole Template_Da_Attivare)
-      if (targetDrafts.length === 0) {
+      // Se non ci sono Bozza_Pronta Step 1 ancora attivate (e non sono stati richiesti ID specifici), rigeneriamo solo le bozze Step 1 disarmate
+      if (targetDrafts.length === 0 && requestedIds.length === 0) {
         targetDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
-          where: { status: 'Template_Da_Attivare' },
+          where: { sequenceStep: 1, status: 'Template_Da_Attivare' },
           take: takeLimit,
           orderBy: { updatedAt: 'desc' },
           include: { prospect: true },

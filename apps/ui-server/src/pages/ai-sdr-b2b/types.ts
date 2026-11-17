@@ -71,6 +71,9 @@ export interface SdrOutreachConfigState {
   emailVerifierProvider?: string;
   step2DelayDays?: number;
   step3WarmDelayDays?: number;
+  autoFeederEnabled?: boolean;
+  loopEnabled?: boolean;
+  loopCooldownDays?: number;
   defaultAgentCode?: string;
   defaultAgentName?: string;
   defaultAgentEmail?: string;

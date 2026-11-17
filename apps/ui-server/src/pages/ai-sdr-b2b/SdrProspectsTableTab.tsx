@@ -494,6 +494,13 @@ export default function SdrProspectsTableTab({
               prospects.map((p) => {
                 const isSelected = selectedProspectIds.includes(p.id);
                 const isRiv = p.commercialCategory === 'RIV';
+                const prospectCycle = Math.max(
+                  1,
+                  Number(p.outreachCycle || p.cycleNumber || p.latestDraft?.cycleNumber || 1)
+                );
+                const isQuarterlyLoopDraft =
+                  Number(p.latestDraft?.sequenceStep) === 20 ||
+                  String(p.latestDraft?.templateCode || '').toUpperCase().startsWith('LOOP_Q_');
                 return (
                   <tr
                     key={p.id}
@@ -510,11 +517,18 @@ export default function SdrProspectsTableTab({
                       />
                     </td>
                     <td style={{ padding: '10px 12px' }}>
-                      <div
-                        onClick={() => onOpenDossier(p.id)}
-                        style={{ fontWeight: 800, cursor: 'pointer', color: 'var(--color-primary)' }}
-                      >
-                        {p.companyName}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <div
+                          onClick={() => onOpenDossier(p.id)}
+                          style={{ fontWeight: 800, cursor: 'pointer', color: 'var(--color-primary)' }}
+                        >
+                          {p.companyName}
+                        </div>
+                        {prospectCycle > 1 && (
+                          <Badge variant="warning" size="sm">
+                            🔄 Giro {prospectCycle}
+                          </Badge>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '3px', flexWrap: 'wrap' }}>
                         {p.vatNumber && (
@@ -586,20 +600,34 @@ export default function SdrProspectsTableTab({
                       )}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
-                      <Badge
-                        variant={
-                          p.pipelineStatus === 'Convertito' || p.pipelineStatus === 'Catalogo_Aperto'
-                            ? 'success'
-                            : p.pipelineStatus === 'Loggato_Senza_Ordine' || p.pipelineStatus === 'Risposta_Ricevuta'
-                              ? 'warning'
-                              : p.pipelineStatus === 'Contattato' || p.pipelineStatus === 'Pronto_Invio'
-                                ? 'primary'
-                                : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {p.pipelineStatus || 'Nuovo'}
-                      </Badge>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Badge
+                            variant={
+                              p.pipelineStatus === 'Convertito' || p.pipelineStatus === 'Catalogo_Aperto'
+                                ? 'success'
+                                : p.pipelineStatus === 'Loggato_Senza_Ordine' || p.pipelineStatus === 'Risposta_Ricevuta'
+                                  ? 'warning'
+                                  : p.pipelineStatus === 'Contattato' || p.pipelineStatus === 'Pronto_Invio'
+                                    ? 'primary'
+                                    : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {p.pipelineStatus || 'Nuovo'}
+                          </Badge>
+                          {prospectCycle > 1 && (
+                            <Badge variant="warning" size="sm">
+                              🔄 Giro {prospectCycle}
+                            </Badge>
+                          )}
+                        </div>
+                        {isQuarterlyLoopDraft && (
+                          <Badge variant="primary" size="sm">
+                            🔄 Ricontatto Trimestrale + Link PDF
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '5px', flexWrap: 'wrap' }}>

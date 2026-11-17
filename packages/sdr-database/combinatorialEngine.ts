@@ -106,6 +106,20 @@ export type ConsentReplyEmailInput = SdrSequenceFollowupInput;
 export type Step2FollowupEmailInput = SdrSequenceFollowupInput;
 export type Step3WarmFollowupEmailInput = SdrSequenceFollowupInput;
 
+export interface QuarterlyLoopEmailInput extends SdrSequenceFollowupInput {
+  cycleNumber?: number | null;
+  outreachCycle?: number | null;
+  usedLoopTemplateCodes?: string[] | null;
+  region?: string | null;
+  website?: string | null;
+  atecoCode?: string | null;
+  brandsDetected?: string | string[] | null;
+  offerTitle?: string | null;
+  freeShippingText?: string | null;
+  paymentTermsText?: string | null;
+  forceTemplateCode?: string | null;
+}
+
 export interface SdrSequenceEmailOutput {
   subject: string;
   bodyText: string;
@@ -113,6 +127,25 @@ export interface SdrSequenceEmailOutput {
   sequenceStep: number;
   templateCode: string;
   discountFormulaLabel: string;
+}
+
+export interface QuarterlyLoopEmailOutput extends SdrSequenceEmailOutput {
+  cycleNumber: number;
+  angleGroup: string;
+  templateName: string;
+  updatedUsedLoopTemplateCodes: string[];
+}
+
+export interface QuarterlyLoopTemplateDef {
+  code: string;
+  name: string;
+  angleGroup:
+    | 'STOCK_PRONTA_CONSEGNA'
+    | 'QUOTAZIONE_CAPITOLATO'
+    | 'RIASSORTIMENTO_STAGIONALE'
+    | 'SECONDO_FORNITORE_LIBERO'
+    | 'CATALISTINO_NETTO_AGGIORNATO'
+    | 'COMPATIBILITA_MARCHI_REPARTI';
 }
 
 export const IZZO_LEGAL_COMPANY_LINE =
@@ -1036,7 +1069,13 @@ function resolveFollowupCommonContext(input: SdrSequenceFollowupInput) {
   const rawOrigSubj = String(
     input.originalSubject || input.previousSubject || input.subject || ''
   ).trim();
-  const strippedOrigSubj = rawOrigSubj.replace(/^(?:re|r|fwd|i):\s*/gi, '').trim();
+  const strippedOrigSubj = rawOrigSubj
+    .replace(/^(?:(?:re|r|fwd|fw|i)\s*:\s*)+/gi, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\bpassword\b/gi, 'chiave riservata')
+    .replace(/\busername\b/gi, 'profilo riservato')
+    .replace(/\s+/g, ' ')
+    .trim();
   const replySubject = strippedOrigSubj
     ? `Re: ${strippedOrigSubj}`
     : `Re: Presentazione fornitore B2B per ${companyClean} — Izzo Distribuzione S.r.l.`;
@@ -1333,6 +1372,498 @@ export function generateStep3WarmFollowupEmail(
     sequenceStep: 3,
     templateCode: `STEP3_WARM_V${vIdx + 1}`,
     discountFormulaLabel: ctx.discountFormulaLabel,
+  };
+}
+
+// ============================================================================
+// CANTIERE 7: MOTORE EMAIL GIRI SUCCESSIVI 90+ GIORNI (LOOP TRIMESTRALE V01..V16)
+// ============================================================================
+
+interface QuarterlyLoopRenderVars {
+  greeting: string;
+  companyClean: string;
+  areaLabel: string;
+  sectorNoun: string;
+  specClause: string;
+  compatClause: string;
+  prodottiCompatti: string;
+  prodottiProsa: string;
+  discountFormulaLabel: string;
+  minOrderClean: string;
+  roleDiscountLabel: string;
+  smartCatalogUrl: string;
+  agentPhoneFinal: string;
+  cycleNumber: number;
+}
+
+interface InternalQuarterlyLoopTemplate extends QuarterlyLoopTemplateDef {
+  buildParagraphs: (v: QuarterlyLoopRenderVars) => string[];
+}
+
+export const QUARTERLY_LOOP_TEMPLATES: readonly QuarterlyLoopTemplateDef[] = [
+  {
+    code: 'LOOP_Q_V01',
+    name: 'Aggiornamento disponibilità magazzino pronta consegna',
+    angleGroup: 'STOCK_PRONTA_CONSEGNA',
+  },
+  {
+    code: 'LOOP_Q_V02',
+    name: 'Allineamento trimestrale scorte deposito centrale per urgenze cantiere',
+    angleGroup: 'STOCK_PRONTA_CONSEGNA',
+  },
+  {
+    code: 'LOOP_Q_V03',
+    name: 'Disponibilità aggiornata codici ad alta rotazione di comparto',
+    angleGroup: 'STOCK_PRONTA_CONSEGNA',
+  },
+  {
+    code: 'LOOP_Q_V04',
+    name: 'Quotazioni comparative rapide su distinta materiali o capitolato',
+    angleGroup: 'QUOTAZIONE_CAPITOLATO',
+  },
+  {
+    code: 'LOOP_Q_V05',
+    name: 'Supporto ufficio preventivi B2B per commesse e computi metrici',
+    angleGroup: 'QUOTAZIONE_CAPITOLATO',
+  },
+  {
+    code: 'LOOP_Q_V06',
+    name: 'Confronto prezzi netti senza impegno su liste articoli ricorrenti',
+    angleGroup: 'QUOTAZIONE_CAPITOLATO',
+  },
+  {
+    code: 'LOOP_Q_V07',
+    name: 'Riassortimento periodico di reparto e scorta operativa trimestrale',
+    angleGroup: 'RIASSORTIMENTO_STAGIONALE',
+  },
+  {
+    code: 'LOOP_Q_V08',
+    name: 'Pianificazione approvvigionamenti di reparto senza vincoli di lotto',
+    angleGroup: 'RIASSORTIMENTO_STAGIONALE',
+  },
+  {
+    code: 'LOOP_Q_V09',
+    name: 'Secondo fornitore B2B indipendente senza minimo d’ordine',
+    angleGroup: 'SECONDO_FORNITORE_LIBERO',
+  },
+  {
+    code: 'LOOP_Q_V10',
+    name: 'Canale B2B alternativo per coprire rotture di stock e integrazioni',
+    angleGroup: 'SECONDO_FORNITORE_LIBERO',
+  },
+  {
+    code: 'LOOP_Q_V11',
+    name: 'Affiancamento forniture dirette a margine protetto per Partite IVA',
+    angleGroup: 'SECONDO_FORNITORE_LIBERO',
+  },
+  {
+    code: 'LOOP_Q_V12',
+    name: 'Revisione trimestrale Catalistino PDF netto riservato',
+    angleGroup: 'CATALISTINO_NETTO_AGGIORNATO',
+  },
+  {
+    code: 'LOOP_Q_V13',
+    name: 'Aggiornamento prospetto prezzi netti B2B per ufficio acquisti',
+    angleGroup: 'CATALISTINO_NETTO_AGGIORNATO',
+  },
+  {
+    code: 'LOOP_Q_V14',
+    name: 'Nuovo estratto Catalistino PDF aggiornato d’archivio con ingresso 1-clic',
+    angleGroup: 'CATALISTINO_NETTO_AGGIORNATO',
+  },
+  {
+    code: 'LOOP_Q_V15',
+    name: 'Focus compatibilità installativa e linee tecniche dedicate',
+    angleGroup: 'COMPATIBILITA_MARCHI_REPARTI',
+  },
+  {
+    code: 'LOOP_Q_V16',
+    name: 'Panoramica aggiornata reparti serie civile, LED, quadristica e utensileria',
+    angleGroup: 'COMPATIBILITA_MARCHI_REPARTI',
+  },
+] as const;
+
+const INTERNAL_QUARTERLY_LOOP_TEMPLATES: readonly InternalQuarterlyLoopTemplate[] = [
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[0],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a distanza di qualche mese dalla nostra precedente comunicazione, Vi scrivo una breve nota di aggiornamento sulle disponibilità attuali a deposito centrale per ${v.companyClean}${v.specClause}.`,
+      `Abbiamo appena allineato il Vostro Catalistino PDF aggiornato con le giacenze in pronta consegna e i prezzi netti attuali sulle linee ${v.prodottiCompatti}:\n${v.smartCatalogUrl}`,
+      `Aprendo il collegamento potete consultare con 1 clic il portale B2B o scaricare il Catalistino PDF aggiornato, all’interno del quale trovate stampate anche le Vostre credenziali riservate da conservare e la condizione di benvenuto ${v.discountFormulaLabel} a cascata sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Resto a disposizione senza alcun impegno anche per verifiche puntuali di disponibilità e Vi auguro buon lavoro.`,
+      `Cordiali saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[1],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo con discrezione i riferimenti inviati nei mesi scorsi a ${v.companyClean} solo per segnalarVi l’aggiornamento trimestrale delle scorte disponibili nel nostro deposito principale per gli operatori su ${v.areaLabel}.`,
+      `Al collegamento riservato qui sotto trovate il Catalistino PDF aggiornato coi prezzi netti attuali e le disponibilità effettive su ${v.prodottiCompatti}:\n${v.smartCatalogUrl}`,
+      `Dalla pagina potete entrare direttamente con 1 clic nel catalogo B2B oppure salvare il PDF aggiornato, che riporta stampate al suo interno anche le credenziali riservate per i futuri accessi e mantiene attivo il ${v.roleDiscountLabel} ${v.discountFormulaLabel} sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Per qualsiasi urgenza di cantiere o magazzino potete rispondermi direttamente a questa email.`,
+      `Un cordiale saluto,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[2],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a qualche mese dal nostro ultimo contatto informativo, aggiorno sinteticamente l’ufficio acquisti di ${v.companyClean} sulle referenze ad alta rotazione oggi disponibili a magazzino per il comparto ${v.sectorNoun}.`,
+      `Ho rigenerato per Voi il Catalistino PDF aggiornato con giacenze e quotazioni nette attuali (${v.prodottiCompatti}), consultabile direttamente da qui:\n${v.smartCatalogUrl}`,
+      `All’interno del PDF aggiornato trovate sempre indicate le Vostre credenziali riservate da tenere in archivio, oltre all’ingresso diretto con 1 clic e allo sconto di benvenuto ${v.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${v.minOrderClean}.`,
+      `Resto volentieri a disposizione ai recapiti in calce e porgo distinti saluti.`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[3],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo sobriamente la corrispondenza dei mesi scorsi con ${v.companyClean} in vista delle nuove commesse del trimestre su ${v.areaLabel}${v.specClause}.`,
+      `Qualora aveste una distinta materiali o un capitolato da confrontare senza impegno sui reparti ${v.prodottiCompatti}, potete rispondermi direttamente a questa mail oppure consultare il Vostro Catalistino PDF aggiornato coi prezzi netti attuali:\n${v.smartCatalogUrl}`,
+      `Dalla pagina riservata potete accedere con 1 clic al portale B2B e scaricare il PDF aggiornato, nel quale sono riportate anche le Vostre credenziali riservate e lo sconto di benvenuto ${v.discountFormulaLabel} a cascata valido sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Per preventivi rapidi fuori listino resto raggiungibile anche al ${v.agentPhoneFinal}.`,
+      `Cordiali saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[4],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `dopo alcuni mesi dalle precedenti comunicazioni, lascio un sintetico aggiornamento operativo alla struttura tecnica e acquisti di ${v.companyClean}.`,
+      `Il nostro ufficio preventivi B2B è a disposizione per quotazioni comparative in giornata su computi e liste materiali di ${v.sectorNoun}; nel frattempo trovate qui il Catalistino PDF aggiornato con disponibilità e prezzi netti attuali:\n${v.smartCatalogUrl}`,
+      `Scaricando il PDF aggiornato avrete sottomano sia il listino netto revisionato sia le Vostre credenziali riservate stampate all’interno, con facoltà di ingresso 1-clic e ${v.roleDiscountLabel} ${v.discountFormulaLabel} sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Buon lavoro e un cordiale saluto,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[5],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `mi permetto un breve contatto trimestrale in coda ai riferimenti trasmessi nei mesi passati a ${v.companyClean}.`,
+      `Se desiderate verificare il posizionamento economico attuale di Izzo Distribuzione S.r.l. rispetto ai fornitori abituali su ${v.prodottiCompatti}, abbiamo predisposto il nuovo Catalistino PDF aggiornato coi prezzi netti riservati:\n${v.smartCatalogUrl}`,
+      `All’interno del documento PDF trovate conservate anche le Vostre credenziali riservate (oltre all’accesso immediato con 1 clic dalla pagina) con la condizione di benvenuto ${v.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${v.minOrderClean}. Se preferite inviare una lista codici in risposta, la quotiamo noi senza alcun vincolo.`,
+      `Distinti saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[6],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a distanza di oltre un trimestre dal precedente invio, aggiorno con piacere ${v.companyClean} per i riassortimenti periodici di reparto e scorta operativa.`,
+      `Abbiamo pubblicato il Vostro Catalistino PDF aggiornato con le disponibilità attuali e i prezzi netti revisionati sulle famiglie ${v.prodottiCompatti}:\n${v.smartCatalogUrl}`,
+      `Aprendo il collegamento potete entrare con 1 clic nel portale o scaricare il Catalistino PDF aggiornato, dove ritrovate stampate anche le Vostre credenziali riservate e lo sconto di benvenuto ${v.discountFormulaLabel} a cascata sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Resto a completa disposizione per ogni approfondimento e Vi auguro buon proseguimento.`,
+      `Cordiali saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[7],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo brevemente il filo delle comunicazioni inviate nei mesi scorsi a ${v.companyClean} per trasmetterVi l’aggiornamento periodico dedicato alla programmazione acquisti di ${v.sectorNoun}.`,
+      `Trovate qui il Catalistino PDF aggiornato con giacenze reali e prezzi netti attuali su ${v.prodottiCompatti}, ordinabili liberamente anche a confezione singola senza vincoli di lotto:\n${v.smartCatalogUrl}`,
+      `Nel PDF aggiornato sono riportate anche le Vostre credenziali riservate da archiviare, insieme all’accesso rapido con 1 clic e al ${v.roleDiscountLabel} ${v.discountFormulaLabel} sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Un cordiale saluto,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[8],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `dopo qualche mese dal nostro precedente messaggio, lascio un breve promemoria operativo per ${v.companyClean} quale secondo fornitore B2B indipendente a supporto dei canali che utilizzate abitualmente su ${v.areaLabel}.`,
+      `Per consentirVi un confronto immediato su disponibilità e prezzi netti attuali (${v.prodottiCompatti}), abbiamo aggiornato il Vostro Catalistino PDF riservato a questo collegamento:\n${v.smartCatalogUrl}`,
+      `Dalla pagina potete consultare con 1 clic l’intero portale oppure scaricare il PDF aggiornato, che contiene stampate al suo interno anche le Vostre credenziali riservate e conferma lo sconto di benvenuto ${v.discountFormulaLabel} a cascata sul primo eventuale ordine, ${v.minOrderClean}.`,
+      `Cordialmente,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[9],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo con sobrietà i riferimenti condivisi nei mesi scorsi con ${v.companyClean}: spesso avere già attivo un fornitore B2B alternativo senza obblighi di minimo si rivela prezioso per coprire rotture di stock o richieste improvvise.`,
+      `A questo collegamento trovate il Catalistino PDF aggiornato con le disponibilità attuali a deposito e i prezzi netti riservati su ${v.prodottiCompatti}:\n${v.smartCatalogUrl}`,
+      `All’interno del PDF aggiornato trovate anche le Vostre credenziali riservate pronte all’uso (oltre all’ingresso con 1 clic dalla pagina) e la condizione di benvenuto ${v.discountFormulaLabel} a cascata sul primo acquisto eventuale, ${v.minOrderClean}.`,
+      `Resto a disposizione ai recapiti qui sotto e porgo cordiali saluti.`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[10],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a distanza di alcuni mesi dalla nostra presentazione a ${v.companyClean}, Vi rinnovo in modo sintetico i nostri riferimenti di distribuzione diretta riservata esclusivamente agli operatori con Partita IVA.`,
+      `Abbiamo appena aggiornato il Catalistino PDF dedicato alla Vostra categoria con i prezzi netti attuali e le scorte disponibili sulle linee ${v.prodottiCompatti}:\n${v.smartCatalogUrl}`,
+      `Dal collegamento potete accedere in 1 clic al listino completo o salvare il Catalistino PDF aggiornato, dove sono indicate anche le Vostre credenziali riservate e resta valido il ${v.roleDiscountLabel} ${v.discountFormulaLabel} sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Buon lavoro e distinti saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[11],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `facendo seguito con discrezione alle comunicazioni dei mesi precedenti, trasmetto a ${v.companyClean} la revisione trimestrale del Catalistino PDF riservato con disponibilità e listini netti allineati ad oggi.`,
+      `Potete visionare il prospetto aggiornato per il comparto ${v.sectorNoun} (${v.prodottiCompatti}) direttamente da questa pagina riservata:\n${v.smartCatalogUrl}`,
+      `Aprendo la pagina avrete l’accesso 1-clic al portale B2B e il download del Catalistino PDF aggiornato, all’interno del quale sono riportate anche le Vostre credenziali riservate e lo sconto di benvenuto ${v.discountFormulaLabel} a cascata sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Un cordiale saluto,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[12],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a qualche mese dal precedente aggiornamento, condivido con l’ufficio acquisti di ${v.companyClean} il prospetto prezzi netti B2B aggiornato per il trimestre in corso.`,
+      `Il nuovo Catalistino PDF aggiornato con giacenze e quotazioni nette riservate su ${v.prodottiCompatti} è disponibile senza alcuna formalità a questo collegamento:\n${v.smartCatalogUrl}`,
+      `Ricordo che all’interno del PDF aggiornato trovate stampate anche le Vostre credenziali riservate per le consultazioni successive, con ingresso diretto 1-clic e condizione di benvenuto ${v.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${v.minOrderClean}.`,
+      `Resto personalmente a disposizione per qualsiasi confronto tecnico o commerciale.`,
+      `Cordiali saluti,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[13],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo brevemente il contatto informativo dei mesi scorsi con ${v.companyClean} unicamente per lasciarVi in archivio l’edizione aggiornata del nostro Catalistino PDF netto riservato.`,
+      `Trovate disponibilità attuali e prezzi già scontati sulle famiglie ${v.prodottiCompatti} a questo indirizzo riservato:\n${v.smartCatalogUrl}`,
+      `Scaricando il PDF aggiornato ritrovate all’interno anche le Vostre credenziali riservate di consultazione (oltre al tasto di ingresso 1-clic al portale B2B) con il ${v.roleDiscountLabel} ${v.discountFormulaLabel} sempre valido sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Distinti saluti e buon lavoro,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[14],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `a distanza di qualche mese dalla nostra precedente nota per ${v.companyClean}, Vi segnalo l’aggiornamento tecnico ed economico sulle nostre linee ${v.prodottiCompatti}${v.compatClause}.`,
+      `Abbiamo rigenerato il Catalistino PDF aggiornato coi prezzi netti attuali e le disponibilità effettive a magazzino, consultabile qui:\n${v.smartCatalogUrl}`,
+      `Dalla pagina potete entrare subito con 1 clic nel portale B2B oppure scaricare il Catalistino PDF aggiornato, che riporta all’interno anche le Vostre credenziali riservate e lo sconto di benvenuto ${v.discountFormulaLabel} a cascata sul primo ordine eventuale, ${v.minOrderClean}.`,
+      `Per schede tecniche o quotazioni dedicate potete rispondermi direttamente a questa mail.`,
+      `Un cordiale saluto,`,
+    ],
+  },
+  {
+    ...QUARTERLY_LOOP_TEMPLATES[15],
+    buildParagraphs: (v) => [
+      v.greeting,
+      `riprendo con garbo le comunicazioni dei mesi scorsi verso ${v.companyClean} per aggiornarVi sull’assortimento attuale dedicato agli operatori su ${v.areaLabel}: ${v.prodottiProsa}.`,
+      `Potete verificare prezzi netti aggiornati e disponibilità attuali aprendo il Vostro Catalistino PDF aggiornato da questo collegamento riservato:\n${v.smartCatalogUrl}`,
+      `All’interno del PDF trovate stampate anche le Vostre credenziali riservate da conservare, l’ingresso immediato con 1 clic al portale e la condizione di benvenuto ${v.discountFormulaLabel} a cascata sul primo eventuale acquisto, ${v.minOrderClean}.`,
+      `Resto a disposizione ai recapiti in calce e Vi auguro buon lavoro.`,
+      `Cordiali saluti,`,
+    ],
+  },
+];
+
+function sanitizeLoopInlineFragment(raw?: string | null): string {
+  return String(raw || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|[\s(→])\*([^*\n]+)\*(?=[\s.,;:)!?]|$)/g, '$1$2')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/https?:\/\/[^\s<)"']+/gi, '')
+    .replace(/(?<![@.-])\bwww\.[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<)"']*)?/gi, '')
+    .replace(/\bpassword\b/gi, 'chiave riservata')
+    .replace(/\busername\b/gi, 'profilo riservato')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:])/g, '$1')
+    .trim();
+}
+
+/**
+ * LOOP TRIMESTRALE (Giri N >= 2, dopo almeno 90 giorni di silenzio e vergini esaurite).
+ * Regole tassative:
+ * - 16 varianti esecutive distinte (`LOOP_Q_V01` .. `LOOP_Q_V16`) su 6 tagli commerciali
+ * - Anti-ripetizione matematica tramite `usedLoopTemplateCodes` (esclude tutti i già usati; dopo 16+ giri riparte escludendo l'ultimo usato)
+ * - Oggetto: `Re: <originalSubject pulito da doppi Re:>`
+ * - 1 SOLO link pulito (`smartCatalogUrl`) in tutta l'email
+ * - ZERO parola "Password" o "Username", ZERO tabelle/bottoni pesanti
+ * - Firma 100% allineata alla casella Aruba mittente (`senderInboxEmail`) + dati legali completi + nota STOP
+ */
+export function generateQuarterlyLoopEmail(
+  input: QuarterlyLoopEmailInput
+): QuarterlyLoopEmailOutput {
+  const ctx = resolveFollowupCommonContext(input);
+  const resolvedCycle = Math.max(
+    2,
+    Math.floor(Number(input.cycleNumber ?? input.outreachCycle ?? 2) || 2)
+  );
+
+  const rawBaseSeed =
+    typeof input.deterministicSeed === 'number'
+      ? Math.abs(Math.floor(input.deterministicSeed)) || 1
+      : input.prospectId
+        ? Math.abs(Math.floor(input.prospectId)) || 1
+        : null;
+
+  const normalizedUsed: string[] = Array.isArray(input.usedLoopTemplateCodes)
+    ? input.usedLoopTemplateCodes
+        .map((c) => String(c || '').trim().toUpperCase())
+        .filter((c) => /^LOOP_Q_V\d{2}$/.test(c))
+    : [];
+  const usedSet = new Set<string>(normalizedUsed);
+
+  const cycleSeedCursor =
+    rawBaseSeed !== null
+      ? {
+          val:
+            (((rawBaseSeed * 2654435761) ^
+              (resolvedCycle * 40503) ^
+              (normalizedUsed.length * 12289)) >>>
+              0) || 1,
+        }
+      : null;
+
+  const catCfg = resolveClusterConfig(input.categoryCluster, input.commercialCategory);
+  const isRiv =
+    String(input.commercialCategory || '').toUpperCase() === 'RIV' ||
+    catCfg.commercialCategory === 'RIV';
+  const baseDiscountNum =
+    typeof input.baseDiscount === 'number' && input.baseDiscount > 0
+      ? input.baseDiscount
+      : isRiv
+        ? 50
+        : 40;
+  const extraPctNum =
+    typeof input.extraFirstPurchasePct === 'number' && input.extraFirstPurchasePct >= 0
+      ? input.extraFirstPurchasePct
+      : 10;
+
+  const intel = composeProspectIntelligence(
+    {
+      prospectId: Number(input.prospectId || 0),
+      companyName: input.companyName,
+      city: input.city ?? null,
+      province: input.province ?? null,
+      region: input.region ?? null,
+      website: input.website ?? null,
+      atecoCode: input.atecoCode ?? null,
+      categoryCluster: input.categoryCluster ?? catCfg.cluster,
+      brandsDetected: input.brandsDetected ?? null,
+      decisionMaker: input.decisionMaker ?? null,
+      richMetadata: input.richMetadata ?? null,
+      baseDiscount: baseDiscountNum,
+      extraFirstPurchasePct: extraPctNum,
+      offerTitle: input.offerTitle || 'Aggiornamento Catalistino B2B riservato',
+      minOrderAmountText: input.minOrderAmountText || "senza minimo d'ordine",
+      freeShippingText: input.freeShippingText || 'spedizione tracciata in tutta Italia',
+      paymentTermsText: input.paymentTermsText || 'Condizioni B2B riservate',
+      smartCatalogUrl: ctx.smartCatalogUrl,
+      agentName: ctx.agentDisplayName,
+      agentCode: '003',
+      agentEmail: ctx.senderEmailFinal,
+      agentPhone: ctx.agentPhoneFinal,
+      senderInboxEmail: input.senderInboxEmail ?? ctx.senderEmailFinal,
+      sequenceStep: 20,
+    },
+    (len) => pickIndex(len, cycleSeedCursor)
+  );
+
+  // Selezione template con anti-ripetizione matematica
+  let chosenTpl: InternalQuarterlyLoopTemplate | undefined;
+  const forcedCode = String(input.forceTemplateCode || '').trim().toUpperCase();
+  if (forcedCode) {
+    chosenTpl = INTERNAL_QUARTERLY_LOOP_TEMPLATES.find((t) => t.code === forcedCode);
+  }
+
+  if (!chosenTpl) {
+    let candidates = INTERNAL_QUARTERLY_LOOP_TEMPLATES.filter(
+      (t) => !usedSet.has(t.code)
+    );
+    if (candidates.length === 0) {
+      const lastUsedCode = normalizedUsed[normalizedUsed.length - 1] || '';
+      candidates = INTERNAL_QUARTERLY_LOOP_TEMPLATES.filter(
+        (t) => t.code !== lastUsedCode
+      );
+      if (candidates.length === 0) {
+        candidates = [...INTERNAL_QUARTERLY_LOOP_TEMPLATES];
+      }
+    }
+    const chosenIdx = pickIndex(candidates.length, cycleSeedCursor);
+    chosenTpl = candidates[chosenIdx] || INTERNAL_QUARTERLY_LOOP_TEMPLATES[0];
+  }
+
+  const companySafe = sanitizeLoopInlineFragment(intel.companyClean) || 'Vostra Azienda';
+  const dmSafe = intel.decisionMakerClean
+    ? sanitizeLoopInlineFragment(intel.decisionMakerClean)
+    : null;
+  const greeting = dmSafe
+    ? `Gentile ${dmSafe},`
+    : `Gentili Referenti di ${companySafe},`;
+
+  const specClean = intel.specializationsLabel
+    ? sanitizeLoopInlineFragment(intel.specializationsLabel)
+    : '';
+  const specClause = specClean ? ` nei comparti ${specClean}` : '';
+
+  const compatClause = intel.civilBrandMatched
+    ? ` (pienamente compatibili anche con gli standard installativi ${sanitizeLoopInlineFragment(intel.civilBrandMatched)} già in uso nelle Vostre commesse)`
+    : ' (compatibili coi principali standard installativi del mercato italiano)';
+
+  const renderVars: QuarterlyLoopRenderVars = {
+    greeting,
+    companyClean: companySafe,
+    areaLabel: sanitizeLoopInlineFragment(intel.areaLabel) || 'il territorio nazionale',
+    sectorNoun: sanitizeLoopInlineFragment(intel.sectorNoun) || 'fornitura tecnica B2B',
+    specClause,
+    compatClause,
+    prodottiCompatti: sanitizeLoopInlineFragment(intel.prodottiCompatti),
+    prodottiProsa: sanitizeLoopInlineFragment(intel.prodottiProsa),
+    discountFormulaLabel: ctx.discountFormulaLabel,
+    minOrderClean: sanitizeLoopInlineFragment(ctx.minOrderClean) || "senza minimo d'ordine",
+    roleDiscountLabel: intel.isReseller
+      ? 'listino Rivendita con sconto di benvenuto'
+      : 'sconto di benvenuto',
+    smartCatalogUrl: ctx.smartCatalogUrl,
+    agentPhoneFinal: ctx.agentPhoneFinal,
+    cycleNumber: resolvedCycle,
+  };
+
+  const rawParagraphs = chosenTpl.buildParagraphs(renderVars);
+
+  // Garantisce che nessun paragrafo (eccetto la riga con smartCatalogUrl) contenga link accidentali o parole vietate
+  const urlSentinel = '__SINGLE_ALLOWED_SMART_CATALOG_URL__';
+  const sanitizedCore = polishBodyTypography(
+    rawParagraphs
+      .join('\n\n')
+      .split(ctx.smartCatalogUrl)
+      .join(urlSentinel)
+      .replace(/https?:\/\/[^\s<)"']+/gi, '')
+      .replace(/(?<![@.-])\bwww\.[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<)"']*)?/gi, '')
+      .replace(/\bpassword\b/gi, 'chiave riservata')
+      .replace(/\busername\b/gi, 'profilo riservato')
+      .split(urlSentinel)
+      .join(ctx.smartCatalogUrl)
+  );
+
+  const signaturePlain = buildCoherentSignatureBlock({
+    agentDisplayName: ctx.agentDisplayName,
+    firmaReparto: 'Referente commerciale B2B',
+    agentPhoneFinal: ctx.agentPhoneFinal,
+    senderEmailFinal: ctx.senderEmailFinal,
+    optOutNote: DEFAULT_OPTOUT_B2B_NOTE,
+  });
+
+  const bodyText = `${sanitizedCore}\n\n${signaturePlain}`
+    .replace(/\bpassword\b/gi, 'chiave riservata')
+    .replace(/\busername\b/gi, 'profilo riservato');
+
+  const bodyHtml = renderMinimalOutlookHtmlFromPlain(bodyText, {
+    singleAllowedUrl: ctx.smartCatalogUrl,
+  });
+
+  const updatedUsedLoopTemplateCodes = normalizedUsed.includes(chosenTpl.code)
+    ? [...normalizedUsed, chosenTpl.code]
+    : [...normalizedUsed, chosenTpl.code];
+
+  return {
+    subject: ctx.replySubject,
+    bodyText,
+    bodyHtml,
+    sequenceStep: 20,
+    cycleNumber: resolvedCycle,
+    templateCode: chosenTpl.code,
+    templateName: chosenTpl.name,
+    angleGroup: chosenTpl.angleGroup,
+    discountFormulaLabel: ctx.discountFormulaLabel,
+    updatedUsedLoopTemplateCodes,
   };
 }
 

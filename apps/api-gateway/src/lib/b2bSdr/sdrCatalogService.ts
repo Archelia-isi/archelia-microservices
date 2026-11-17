@@ -202,6 +202,46 @@ export async function sendBrevoAgentAlert(params: {
   }
 }
 
+export function buildProspectCatalogPdfCacheKey(params: {
+  prospectId: number;
+  outreachCycle?: number | null;
+  baseDiscount: number;
+  extraDiscount: number;
+  maxProducts: number;
+  agentCode: string;
+  credsFingerprint: string;
+}): string {
+  const cycle = Math.max(1, Number(params.outreachCycle || 1));
+  return `sdr:catalog:pdf:v4:${params.prospectId}:c${cycle}:${params.baseDiscount}:${params.extraDiscount}:${params.maxProducts}:${params.agentCode}:${params.credsFingerprint}`;
+}
+
+export async function invalidateProspectCatalogPdfCache(prospectId: number): Promise<number> {
+  const matchPattern = `sdr:catalog:pdf:*:${prospectId}:*`;
+  let cursor = '0';
+  let deleted = 0;
+  try {
+    do {
+      const scanRes = await Promise.race<[string, string[]] | null>([
+        redisConnection.scan(cursor, 'MATCH', matchPattern, 'COUNT', 100),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
+      ]);
+      if (!scanRes) break;
+      const [nextCursor, keys] = scanRes;
+      cursor = nextCursor;
+      if (Array.isArray(keys) && keys.length > 0) {
+        const delCount = await Promise.race<number>([
+          redisConnection.del(...keys),
+          new Promise<number>((resolve) => setTimeout(() => resolve(0), 1000)),
+        ]);
+        deleted += delCount;
+      }
+    } while (cursor !== '0');
+  } catch {
+    // Non-fatal Redis scan failure
+  }
+  return deleted;
+}
+
 export async function generateProspectReservedCatalogPdf(options: {
   prospectId: number;
   forceRefresh?: boolean;
@@ -213,6 +253,8 @@ export async function generateProspectReservedCatalogPdf(options: {
   baseDiscount: number;
   extraDiscount: number;
   effectiveDiscountPct: number;
+  outreachCycle: number;
+  cacheKey: string;
   agent: SdrAgentInfo;
 }> {
   const [prospect, config] = await Promise.all([
@@ -271,10 +313,22 @@ export async function generateProspectReservedCatalogPdf(options: {
     .slice(0, 32);
   const pdfFileName = `Catalistino_Illustrativo_${safeCompanySlug || prospect.id}.pdf`;
 
-  const cacheKey = `sdr:catalog:pdf:v3:${prospect.id}:${baseDiscount}:${extraDiscount}:${maxProducts}:${agent.code}:${credsFingerprint}`;
+  const outreachCycle = Math.max(1, Number((prospect as any).outreachCycle || 1));
+  const cacheKey = buildProspectCatalogPdfCacheKey({
+    prospectId: prospect.id,
+    outreachCycle,
+    baseDiscount,
+    extraDiscount,
+    maxProducts,
+    agentCode: agent.code,
+    credsFingerprint,
+  });
   if (!options.forceRefresh) {
     try {
-      const cachedRaw = await redisConnection.get(cacheKey);
+      const cachedRaw = await Promise.race<string | null>([
+        redisConnection.get(cacheKey),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
+      ]);
       if (cachedRaw) {
         const parsed = JSON.parse(cachedRaw) as {
           pdfBase64: string;
@@ -289,6 +343,8 @@ export async function generateProspectReservedCatalogPdf(options: {
             baseDiscount,
             extraDiscount,
             effectiveDiscountPct,
+            outreachCycle,
+            cacheKey,
             agent,
           };
         }
@@ -374,7 +430,7 @@ export async function generateProspectReservedCatalogPdf(options: {
       catalogSource: 'zucchetti' as const,
       imageUrl: p.imageUrl || undefined,
       productId: p.id,
-      productUrl: `${b2bBase}/products/${encodeURIComponent(p.id)}`,
+      productUrl: `${b2bBase}/product/${encodeURIComponent(p.id)}`,
     };
   });
 
@@ -416,12 +472,15 @@ export async function generateProspectReservedCatalogPdf(options: {
   }
 
   try {
-    await redisConnection.set(
-      cacheKey,
-      JSON.stringify({ pdfBase64: pdfRes.pdfBase64, itemsCount: itemsForPdf.length }),
-      'EX',
-      7200
-    );
+    await Promise.race([
+      redisConnection.set(
+        cacheKey,
+        JSON.stringify({ pdfBase64: pdfRes.pdfBase64, itemsCount: itemsForPdf.length }),
+        'EX',
+        7200
+      ),
+      new Promise((resolve) => setTimeout(resolve, 1000)),
+    ]);
   } catch {
     // Non-fatal cache write failure
   }
@@ -434,6 +493,8 @@ export async function generateProspectReservedCatalogPdf(options: {
     baseDiscount,
     extraDiscount,
     effectiveDiscountPct,
+    outreachCycle,
+    cacheKey,
     agent,
   };
 }

@@ -54,7 +54,7 @@ function resolveDraftStepMeta(
   step2Days = 5,
   step3Days = 5
 ): {
-  code: '1' | '1B' | '2' | '3';
+  code: '1' | '1B' | '2' | '3' | '20';
   label: string;
   variant: 'neutral' | 'success' | 'primary' | 'warning';
   detail: string;
@@ -62,6 +62,15 @@ function resolveDraftStepMeta(
   const rawStep = Number(d?.sequenceStep || 1);
   const tpl = String(d?.templateCode || '').toUpperCase();
   const subj = String(d?.subject || '').trim();
+
+  if (rawStep === 20 || tpl.startsWith('LOOP_Q_')) {
+    return {
+      code: '20',
+      label: '🔄 Ricontatto Trimestrale + Link PDF',
+      variant: 'primary',
+      detail: '1 sola mail per giro (min. 90gg) • Stessa casella Aruba • 1 solo link PDF aggiornato',
+    };
+  }
 
   if (
     rawStep === 10 ||
@@ -124,7 +133,7 @@ export default function SdrDraftsConfigTab({
 }: SdrDraftsConfigTabProps) {
   const [draftsSection, setDraftsSection] = useState<'queue' | CombinatorialSubMode>('queue');
   const [draftStatusFilter, setDraftStatusFilter] = useState<string>('ALL');
-  const [draftStepFilter, setDraftStepFilter] = useState<'ALL' | '1' | '1B' | '2' | '3'>('ALL');
+  const [draftStepFilter, setDraftStepFilter] = useState<'ALL' | '1' | '1B' | '2' | '3' | '20'>('ALL');
   const [draftSearch, setDraftSearch] = useState<string>('');
   const [previewDraft, setPreviewDraft] = useState<any | null>(null);
   const [liveCredits, setLiveCredits] = useState<{
@@ -138,7 +147,12 @@ export default function SdrDraftsConfigTab({
 
   if (mode === 'drafts') {
     const readyDrafts = drafts.filter((d) => d.status === 'Bozza_Pronta');
-    const stepCounts = { '1': 0, '1B': 0, '2': 0, '3': 0 };
+    const rerollableStep1Drafts = drafts.filter(
+      (d) =>
+        Number(d.sequenceStep || 1) === 1 &&
+        (d.status === 'Bozza_Pronta' || d.status === 'Template_Da_Attivare')
+    );
+    const stepCounts = { '1': 0, '1B': 0, '2': 0, '3': 0, '20': 0 };
     drafts.forEach((d) => {
       const m = resolveDraftStepMeta(d, step2Days, step3Days);
       stepCounts[m.code] += 1;
@@ -273,10 +287,10 @@ export default function SdrDraftsConfigTab({
                     size="sm"
                     icon={<Shuffle size={14} />}
                     onClick={onRerollReadyDrafts}
-                    disabled={!canWrite || loading || drafts.length === 0}
-                    title="Rigenera impostazioni strutturali e sinonimi tutti diversi per le bozze in coda"
+                    disabled={!canWrite || loading || rerollableStep1Drafts.length === 0}
+                    title="Rigenera impostazioni strutturali e sinonimi tutti diversi per le bozze Step 1 non ancora inviate"
                   >
-                    Rigenera Tutte Uniche ({readyDrafts.length > 0 ? readyDrafts.length : drafts.length})
+                    Rigenera Tutte Uniche ({rerollableStep1Drafts.length})
                   </Button>
                   <Button
                     variant="primary"
@@ -314,6 +328,7 @@ export default function SdrDraftsConfigTab({
                     { id: '1B', label: `Step 1B • Risposta Sì (${stepCounts['1B']})` },
                     { id: '2', label: `Step 2 • +${step2Days}gg Link (${stepCounts['2']})` },
                     { id: '3', label: `Step 3 • +${step3Days}gg Caldi (${stepCounts['3']})` },
+                    { id: '20', label: `🔄 Ricontatto Trimestrale (${stepCounts['20']})` },
                   ] as const
                 ).map((sBtn) => (
                   <Button
@@ -357,10 +372,21 @@ export default function SdrDraftsConfigTab({
                   ) : (
                     filteredDrafts.map((d: any) => {
                       const stepMeta = resolveDraftStepMeta(d, step2Days, step3Days);
+                      const draftCycle = Math.max(
+                        1,
+                        Number(d?.cycleNumber || d?.outreachCycle || d?.prospect?.outreachCycle || 1)
+                      );
                       return (
                       <tr key={d.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                         <td style={{ padding: '10px 12px' }}>
-                          <div style={{ fontWeight: 800 }}>{d.prospect?.companyName || `Lead #${d.prospectId}`}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800 }}>{d.prospect?.companyName || `Lead #${d.prospectId}`}</span>
+                            {draftCycle > 1 && (
+                              <Badge variant="warning" size="sm">
+                                🔄 Giro {draftCycle}
+                              </Badge>
+                            )}
+                          </div>
                           <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
                             {d.prospect?.ordinaryEmail || '—'}
                           </div>
@@ -371,6 +397,11 @@ export default function SdrDraftsConfigTab({
                             <Badge variant={stepMeta.variant} size="sm">
                               {stepMeta.label}
                             </Badge>
+                            {draftCycle > 1 && (
+                              <Badge variant="warning" size="sm">
+                                🔄 Giro {draftCycle}
+                              </Badge>
+                            )}
                             {d.templateCode && (
                               <Badge variant="neutral" size="sm">
                                 Madre {d.templateCode}
@@ -410,14 +441,18 @@ export default function SdrDraftsConfigTab({
                             </Button>
                             {d.prospectId && (
                               <>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  icon={<Shuffle size={13} />}
-                                  disabled={!canWrite || loading}
-                                  title="Rigenera nuova combinazione (100 Email × 108 Parole)"
-                                  onClick={() => onRerollSingleDraft(d.prospectId)}
-                                />
+                                {Number(d.sequenceStep || 1) === 1 &&
+                                  (d.status === 'Bozza_Pronta' ||
+                                    d.status === 'Template_Da_Attivare') && (
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      icon={<Shuffle size={13} />}
+                                      disabled={!canWrite || loading}
+                                      title="Rigenera nuova combinazione Step 1 (100 Email × 108 Parole)"
+                                      onClick={() => onRerollSingleDraft(d.prospectId)}
+                                    />
+                                  )}
                                 <Button
                                   variant="secondary"
                                   size="sm"
@@ -475,16 +510,43 @@ export default function SdrDraftsConfigTab({
         >
           {previewDraft && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span>
                   Destinatario: <strong>{previewDraft.prospect?.companyName}</strong> (
                   {previewDraft.prospect?.ordinaryEmail})
                 </span>
-                {previewDraft.templateCode && (
-                  <Badge variant="primary" size="sm">
-                    Email Madre {previewDraft.templateCode}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Badge variant={resolveDraftStepMeta(previewDraft, step2Days, step3Days).variant} size="sm">
+                    {resolveDraftStepMeta(previewDraft, step2Days, step3Days).label}
                   </Badge>
-                )}
+                  {Math.max(
+                    1,
+                    Number(
+                      previewDraft.cycleNumber ||
+                        previewDraft.outreachCycle ||
+                        previewDraft.prospect?.outreachCycle ||
+                        1
+                    )
+                  ) > 1 && (
+                    <Badge variant="warning" size="sm">
+                      🔄 Giro{' '}
+                      {Math.max(
+                        1,
+                        Number(
+                          previewDraft.cycleNumber ||
+                            previewDraft.outreachCycle ||
+                            previewDraft.prospect?.outreachCycle ||
+                            1
+                        )
+                      )}
+                    </Badge>
+                  )}
+                  {previewDraft.templateCode && (
+                    <Badge variant="primary" size="sm">
+                      Email Madre {previewDraft.templateCode}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div
                 style={{
@@ -802,6 +864,165 @@ export default function SdrDraftsConfigTab({
           <Badge variant="success" size="sm">Step 1B • Risposta Sì (15–25 min)</Badge>
           <Badge variant="primary" size="sm">Step 2 • +{config.step2DelayDays ?? 5}gg Link</Badge>
           <Badge variant="warning" size="sm">Step 3 • +{config.step3WarmDelayDays ?? 5}gg Caldi</Badge>
+          <Badge variant="primary" size="sm">🔄 Step 20 • Ricontatto Trimestrale + Link PDF</Badge>
+        </div>
+      </GlassPanel>
+
+      {/* ALIMENTATORE AUTOMATICO GIORNALIERO & LOOP RICICLO TRIMESTRALE (MIN. 90 GIORNI) */}
+      <GlassPanel padding="lg" radius="lg">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '15px' }}>
+              🔄 Alimentatore Automatico Giornaliero &amp; Loop Riciclo Trimestrale (Min. 90 Giorni)
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              Priorità 1: Risposte e Follow-up 5gg → Priorità 2: Tutte le aziende vergini mai contattate → Priorità 3: Solo a vergini esaurite, ricontatto dopo min. 90 giorni
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Badge variant={config.autoFeederEnabled ? 'success' : 'neutral'} size="sm">
+              {config.autoFeederEnabled ? 'ALIMENTATORE ATTIVO (LUN–VEN)' : 'ALIMENTATORE SPENTO (MANUALE)'}
+            </Badge>
+            <Badge variant={config.loopEnabled !== false ? 'primary' : 'warning'} size="sm">
+              {config.loopEnabled !== false
+                ? `LOOP ATTIVO (MIN. ${Math.max(90, Number(config.loopCooldownDays ?? 90) || 90)}GG)`
+                : 'LOOP DISATTIVATO'}
+            </Badge>
+          </div>
+        </div>
+
+        {/* MINI-RIEPILOGO LIVE CONTATORI LOOP */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))',
+            gap: '10px',
+            marginBottom: '14px',
+          }}
+        >
+          {[
+            {
+              label: 'Vergini in coda',
+              value: Number(statsKpis?.virginReadyCount ?? 0),
+              sub: 'Priorità 2 • Smaltite prima del Loop',
+              color: '#16a34a',
+            },
+            {
+              label: 'In attesa 90gg',
+              value: Number(statsKpis?.loopWaitingCooldownCount ?? 0),
+              sub: `Maturazione pausa min. ${Math.max(90, Number(config.loopCooldownDays ?? 90) || 90)} giorni`,
+              color: '#d97706',
+            },
+            {
+              label: 'Pronte nuovo giro',
+              value: Number(statsKpis?.loopReadyEligibleCount ?? 0),
+              sub: 'Silenziose ≥ 90gg (attivate a vergini = 0)',
+              color: '#2563eb',
+            },
+            {
+              label: 'Già al 2°+ giro',
+              value: Number(statsKpis?.multiCycleProspectsCount ?? 0),
+              sub: 'Aziende ricontattate in multi-giro',
+              color: '#7c3aed',
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+              }}
+            >
+              <div style={{ fontSize: '11.5px', fontWeight: 800, color: stat.color }}>
+                {stat.label}
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 900, margin: '2px 0' }}>
+                {stat.value.toLocaleString('it-IT')}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{stat.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '12px',
+            alignItems: 'end',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '6px' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(config.autoFeederEnabled)}
+                onChange={(e) => setConfig({ ...config, autoFeederEnabled: e.target.checked })}
+              />
+              Attiva Alimentatore Automatico Giornaliero (Lun–Ven)
+            </label>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingLeft: '22px' }}>
+              Priorità 1: Risposte e Follow-up 5gg → Priorità 2: Tutte le aziende vergini mai contattate → Priorità 3: Solo a vergini esaurite, ricontatto dopo min. 90 giorni
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '6px' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={config.loopEnabled !== false}
+                onChange={(e) => setConfig({ ...config, loopEnabled: e.target.checked })}
+              />
+              Attiva Riciclo Automatico Multi-Giro (dopo esaurimento vergini)
+            </label>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingLeft: '22px' }}>
+              Esclude sempre chi ha ordinato, risposto, fatto STOP/Bounce o è seguito da Daniele.
+            </span>
+          </div>
+
+          <TextInput
+            label="Attesa Minima Nuovo Giro (giorni, min. 90)"
+            type="number"
+            min={90}
+            max={730}
+            value={String(Math.max(90, Number(config.loopCooldownDays ?? 90) || 90))}
+            onChange={(e) => {
+              const raw = Number(e.target.value);
+              setConfig({
+                ...config,
+                loopCooldownDays: Number.isFinite(raw) ? Math.max(90, Math.round(raw)) : 90,
+              });
+            }}
+          />
         </div>
       </GlassPanel>
 

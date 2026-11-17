@@ -59,6 +59,12 @@ model SdrProspect {
   agentContactedAt    DateTime?         @map("agent_contacted_at")
   agentCallNote       String?           @map("agent_call_note")
   autoFollowupPaused  Boolean           @default(false) @map("auto_followup_paused")
+
+  // Cantiere 7: Alimentatore Automatico & Loop Continuo 90+ Giorni (Multi-Giro)
+  outreachCycle         Int               @default(1) @map("outreach_cycle")
+  cycleCompletedAt      DateTime?         @map("cycle_completed_at")
+  lastOutreachSentAt    DateTime?         @map("last_outreach_sent_at")
+  usedLoopTemplateCodes String[]          @default([]) @map("used_loop_template_codes")
   
   sentinelAttempts    Int               @default(0) @map("sentinel_attempts")
   lastSentinelCheckAt DateTime?         @map("last_sentinel_check_at")
@@ -75,6 +81,8 @@ model SdrProspect {
   @@index([pipelineStatus])
   @@index([emailVerifyStatus])
   @@index([section, lastSentinelCheckAt])
+  @@index([section, autoFollowupPaused, lastOutreachSentAt])
+  @@index([outreachCycle])
   @@map("sdr_prospects")
 }
 
@@ -82,6 +90,7 @@ model SdrOutreachDraft {
   id                  Int         @id @default(autoincrement())
   prospectId          Int         @map("prospect_id")
   prospect            SdrProspect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  cycleNumber         Int         @default(1) @map("cycle_number")
   sequenceStep        Int         @default(1) @map("sequence_step")
   subject             String
   bodyText            String      @map("body_text")
@@ -109,6 +118,7 @@ model SdrOutreachDraft {
   updatedAt           DateTime    @default(now()) @updatedAt @map("updated_at")
 
   @@index([prospectId, sequenceStep])
+  @@index([prospectId, cycleNumber, sequenceStep])
   @@index([status, scheduledFor])
   @@index([messageIdHeader])
   @@index([catalogOpenCount])
@@ -165,6 +175,11 @@ model SdrOutreachConfig {
   millionVerifierApiKey     String?  @map("million_verifier_api_key")
   step2DelayDays            Int      @default(5) @map("step2_delay_days")
   step3WarmDelayDays        Int      @default(5) @map("step3_warm_delay_days")
+
+  // 6. Cantiere 7: Alimentatore Automatico Giornaliero & Loop Continuo 90+ Giorni
+  autoFeederEnabled         Boolean  @default(false) @map("auto_feeder_enabled")
+  loopEnabled               Boolean  @default(true) @map("loop_enabled")
+  loopCooldownDays          Int      @default(90) @map("loop_cooldown_days")
 
   updatedAt                 DateTime @updatedAt @map("updated_at")
   @@map("sdr_outreach_configs")

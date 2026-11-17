@@ -706,7 +706,7 @@ export function classifyInboundEmail(params: {
   // Se contiene punti interrogativi, o è lungo, o cita richieste specifiche su codici/marchi/pagamenti/chiamate -> Domanda Specifica
   const hasQuestionMark = fresh.includes('?');
   const hasSpecificMeritRequest =
-    /\b(preventiv[oi]|quotazion[ei]|offerta per|avete disponibil|disponibilit[aà]\s+di|quanto costa|prezzo di|riba|ri\.ba|bonifico\s*\d+|30\s*gg|60\s*gg|90\s*gg|fido|dilazion|chiamatemi|potete chiamar|ricontattatemi|passare in sede|appuntamento|distinta|capitolato|codic[ei]|articolo|bticino|vimar|gewiss|schneider|abb|urmet|comelit|finder|meanwell)\b/i.test(
+    /\b(preventiv[oi]|quotazion[ei]|offerta per|avete disponibil|disponibilit[aà]\s+di|quanto costa|prezzo di|riba|ri\.ba|bonifico\s*\d+|30\s*gg|60\s*gg|90\s*gg|fido|dilazion|chiamatemi|potete chiamar|ricontattatemi|passare in sede|appuntamento|distinta|capitolato|in\s+allegato|allegat[oaie]|visura|codic[ei]|articolo|bticino|vimar|gewiss|schneider|abb|urmet|comelit|finder|meanwell)\b/i.test(
       coreText
     );
 

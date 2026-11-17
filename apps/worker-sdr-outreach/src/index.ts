@@ -23,6 +23,7 @@ import {
   generateConsentReplyEmail,
   generateStep2FollowupEmail,
   generateStep3WarmFollowupEmail,
+  generateQuarterlyLoopEmail,
   applySenderEmailToDraftSignature,
   seedCombinatorialLibraryInDb,
 } from '@archelia/sdr-database';
@@ -43,33 +44,46 @@ const STEP_1_INITIAL = 1;
 const STEP_2_FOLLOWUP = 2;
 const STEP_3_WARM_FOLLOWUP = 3;
 const STEP_1B_CONSENT_REPLY = 10;
+const STEP_20_QUARTERLY_LOOP = 20;
 const FOLLOWUP_SCHEDULER_ACTION = 'FOLLOWUP_SCHEDULER_TICK';
+const DAILY_AUTO_FEEDER_ACTION = 'DAILY_AUTO_FEEDER_TICK';
 
 const redisClient = createRedisConnection();
+redisClient.on('error', (err) => {
+  log.warn(`Redis client warning (${MODULE_NAME}): ${err.message}`, { module: MODULE_NAME });
+});
 
 function pushSdrConsoleLog(
   agent: string,
   message: string,
   level: 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR' = 'INFO'
 ) {
+  const romeTime = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Rome',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date());
+
   const entry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    timestamp: new Date().toISOString(),
+    timestamp: romeTime,
     agent,
     message,
     level,
   };
   redisClient
-    .lpush(SDR_CONSOLE_REDIS_KEY, JSON.stringify(entry))
-    .then(() => redisClient.ltrim(SDR_CONSOLE_REDIS_KEY, 0, 299))
+    .rpush(SDR_CONSOLE_REDIS_KEY, JSON.stringify(entry))
+    .then(() => redisClient.ltrim(SDR_CONSOLE_REDIS_KEY, -350, -1))
     .catch(() => {});
 
   if (level === 'ERROR') {
-    log.error(`[${agent}] ${message}`, { module: MODULE_NAME });
+    log.error(`[${agent}] ${message}`, { module: MODULE_NAME, storeType: 'B2B' });
   } else if (level === 'WARN') {
-    log.warn(`[${agent}] ${message}`, { module: MODULE_NAME });
+    log.warn(`[${agent}] ${message}`, { module: MODULE_NAME, storeType: 'B2B' });
   } else {
-    log.info(`[${agent}] ${message}`, { module: MODULE_NAME });
+    log.info(`[${agent}] ${message}`, { module: MODULE_NAME, storeType: 'B2B' });
   }
 }
 
@@ -508,6 +522,7 @@ async function verifyProspectEmailBeforeSend(params: {
   };
   draftId: number;
   recipientEmail: string;
+  allowLiveApiCall?: boolean;
   config: {
     enableMillionVerifier?: boolean | null;
     millionVerifierApiKey?: string | null;
@@ -519,6 +534,7 @@ async function verifyProspectEmailBeforeSend(params: {
   reason?: string;
 }> {
   const { prospect, draftId, recipientEmail, config } = params;
+  const allowLiveApiCall = params.allowLiveApiCall !== false;
   const currentStatus = (prospect.emailVerifyStatus || '').trim().toUpperCase();
   const hasPhone = prospectHasPhoneOrWhatsapp(prospect);
   const domain = recipientEmail.split('@')[1] || '';
@@ -571,31 +587,92 @@ async function verifyProspectEmailBeforeSend(params: {
     );
   };
 
-  if (currentStatus === 'VALID') {
-    return { allowed: true, isCatchAll: false, mxHost: 'email-verify-cached-valid' };
+  const evalCachedStatus = async (statusStr: string) => {
+    if (statusStr === 'VALID') {
+      return { allowed: true, isCatchAll: false, mxHost: 'email-verify-cached-valid' };
+    }
+    if (statusStr === 'INVALID') {
+      await blockInvalidProspect('Email già marcata INVALID', 'cached-invalid');
+      return { allowed: false, isCatchAll: false, reason: 'Email prospect già marcata INVALID' };
+    }
+    if (statusStr === 'CATCH_ALL') {
+      return { allowed: true, isCatchAll: true, mxHost: 'email-verify-cached-catchall' };
+    }
+    return null;
+  };
+
+  const immediateCached = await evalCachedStatus(currentStatus);
+  if (immediateCached) return immediateCached;
+
+  // Protezione crediti email-validation.org da race condition concorrenti o email condivise su più prospect
+  const evLockKey = `sdr:ev:lock:${recipientEmail}`;
+  let evLockAcquired = false;
+  try {
+    evLockAcquired =
+      (await redisClient.set(evLockKey, '1', 'EX', 30, 'NX').catch(() => 'OK')) === 'OK';
+    if (!evLockAcquired) {
+      for (let attempt = 0; attempt < 6; attempt++) {
+        await new Promise((r) => setTimeout(r, 700));
+        const stillLocked = await redisClient.exists(evLockKey).catch(() => 0);
+        if (!stillLocked) break;
+      }
+    }
+
+    const freshVerifiedRow = await sdrPrisma.sdrProspect
+      .findFirst({
+        where: {
+          OR: [
+            { id: prospect.id },
+            { ordinaryEmail: { equals: recipientEmail, mode: 'insensitive' } },
+          ],
+          emailVerifyStatus: { in: ['VALID', 'INVALID', 'CATCH_ALL'] },
+        },
+        select: {
+          id: true,
+          emailVerifyStatus: true,
+          emailVerifiedAt: true,
+          emailVerifyProvider: true,
+        },
+      })
+      .catch(() => null);
+
+    if (freshVerifiedRow?.emailVerifyStatus) {
+      const syncedStatus = freshVerifiedRow.emailVerifyStatus.trim().toUpperCase();
+      if (freshVerifiedRow.id !== prospect.id && (syncedStatus === 'VALID' || syncedStatus === 'CATCH_ALL')) {
+        await sdrPrisma.sdrProspect
+          .update({
+            where: { id: prospect.id },
+            data: {
+              emailVerifyStatus: syncedStatus,
+              emailVerifiedAt: freshVerifiedRow.emailVerifiedAt || new Date(),
+              emailVerifyProvider: freshVerifiedRow.emailVerifyProvider || 'cached-shared',
+            },
+          })
+          .catch(() => {});
+      }
+      const afterLockCached = await evalCachedStatus(syncedStatus);
+      if (afterLockCached) {
+        if (evLockAcquired) await redisClient.del(evLockKey).catch(() => {});
+        return afterLockCached;
+      }
+    }
+  } catch {
+    // Non bloccare la pipeline in caso di glitch transitorio Redis
   }
 
-  if (currentStatus === 'INVALID') {
-    await blockInvalidProspect('Email già marcata INVALID', 'cached-invalid');
-    return { allowed: false, isCatchAll: false, reason: 'Email prospect già marcata INVALID' };
-  }
+  try {
+    const storedMvKey = config?.millionVerifierApiKey
+      ? decryptSdrSecret(config.millionVerifierApiKey)
+      : '';
+    const mvApiKey = (
+      process.env.EMAIL_VALIDATION_API_KEY ||
+      process.env.MILLIONVERIFIER_API_KEY ||
+      storedMvKey ||
+      ''
+    ).trim();
+    const mvEnabled = config?.enableMillionVerifier !== false;
 
-  if (currentStatus === 'CATCH_ALL') {
-    return { allowed: true, isCatchAll: true, mxHost: 'email-verify-cached-catchall' };
-  }
-
-  const storedMvKey = config?.millionVerifierApiKey
-    ? decryptSdrSecret(config.millionVerifierApiKey)
-    : '';
-  const mvApiKey = (
-    process.env.EMAIL_VALIDATION_API_KEY ||
-    process.env.MILLIONVERIFIER_API_KEY ||
-    storedMvKey ||
-    ''
-  ).trim();
-  const mvEnabled = config?.enableMillionVerifier !== false;
-
-  if (mvEnabled && mvApiKey) {
+    if (allowLiveApiCall && mvEnabled && mvApiKey) {
     const isEmailValidationOrgKey =
       mvApiKey.startsWith('ev_live_') || mvApiKey.startsWith('ev_test_');
 
@@ -826,29 +903,66 @@ async function verifyProspectEmailBeforeSend(params: {
         });
       }
     }
-  } else {
-    const noticeLock = await redisClient
-      .set('sdr:mv:missing-key-notice', '1', 'EX', 600, 'NX')
-      .catch(() => 'OK');
-    if (noticeLock === 'OK') {
-      pushSdrConsoleLog(
-        'EMAIL-VERIFY',
-        !mvEnabled
-          ? 'Verifica Email API disattivata da configurazione: eseguo verifica DNS MX gratuita.'
-          : 'Verifica Email API pronta in standby (API Key non ancora inserita): eseguo verifica DNS MX e si attiverà automaticamente appena inserita la chiave.',
-        'INFO'
-      );
+    } else {
+      const noticeLock = await redisClient
+        .set('sdr:mv:missing-key-notice', '1', 'EX', 600, 'NX')
+        .catch(() => 'OK');
+      if (noticeLock === 'OK') {
+        pushSdrConsoleLog(
+          'EMAIL-VERIFY',
+          !allowLiveApiCall
+            ? 'Modalità Dry-Run attiva: eseguo verifica DNS MX gratuita senza consumare crediti email-validation.org.'
+            : !mvEnabled
+              ? 'Verifica Email API disattivata da configurazione: eseguo verifica DNS MX gratuita.'
+              : 'Verifica Email API pronta in standby (API Key non ancora inserita): eseguo verifica DNS MX e si attiverà automaticamente appena inserita la chiave.',
+          'INFO'
+        );
+      }
+    }
+
+    // Controllo DNS MX di protezione reputazione 6 domini Aruba
+    const mxCheck = await verifyRecipientDomainMx(recipientEmail);
+    if (!mxCheck.valid) {
+      await blockInvalidProspect('Pre-Send DNS MX assente/invalido', 'dns-mx', true);
+      return { allowed: false, isCatchAll: false, reason: 'Dominio destinatario privo di record MX' };
+    }
+
+    return { allowed: true, isCatchAll: false, mxHost: mxCheck.mxHost };
+  } finally {
+    if (evLockAcquired) {
+      await redisClient.del(evLockKey).catch(() => {});
     }
   }
+}
 
-  // Controllo DNS MX di protezione reputazione 6 domini Aruba
-  const mxCheck = await verifyRecipientDomainMx(recipientEmail);
-  if (!mxCheck.valid) {
-    await blockInvalidProspect('Pre-Send DNS MX assente/invalido', 'dns-mx', true);
-    return { allowed: false, isCatchAll: false, reason: 'Dominio destinatario privo di record MX' };
+/**
+ * Invalida in modo non-bloccante (cursor SCAN + DEL, zero KEYS su Redis condiviso)
+ * qualsiasi cache del Catalistino PDF riservato al prospect quando inizia un nuovo giro trimestrale.
+ */
+export async function invalidateProspectCatalogPdfCache(prospectId: number): Promise<number> {
+  const pattern = `sdr:catalog:pdf:*:${prospectId}:*`;
+  let cursor = '0';
+  let deletedCount = 0;
+  try {
+    do {
+      const [nextCursor, keys] = await redisClient.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100
+      );
+      cursor = nextCursor;
+      if (Array.isArray(keys) && keys.length > 0) {
+        deletedCount += await redisClient.del(...keys);
+      }
+    } while (cursor !== '0');
+  } catch (err: any) {
+    log.warn(`Avviso invalidazione cache PDF prospect #${prospectId}: ${err.message}`, {
+      module: MODULE_NAME,
+    });
   }
-
-  return { allowed: true, isCatchAll: false, mxHost: mxCheck.mxHost };
+  return deletedCount;
 }
 
 function computeGaussianJitterSeconds(minSec = 180, maxSec = 420): number {
@@ -1338,6 +1452,7 @@ export async function prepareOutreachPackageForProspect(
     ? await sdrPrisma.sdrOutreachDraft.update({
         where: { id: existingDraft.id },
         data: {
+          cycleNumber: 1,
           subject: tailored.subject,
           bodyText: tailored.bodyText,
           bodyHtml: tailored.bodyHtml,
@@ -1353,6 +1468,7 @@ export async function prepareOutreachPackageForProspect(
     : await sdrPrisma.sdrOutreachDraft.create({
         data: {
           prospectId: prospect.id,
+          cycleNumber: 1,
           sequenceStep: STEP_1_INITIAL,
           subject: tailored.subject,
           bodyText: tailored.bodyText,
@@ -1398,6 +1514,7 @@ export async function prepareOutreachPackageForProspect(
 
 async function selectAvailableArubaMailbox(options?: {
   preferredInboxId?: number | null;
+  mustStayOnPreferredInbox?: boolean;
   isCatchAll?: boolean;
   isConsentReply?: boolean;
   speedProfile?: string | null;
@@ -1413,10 +1530,17 @@ async function selectAvailableArubaMailbox(options?: {
     ? await getInboxIdsWithCatchAllSentToday(dateKey)
     : new Set<number>();
 
-  // Se il cliente è già assegnato a una specifica casella Aruba (Step 1B / Step 2 / Step 3), manteniamo SEMPRE la stessa casella!
+  // Se il cliente è già assegnato a una specifica casella Aruba (Step 1B / Step 2 / Step 3 / Loop Step 20), manteniamo SEMPRE la stessa casella!
   if (options?.preferredInboxId) {
     const pinnedAcc = accounts.find((a) => a.id === options.preferredInboxId);
-    if (pinnedAcc) {
+    if (!pinnedAcc) {
+      if (options.mustStayOnPreferredInbox) {
+        return {
+          selected: null,
+          rescheduleReason: 'PINNED_INBOX_OFFLINE' as const,
+        };
+      }
+    } else {
       const ramp = computeEffectiveInboxDailyLimit(pinnedAcc, options.speedProfile);
       // Per risposte dirette a un consenso "Sì" (Step 1B) consentiamo l'invio sulla casella conversazionale anche se ha toccato la soglia fredda
       if (!options.isConsentReply && pinnedAcc.sentToday >= ramp.effectiveDailyLimit) {
@@ -1499,9 +1623,10 @@ async function resolveConversationHeadersAndInboxForDraft(draft: {
       id: { not: draft.id },
       status: { in: ['Inviata', 'Inviata_Dry_Run', 'Risposta_Ricevuta'] },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: [{ sentAt: 'asc' }, { createdAt: 'asc' }],
     select: {
       id: true,
+      cycleNumber: true,
       sequenceStep: true,
       senderInboxId: true,
       messageIdHeader: true,
@@ -1518,9 +1643,19 @@ async function resolveConversationHeadersAndInboxForDraft(draft: {
     return { pinnedInboxId, inReplyTo: undefined, references: undefined };
   }
 
-  const sentMsgIds = priorSentDrafts
-    .map((d) => (d.messageIdHeader || '').trim())
-    .filter(Boolean);
+  const sentMsgIds = Array.from(
+    new Set(
+      priorSentDrafts
+        .map((d) => (d.messageIdHeader || '').trim())
+        .filter((m) => Boolean(m))
+    )
+  );
+
+  const compactReferences = (ids: string[]): string | undefined => {
+    if (ids.length === 0) return undefined;
+    if (ids.length <= 12) return ids.join(' ');
+    return [ids[0], ...ids.slice(-11)].join(' ');
+  };
 
   if (draft.sequenceStep === STEP_1B_CONSENT_REPLY) {
     const latestInboundReply = await sdrPrisma.sdrInboxEvent.findFirst({
@@ -1535,25 +1670,30 @@ async function resolveConversationHeadersAndInboxForDraft(draft: {
       latestInboundReply?.messageId && latestInboundReply.messageId.startsWith('<')
         ? latestInboundReply.messageId
         : null;
-    const inReplyTo = inboundId || sentMsgIds[0] || undefined;
-    const references = Array.from(new Set([...sentMsgIds, ...(inboundId ? [inboundId] : [])]));
+    const latestSentId = sentMsgIds[sentMsgIds.length - 1] || sentMsgIds[0] || undefined;
+    const inReplyTo = inboundId || latestSentId || undefined;
+    const referencesList = Array.from(
+      new Set([...sentMsgIds, ...(inboundId ? [inboundId] : [])])
+    );
     return {
       pinnedInboxId,
       inReplyTo,
-      references: references.length > 0 ? references.join(' ') : undefined,
+      references: compactReferences(referencesList),
     };
   }
 
-  // Step 2 (+5gg) o Step 3 (+5gg Caldi): In-Reply-To sul primo messaggio (o ultimo inviato)
+  // Step 2 (+5gg), Step 3 (+5gg Caldi) e Loop Trimestrale Step 20 (90+gg):
+  // stessa casella Aruba + In-Reply-To sull'ultimo messaggio inviato (o Step 1) + References sull'intero filone!
   const step1MsgId =
     priorSentDrafts.find((d) => d.sequenceStep === STEP_1_INITIAL)?.messageIdHeader ||
     sentMsgIds[0] ||
     undefined;
+  const parentMsgId = sentMsgIds[sentMsgIds.length - 1] || step1MsgId || undefined;
 
   return {
     pinnedInboxId,
-    inReplyTo: step1MsgId || undefined,
-    references: sentMsgIds.length > 0 ? sentMsgIds.join(' ') : undefined,
+    inReplyTo: parentMsgId || undefined,
+    references: compactReferences(sentMsgIds),
   };
 }
 
@@ -1595,47 +1735,109 @@ async function dispatchSingleOutreachEmail(
   if (
     draft.prospect.pipelineStatus === 'Opt_Out' ||
     draft.prospect.pipelineStatus === 'Bounce_Invalido' ||
+    draft.prospect.pipelineStatus === 'Convertito' ||
     (!isConsentReply && draft.prospect.pipelineStatus === 'Ha_Risposto')
   ) {
     return { skipped: true, reason: `Pipeline prospect: ${draft.prospect.pipelineStatus}` };
   }
 
-  // Controllo incrociato su b2b_promo_prospects per blocco chiamata Daniele / pausa follow-up automatici
+  // Controllo incrociato su b2b_promo_prospects + b2b_orders per blocco chiamata Daniele / pausa / ordini / conversione
   const promoState = draft.prospect.promoProspectId
     ? await b2bPrisma.b2BPromoProspect
         .findUnique({
           where: { id: draft.prospect.promoProspectId },
           select: {
+            id: true,
+            status: true,
             autoFollowupPaused: true,
             agentContactedAt: true,
+            lastReplyAt: true,
             convertedToUserId: true,
             firstOrderId: true,
           },
         })
         .catch(() => null)
-    : null;
+    : await b2bPrisma.b2BPromoProspect
+        .findFirst({
+          where: { sdrProspectId: draft.prospect.id },
+          select: {
+            id: true,
+            status: true,
+            autoFollowupPaused: true,
+            agentContactedAt: true,
+            lastReplyAt: true,
+            convertedToUserId: true,
+            firstOrderId: true,
+          },
+        })
+        .catch(() => null);
 
   if (draft.prospect.autoFollowupPaused || promoState?.autoFollowupPaused) {
-    await sdrPrisma.sdrOutreachDraft.update({
-      where: { id: draft.id },
-      data: { status: 'Annullato_KillSwitch' },
-    });
+    await Promise.all([
+      sdrPrisma.sdrOutreachDraft.update({
+        where: { id: draft.id },
+        data: { status: 'Annullato_KillSwitch' },
+      }),
+      !draft.prospect.autoFollowupPaused
+        ? sdrPrisma.sdrProspect
+            .update({ where: { id: draft.prospectId }, data: { autoFollowupPaused: true } })
+            .catch(() => {})
+        : Promise.resolve(),
+    ]);
     return { skipped: true, reason: 'Follow-up automatici messi in pausa (Kill-Switch / Agente)' };
   }
 
+  const orderOrUserConverted =
+    Boolean(
+      draft.prospect.promotedB2bUserId ||
+        promoState?.convertedToUserId ||
+        promoState?.firstOrderId ||
+        promoState?.status === 'CONVERTED' ||
+        promoState?.status === 'ORDER_PENDING_APPROVAL' ||
+        promoState?.status === 'EXPIRED'
+    ) ||
+    (promoState?.id
+      ? (await b2bPrisma.b2BOrder
+          .count({
+            where: {
+              OR: [
+                { promoProspectId: promoState.id },
+                ...(promoState.convertedToUserId ? [{ userId: promoState.convertedToUserId }] : []),
+                ...(draft.prospect.promotedB2bUserId
+                  ? [{ userId: draft.prospect.promotedB2bUserId }]
+                  : []),
+              ],
+            },
+          })
+          .catch(() => 0)) > 0
+      : false);
+
   if (
-    draft.sequenceStep >= STEP_2_FOLLOWUP &&
-    draft.sequenceStep !== STEP_1B_CONSENT_REPLY &&
-    (draft.prospect.agentContactedAt ||
-      promoState?.agentContactedAt ||
-      promoState?.convertedToUserId ||
-      promoState?.firstOrderId)
+    draft.prospect.agentContactedAt ||
+    promoState?.agentContactedAt ||
+    orderOrUserConverted ||
+    (!isConsentReply && promoState?.lastReplyAt)
   ) {
-    await sdrPrisma.sdrOutreachDraft.update({
-      where: { id: draft.id },
-      data: { status: 'Annullato_KillSwitch' },
-    });
-    return { skipped: true, reason: 'Prospect già contattato da Daniele o convertito con ordine' };
+    await Promise.all([
+      sdrPrisma.sdrOutreachDraft.update({
+        where: { id: draft.id },
+        data: { status: 'Annullato_KillSwitch' },
+      }),
+      sdrPrisma.sdrProspect
+        .update({
+          where: { id: draft.prospectId },
+          data: {
+            autoFollowupPaused: true,
+            ...(orderOrUserConverted &&
+            draft.prospect.pipelineStatus !== 'Opt_Out' &&
+            draft.prospect.pipelineStatus !== 'Bounce_Invalido'
+              ? { pipelineStatus: 'Convertito' }
+              : {}),
+          },
+        })
+        .catch(() => {}),
+    ]);
+    return { skipped: true, reason: 'Prospect già contattato da Daniele, risposto o convertito con ordine' };
   }
 
   // Hard Safety Guard contro qualsiasi placeholder residuo ({{...}} o DEMO_USERNAME)
@@ -1674,11 +1876,55 @@ async function dispatchSingleOutreachEmail(
     return { skipped: true, reason: `In blacklist: ${blacklisted.reason}` };
   }
 
-  // 1. Verifica Automatica Pre-Invio MillionVerifier ("man mano che invii") + fallback DNS MX
+  // Risolvi eventuale casella Aruba fissata per il cliente + header In-Reply-To / References
+  const threadCtx = await resolveConversationHeadersAndInboxForDraft(draft);
+  const effectivePreferredInboxId =
+    dispatchOpts?.preferredInboxId || threadCtx.pinnedInboxId || null;
+
+  // Controllo Time-Fencing PRIMA della verifica email live così le bozze fuori finestra lavorativa
+  // vengono riprogrammate al prossimo turno Lun-Ven senza consumare crediti email-validation.org in anticipo!
+  if (IS_SDR_LIVE) {
+    const fenceDelayMs =
+      SDR_INTERCEPT_TO && !isConsentReply ? 0 : computeTimeFencingDelayMs(config || {});
+    if (fenceDelayMs > 0) {
+      const jitterMs = isConsentReply
+        ? crypto.randomInt(30, 180) * 1000
+        : computeGaussianJitterSeconds(
+            config?.jitterMinSeconds || 180,
+            config?.jitterMaxSeconds || 420
+          ) * 1000;
+      const nextSchedule = new Date(Date.now() + fenceDelayMs + jitterMs);
+      await sdrPrisma.sdrOutreachDraft
+        .update({ where: { id: draft.id }, data: { scheduledFor: nextSchedule } })
+        .catch(() => {});
+      await sdrOutreachQueue.add(
+        SDR_JOBS.DISPATCH_SINGLE,
+        {
+          action: SDR_JOBS.DISPATCH_SINGLE,
+          draftId: draft.id,
+          preferredInboxId: effectivePreferredInboxId,
+          inReplyTo: dispatchOpts?.inReplyTo || threadCtx.inReplyTo,
+          references: dispatchOpts?.references || threadCtx.references,
+        },
+        { delay: fenceDelayMs + jitterMs, jobId: `fence-${draft.id}-${Date.now()}` }
+      );
+      pushSdrConsoleLog(
+        'TIME-FENCING',
+        `Draft #${draft.id} (${draft.prospect.companyName}) riprogrammata tra ${Math.round(
+          (fenceDelayMs + jitterMs) / 60000
+        )} min (fuori finestra lavorativa Lun-Ven Europe/Rome).`,
+        'INFO'
+      );
+      return { rescheduled: true, delayMs: fenceDelayMs + jitterMs };
+    }
+  }
+
+  // 1. Verifica Automatica Pre-Invio ("man mano che invii"): in Dry-Run (!IS_SDR_LIVE) non consuma mai crediti live!
   const verifyOutcome = await verifyProspectEmailBeforeSend({
     prospect: draft.prospect,
     draftId: draft.id,
     recipientEmail,
+    allowLiveApiCall: IS_SDR_LIVE,
     config,
   });
 
@@ -1686,13 +1932,9 @@ async function dispatchSingleOutreachEmail(
     return { skipped: true, reason: verifyOutcome.reason || 'Email non valida pre-send' };
   }
 
-  // Risolvi eventuale casella Aruba fissata per il cliente + header In-Reply-To / References
-  const threadCtx = await resolveConversationHeadersAndInboxForDraft(draft);
-  const effectivePreferredInboxId =
-    dispatchOpts?.preferredInboxId || threadCtx.pinnedInboxId || null;
-
   const mailboxResult = await selectAvailableArubaMailbox({
     preferredInboxId: effectivePreferredInboxId,
+    mustStayOnPreferredInbox: draft.sequenceStep !== STEP_1_INITIAL,
     isCatchAll: verifyOutcome.isCatchAll,
     isConsentReply,
     speedProfile: config?.speedProfile,
@@ -1708,10 +1950,11 @@ async function dispatchSingleOutreachEmail(
       draft.bodyHtml,
       senderLabel
     );
+    const sentDryNow = new Date();
 
     pushSdrConsoleLog(
       'DRY-RUN-SMTP',
-      `[DRY-RUN] Da: ${senderLabel} -> A: ${recipientEmail} (${draft.prospect.companyName}) | Step: ${draft.sequenceStep} | Verify: ${verifyOutcome.mxHost} | Oggetto: "${draft.subject}"`,
+      `[DRY-RUN] Da: ${senderLabel} -> A: ${recipientEmail} (${draft.prospect.companyName}) | Giro: ${draft.cycleNumber || 1} | Step: ${draft.sequenceStep} | Verify: ${verifyOutcome.mxHost} | Oggetto: "${draft.subject}"`,
       'SUCCESS'
     );
 
@@ -1723,17 +1966,19 @@ async function dispatchSingleOutreachEmail(
           bodyText: alignedDry.bodyText,
           bodyHtml: alignedDry.bodyHtml,
           senderInboxId: selected?.acc.id || effectivePreferredInboxId || null,
-          sentAt: new Date(),
+          sentAt: sentDryNow,
         },
       }),
       sdrPrisma.sdrProspect.update({
         where: { id: draft.prospectId },
         data: {
+          lastOutreachSentAt: sentDryNow,
           ...(draft.prospect.pipelineStatus !== 'Ha_Risposto' &&
           draft.prospect.pipelineStatus !== 'Catalogo_Aperto'
             ? { pipelineStatus: 'Inviata_Dry_Run' }
             : {}),
-          ...(draft.sequenceStep === STEP_3_WARM_FOLLOWUP ? { autoFollowupPaused: true } : {}),
+          // Fine giro corrente (SENZA attivare il blocco permanente autoFollowupPaused!)
+          ...(draft.sequenceStep === STEP_3_WARM_FOLLOWUP ? { cycleCompletedAt: sentDryNow } : {}),
         },
       }),
     ]);
@@ -1741,46 +1986,14 @@ async function dispatchSingleOutreachEmail(
     return {
       dryRun: true,
       draftId: draft.id,
+      cycleNumber: draft.cycleNumber || 1,
       senderEmail: senderLabel,
       recipientEmail,
       mxHost: verifyOutcome.mxHost,
     };
   }
 
-  // INVIO REALE: Time-Fencing Lun-Ven + Jitter + Aruba SSL 465
-  const fenceDelayMs =
-    SDR_INTERCEPT_TO && !isConsentReply ? 0 : computeTimeFencingDelayMs(config || {});
-  if (fenceDelayMs > 0) {
-    const jitterMs = isConsentReply
-      ? crypto.randomInt(30, 180) * 1000
-      : computeGaussianJitterSeconds(
-          config?.jitterMinSeconds || 180,
-          config?.jitterMaxSeconds || 420
-        ) * 1000;
-    const nextSchedule = new Date(Date.now() + fenceDelayMs + jitterMs);
-    await sdrPrisma.sdrOutreachDraft
-      .update({ where: { id: draft.id }, data: { scheduledFor: nextSchedule } })
-      .catch(() => {});
-    await sdrOutreachQueue.add(
-      SDR_JOBS.DISPATCH_SINGLE,
-      {
-        action: SDR_JOBS.DISPATCH_SINGLE,
-        draftId: draft.id,
-        preferredInboxId: effectivePreferredInboxId,
-        inReplyTo: dispatchOpts?.inReplyTo || threadCtx.inReplyTo,
-        references: dispatchOpts?.references || threadCtx.references,
-      },
-      { delay: fenceDelayMs + jitterMs, jobId: `fence-${draft.id}-${Date.now()}` }
-    );
-    pushSdrConsoleLog(
-      'TIME-FENCING',
-      `Draft #${draft.id} (${draft.prospect.companyName}) riprogrammata tra ${Math.round(
-        (fenceDelayMs + jitterMs) / 60000
-      )} min (fuori finestra lavorativa Lun-Ven Europe/Rome).`,
-      'INFO'
-    );
-    return { rescheduled: true, delayMs: fenceDelayMs + jitterMs };
-  }
+  // INVIO REALE: Aruba SSL 465 (Time-Fencing già verificato prima di email-validation.org)
 
   if (!selected) {
     const isCatchAllCap = mailboxResult.rescheduleReason === 'CATCH_ALL_DAILY_LIMIT_REACHED';
@@ -1889,13 +2102,14 @@ async function dispatchSingleOutreachEmail(
     const keepWarmOrRepliedStatus =
       draft.prospect.pipelineStatus === 'Ha_Risposto' ||
       draft.prospect.pipelineStatus === 'Catalogo_Aperto';
+    const sentLiveNow = new Date();
 
     await Promise.all([
       sdrPrisma.sdrInboxAccount.update({
         where: { id: inbox.id },
         data: {
           sentToday: { increment: 1 },
-          lastSentAt: new Date(),
+          lastSentAt: sentLiveNow,
           consecutiveErrors: 0,
         },
       }),
@@ -1907,34 +2121,27 @@ async function dispatchSingleOutreachEmail(
           bodyHtml: alignedMail.bodyHtml,
           senderInboxId: inbox.id,
           messageIdHeader: customMessageId,
-          sentAt: new Date(),
+          sentAt: sentLiveNow,
         },
       }),
       sdrPrisma.sdrProspect.update({
         where: { id: draft.prospectId },
         data: {
+          lastOutreachSentAt: sentLiveNow,
           ...(!keepWarmOrRepliedStatus
             ? { pipelineStatus: SDR_INTERCEPT_TO ? 'Inviata_Dry_Run' : 'Email_Inviata' }
             : {}),
-          // Dopo lo Step 3 (Giorno +5 Solo Caldi), stop definitivo agli invii automatici!
-          ...(draft.sequenceStep === STEP_3_WARM_FOLLOWUP ? { autoFollowupPaused: true } : {}),
+          // Dopo lo Step 3 (Giorno +5 Solo Caldi), segna fine del giro corrente SENZA attivare il blocco permanente autoFollowupPaused!
+          ...(draft.sequenceStep === STEP_3_WARM_FOLLOWUP ? { cycleCompletedAt: sentLiveNow } : {}),
         },
       }),
-      draft.sequenceStep === STEP_3_WARM_FOLLOWUP && draft.prospect.promoProspectId
-        ? b2bPrisma.b2BPromoProspect
-            .update({
-              where: { id: draft.prospect.promoProspectId },
-              data: { autoFollowupPaused: true },
-            })
-            .catch(() => {})
-        : Promise.resolve(),
     ]);
 
     pushSdrConsoleLog(
       'SMTP-ARUBA',
       SDR_INTERCEPT_TO
-        ? `[INTERCETTATO -> ${finalSmtpRecipient}] Step ${draft.sequenceStep} da ${inbox.email} (per ${draft.prospect.companyName}, email reale ${recipientEmail} NON contattata)`
-        : `Step ${draft.sequenceStep} inviato da ${inbox.email} (${inbox.sentToday + 1}/${selected.effectiveLimit} W${selected.warmupWeek}) -> ${recipientEmail} (${draft.prospect.companyName})`,
+        ? `[INTERCETTATO -> ${finalSmtpRecipient}] Giro ${draft.cycleNumber || 1} • Step ${draft.sequenceStep} da ${inbox.email} (per ${draft.prospect.companyName}, email reale ${recipientEmail} NON contattata)`
+        : `Giro ${draft.cycleNumber || 1} • Step ${draft.sequenceStep} inviato da ${inbox.email} (${inbox.sentToday + 1}/${selected.effectiveLimit} W${selected.warmupWeek}) -> ${recipientEmail} (${draft.prospect.companyName})`,
       'SUCCESS'
     );
 
@@ -1942,6 +2149,7 @@ async function dispatchSingleOutreachEmail(
       dryRun: false,
       interceptedTo: SDR_INTERCEPT_TO || null,
       draftId: draft.id,
+      cycleNumber: draft.cycleNumber || 1,
       sequenceStep: draft.sequenceStep,
       senderEmail: inbox.email,
       recipientEmail: finalSmtpRecipient,
@@ -2139,7 +2347,7 @@ async function pollSingleArubaInboxImap(inbox: {
           subject,
           freshReplyText,
           fullText,
-          attachmentsCount: parsed.attachments.length,
+          attachmentsCount: parsed.attachments.length + parsed.oversizedAttachmentsSkipped.length,
           autoSubmitted: parsed.autoSubmitted,
         });
 
@@ -2311,7 +2519,9 @@ async function pollSingleArubaInboxImap(inbox: {
                 data: { status: 'Annullato_KillSwitch' },
               }),
               sdrPrisma.sdrOutreachDraft.updateMany({
-                where: { prospectId: matchedProspect.id, sequenceStep: STEP_1_INITIAL },
+                where: matchedDraft?.id
+                  ? { id: matchedDraft.id }
+                  : { prospectId: matchedProspect.id, sequenceStep: STEP_1_INITIAL },
                 data: {
                   status: 'Annullato_KillSwitch',
                   replyReceivedAt: now,
@@ -2378,7 +2588,62 @@ async function pollSingleArubaInboxImap(inbox: {
         }
 
         // CASO B: CONSENSO SEMPLICE ("Sì grazie", "Mandate pure", "Ok inviate listino") -> Risposta Step 1B tra 15-25 min!
-        if (classification === 'Consenso_Invio' && matchedProspect) {
+        // Se però il lead è già stato chiamato/bloccato da Daniele o ha già ordinato/convertito su B2B, passa subito la risposta a Daniele (CASO C) senza inviare mail automatiche!
+        let canAutoReplyConsent = Boolean(classification === 'Consenso_Invio' && matchedProspect);
+        if (canAutoReplyConsent && matchedProspect) {
+          const promoGuard = matchedProspect.promoProspectId
+            ? await b2bPrisma.b2BPromoProspect
+                .findUnique({
+                  where: { id: matchedProspect.promoProspectId },
+                  select: {
+                    id: true,
+                    status: true,
+                    autoFollowupPaused: true,
+                    agentContactedAt: true,
+                    convertedToUserId: true,
+                    firstOrderId: true,
+                  },
+                })
+                .catch(() => null)
+            : await b2bPrisma.b2BPromoProspect
+                .findFirst({
+                  where: { sdrProspectId: matchedProspect.id },
+                  select: {
+                    id: true,
+                    status: true,
+                    autoFollowupPaused: true,
+                    agentContactedAt: true,
+                    convertedToUserId: true,
+                    firstOrderId: true,
+                  },
+                })
+                .catch(() => null);
+
+          const hasB2bOrder =
+            promoGuard?.id
+              ? (await b2bPrisma.b2BOrder
+                  .count({ where: { promoProspectId: promoGuard.id } })
+                  .catch(() => 0)) > 0
+              : false;
+
+          if (
+            matchedProspect.autoFollowupPaused ||
+            matchedProspect.agentContactedAt != null ||
+            matchedProspect.promotedB2bUserId != null ||
+            promoGuard?.autoFollowupPaused ||
+            promoGuard?.agentContactedAt != null ||
+            promoGuard?.convertedToUserId != null ||
+            promoGuard?.firstOrderId != null ||
+            promoGuard?.status === 'CONVERTED' ||
+            promoGuard?.status === 'ORDER_PENDING_APPROVAL' ||
+            promoGuard?.status === 'EXPIRED' ||
+            hasB2bOrder
+          ) {
+            canAutoReplyConsent = false;
+          }
+        }
+
+        if (canAutoReplyConsent && matchedProspect) {
           if (!matchedProspect.promoProspectId) {
             await prepareOutreachPackageForProspect(matchedProspect.id).catch(() => {});
             const refreshed = await sdrPrisma.sdrProspect.findUnique({
@@ -2387,6 +2652,7 @@ async function pollSingleArubaInboxImap(inbox: {
             if (refreshed) matchedProspect = refreshed;
           }
 
+          const currentCycleNum = Math.max(1, matchedProspect.outreachCycle || 1);
           const [step1Draft, config, agent, existingConsentDraft] = await Promise.all([
             sdrPrisma.sdrOutreachDraft.findFirst({
               where: { prospectId: matchedProspect.id, sequenceStep: STEP_1_INITIAL },
@@ -2399,6 +2665,7 @@ async function pollSingleArubaInboxImap(inbox: {
             sdrPrisma.sdrOutreachDraft.findFirst({
               where: {
                 prospectId: matchedProspect.id,
+                cycleNumber: currentCycleNum,
                 sequenceStep: STEP_1B_CONSENT_REPLY,
                 status: { notIn: ['Annullato_KillSwitch'] },
               },
@@ -2416,20 +2683,23 @@ async function pollSingleArubaInboxImap(inbox: {
             }
           }
           const smartUrls = buildSmartOfferUrls(masterToken);
+          const repliedDraftTargetId = matchedDraft?.id || step1Draft?.id || null;
 
-          // Annulla eventuali Step 2 / Step 3 freddi in coda e aggiorna Step 1 + B2BPromoProspect
+          // Annulla eventuali Step 2 / Step 3 / Loop freddi in coda e aggiorna la bozza a cui il cliente ha risposto + B2BPromoProspect
           await Promise.all([
             sdrPrisma.sdrOutreachDraft.updateMany({
               where: {
                 prospectId: matchedProspect.id,
-                sequenceStep: { in: [STEP_2_FOLLOWUP, STEP_3_WARM_FOLLOWUP] },
+                sequenceStep: {
+                  in: [STEP_2_FOLLOWUP, STEP_3_WARM_FOLLOWUP, STEP_20_QUARTERLY_LOOP],
+                },
                 status: { notIn: ['Inviata', 'Inviata_Dry_Run'] },
               },
               data: { status: 'Annullato_KillSwitch' },
             }),
-            step1Draft
+            repliedDraftTargetId
               ? sdrPrisma.sdrOutreachDraft.update({
-                  where: { id: step1Draft.id },
+                  where: { id: repliedDraftTargetId },
                   data: {
                     status: 'Risposta_Ricevuta',
                     replyReceivedAt: now,
@@ -2496,6 +2766,7 @@ async function pollSingleArubaInboxImap(inbox: {
             const consentDraft = await sdrPrisma.sdrOutreachDraft.create({
               data: {
                 prospectId: matchedProspect.id,
+                cycleNumber: currentCycleNum,
                 sequenceStep: STEP_1B_CONSENT_REPLY,
                 subject: consentEmail.subject,
                 bodyText: consentEmail.bodyText,
@@ -2597,7 +2868,9 @@ async function pollSingleArubaInboxImap(inbox: {
               data: { status: 'Annullato_KillSwitch' },
             }),
             sdrPrisma.sdrOutreachDraft.updateMany({
-              where: { prospectId: matchedProspect.id, sequenceStep: STEP_1_INITIAL },
+              where: matchedDraft?.id
+                ? { id: matchedDraft.id }
+                : { prospectId: matchedProspect.id, sequenceStep: STEP_1_INITIAL },
               data: {
                 status: 'Risposta_Ricevuta',
                 replyReceivedAt: now,
@@ -2724,12 +2997,15 @@ async function pollAllActiveImapInboxes() {
 }
 
 // ============================================================================
-// 6. SCHEDULER AUTOMATICO STEP 2 (GIORNO +5) E STEP 3 (GIORNO +5 SOLO CALDI)
+// 6. SCHEDULER AUTOMATICO STEP 2 (+5GG GIRO 1), STEP 3 (+5GG CALDI MULTI-GIRO)
+//    & ALIMENTATORE AUTOMATICO GIORNALIERO A 3 PRIORITÀ + LOOP 90+ GIORNI
 // ============================================================================
 
 let _followupSchedulerRunning = false;
 
-export async function runAutomatedFollowupScheduler() {
+export async function runAutomatedFollowupScheduler(opts?: {
+  includeInterceptedDryRun?: boolean;
+}) {
   if (_followupSchedulerRunning) return { skipped: true };
   _followupSchedulerRunning = true;
 
@@ -2740,6 +3016,9 @@ export async function runAutomatedFollowupScheduler() {
 
     const step2Cutoff = new Date(Date.now() - step2DelayDays * 86_400_000);
     const step3WarmCutoff = new Date(Date.now() - step3WarmDelayDays * 86_400_000);
+    const sentStatuses = opts?.includeInterceptedDryRun
+      ? ['Inviata', 'Inviata_Dry_Run']
+      : ['Inviata'];
 
     const activeInboxes = await sdrPrisma.sdrInboxAccount.findMany({
       select: { id: true, email: true, isActive: true },
@@ -2748,27 +3027,30 @@ export async function runAutomatedFollowupScheduler() {
 
     const createdStep2Ids: number[] = [];
     const createdStep3Ids: number[] = [];
+    let silentCyclesCompleted = 0;
 
     // ------------------------------------------------------------------------
-    // FASE A: STEP 2 (`sequenceStep = 2`, Giorno +5)
-    // Prospect con Step 1 `Inviata` da >= step2DelayDays, zero risposte,
-    // zero aperture catalogo/login, non in Opt-Out/Bounce, autoFollowupPaused === false,
-    // e nessuna bozza `sequenceStep >= 2`.
+    // FASE A: STEP 2 (`sequenceStep = 2`, Giorno +5) — SOLO GIRO 1 (`outreachCycle === 1`)!
+    // Nei giri successivi (`cycleNumber >= 2`) si manda 1 sola mail per giro (`sequenceStep = 20`):
+    // se il cliente non apre il PDF in quel giro, NON parte mai alcuno Step 2 ravvicinato.
     // ------------------------------------------------------------------------
     const step2Candidates = await sdrPrisma.sdrOutreachDraft.findMany({
       where: {
         sequenceStep: STEP_1_INITIAL,
-        status: 'Inviata',
+        cycleNumber: 1,
+        status: { in: sentStatuses },
         sentAt: { lte: step2Cutoff },
         replyReceivedAt: null,
         catalogOpenCount: 0,
         prospect: {
+          outreachCycle: 1,
           autoFollowupPaused: false,
           agentContactedAt: null,
+          promotedB2bUserId: null,
           pipelineStatus: {
-            notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Catalogo_Aperto'],
+            notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Catalogo_Aperto', 'Convertito'],
           },
-          NOT: { emailVerifyStatus: 'INVALID' },
+          OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }],
           drafts: {
             none: {
               sequenceStep: { gte: STEP_2_FOLLOWUP },
@@ -2783,7 +3065,7 @@ export async function runAutomatedFollowupScheduler() {
 
     for (const step1Draft of step2Candidates) {
       const prospect = step1Draft.prospect;
-      if (!prospect || !prospect.ordinaryEmail) continue;
+      if (!prospect || !prospect.ordinaryEmail || (prospect.outreachCycle || 1) !== 1) continue;
 
       // Verifica nessun evento REPLY/BOUNCE/OPT_OUT in sdr_inbox_events
       const blockingEvent = await sdrPrisma.sdrInboxEvent.findFirst({
@@ -2814,9 +3096,23 @@ export async function runAutomatedFollowupScheduler() {
           promo.firstOrderId != null ||
           promo.convertedToUserId != null ||
           promo.status === 'CONVERTED' ||
+          promo.status === 'ORDER_PENDING_APPROVAL' ||
           promo.status === 'EXPIRED')
       ) {
         continue;
+      }
+
+      if (promo) {
+        const ordersCount = await b2bPrisma.b2BOrder.count({
+          where: {
+            OR: [
+              { promoProspectId: promo.id },
+              ...(promo.convertedToUserId ? [{ userId: promo.convertedToUserId }] : []),
+              ...(prospect.promotedB2bUserId ? [{ userId: prospect.promotedB2bUserId }] : []),
+            ],
+          },
+        });
+        if (ordersCount > 0) continue;
       }
 
       let masterToken = step1Draft.trackingToken || '';
@@ -2879,6 +3175,7 @@ export async function runAutomatedFollowupScheduler() {
       const createdDraft = await sdrPrisma.sdrOutreachDraft.create({
         data: {
           prospectId: prospect.id,
+          cycleNumber: 1,
           sequenceStep: STEP_2_FOLLOWUP,
           subject: step2Email.subject,
           bodyText: step2Email.bodyText,
@@ -2898,12 +3195,123 @@ export async function runAutomatedFollowupScheduler() {
     }
 
     // ------------------------------------------------------------------------
-    // FASE B: STEP 3 (`sequenceStep = 3`, Giorno +5 Solo Caldi)
-    // Prospect che hanno aperto davvero il Catalistino PDF (`catalogOpenCount > 0`)
-    // o fatto login sul portale (`loginCount > 0`) da >= step3WarmDelayDays,
-    // hanno 0 ordini in `b2b_orders`, non hanno risposto via mail,
-    // `agentContactedAt == null` e `autoFollowupPaused === false` (in ENTRAMBI i DB),
-    // e non hanno già `sequenceStep = 3`.
+    // FASE A-bis: MARCATURA FINE GIRO SILENZIOSO (`cycleCompletedAt`) SENZA BLOCCO PERMANENTE
+    // Nei giri N >= 2 non si invia alcuno Step 2: trascorsi 5gg senza aperture/login post-invio,
+    // segna `cycleCompletedAt = now` (lasciando `autoFollowupPaused = false` per il futuro giro >= 90gg).
+    // ------------------------------------------------------------------------
+    const silentMultiCycleDrafts = await sdrPrisma.sdrOutreachDraft.findMany({
+      where: {
+        OR: [
+          { sequenceStep: STEP_20_QUARTERLY_LOOP, cycleNumber: { gte: 2 } },
+          { sequenceStep: STEP_2_FOLLOWUP, cycleNumber: 1 },
+        ],
+        status: { in: sentStatuses },
+        sentAt: { lte: step2Cutoff },
+        replyReceivedAt: null,
+        prospect: {
+          cycleCompletedAt: null,
+          autoFollowupPaused: false,
+          pipelineStatus: { notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Convertito'] },
+        },
+      },
+      include: {
+        prospect: {
+          include: {
+            drafts: {
+              select: {
+                id: true,
+                cycleNumber: true,
+                sequenceStep: true,
+                sentAt: true,
+                catalogOpenCount: true,
+                catalogOpenedAt: true,
+              },
+            },
+          },
+        },
+      },
+      take: 100,
+    });
+
+    for (const d of silentMultiCycleDrafts) {
+      const p = d.prospect;
+      if (!p || !d.sentAt) continue;
+      if ((d.cycleNumber || 1) !== (p.outreachCycle || 1)) continue;
+      const refSentMs = d.sentAt.getTime();
+
+      const openedInThisCycle =
+        (p.outreachCycle || 1) >= 2
+          ? p.drafts.some(
+              (x) =>
+                x.catalogOpenCount > 0 &&
+                x.catalogOpenedAt != null &&
+                x.catalogOpenedAt.getTime() > refSentMs
+            )
+          : p.drafts.some((x) => x.catalogOpenCount > 0);
+
+      if (openedInThisCycle) continue;
+
+      const promoSilent = p.promoProspectId
+        ? await b2bPrisma.b2BPromoProspect
+            .findUnique({
+              where: { id: p.promoProspectId },
+              select: {
+                catalogOpenCount: true,
+                catalogOpenedAt: true,
+                loginCount: true,
+                lastLoginAt: true,
+                firstLoginAt: true,
+              },
+            })
+            .catch(() => null)
+        : await b2bPrisma.b2BPromoProspect
+            .findFirst({
+              where: { sdrProspectId: p.id },
+              select: {
+                catalogOpenCount: true,
+                catalogOpenedAt: true,
+                loginCount: true,
+                lastLoginAt: true,
+                firstLoginAt: true,
+              },
+            })
+            .catch(() => null);
+
+      const promoEngagedInCycle =
+        (p.outreachCycle || 1) >= 2
+          ? Boolean(
+              (promoSilent?.catalogOpenCount &&
+                promoSilent.catalogOpenedAt &&
+                promoSilent.catalogOpenedAt.getTime() > refSentMs) ||
+                (promoSilent?.loginCount &&
+                  promoSilent.lastLoginAt &&
+                  promoSilent.lastLoginAt.getTime() > refSentMs) ||
+                (promoSilent?.loginCount &&
+                  promoSilent.firstLoginAt &&
+                  promoSilent.firstLoginAt.getTime() > refSentMs)
+            )
+          : Boolean(
+              (promoSilent?.catalogOpenCount || 0) > 0 || (promoSilent?.loginCount || 0) > 0
+            );
+
+      if (!promoEngagedInCycle) {
+        await sdrPrisma.sdrProspect
+          .update({
+            where: { id: p.id },
+            data: { cycleCompletedAt: new Date() },
+          })
+          .catch(() => {});
+        silentCyclesCompleted++;
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // FASE B: STEP 3 (`sequenceStep = 3`, Giorno +5 Solo Caldi — Multi-Giro `cycleNumber`)
+    // Vale sia nel Giro 1 sia nei Giri Successivi (`cycleNumber = prospect.outreachCycle`),
+    // MA per un Giro N >= 2 scatta SOLO SE il cliente ha aperto davvero il PDF o fatto login
+    // DOPO l'invio della mail del Giro N (`catalogOpenedAt > loopDraft.sentAt` o `lastLoginAt > loopDraft.sentAt`),
+    // non ha ancora `sequenceStep = 3` con `cycleNumber = N`, ha 0 ordini, zero risposte e
+    // `agentContactedAt == null` / `autoFollowupPaused === false` in entrambi i DB!
     // ------------------------------------------------------------------------
     const [warmPromosFromB2B, warmDraftsFromSdr] = await Promise.all([
       b2bPrisma.b2BPromoProspect.findMany({
@@ -2917,11 +3325,13 @@ export async function runAutomatedFollowupScheduler() {
           status: { in: ['CONTACTED', 'LOGGED_IN'] },
           OR: [
             { catalogOpenCount: { gt: 0 }, catalogOpenedAt: { lte: step3WarmCutoff } },
+            { loginCount: { gt: 0 }, lastLoginAt: { lte: step3WarmCutoff } },
             { loginCount: { gt: 0 }, firstLoginAt: { lte: step3WarmCutoff } },
-            { loginCount: { gt: 0 }, firstLoginAt: null, lastLoginAt: { lte: step3WarmCutoff } },
           ],
         },
-        take: 80,
+        orderBy: { updatedAt: 'desc' },
+        select: { sdrProspectId: true },
+        take: 400,
       }),
       sdrPrisma.sdrOutreachDraft.findMany({
         where: {
@@ -2930,21 +3340,57 @@ export async function runAutomatedFollowupScheduler() {
           prospect: {
             autoFollowupPaused: false,
             agentContactedAt: null,
-            pipelineStatus: { notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto'] },
-            drafts: { none: { sequenceStep: STEP_3_WARM_FOLLOWUP } },
+            promotedB2bUserId: null,
+            pipelineStatus: {
+              notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Convertito'],
+            },
           },
         },
+        orderBy: { catalogOpenedAt: 'desc' },
         select: { prospectId: true },
-        take: 80,
+        take: 400,
       }),
     ]);
 
-    const candidateSdrProspectIds = Array.from(
+    const rawWarmProspectIds = Array.from(
       new Set([
         ...warmPromosFromB2B.map((p) => p.sdrProspectId),
         ...warmDraftsFromSdr.map((d) => d.prospectId),
       ])
     );
+
+    // Pre-filtro rapido contro starvation: esclude chi ha già Step 3 nel proprio giro corrente (`outreachCycle`)
+    const preFilteredProspects =
+      rawWarmProspectIds.length > 0
+        ? await sdrPrisma.sdrProspect.findMany({
+            where: {
+              id: { in: rawWarmProspectIds },
+              autoFollowupPaused: false,
+              agentContactedAt: null,
+              promotedB2bUserId: null,
+              pipelineStatus: {
+                notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Convertito'],
+              },
+              OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }],
+            },
+            select: {
+              id: true,
+              outreachCycle: true,
+              drafts: {
+                where: { sequenceStep: STEP_3_WARM_FOLLOWUP },
+                select: { cycleNumber: true },
+              },
+            },
+          })
+        : [];
+
+    const candidateSdrProspectIds = preFilteredProspects
+      .filter((p) => {
+        const curCycle = Math.max(1, p.outreachCycle || 1);
+        return !p.drafts.some((d) => (d.cycleNumber || 1) === curCycle);
+      })
+      .map((p) => p.id)
+      .slice(0, 80);
 
     for (const sdrPid of candidateSdrProspectIds) {
       const prospect = await sdrPrisma.sdrProspect.findUnique({
@@ -2956,20 +3402,30 @@ export async function runAutomatedFollowupScheduler() {
       if (
         prospect.autoFollowupPaused ||
         prospect.agentContactedAt != null ||
+        prospect.promotedB2bUserId != null ||
         prospect.emailVerifyStatus === 'INVALID' ||
         prospect.pipelineStatus === 'Opt_Out' ||
         prospect.pipelineStatus === 'Bounce_Invalido' ||
-        prospect.pipelineStatus === 'Ha_Risposto'
+        prospect.pipelineStatus === 'Ha_Risposto' ||
+        prospect.pipelineStatus === 'Convertito'
       ) {
         continue;
       }
 
-      // Non deve già avere Step 3 né risposte su bozze precedenti
-      if (prospect.drafts.some((d) => d.sequenceStep === STEP_3_WARM_FOLLOWUP)) continue;
+      const currentCycle = Math.max(1, prospect.outreachCycle || 1);
+
+      // Non deve già avere Step 3 nel giro corrente né risposte su bozze precedenti
+      if (
+        prospect.drafts.some(
+          (d) => d.sequenceStep === STEP_3_WARM_FOLLOWUP && (d.cycleNumber || 1) === currentCycle
+        )
+      ) {
+        continue;
+      }
       if (prospect.drafts.some((d) => d.replyReceivedAt != null)) continue;
 
       // Deve avere almeno una mail effettivamente inviata da cui ereditare `senderInboxId` e `subject`
-      const sentDrafts = prospect.drafts.filter((d) => d.status === 'Inviata');
+      const sentDrafts = prospect.drafts.filter((d) => sentStatuses.includes(d.status));
       if (sentDrafts.length === 0) continue;
 
       const replyOrBounceEvent = await sdrPrisma.sdrInboxEvent.findFirst({
@@ -3003,26 +3459,88 @@ export async function runAutomatedFollowupScheduler() {
         continue;
       }
 
-      // Verifica che l'apertura reale PDF o il login siano avvenuti da almeno step3WarmDelayDays
-      const draftOpenedAt = prospect.drafts
-        .filter((d) => d.catalogOpenCount > 0 && d.catalogOpenedAt)
-        .map((d) => d.catalogOpenedAt!.getTime())
-        .sort((a, b) => a - b)[0];
-      const promoOpenedAt =
-        promo.catalogOpenCount > 0 && promo.catalogOpenedAt
-          ? promo.catalogOpenedAt.getTime()
-          : undefined;
-      const promoLoginAt =
-        promo.loginCount > 0
-          ? (promo.firstLoginAt || promo.lastLoginAt)?.getTime()
-          : undefined;
+      let anchorDraft =
+        sentDrafts.find((d) => d.sequenceStep === STEP_1_INITIAL) || sentDrafts[0];
 
-      const earliestEngagementMs = [draftOpenedAt, promoOpenedAt, promoLoginAt]
-        .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
-        .sort((a, b) => a - b)[0];
+      if (currentCycle === 1) {
+        // Giro 1: apertura reale PDF o login avvenuta da almeno step3WarmDelayDays
+        const draftOpenedAt = prospect.drafts
+          .filter((d) => d.catalogOpenCount > 0 && d.catalogOpenedAt)
+          .map((d) => d.catalogOpenedAt!.getTime())
+          .sort((a, b) => a - b)[0];
+        const promoOpenedAt =
+          promo.catalogOpenCount > 0 && promo.catalogOpenedAt
+            ? promo.catalogOpenedAt.getTime()
+            : undefined;
+        const promoLoginAt =
+          promo.loginCount > 0
+            ? (promo.firstLoginAt || promo.lastLoginAt)?.getTime()
+            : undefined;
 
-      if (!earliestEngagementMs || earliestEngagementMs > step3WarmCutoff.getTime()) {
-        continue;
+        const earliestEngagementMs = [draftOpenedAt, promoOpenedAt, promoLoginAt]
+          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+          .sort((a, b) => a - b)[0];
+
+        if (!earliestEngagementMs || earliestEngagementMs > step3WarmCutoff.getTime()) {
+          continue;
+        }
+      } else {
+        // Giro N >= 2: scatta SOLO SE il cliente ha aperto davvero il PDF o fatto login
+        // DOPO l'invio della mail del Giro N (`sequenceStep = 20`, `cycleNumber = currentCycle`)!
+        const loopDraft = sentDrafts.find(
+          (d) =>
+            d.sequenceStep === STEP_20_QUARTERLY_LOOP &&
+            (d.cycleNumber || 1) === currentCycle &&
+            d.sentAt != null
+        );
+        if (!loopDraft || !loopDraft.sentAt) continue;
+
+        const loopSentMs = loopDraft.sentAt.getTime();
+        const postLoopDraftOpens = prospect.drafts
+          .filter(
+            (d) =>
+              d.catalogOpenCount > 0 &&
+              d.catalogOpenedAt != null &&
+              d.catalogOpenedAt.getTime() > loopSentMs
+          )
+          .map((d) => d.catalogOpenedAt!.getTime());
+
+        const postLoopPromoOpen =
+          promo.catalogOpenCount > 0 &&
+          promo.catalogOpenedAt &&
+          promo.catalogOpenedAt.getTime() > loopSentMs
+            ? promo.catalogOpenedAt.getTime()
+            : undefined;
+
+        const postLoopLastLogin =
+          promo.loginCount > 0 && promo.lastLoginAt && promo.lastLoginAt.getTime() > loopSentMs
+            ? promo.lastLoginAt.getTime()
+            : undefined;
+
+        const postLoopFirstLogin =
+          promo.loginCount > 0 && promo.firstLoginAt && promo.firstLoginAt.getTime() > loopSentMs
+            ? promo.firstLoginAt.getTime()
+            : undefined;
+
+        const postLoopEngagements = [
+          ...postLoopDraftOpens,
+          postLoopPromoOpen,
+          postLoopLastLogin,
+          postLoopFirstLogin,
+        ]
+          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v))
+          .sort((a, b) => a - b);
+
+        // Deve aver interagito DOPO `loopDraft.sentAt` E da almeno `step3WarmDelayDays`
+        if (
+          postLoopEngagements.length === 0 ||
+          postLoopEngagements[0] > step3WarmCutoff.getTime()
+        ) {
+          continue;
+        }
+
+        anchorDraft =
+          sentDrafts.find((d) => d.sequenceStep === STEP_1_INITIAL) || loopDraft;
       }
 
       // Verifica 0 ordini in `b2b_orders`
@@ -3037,8 +3555,6 @@ export async function runAutomatedFollowupScheduler() {
       });
       if (ordersCount > 0) continue;
 
-      const anchorDraft =
-        sentDrafts.find((d) => d.sequenceStep === STEP_1_INITIAL) || sentDrafts[0];
       const pinnedInboxId =
         anchorDraft.senderInboxId ||
         sentDrafts.find((d) => d.senderInboxId)?.senderInboxId ||
@@ -3079,11 +3595,13 @@ export async function runAutomatedFollowupScheduler() {
         agentPhone: agent.phone,
         agentEmail: pinnedInbox?.email || agent.email,
         senderInboxEmail: pinnedInbox?.email || null,
+        deterministicSeed: prospect.id + currentCycle * 997,
       });
 
       const createdStep3 = await sdrPrisma.sdrOutreachDraft.create({
         data: {
           prospectId: prospect.id,
+          cycleNumber: currentCycle,
           sequenceStep: STEP_3_WARM_FOLLOWUP,
           subject: step3Email.subject,
           bodyText: step3Email.bodyText,
@@ -3107,7 +3625,7 @@ export async function runAutomatedFollowupScheduler() {
       await scheduleDispatchBatchWithJitter(allToSchedule);
       pushSdrConsoleLog(
         'FOLLOWUP-SCHEDULER',
-        `Generati e pianificati automaticamente ${createdStep2Ids.length} Step 2 (+${step2DelayDays}gg) e ${createdStep3Ids.length} Step 3 Caldi (+${step3WarmDelayDays}gg) sulle medesime caselle Aruba.`,
+        `Generati e pianificati automaticamente ${createdStep2Ids.length} Step 2 (+${step2DelayDays}gg Giro 1) e ${createdStep3Ids.length} Step 3 Caldi (+${step3WarmDelayDays}gg) sulle medesime caselle Aruba.`,
         'SUCCESS'
       );
     }
@@ -3115,12 +3633,707 @@ export async function runAutomatedFollowupScheduler() {
     return {
       step2Created: createdStep2Ids.length,
       step3Created: createdStep3Ids.length,
+      silentCyclesCompleted,
     };
   } catch (err: any) {
     log.error(`Errore runAutomatedFollowupScheduler: ${err.message}`, { module: MODULE_NAME });
     return { error: err.message };
   } finally {
     _followupSchedulerRunning = false;
+  }
+}
+
+let _dailyAutoFeederRunning = false;
+
+/**
+ * CANTIERE 7 — ALIMENTATORE AUTOMATICO GIORNALIERO A 3 PRIORITÀ & LOOP CONTINUO 90+ GIORNI:
+ * - Priorità 1: Risposte "Sì" e Follow-up +5gg (`runAutomatedFollowupScheduler`) hanno precedenza assoluta.
+ * - Priorità 2: Aziende Vergini mai contattate (`virginCount > 0`) -> finché ne resta ANCHE UNA SOLA,
+ *   pesca esclusivamente dalle vergini e NON avvia mai il Loop di riciclo!
+ * - Priorità 3: Loop Continuo 90+ Giorni (`virginCount === 0` e `loopEnabled !== false`),
+ *   con vincolo fisico `cooldownDays = Math.max(90, loopCooldownDays)`, esclusioni sacre cross-DB,
+ *   invalidazione cache PDF Redis (`SCAN` + `DEL`), anti-ripetizione `usedLoopTemplateCodes` e stessa casella Aruba.
+ */
+export async function runDailyAutoFeederAndLoop(options?: {
+  forceManualQa?: boolean;
+  maxBatch?: number;
+  includeInterceptedDryRun?: boolean;
+  dryRunNoQueue?: boolean;
+}) {
+  if (_dailyAutoFeederRunning) {
+    return { skipped: true, reason: 'ALREADY_RUNNING_IN_PROCESS' };
+  }
+
+  const feederRedisLockKey = 'sdr:lock:daily-auto-feeder';
+  const lockAcquired = await redisClient
+    .set(feederRedisLockKey, '1', 'EX', 600, 'NX')
+    .then((r) => r === 'OK')
+    .catch(() => true);
+
+  if (!lockAcquired) {
+    return { skipped: true, reason: 'ALREADY_RUNNING_DISTRIBUTED_LOCK' };
+  }
+
+  _dailyAutoFeederRunning = true;
+
+  try {
+    // ------------------------------------------------------------------------
+    // PRIORITÀ 1: Esegue SEMPRE prima lo scheduler dei follow-up +5gg (Step 2 Giro 1 + Step 3 Caldi)
+    // ------------------------------------------------------------------------
+    const followupResult = await runAutomatedFollowupScheduler({
+      includeInterceptedDryRun: options?.includeInterceptedDryRun,
+    });
+
+    const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
+
+    if (!options?.forceManualQa) {
+      if (config?.autoFeederEnabled !== true) {
+        return {
+          skipped: true,
+          reason: 'AUTO_FEEDER_DISABLED',
+          followupResult,
+        };
+      }
+
+      if (!IS_SDR_LIVE) {
+        return {
+          skipped: true,
+          reason: 'SDR_LIVE_DISABLED',
+          followupResult,
+        };
+      }
+
+      const fenceDelayMs = computeTimeFencingDelayMs(config);
+      if (fenceDelayMs > 0) {
+        return {
+          skipped: true,
+          reason: 'OUTSIDE_BUSINESS_WINDOW',
+          nextWindowInMs: fenceDelayMs,
+          followupResult,
+        };
+      }
+    }
+
+    await resetDailyInboxQuotasIfNeeded();
+    const { minutesOfDay } = getRomeDateParts();
+    const endOfRomeDay = new Date(Date.now() + Math.max(1, 24 * 60 - minutesOfDay) * 60_000);
+
+    const [activeInboxes, pendingTodayDrafts] = await Promise.all([
+      sdrPrisma.sdrInboxAccount.findMany({ where: { isActive: true } }),
+      sdrPrisma.sdrOutreachDraft.findMany({
+        where: {
+          status: { in: ['Bozza_Pronta', 'In_Coda_SMTP'] },
+          OR: [{ scheduledFor: null }, { scheduledFor: { lte: endOfRomeDay } }],
+        },
+        select: { id: true, senderInboxId: true },
+      }),
+    ]);
+
+    const pendingByInboxId = new Map<number, number>();
+    for (const pd of pendingTodayDrafts) {
+      if (pd.senderInboxId) {
+        pendingByInboxId.set(pd.senderInboxId, (pendingByInboxId.get(pd.senderInboxId) || 0) + 1);
+      }
+    }
+
+    const inboxMap = new Map(activeInboxes.map((mb) => [mb.id, mb]));
+    const remainingSlotsByInboxId = new Map<number, number>();
+    let rawRemainingPoolQuota = 0;
+
+    for (const acc of activeInboxes) {
+      const ramp = computeEffectiveInboxDailyLimit(acc, config?.speedProfile);
+      const rawRem = Math.max(0, ramp.effectiveDailyLimit - acc.sentToday);
+      rawRemainingPoolQuota += rawRem;
+      const pinnedPending = pendingByInboxId.get(acc.id) || 0;
+      remainingSlotsByInboxId.set(acc.id, Math.max(0, rawRem - pinnedPending));
+    }
+
+    const pendingTodayDraftsCount = pendingTodayDrafts.length;
+    const availableSlots = rawRemainingPoolQuota - pendingTodayDraftsCount;
+
+    if (availableSlots <= 0 && !options?.forceManualQa) {
+      return {
+        status: 'quota_full',
+        rawRemainingPoolQuota,
+        pendingTodayDraftsCount,
+        availableSlots: 0,
+        followupResult,
+      };
+    }
+
+    const maxTickBatch = Math.max(1, Math.min(15, Number(options?.maxBatch || 15)));
+    const batchCap =
+      availableSlots > 0
+        ? Math.min(availableSlots, maxTickBatch)
+        : Math.min(maxTickBatch, Number(options?.maxBatch || 5));
+
+    // ------------------------------------------------------------------------
+    // PRIORITÀ 2: AZIENDE VERGINI MAI CONTATTATE (`virginCount > 0` TASSATIVO!)
+    // Include sia i prospect con 0 bozze sia quelli con sola bozza disarmata `Template_Da_Attivare`.
+    // Finché `virginCount > 0`, l'alimentatore pesca SOLO dalle vergini e NON avvia MAI il Loop!
+    // ------------------------------------------------------------------------
+    const virginWhere = {
+      section: 'Email_Pronta',
+      pipelineStatus: 'Da_Contattare',
+      autoFollowupPaused: false,
+      agentContactedAt: null,
+      promotedB2bUserId: null,
+      lastOutreachSentAt: null,
+      ordinaryEmail: { not: null },
+      NOT: { ordinaryEmail: '' },
+      OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }],
+      drafts: {
+        none: {
+          status: { not: 'Template_Da_Attivare' },
+        },
+      },
+    };
+
+    const virginCount = await sdrPrisma.sdrProspect.count({ where: virginWhere });
+
+    if (virginCount > 0) {
+      const virginBatch = await sdrPrisma.sdrProspect.findMany({
+        where: virginWhere,
+        orderBy: [{ leadScore: 'desc' }, { id: 'asc' }],
+        take: Math.min(virginCount, batchCap * 2),
+        select: {
+          id: true,
+          companyName: true,
+          ordinaryEmail: true,
+          phone: true,
+          whatsappPhone: true,
+          vatNumber: true,
+          promoProspectId: true,
+          promotedB2bUserId: true,
+        },
+      });
+
+      const preparedVirginDraftIds: number[] = [];
+      let skippedExcludedVirgins = 0;
+
+      for (const virgin of virginBatch) {
+        if (preparedVirginDraftIds.length >= batchCap) break;
+
+        const cleanEmail = (virgin.ordinaryEmail || '').trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
+          const hasPhone = prospectHasPhoneOrWhatsapp(virgin);
+          await sdrPrisma.sdrProspect
+            .update({
+              where: { id: virgin.id },
+              data: hasPhone
+                ? { section: 'Senza_Email', emailVerifyStatus: 'INVALID' }
+                : {
+                    pipelineStatus: 'Bounce_Invalido',
+                    emailVerifyStatus: 'INVALID',
+                    autoFollowupPaused: true,
+                  },
+            })
+            .catch(() => {});
+          skippedExcludedVirgins++;
+          continue;
+        }
+
+        // Controllo incrociato preventivo su B2B (se già cliente attivo, già ordinato o già chiamato da Daniele)
+        const [existingActiveUser, existingPromo] = await Promise.all([
+          b2bPrisma.b2BUser
+            .findFirst({
+              where: {
+                OR: [
+                  { sdrProspectId: virgin.id },
+                  { email: { equals: cleanEmail, mode: 'insensitive' } },
+                  ...(virgin.vatNumber ? [{ vatNumber: virgin.vatNumber }] : []),
+                ],
+              },
+              select: { id: true },
+            })
+            .catch(() => null),
+          b2bPrisma.b2BPromoProspect
+            .findFirst({
+              where: {
+                OR: [
+                  { sdrProspectId: virgin.id },
+                  { email: { equals: cleanEmail, mode: 'insensitive' } },
+                ],
+              },
+              select: {
+                id: true,
+                status: true,
+                autoFollowupPaused: true,
+                agentContactedAt: true,
+                lastReplyAt: true,
+                convertedToUserId: true,
+                firstOrderId: true,
+              },
+            })
+            .catch(() => null),
+        ]);
+
+        const existingPromoOrders = existingPromo?.id
+          ? await b2bPrisma.b2BOrder
+              .count({ where: { promoProspectId: existingPromo.id } })
+              .catch(() => 0)
+          : 0;
+
+        if (
+          existingActiveUser ||
+          existingPromoOrders > 0 ||
+          existingPromo?.convertedToUserId != null ||
+          existingPromo?.firstOrderId != null ||
+          existingPromo?.status === 'CONVERTED' ||
+          existingPromo?.status === 'ORDER_PENDING_APPROVAL' ||
+          existingPromo?.autoFollowupPaused ||
+          existingPromo?.agentContactedAt != null ||
+          existingPromo?.lastReplyAt != null
+        ) {
+          await sdrPrisma.sdrProspect
+            .update({
+              where: { id: virgin.id },
+              data: {
+                autoFollowupPaused: true,
+                pipelineStatus:
+                  existingActiveUser ||
+                  existingPromoOrders > 0 ||
+                  existingPromo?.convertedToUserId != null ||
+                  existingPromo?.firstOrderId != null
+                    ? 'Convertito'
+                    : 'Ha_Risposto',
+              },
+            })
+            .catch(() => {});
+          skippedExcludedVirgins++;
+          continue;
+        }
+
+        try {
+          const pkg = await prepareOutreachPackageForProspect(virgin.id);
+          preparedVirginDraftIds.push(pkg.draftId);
+        } catch (prepErr: any) {
+          const msg = String(prepErr?.message || '');
+          if (msg.toLowerCase().includes('blacklist')) {
+            await sdrPrisma.sdrProspect
+              .update({
+                where: { id: virgin.id },
+                data: { pipelineStatus: 'Bounce_Invalido', autoFollowupPaused: true },
+              })
+              .catch(() => {});
+          } else {
+            log.warn(`Auto-Feeder skip vergine #${virgin.id}: ${msg}`, { module: MODULE_NAME });
+          }
+          skippedExcludedVirgins++;
+        }
+      }
+
+      if (preparedVirginDraftIds.length > 0 && !options?.dryRunNoQueue) {
+        await scheduleDispatchBatchWithJitter(preparedVirginDraftIds);
+        pushSdrConsoleLog(
+          'AUTO-FEEDER-VIRGIN',
+          `Alimentatore Giornaliero (Priorità 2 Vergini): preparati e pianificati ${preparedVirginDraftIds.length} nuovi pacchetti Step 1 (vergini residue stimate: ${Math.max(
+            0,
+            virginCount - preparedVirginDraftIds.length - skippedExcludedVirgins
+          )}). Loop 90gg bloccato finché virginCount > 0.`,
+          'SUCCESS'
+        );
+      }
+
+      // REGOLA TASSATIVA DEL TITOLARE: finché virginCount > 0, MAI avviare Priorità 3 (Loop)!
+      return {
+        mode: 'PRIORITY_2_VIRGINS' as const,
+        loopTriggered: false,
+        virginCountBefore: virginCount,
+        virginPreparedCount: preparedVirginDraftIds.length,
+        preparedDraftIds: preparedVirginDraftIds,
+        skippedExcludedVirgins,
+        availableSlots,
+        followupResult,
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // PRIORITÀ 3: LOOP CONTINUO 90+ GIORNI (SOLO QUANDO `virginCount === 0`!)
+    // Vincolo fisico invalicabile: `cooldownDays = Math.max(90, loopCooldownDays)` (minimo 90 giorni / 3 mesi).
+    // ------------------------------------------------------------------------
+    if (config?.loopEnabled === false) {
+      return {
+        mode: 'LOOP_DISABLED' as const,
+        loopTriggered: false,
+        virginCountBefore: 0,
+        loopDraftsCreated: 0,
+        followupResult,
+      };
+    }
+
+    const cooldownDays = Math.max(90, Number(config?.loopCooldownDays || 90));
+    const cutoff90d = new Date(Date.now() - cooldownDays * 86_400_000);
+    const loopSentStatuses = options?.includeInterceptedDryRun
+      ? ['Inviata', 'Inviata_Dry_Run']
+      : ['Inviata'];
+
+    const rawLoopCandidates = await sdrPrisma.sdrProspect.findMany({
+      where: {
+        section: 'Email_Pronta',
+        autoFollowupPaused: false,
+        agentContactedAt: null,
+        promotedB2bUserId: null,
+        ordinaryEmail: { not: null },
+        NOT: { ordinaryEmail: '' },
+        pipelineStatus: {
+          notIn: ['Opt_Out', 'Bounce_Invalido', 'Ha_Risposto', 'Convertito', 'Da_Contattare'],
+        },
+        AND: [
+          {
+            OR: [{ emailVerifyStatus: null }, { emailVerifyStatus: { not: 'INVALID' } }],
+          },
+          {
+            OR: [
+              { lastOutreachSentAt: { not: null, lte: cutoff90d } },
+              {
+                lastOutreachSentAt: null,
+                drafts: {
+                  some: {
+                    status: { in: loopSentStatuses },
+                    sentAt: { lte: cutoff90d },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        drafts: {
+          none: {
+            OR: [
+              { status: { in: ['Bozza_Pronta', 'In_Coda_SMTP'] } },
+              {
+                sequenceStep: STEP_20_QUARTERLY_LOOP,
+                sentAt: null,
+                status: { not: 'Annullato_KillSwitch' },
+              },
+              { sentAt: { gt: cutoff90d } },
+              { replyReceivedAt: { not: null } },
+            ],
+          },
+        },
+      },
+      include: {
+        drafts: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: [{ lastOutreachSentAt: { sort: 'asc', nulls: 'first' } }, { updatedAt: 'asc' }],
+      take: Math.max(batchCap * 4, 40),
+    });
+
+    // Ordina rigorosamente per ultima email inviata ASC (chi non ci sente da più tempo parte per primo!)
+    const getEffectiveLastSentMs = (p: (typeof rawLoopCandidates)[number]): number => {
+      const propMs = p.lastOutreachSentAt ? p.lastOutreachSentAt.getTime() : 0;
+      const maxDraftMs = p.drafts.reduce((mx, d) => {
+        const ms = d.sentAt ? d.sentAt.getTime() : 0;
+        return ms > mx ? ms : mx;
+      }, 0);
+      return Math.max(propMs, maxDraftMs);
+    };
+
+    const sortedLoopCandidates = [...rawLoopCandidates].sort(
+      (a, b) => getEffectiveLastSentMs(a) - getEffectiveLastSentMs(b)
+    );
+
+    const createdLoopDraftIds: number[] = [];
+    let excludedDuringLoopScan = 0;
+
+    for (const prospect of sortedLoopCandidates) {
+      if (createdLoopDraftIds.length >= batchCap) break;
+
+      const effectiveLastSentMs = getEffectiveLastSentMs(prospect);
+      // Doppio sbarramento matematico: MAI meno di 90 giorni dall'ultima email inviata!
+      if (!effectiveLastSentMs || effectiveLastSentMs > cutoff90d.getTime()) {
+        continue;
+      }
+
+      const cleanEmail = (prospect.ordinaryEmail || '').trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) continue;
+
+      const emailDomain = cleanEmail.split('@')[1] || '';
+      const [blacklisted, blockingInboxEvent, activeB2bUser, promo] = await Promise.all([
+        sdrPrisma.sdrBlacklist.findFirst({
+          where: {
+            OR: [
+              { emailOrDomain: cleanEmail },
+              ...(emailDomain ? [{ emailOrDomain: emailDomain }] : []),
+            ],
+          },
+          select: { id: true },
+        }),
+        sdrPrisma.sdrInboxEvent.findFirst({
+          where: {
+            prospectId: prospect.id,
+            eventType: { in: ['REPLY', 'OPT_OUT', 'BOUNCE'] },
+          },
+          select: { id: true, eventType: true },
+        }),
+        b2bPrisma.b2BUser
+          .findFirst({
+            where: {
+              OR: [
+                { sdrProspectId: prospect.id },
+                { email: { equals: cleanEmail, mode: 'insensitive' } },
+                ...(prospect.vatNumber ? [{ vatNumber: prospect.vatNumber }] : []),
+              ],
+            },
+            select: { id: true },
+          })
+          .catch(() => null),
+        prospect.promoProspectId
+          ? b2bPrisma.b2BPromoProspect
+              .findUnique({ where: { id: prospect.promoProspectId } })
+              .catch(() => null)
+          : b2bPrisma.b2BPromoProspect
+              .findFirst({
+                where: {
+                  OR: [
+                    { sdrProspectId: prospect.id },
+                    { email: { equals: cleanEmail, mode: 'insensitive' } },
+                  ],
+                },
+              })
+              .catch(() => null),
+      ]);
+
+      if (blacklisted || blockingInboxEvent) {
+        const nextStatus =
+          blacklisted || blockingInboxEvent?.eventType === 'BOUNCE'
+            ? 'Bounce_Invalido'
+            : blockingInboxEvent?.eventType === 'OPT_OUT'
+              ? 'Opt_Out'
+              : 'Ha_Risposto';
+        await sdrPrisma.sdrProspect
+          .update({
+            where: { id: prospect.id },
+            data: { pipelineStatus: nextStatus, autoFollowupPaused: true },
+          })
+          .catch(() => {});
+        excludedDuringLoopScan++;
+        continue;
+      }
+
+      const ordersCount = await b2bPrisma.b2BOrder
+        .count({
+          where: {
+            OR: [
+              ...(promo?.id ? [{ promoProspectId: promo.id }] : []),
+              ...(promo?.convertedToUserId ? [{ userId: promo.convertedToUserId }] : []),
+              ...(prospect.promotedB2bUserId ? [{ userId: prospect.promotedB2bUserId }] : []),
+              ...(activeB2bUser?.id ? [{ userId: activeB2bUser.id }] : []),
+            ],
+          },
+        })
+        .catch(() => 0);
+
+      // Esclusioni sacre su b2b_promo_prospects, b2b_orders e b2b_users -> salta e segna escluso!
+      if (
+        ordersCount > 0 ||
+        activeB2bUser != null ||
+        promo?.convertedToUserId != null ||
+        promo?.firstOrderId != null ||
+        promo?.status === 'CONVERTED' ||
+        promo?.status === 'ORDER_PENDING_APPROVAL' ||
+        promo?.status === 'EXPIRED' ||
+        promo?.autoFollowupPaused === true ||
+        promo?.agentContactedAt != null ||
+        promo?.lastReplyAt != null
+      ) {
+        const isConverted =
+          ordersCount > 0 ||
+          activeB2bUser != null ||
+          promo?.convertedToUserId != null ||
+          promo?.firstOrderId != null ||
+          promo?.status === 'CONVERTED' ||
+          promo?.status === 'ORDER_PENDING_APPROVAL';
+
+        await sdrPrisma.sdrProspect
+          .update({
+            where: { id: prospect.id },
+            data: {
+              autoFollowupPaused: true,
+              ...(promo?.agentContactedAt && !prospect.agentContactedAt
+                ? { agentContactedAt: promo.agentContactedAt }
+                : {}),
+              ...(isConverted
+                ? { pipelineStatus: 'Convertito' }
+                : promo?.lastReplyAt
+                  ? { pipelineStatus: 'Ha_Risposto' }
+                  : {}),
+            },
+          })
+          .catch(() => {});
+        excludedDuringLoopScan++;
+        continue;
+      }
+
+      if (!promo || !promo.isActive) {
+        continue;
+      }
+
+      const sentDrafts = prospect.drafts.filter(
+        (d) =>
+          loopSentStatuses.includes(d.status) ||
+          (prospect.lastOutreachSentAt != null && d.status === 'Inviata_Dry_Run')
+      );
+      const step1Draft =
+        prospect.drafts.find((d) => d.sequenceStep === STEP_1_INITIAL) ||
+        sentDrafts[0] ||
+        prospect.drafts[0];
+      if (!step1Draft) continue;
+
+      const pinnedInboxId =
+        step1Draft.senderInboxId ||
+        sentDrafts.find((d) => d.senderInboxId)?.senderInboxId ||
+        null;
+      const pinnedInbox = pinnedInboxId ? inboxMap.get(pinnedInboxId) : undefined;
+
+      // Se la casella Aruba fissata per il cliente non ha slot liberi oggi (o è offline),
+      // NON cambiamo casella: passiamo al candidato successivo e questo partirà domani sulla SUA casella!
+      if (
+        pinnedInboxId &&
+        !options?.forceManualQa &&
+        (!pinnedInbox || (remainingSlotsByInboxId.get(pinnedInboxId) || 0) <= 0)
+      ) {
+        continue;
+      }
+
+      let masterToken = step1Draft.trackingToken || promo.smartOfferToken || '';
+      if (!masterToken) {
+        masterToken = generateTrackingToken();
+        await sdrPrisma.sdrOutreachDraft
+          .update({ where: { id: step1Draft.id }, data: { trackingToken: masterToken } })
+          .catch(() => {});
+      }
+      if (promo.smartOfferToken !== masterToken) {
+        await b2bPrisma.b2BPromoProspect
+          .update({ where: { id: promo.id }, data: { smartOfferToken: masterToken } })
+          .catch(() => {});
+      }
+
+      const smartUrls = buildSmartOfferUrls(masterToken);
+      const nextCycle = Math.max(1, prospect.outreachCycle || 1) + 1;
+
+      // Invalida la cache Redis del Catalistino PDF così al clic rigenera PDF fresco con giacenze/prezzi attuali + credenziali!
+      await invalidateProspectCatalogPdfCache(prospect.id);
+
+      const agent = await resolveAgentForProspect(
+        step1Draft.assignedAgentId || prospect.assignedAgentId,
+        step1Draft.assignedAgentCode || prospect.assignedAgentCode
+      );
+      const clusterCfg = resolveClusterConfig(
+        prospect.categoryCluster,
+        prospect.commercialCategory
+      );
+      const extraPct =
+        clusterCfg.commercialCategory === 'RIV'
+          ? Number(config?.rivExtraDiscountPct ?? 10)
+          : Number(config?.istExtraDiscountPct ?? 10);
+      const richMetaObj =
+        prospect.richMetadata && typeof prospect.richMetadata === 'object'
+          ? (prospect.richMetadata as Record<string, any>)
+          : null;
+
+      const loopMail = generateQuarterlyLoopEmail({
+        prospectId: prospect.id,
+        cycleNumber: nextCycle,
+        outreachCycle: nextCycle,
+        usedLoopTemplateCodes: prospect.usedLoopTemplateCodes || [],
+        companyName: prospect.companyName,
+        city: prospect.city,
+        province: prospect.province,
+        region: prospect.region,
+        website: prospect.website,
+        atecoCode: prospect.atecoCode,
+        categoryCluster: clusterCfg.cluster,
+        commercialCategory: clusterCfg.commercialCategory,
+        brandsDetected: prospect.brandsDetected,
+        decisionMaker: richMetaObj?.decision_maker || null,
+        richMetadata: richMetaObj,
+        originalSubject: step1Draft.subject,
+        smartCatalogUrl: smartUrls.storefrontOfferUrl,
+        trackingToken: masterToken,
+        baseDiscount: clusterCfg.baseDiscount,
+        extraFirstPurchasePct: config?.enableFirstPurchaseRule === false ? 0 : extraPct,
+        minOrderAmountText: config?.minOrderAmountText || "Nessun minimo d'ordine",
+        freeShippingText:
+          config?.freeShippingText || 'Spedizione curata e tracciata in tutta Italia',
+        paymentTermsText:
+          config?.paymentTermsText || `Referente dedicato ${agent.name}`,
+        agentName: agent.name,
+        agentPhone: agent.phone,
+        agentEmail: pinnedInbox?.email || agent.email,
+        senderInboxEmail: pinnedInbox?.email || null,
+      });
+
+      const attachCatalogPdf = config?.attachCatalogPdf ?? true;
+
+      const [newLoopDraft] = await sdrPrisma.$transaction([
+        sdrPrisma.sdrOutreachDraft.create({
+          data: {
+            prospectId: prospect.id,
+            cycleNumber: nextCycle,
+            sequenceStep: STEP_20_QUARTERLY_LOOP,
+            subject: loopMail.subject,
+            bodyText: loopMail.bodyText,
+            bodyHtml: loopMail.bodyHtml,
+            templateCode: loopMail.templateCode,
+            attachedCatalogUrl: attachCatalogPdf ? smartUrls.apiPdfDownloadUrl : null,
+            trackingToken: null,
+            senderInboxId: pinnedInboxId,
+            assignedAgentId: agent.id,
+            assignedAgentCode: agent.code,
+            assignedAgentName: agent.name,
+            status: 'Bozza_Pronta',
+          },
+        }),
+        sdrPrisma.sdrProspect.update({
+          where: { id: prospect.id },
+          data: {
+            outreachCycle: nextCycle,
+            cycleCompletedAt: null,
+            usedLoopTemplateCodes: loopMail.updatedUsedLoopTemplateCodes,
+          },
+        }),
+      ]);
+
+      if (pinnedInboxId) {
+        remainingSlotsByInboxId.set(
+          pinnedInboxId,
+          Math.max(0, (remainingSlotsByInboxId.get(pinnedInboxId) || 0) - 1)
+        );
+      }
+
+      createdLoopDraftIds.push(newLoopDraft.id);
+    }
+
+    if (createdLoopDraftIds.length > 0 && !options?.dryRunNoQueue) {
+      await scheduleDispatchBatchWithJitter(createdLoopDraftIds);
+      pushSdrConsoleLog(
+        'AUTO-LOOP-90D',
+        `Loop Trimestrale 90+gg (Priorità 3, vergini=0, cooldown=${cooldownDays}gg): generate e pianificate ${createdLoopDraftIds.length} email di ricontatto sulle stesse caselle Aruba con PDF aggiornato.`,
+        'SUCCESS'
+      );
+    }
+
+    return {
+      mode: 'PRIORITY_3_QUARTERLY_LOOP' as const,
+      loopTriggered: createdLoopDraftIds.length > 0,
+      virginCountBefore: 0,
+      cooldownDays,
+      loopDraftsCreated: createdLoopDraftIds.length,
+      createdLoopDraftIds,
+      excludedDuringLoopScan,
+      availableSlots,
+      followupResult,
+    };
+  } catch (err: any) {
+    log.error(`Errore runDailyAutoFeederAndLoop: ${err.message}`, { module: MODULE_NAME });
+    return { error: err.message };
+  } finally {
+    _dailyAutoFeederRunning = false;
+    await redisClient.del(feederRedisLockKey).catch(() => {});
   }
 }
 
@@ -3197,7 +4410,18 @@ async function processOutreachJob(job: Job) {
   }
 
   if (action === FOLLOWUP_SCHEDULER_ACTION) {
-    return await runAutomatedFollowupScheduler();
+    return await runAutomatedFollowupScheduler({
+      includeInterceptedDryRun: Boolean(data.includeInterceptedDryRun),
+    });
+  }
+
+  if (action === DAILY_AUTO_FEEDER_ACTION) {
+    return await runDailyAutoFeederAndLoop({
+      forceManualQa: Boolean(data.forceManualQa),
+      maxBatch: data.maxBatch ? Number(data.maxBatch) : undefined,
+      includeInterceptedDryRun: Boolean(data.includeInterceptedDryRun),
+      dryRunNoQueue: Boolean(data.dryRunNoQueue),
+    });
   }
 
   if (action === SDR_JOBS.DAILY_RESET_QUOTA) {
@@ -3246,6 +4470,12 @@ async function startWorker() {
 
   const copywriterConn = createRedisConnection();
   const outreachConn = createRedisConnection();
+  copywriterConn.on('error', (err) => {
+    log.warn(`Redis copywriterConn warning: ${err.message}`, { module: MODULE_NAME });
+  });
+  outreachConn.on('error', (err) => {
+    log.warn(`Redis outreachConn warning: ${err.message}`, { module: MODULE_NAME });
+  });
 
   const copywriterWorker = new Worker('sdr-copywriter-queue', processCopywriterJob, {
     connection: copywriterConn as any,
@@ -3276,25 +4506,30 @@ async function startWorker() {
       .catch(() => {});
   }, 3 * 60 * 1000);
 
-  // Schedula ciclo automatico Step 2 (Giorno +5) e Step 3 (Giorno +5 Solo Caldi) + reset quote ogni 30 minuti
+  // Tick periodico ogni 30 minuti:
+  // 1) Reset quote giornaliere Aruba
+  // 2) Priorità 1: Follow-up automatici +5gg (Step 2 Giro 1 + Step 3 Caldi Multi-Giro)
+  // 3) Priorità 2 & 3 (SOLO se `autoFeederEnabled === true` e finestra Lun-Ven Europe/Rome): Vergini -> Loop 90+gg
   setInterval(() => {
     resetDailyInboxQuotasIfNeeded().catch(() => {});
     sdrOutreachQueue
       .add(
-        FOLLOWUP_SCHEDULER_ACTION,
-        { action: FOLLOWUP_SCHEDULER_ACTION },
-        { jobId: `followup-sched-${Math.floor(Date.now() / 1800000)}`, removeOnComplete: true }
+        DAILY_AUTO_FEEDER_ACTION,
+        { action: DAILY_AUTO_FEEDER_ACTION },
+        { jobId: `daily-feeder-${Math.floor(Date.now() / 1800000)}`, removeOnComplete: true }
       )
       .catch(() => {});
   }, 30 * 60 * 1000);
 
   log.info(
-    `🚀 Worker AI-SDR Outreach & Sentinella IMAP 3-Tempi (Pool 60 Caselle Aruba | SDR_LIVE=${IS_SDR_LIVE} | INTERCEPT_TO=${SDR_INTERCEPT_TO || 'OFF'} | GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
+    `🚀 Worker AI-SDR Outreach, Sentinella IMAP & Loop 90+gg (Pool 60 Caselle Aruba | SDR_LIVE=${IS_SDR_LIVE} | INTERCEPT_TO=${SDR_INTERCEPT_TO || 'OFF'} | GLOBAL_WRITES=${env.ENABLE_GLOBAL_WRITES}) avviato!`,
     { module: MODULE_NAME }
   );
 }
 
-startWorker().catch((err) => {
-  log.error(`Errore fatale avvio ${MODULE_NAME}: ${err.message}`, { module: MODULE_NAME });
-  process.exit(1);
-});
+if (require.main === module) {
+  startWorker().catch((err) => {
+    log.error(`Errore fatale avvio ${MODULE_NAME}: ${err.message}`, { module: MODULE_NAME });
+    process.exit(1);
+  });
+}

@@ -158,6 +158,9 @@ export default function AiSdrB2BApp() {
     hasMillionVerifierKey: false,
     step2DelayDays: 5,
     step3WarmDelayDays: 5,
+    autoFeederEnabled: false,
+    loopEnabled: true,
+    loopCooldownDays: 90,
     defaultAgentCode: '003',
     defaultAgentName: 'Daniele Savoia',
     defaultAgentEmail: '',
@@ -890,15 +893,20 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
   const handleSaveConfig = async () => {
     try {
       setLoading(true);
+      const safePayload = {
+        ...config,
+        loopCooldownDays: Math.max(90, Number(config.loopCooldownDays ?? 90) || 90),
+      };
       const res = await fetch(`${API_URL}/api/admin/sdr/config`, {
         method: 'PUT',
         headers: authHeaders(),
-        body: JSON.stringify(config),
+        body: JSON.stringify(safePayload),
       });
       const data = await res.json();
       if (data.success) {
         setConfig((prev) => ({ ...prev, ...data.config }));
-        toast.success('Configurazione SDR, Agente Predefinito e Regole 2gg salvate!');
+        fetchStats();
+        toast.success('Configurazione SDR, Alimentatore & Loop 90gg salvati!');
       } else {
         toast.error(data.error || 'Errore salvataggio configurazione');
       }
