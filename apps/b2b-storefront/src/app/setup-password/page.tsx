@@ -1,8 +1,8 @@
 import { setupPassword } from '../actions/auth';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
-import { prisma } from '@archelia/b2b-database';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default async function SetupPasswordPage({ searchParams }: { searchParams: { error?: string } }) {
   const session = await verifySession();
@@ -10,9 +10,9 @@ export default async function SetupPasswordPage({ searchParams }: { searchParams
     redirect('/login');
   }
 
-  const user = await prisma.b2BUser.findUnique({ where: { id: session.userId } });
+  const user = session.user;
   if (!user || (!user.mustChangePassword && !user.tempPassword)) {
-    redirect('/');
+    redirect('/catalog');
   }
 
   return (
@@ -69,6 +69,14 @@ export default async function SetupPasswordPage({ searchParams }: { searchParams
           >
             Salva e Accedi
           </button>
+          {session.isPromoProspect && (
+            <Link
+              href="/catalog"
+              className="text-center text-xs text-gray-500 hover:text-gray-800 underline mt-1"
+            >
+              Continua a consultare il catalogo e imposta più tardi →
+            </Link>
+          )}
         </form>
       </div>
     </div>

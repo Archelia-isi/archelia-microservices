@@ -126,6 +126,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               impersonatedClientName={impersonatedClientName}
             />
           )}
+          {session?.isPromoProspect && session.user.mustChangePassword && (
+            <div className="bg-amber-50 text-amber-950 border-t border-amber-200 text-xs">
+              <div className="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  ✨ <strong>Accesso riservato attivo per {session.user.companyName}</strong> — Stai consultando il catalogo completo con i tuoi prezzi netti riservati (sconto base{' '}
+                  <strong>{session.user.discount}%</strong> + condizione di benvenuto 1° ordine). I dati fiscali completi verranno richiesti solo al momento dell&apos;eventuale ordine.
+                </span>
+                <Link
+                  href="/setup-password"
+                  className="font-bold text-amber-900 underline hover:text-black shrink-0"
+                >
+                  Imposta password personale (opzionale) →
+                </Link>
+              </div>
+            </div>
+          )}
         </header>
         <main className="flex-grow max-w-7xl mx-auto w-full p-4">
           {children}

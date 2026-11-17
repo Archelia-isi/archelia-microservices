@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
 
-export default async function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function LoginPage({ searchParams }: { searchParams: { error?: string; u?: string } }) {
   const session = await verifySession();
   if (session) {
     redirect('/');
@@ -41,6 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
               name="identifier" 
               type="text" 
               required 
+              defaultValue={searchParams.u || ''}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent transition-all shadow-sm"
               placeholder="cliente.prova o email@azienda.it"
             />

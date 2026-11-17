@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@archelia/b2b-database';
 import { redirect } from 'next/navigation';
 
-const SESSION_COOKIE_NAME = 'archelia_b2b_session';
+export const SESSION_COOKIE_NAME = 'archelia_b2b_session';
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export async function createSession(userId: string, isPromoProspect: boolean = false) {
@@ -30,7 +30,13 @@ export async function createSession(userId: string, isPromoProspect: boolean = f
     cookieOptions.domain = '.izzodistribuzione.it';
   }
 
-  cookies().set(SESSION_COOKIE_NAME, session.token, cookieOptions);
+  try {
+    cookies().set(SESSION_COOKIE_NAME, session.token, cookieOptions);
+  } catch {
+    // Route Handlers constructing NextResponse.redirect also set the cookie explicitly on response
+  }
+
+  return { token: session.token, expiresAt };
 }
 
 export async function deleteSession() {
@@ -162,7 +168,7 @@ export async function requireAuth() {
     redirect('/login');
   }
 
-  if (session.user.mustChangePassword) {
+  if (session.user.mustChangePassword && !session.isPromoProspect) {
     redirect('/setup-password');
   }
 

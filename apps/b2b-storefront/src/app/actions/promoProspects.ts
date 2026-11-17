@@ -8,6 +8,15 @@ import * as bcrypt from 'bcryptjs';
 import { Agent } from 'undici';
 import { redis } from '@/lib/redis';
 import { getProductById } from '@archelia/typesense/dist/search.js';
+import { Pool } from 'pg';
+
+let sdrSyncPool: Pool | null = null;
+function getSdrSyncPool(): Pool | null {
+  if (!sdrSyncPool && process.env.SDR_DATABASE_URL) {
+    sdrSyncPool = new Pool({ connectionString: process.env.SDR_DATABASE_URL, max: 2 });
+  }
+  return sdrSyncPool;
+}
 
 const zucchettiDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
 
@@ -44,6 +53,7 @@ export interface PromoProspectDashboardItem {
   pec: string | null;
   sdiCode: string | null;
   phone: string | null;
+  whatsappPhone: string | null;
   website: string | null;
   address: string | null;
   streetNumber: string | null;
@@ -61,6 +71,16 @@ export interface PromoProspectDashboardItem {
   firstLoginAt: string | null;
   lastLoginAt: string | null;
   loginCount: number;
+  smartOfferToken: string | null;
+  catalogOpenedAt: string | null;
+  catalogOpenCount: number;
+  lastReplyAt: string | null;
+  lastReplySnippet: string | null;
+  lastReplySentiment: string | null;
+  agentContactedAt: string | null;
+  agentCallNote: string | null;
+  autoFollowupPaused: boolean;
+  warmPriorityTier: number;
   hasCompletedBillingData: boolean;
   activeCartItemsCount: number;
   activeCartTotal: number;
@@ -927,7 +947,7 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
   convertedCount: number;
 }> {
   const session = await verifySession();
-  if (!session || session.user.role !== 'AGENT') {
+  if (!session || (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN')) {
     return {
       success: false,
       error: 'Accesso riservato agli agenti.',
@@ -937,10 +957,12 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
     };
   }
 
+  const agentFilter = session.user.role === 'ADMIN' ? {} : { agentId: session.userId };
+
   const [prospects, convertedCount] = await Promise.all([
     prisma.b2BPromoProspect.findMany({
       where: {
-        agentId: session.userId,
+        ...agentFilter,
         status: { in: ['CONTACTED', 'LOGGED_IN', 'ORDER_PENDING_APPROVAL'] },
       },
       include: {
@@ -958,7 +980,7 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
     }),
     prisma.b2BPromoProspect.count({
       where: {
-        agentId: session.userId,
+        ...agentFilter,
         status: 'CONVERTED',
       },
     }),
@@ -1037,6 +1059,44 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
       }
     }
 
+    const attachedMeta = (
+      p.attachedCatalogMeta && typeof p.attachedCatalogMeta === 'object'
+        ? p.attachedCatalogMeta
+        : {}
+    ) as Record<string, any>;
+
+    const smartOfferToken: string | null =
+      (p as any).smartOfferToken ||
+      attachedMeta.smartOfferToken ||
+      attachedMeta.trackingToken ||
+      null;
+    const catalogOpenCount = Number((p as any).catalogOpenCount || 0);
+    const catalogOpenedAt = (p as any).catalogOpenedAt
+      ? new Date((p as any).catalogOpenedAt).toISOString()
+      : null;
+    const lastReplyAt = (p as any).lastReplyAt
+      ? new Date((p as any).lastReplyAt).toISOString()
+      : null;
+    const lastReplySnippet: string | null = (p as any).lastReplySnippet || null;
+    const lastReplySentiment: string | null = (p as any).lastReplySentiment || null;
+    const agentContactedAt = (p as any).agentContactedAt
+      ? new Date((p as any).agentContactedAt).toISOString()
+      : null;
+    const agentCallNote: string | null = (p as any).agentCallNote || null;
+    const autoFollowupPaused = Boolean((p as any).autoFollowupPaused);
+
+    const hasPendingOrders = p.orders.length > 0;
+    const hasActiveCart = activeCartItemsCount > 0;
+    const hasReplied = Boolean(lastReplyAt);
+    const hasOpenedPdf = catalogOpenCount > 0 || Boolean(catalogOpenedAt);
+    const hasLoggedIn = p.loginCount > 0 || Boolean(p.firstLoginAt) || p.status !== 'CONTACTED';
+
+    let warmPriorityTier = 0;
+    if (hasPendingOrders) warmPriorityTier = 4;
+    else if (hasActiveCart) warmPriorityTier = 3;
+    else if (hasReplied) warmPriorityTier = 2;
+    else if (hasOpenedPdf || hasLoggedIn) warmPriorityTier = 1;
+
     const mapped: PromoProspectDashboardItem = {
       id: p.id,
       sdrProspectId: p.sdrProspectId,
@@ -1051,6 +1111,7 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
       pec: p.pecEmail,
       sdiCode: p.codiceDestinatario,
       phone: p.phone,
+      whatsappPhone: p.whatsappPhone,
       website: p.website,
       address: p.address,
       streetNumber: p.streetNumber,
@@ -1068,6 +1129,16 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
       firstLoginAt: p.firstLoginAt ? p.firstLoginAt.toISOString() : null,
       lastLoginAt: p.lastLoginAt ? p.lastLoginAt.toISOString() : null,
       loginCount: p.loginCount,
+      smartOfferToken,
+      catalogOpenedAt,
+      catalogOpenCount,
+      lastReplyAt,
+      lastReplySnippet,
+      lastReplySentiment,
+      agentContactedAt,
+      agentCallNote,
+      autoFollowupPaused,
+      warmPriorityTier,
       hasCompletedBillingData: checkPromoProspectBillingComplete(p),
       activeCartItemsCount,
       activeCartTotal,
@@ -1084,18 +1155,111 @@ export async function getAgentPromoProspectsDashboard(): Promise<{
       firstPurchaseRule,
     };
 
-    if (p.status === 'CONTACTED' && p.loginCount === 0 && !p.firstLoginAt) {
-      contacted.push(mapped);
-    } else {
+    if (warmPriorityTier > 0) {
       loggedIn.push(mapped);
+    } else {
+      contacted.push(mapped);
     }
   }
+
+  // Ordina i Lead Caldi per priorità commerciale:
+  // 1° Ordine in attesa (4) > Carrello attivo (3) > Ha Risposto all'Email (2) > Ha Aperto PDF / Login recenti (1)
+  loggedIn.sort((a, b) => {
+    if (b.warmPriorityTier !== a.warmPriorityTier) {
+      return b.warmPriorityTier - a.warmPriorityTier;
+    }
+    const latestTimestamp = (item: PromoProspectDashboardItem) => {
+      const candidates = [
+        item.pendingOrders[0]?.createdAt,
+        item.lastReplyAt,
+        item.catalogOpenedAt,
+        item.lastLoginAt,
+        item.emailSentAt,
+      ]
+        .filter(Boolean)
+        .map(d => new Date(d!).getTime());
+      return candidates.length > 0 ? Math.max(...candidates) : 0;
+    };
+    return latestTimestamp(b) - latestTimestamp(a);
+  });
 
   return {
     success: true,
     contacted,
     loggedIn,
     convertedCount,
+  };
+}
+
+/**
+ * Registra la telefonata / nota commerciale di Daniele Savoia su b2b_promo_prospects
+ * (e sincronizza anche sdr_prospects se SDR_DATABASE_URL è configurato),
+ * fermando automaticamente i follow-up automatici (es. promemoria +5gg Caldi).
+ */
+export async function markPromoProspectContactedAction(
+  promoProspectId: string,
+  note: string,
+  pauseAutoEmails: boolean = true
+): Promise<{
+  success: boolean;
+  error?: string;
+  agentContactedAt?: string;
+  agentCallNote?: string;
+  autoFollowupPaused?: boolean;
+}> {
+  const session = await verifySession();
+  if (!session || (session.user.role !== 'AGENT' && session.user.role !== 'ADMIN')) {
+    return { success: false, error: 'Non autorizzato' };
+  }
+
+  const promo = await prisma.b2BPromoProspect.findUnique({
+    where: { id: promoProspectId },
+  });
+
+  if (!promo || (session.user.role !== 'ADMIN' && promo.agentId !== session.userId)) {
+    return { success: false, error: 'Cliente in attivazione non trovato' };
+  }
+
+  const now = new Date();
+  const cleanNote = (note || '').trim() || 'Contattato telefonicamente dal referente commerciale';
+
+  await prisma.b2BPromoProspect.update({
+    where: { id: promo.id },
+    data: {
+      agentContactedAt: now,
+      agentCallNote: cleanNote,
+      autoFollowupPaused: Boolean(pauseAutoEmails),
+    },
+  });
+
+  // Sincronizzazione best-effort in tempo reale anche su sdr_prospects (worker-sdr-outreach legge già anche b2b_promo_prospects)
+  if (promo.sdrProspectId) {
+    try {
+      const pool = getSdrSyncPool();
+      if (pool) {
+        await pool.query(
+          `UPDATE sdr_prospects
+           SET agent_contacted_at = $1,
+               agent_call_note = $2,
+               auto_followup_paused = $3,
+               updated_at = NOW()
+           WHERE id = $4`,
+          [now, cleanNote, Boolean(pauseAutoEmails), promo.sdrProspectId]
+        );
+      }
+    } catch (syncErr) {
+      console.warn('[markPromoProspectContactedAction] Sync opzionale sdr_prospects saltato:', syncErr);
+    }
+  }
+
+  revalidatePath('/account/prospects');
+  revalidatePath('/account');
+
+  return {
+    success: true,
+    agentContactedAt: now.toISOString(),
+    agentCallNote: cleanNote,
+    autoFollowupPaused: Boolean(pauseAutoEmails),
   };
 }
 

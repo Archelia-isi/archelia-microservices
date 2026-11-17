@@ -23,7 +23,7 @@ export default async function Home() {
   const cookieStore = cookies();
   const storeMode = (cookieStore.get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const session = await verifySession();
-  if (session?.user?.mustChangePassword) {
+  if (session?.user?.mustChangePassword && !session.isPromoProspect) {
     redirect('/setup-password');
   }
 

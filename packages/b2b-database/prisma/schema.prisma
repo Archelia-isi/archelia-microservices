@@ -122,6 +122,16 @@ model B2BPromoProspect {
   firstLoginAt         DateTime?
   lastLoginAt          DateTime?
   loginCount           Int                 @default(0)
+
+  smartOfferToken      String?
+  catalogOpenedAt      DateTime?
+  catalogOpenCount     Int                 @default(0)
+  lastReplyAt          DateTime?
+  lastReplySnippet     String?
+  lastReplySentiment   String?
+  agentContactedAt     DateTime?
+  agentCallNote        String?
+  autoFollowupPaused   Boolean             @default(false)
   
   convertedToUserId    String?             @unique
   convertedAt          DateTime?

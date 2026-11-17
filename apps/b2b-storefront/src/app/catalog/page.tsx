@@ -28,7 +28,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: { q?
     getEffectiveClientDiscountContext(),
   ]);
 
-  if (session?.user?.mustChangePassword) {
+  if (session?.user?.mustChangePassword && !session.isPromoProspect) {
     redirect('/setup-password');
   }
 

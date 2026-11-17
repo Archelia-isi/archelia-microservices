@@ -129,17 +129,12 @@ export async function login(formData: FormData) {
   if (process.env.NODE_ENV === 'production') cookieOpts.domain = '.izzodistribuzione.it';
   cookies().set('b2b_store_mode', 'ZUCCHETTI', cookieOpts);
 
-  // Obbligo normativo GDPR: l'utente imposta la sua password personale su /setup-password
-  if (promoProspect.mustChangePassword || promoProspect.tempPassword === password) {
-    redirect(
-      process.env.NODE_ENV === 'production'
-        ? 'https://www.izzodistribuzione.it/setup-password'
-        : '/setup-password'
-    );
-  }
-
+  // Accesso immediato senza muro password per i PromoProspect in consultazione:
+  // il cliente vede subito tutti i 15.000+ prodotti coi suoi sconti riservati su /catalog
   redirect(
-    process.env.NODE_ENV === 'production' ? 'https://www.izzodistribuzione.it' : '/'
+    process.env.NODE_ENV === 'production'
+      ? 'https://www.izzodistribuzione.it/catalog'
+      : '/catalog'
   );
 }
 
