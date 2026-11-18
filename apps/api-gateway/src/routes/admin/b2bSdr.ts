@@ -1395,6 +1395,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
             if (
               act !== SDR_JOBS.IMAP_POLL_TICK &&
               act !== SDR_JOBS.DAILY_RESET_QUOTA &&
+              act !== 'GUARDIAN_WATCHDOG_TICK' &&
               !j?.data?.isConsentReply
             ) {
               await j.remove().catch(() => {});

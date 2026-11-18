@@ -4662,7 +4662,291 @@ async function processOutreachJob(job: Job) {
     return { resetChecked: true };
   }
 
+  if (action === 'GUARDIAN_WATCHDOG_TICK') {
+    return await runSdrGuardianSelfHealingTick();
+  }
+
   return { status: 'noop', action };
+}
+
+let _guardianRunning = false;
+
+/**
+ * AGENTE GUARDIANO AUTO-RIPARATORE 24/7 (CLOUD SELF-HEALING WATCHDOG):
+ * Opera rigorosamente ed esclusivamente nel perimetro AI SDR B2B ogni 10 minuti:
+ * 1) Recupera bozze rimaste bloccate in `In_Coda_SMTP` oltre 40 minuti da eventuali riavvii;
+ * 2) Isola singole caselle Aruba in errore (>=4 errori consecutivi), le riattiva da solo dopo verifica SSL,
+ *    e attiva il freno d'emergenza se >=3 caselle rilevano blocchi IP 554/DNSBL;
+ * 3) Protegge la reputazione dei 6 domini fermando il motore se il tasso di bounce giornaliero supera il 6% (>=25 invii);
+ * 4) Riprova in automatico su Aruba SSL eventuali avvisi a Daniele rimasti con `agentAlertSent = false`;
+ * 5) Pre-bonifica proattivamente i prossimi 60 candidati vergini in fila (PEC/piattaforme/spazi).
+ */
+async function runSdrGuardianSelfHealingTick() {
+  if (_guardianRunning) return { skipped: true, reason: 'ALREADY_RUNNING' };
+  _guardianRunning = true;
+
+  const actionsTaken: string[] = [];
+  try {
+    const now = new Date();
+    const fortyMinAgo = new Date(now.getTime() - 40 * 60_000);
+    const startOfUtcDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    const [config, inboxes] = await Promise.all([
+      sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } }),
+      sdrPrisma.sdrInboxAccount.findMany(),
+    ]);
+
+    // 1. Controllo errori IP 554 diffusi vs singola casella Aruba degradata + auto-riattivazione caselle guarite
+    const activeInboxes = inboxes.filter((m) => m.isActive);
+    const ip554Boxes = activeInboxes.filter((m) =>
+      /554|blacklisted ip|dnsbl/i.test(String(m.lastTestError || ''))
+    );
+
+    if (ip554Boxes.length >= 3 && config?.autoFeederEnabled) {
+      await sdrPrisma.sdrOutreachConfig.update({
+        where: { id: 'default' },
+        data: { autoFeederEnabled: false },
+      });
+      await sdrPrisma.sdrOutreachDraft.updateMany({
+        where: { sequenceStep: { not: STEP_1B_CONSENT_REPLY }, status: 'In_Coda_SMTP' },
+        data: { status: 'Bozza_Pronta', scheduledFor: null },
+      });
+      const msg = `Freno automatico attivato: rilevato blocco IP 554/DNSBL su ${ip554Boxes.length} caselle Aruba. Invii messi in sicurezza.`;
+      actionsTaken.push(msg);
+      pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'ERROR');
+    } else {
+      for (const mb of activeInboxes) {
+        if (mb.consecutiveErrors >= 4) {
+          await sdrPrisma.sdrInboxAccount.update({
+            where: { id: mb.id },
+            data: { isActive: false, lastTestAt: now },
+          });
+          const msg = `Isolata temporaneamente casella ${mb.email} (${mb.consecutiveErrors} errori consecutivi) per non rallentare il pool.`;
+          actionsTaken.push(msg);
+          pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'WARN');
+        }
+      }
+
+      // Auto-verifica e riattivazione caselle messe in pausa da almeno 2 ore
+      const twoHoursAgo = new Date(now.getTime() - 2 * 3600_000);
+      const pausedInboxes = inboxes.filter(
+        (m) => !m.isActive && m.consecutiveErrors > 0 && (!m.lastTestAt || m.lastTestAt < twoHoursAgo)
+      );
+      for (const paused of pausedInboxes.slice(0, 3)) {
+        try {
+          const pass = decryptSdrSecret(paused.smtpPasswordEnc);
+          if (pass && pass !== 'DRY_RUN_TOKEN') {
+            const tr = nodemailer.createTransport({
+              host: paused.smtpHost,
+              port: paused.smtpPort,
+              secure: paused.smtpPort === 465,
+              auth: { user: paused.smtpUser || paused.email, pass },
+              connectionTimeout: 8_000,
+              greetingTimeout: 8_000,
+            });
+            await tr.verify();
+            tr.close();
+            await sdrPrisma.sdrInboxAccount.update({
+              where: { id: paused.id },
+              data: { isActive: true, consecutiveErrors: 0, lastTestError: null, lastTestStatus: 'OK', lastTestAt: now },
+            });
+            const msg = `Casella ${paused.email} testata in SSL e riattivata automaticamente nel pool!`;
+            actionsTaken.push(msg);
+            pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'SUCCESS');
+          }
+        } catch {
+          await sdrPrisma.sdrInboxAccount.update({
+            where: { id: paused.id },
+            data: { lastTestAt: now },
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // 2. Salvavita reputazione domini: controllo tasso di Bounce giornaliero (> 6% con almeno 25 email inviate oggi)
+    const totalSentToday = inboxes.reduce((s, m) => s + (m.sentToday || 0), 0);
+    if (totalSentToday >= 25 && config?.autoFeederEnabled) {
+      const bouncesToday = await sdrPrisma.sdrInboxEvent.count({
+        where: { eventType: 'BOUNCE', createdAt: { gte: startOfUtcDay } },
+      });
+      const bounceRate = bouncesToday / totalSentToday;
+      if (bounceRate > 0.06) {
+        await sdrPrisma.sdrOutreachConfig.update({
+          where: { id: 'default' },
+          data: { autoFeederEnabled: false },
+        });
+        const msg = `Salvavita domini attivato: bounce giornaliero ${(bounceRate * 100).toFixed(1)}% (${bouncesToday}/${totalSentToday}). Motore messo in pausa protettiva.`;
+        actionsTaken.push(msg);
+        pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'ERROR');
+      }
+    }
+
+    // 3. Recupero automatico bozze rimaste orfane in `In_Coda_SMTP` (scheduledFor scaduto da > 40 min senza job attivo)
+    const staleQueued = await sdrPrisma.sdrOutreachDraft.findMany({
+      where: {
+        status: 'In_Coda_SMTP',
+        scheduledFor: { lt: fortyMinAgo },
+      },
+      include: { prospect: { select: { id: true, promoProspectId: true } } },
+      take: 25,
+    });
+
+    if (staleQueued.length > 0) {
+      for (const sq of staleQueued) {
+        if (sq.sequenceStep === STEP_1_INITIAL && sq.prospect) {
+          if (sq.prospect.promoProspectId) {
+            await b2bPrisma.b2BDiscountRule
+              .deleteMany({ where: { id: `sdr_fp_${sq.prospect.promoProspectId}` } })
+              .catch(() => {});
+            await b2bPrisma.b2BPromoProspect
+              .deleteMany({ where: { id: sq.prospect.promoProspectId, loginCount: 0 } })
+              .catch(() => {});
+          }
+          await sdrPrisma.sdrOutreachDraft.update({
+            where: { id: sq.id },
+            data: { status: 'Template_Da_Attivare', scheduledFor: null, senderInboxId: null },
+          });
+          await sdrPrisma.sdrProspect.update({
+            where: { id: sq.prospect.id },
+            data: { pipelineStatus: 'Da_Contattare', promoProspectId: null, promotedUsername: null },
+          });
+        } else {
+          await sdrPrisma.sdrOutreachDraft.update({
+            where: { id: sq.id },
+            data: { status: 'Bozza_Pronta', scheduledFor: null },
+          });
+        }
+      }
+      const msg = `Recuperate e riallineate automaticamente ${staleQueued.length} bozze rimaste bloccate in coda oltre 40 min.`;
+      actionsTaken.push(msg);
+      pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'SUCCESS');
+    }
+
+    // 4. Riprova automatica avvisi a Daniele rimasti con `agentAlertSent = false` nelle ultime 24h (escluse email tecniche/sistema)
+    if (IS_SDR_LIVE) {
+      const oneDayAgo = new Date(now.getTime() - 24 * 3600_000);
+      const missedAlerts = await sdrPrisma.sdrInboxEvent.findMany({
+        where: {
+          eventType: 'REPLY',
+          sentiment: { in: ['Consenso_Invio', 'Domanda_Specifica'] },
+          agentAlertSent: false,
+          prospectId: { not: null },
+          createdAt: { gte: oneDayAgo },
+        },
+        take: 5,
+      });
+
+      for (const ev of missedAlerts) {
+        if (!ev.prospectId) continue;
+        // Ignora auto-responder esteri / ticket helpdesk
+        if (/custhelp\.com|zendesk\.com|uw vraag is ontvangen|automatic mailbox response/i.test(ev.snippet || '')) {
+          await sdrPrisma.sdrInboxEvent.update({
+            where: { id: ev.id },
+            data: { eventType: 'OUT_OF_OFFICE', sentiment: 'Out_Of_Office' },
+          });
+          continue;
+        }
+        const pr = await sdrPrisma.sdrProspect.findUnique({ where: { id: ev.prospectId } });
+        if (!pr) continue;
+        const agent = await resolveAgentForProspect(pr.assignedAgentId, pr.assignedAgentCode);
+        const sentOk = await sendInternalAlertViaArubaSmtp({
+          preferredInboxEmail: ev.toEmail,
+          toEmail: resolveSafeBrevoRecipient(agent.email),
+          toName: agent.name,
+          replyToEmail: ev.fromEmail,
+          replyToName: pr.companyName,
+          subject: `💬 [RECUPERO AVVISO LEAD B2B] ${pr.companyName} (${pr.city || 'IT'}) — ${ev.subject || 'Risposta ricevuta'}`,
+          textContent: `Azienda: ${pr.companyName}\nEmail: ${ev.fromEmail}\nTelefono: ${pr.phone || pr.whatsappPhone || 'N/D'}\n\nMessaggio:\n${ev.snippet || ''}`,
+          htmlContent: `<div style="font-family: -apple-system, Segoe UI, sans-serif; color:#0f172a; line-height:1.6;">
+            <h3>💬 Risposta Lead B2B (${escapeHtml(pr.companyName)})</h3>
+            <p><strong>Email:</strong> ${escapeHtml(ev.fromEmail)} | <strong>Tel:</strong> ${escapeHtml(pr.phone || pr.whatsappPhone || 'N/D')}</p>
+            <div style="background:#f8fafc;border:1px solid #cbd5e1;padding:12px;border-radius:8px;white-space:pre-wrap;">${escapeHtml(ev.snippet || '')}</div>
+          </div>`,
+        });
+        if (sentOk) {
+          await sdrPrisma.sdrInboxEvent.update({
+            where: { id: ev.id },
+            data: { agentAlertSent: true },
+          });
+          actionsTaken.push(`Recuperato avviso email a Daniele per ${pr.companyName}`);
+        }
+      }
+    }
+
+    // 5. Pre-bonifica proattiva dei prossimi 60 candidati vergini in cima alla coda
+    const nextVirgins = await sdrPrisma.sdrProspect.findMany({
+      where: {
+        section: 'Email_Pronta',
+        pipelineStatus: 'Da_Contattare',
+        lastOutreachSentAt: null,
+      },
+      orderBy: [{ leadScore: 'desc' }, { id: 'asc' }],
+      take: 60,
+      select: { id: true, ordinaryEmail: true, pecCamerale: true, phone: true, whatsappPhone: true },
+    });
+
+    const GUARD_PEC_RX =
+      /(^|[.@])pec[.-]|pec\.(it|eu|com|net|org)$|pecimprese\.it$|pecaruba\.it$|(^|[.@])cert\.|cert\.(it|eu)$|legalmail\.|arubapec\.|infocert\.it$|ticertifica\.it$|postacert|postecert|sicurezzapostale|namirialpec|registerpec|poste-certificate\.it$/i;
+    const GUARD_JUNK_RX =
+      /(^|\.)(duckduckgo\.com|webador\.it|webador\.com|godaddy\.com|netsons\.com|altervista\.org|sentry\.io|wixpress\.com|wix\.com|jimdo\.com|squarespace\.com|wordpress\.org|wordpress\.com|surecart\.com|archiproducts\.com|houzz\.com|prontopro\.it|habitissimo\.it|ufficiocamerale\.com|kompass-italia\.it|iqos\.it|apple\.com|amazon\.com|google\.com|esempio\.it|esempio\.com|example\.com|dominio\.it|dominio\.com|mysite\.com|website\.com|gov\.it|edu\.it)$/i;
+
+    let preCleaned = 0;
+    for (const v of nextVirgins) {
+      const clean = String(v.ordinaryEmail || '')
+        .replace(/^(?:%20|\s)+/gi, '')
+        .replace(/(?:%20|\s)+$/gi, '')
+        .trim()
+        .toLowerCase();
+      const [loc, dom] = clean.split('@');
+      if (!clean || !loc || !dom) continue;
+
+      if (GUARD_PEC_RX.test(dom) || /^pec($|[._-])|[._-]pec$/i.test(loc)) {
+        await sdrPrisma.sdrOutreachDraft.deleteMany({
+          where: { prospectId: v.id, status: 'Template_Da_Attivare' },
+        });
+        await sdrPrisma.sdrProspect.update({
+          where: { id: v.id },
+          data: {
+            ...(v.pecCamerale ? {} : { pecCamerale: clean }),
+            ordinaryEmail: null,
+            isPecVerified: true,
+            pecRejectedLog: 'Guardiano Auto: PEC isolata pre-invio',
+            section: 'PEC_Scartata',
+          },
+        });
+        preCleaned++;
+      } else if (GUARD_JUNK_RX.test(dom) || /^(iltuo@|mario\.rossi@|noreply|no-reply)/i.test(clean)) {
+        await sdrPrisma.sdrOutreachDraft.deleteMany({
+          where: { prospectId: v.id, status: 'Template_Da_Attivare' },
+        });
+        await sdrPrisma.sdrProspect.update({
+          where: { id: v.id },
+          data:
+            v.phone || v.whatsappPhone
+              ? { ordinaryEmail: null, section: 'Senza_Email' }
+              : { ordinaryEmail: null, section: 'Senza_Email', pipelineStatus: 'Scartata' },
+        });
+        preCleaned++;
+      } else if (clean !== v.ordinaryEmail) {
+        await sdrPrisma.sdrProspect.update({
+          where: { id: v.id },
+          data: { ordinaryEmail: clean },
+        });
+      }
+    }
+    if (preCleaned > 0) {
+      const msg = `Pre-bonificate automaticamente ${preCleaned} righe anomale nei prossimi 60 candidati in coda.`;
+      actionsTaken.push(msg);
+      pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'INFO');
+    }
+
+    return { ok: true, checkedAt: now.toISOString(), actionsTaken };
+  } catch (err: any) {
+    log.error(`Errore runSdrGuardianSelfHealingTick: ${err.message}`, { module: MODULE_NAME });
+    return { ok: false, error: err.message, actionsTaken };
+  } finally {
+    _guardianRunning = false;
+  }
 }
 
 function startHealthServerIfConfigured() {
@@ -4738,6 +5022,27 @@ async function startWorker() {
       )
       .catch(() => {});
   }, 3 * 60 * 1000);
+
+  // Schedula Agente Guardiano Auto-Riparatore 24/7 ogni 10 minuti (+ controllo iniziale a 20s dall'avvio)
+  setTimeout(() => {
+    sdrOutreachQueue
+      .add(
+        'GUARDIAN_WATCHDOG_TICK',
+        { action: 'GUARDIAN_WATCHDOG_TICK' },
+        { jobId: `guardian-boot-${Date.now()}`, removeOnComplete: true }
+      )
+      .catch(() => {});
+  }, 20_000);
+
+  setInterval(() => {
+    sdrOutreachQueue
+      .add(
+        'GUARDIAN_WATCHDOG_TICK',
+        { action: 'GUARDIAN_WATCHDOG_TICK' },
+        { jobId: `guardian-tick-${Math.floor(Date.now() / 600_000)}`, removeOnComplete: true }
+      )
+      .catch(() => {});
+  }, 10 * 60 * 1000);
 
   // Tick periodico ogni 30 minuti:
   // 1) Reset quote giornaliere Aruba
