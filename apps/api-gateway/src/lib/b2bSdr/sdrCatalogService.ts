@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
-import { sdrPrisma, resolveClusterConfig } from '@archelia/sdr-database';
+import nodemailer from 'nodemailer';
+import { sdrPrisma, resolveClusterConfig, decryptSdrSecret } from '@archelia/sdr-database';
 import { prisma as b2bPrisma } from '@archelia/b2b-database';
 import { env, log } from '@archelia/core';
 import {
@@ -161,42 +162,63 @@ export async function sendBrevoAgentAlert(params: {
     };
   }
 
-  if (!env.BREVO_API_KEY) {
-    log.warn(`BREVO_API_KEY non configurata: impossibile inviare alert "${params.subject}"`, {
-      module: 'api-gateway:sdr:brevo',
-    });
-    return {
-      sent: false,
-      dryRun: false,
-      detail: 'BREVO_API_KEY assente',
-    };
+  if (env.BREVO_API_KEY) {
+    try {
+      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': env.BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+          sender: {
+            name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
+            email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
+          },
+          to: [{ email: effectiveToEmail, name: params.toName }],
+          subject: params.subject,
+          htmlContent: params.htmlContent,
+          tags: params.tag ? [params.tag] : ['sdr-agent-alert'],
+        }),
+      });
+
+      if (resp.ok) {
+        return { sent: true, dryRun: false, detail: 'Inviata via Brevo API' };
+      }
+    } catch {
+      // fallback to Aruba SSL below
+    }
   }
 
   try {
-    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        'api-key': env.BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: {
-          name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
-          email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
-        },
-        to: [{ email: effectiveToEmail, name: params.toName }],
-        subject: params.subject,
-        htmlContent: params.htmlContent,
-        tags: params.tag ? [params.tag] : ['sdr-agent-alert'],
-      }),
+    const inbox = await sdrPrisma.sdrInboxAccount.findFirst({
+      where: { isActive: true },
+      orderBy: { consecutiveErrors: 'asc' },
     });
-
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => '');
-      return { sent: false, dryRun: false, detail: `HTTP ${resp.status}: ${txt.slice(0, 140)}` };
+    if (!inbox) {
+      return { sent: false, dryRun: false, detail: 'Nessuna casella Aruba attiva per fallback alert' };
     }
-    return { sent: true, dryRun: false, detail: 'Inviata via Brevo API' };
+    const smtpPass = decryptSdrSecret(inbox.smtpPasswordEnc);
+    if (!smtpPass || smtpPass === 'DRY_RUN_TOKEN') {
+      return { sent: false, dryRun: false, detail: 'Password SMTP assente su casella Aruba' };
+    }
+    const transporter = nodemailer.createTransport({
+      host: inbox.smtpHost,
+      port: inbox.smtpPort,
+      secure: inbox.smtpPort === 465,
+      auth: { user: inbox.smtpUser || inbox.email, pass: smtpPass },
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+    });
+    await transporter.sendMail({
+      from: `"Izzo Distribuzione AI SDR" <${inbox.email}>`,
+      to: `"${params.toName}" <${effectiveToEmail}>`,
+      subject: params.subject,
+      html: params.htmlContent,
+    });
+    transporter.close();
+    return { sent: true, dryRun: false, detail: `Inviata via Aruba SSL (${inbox.email})` };
   } catch (err: any) {
     return { sent: false, dryRun: false, detail: err.message };
   }

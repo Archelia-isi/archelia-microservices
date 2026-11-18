@@ -486,17 +486,16 @@ export function parseRawMimeEmail(rawInput?: Buffer | string | null): ParsedInbo
         mimeType.startsWith('video/') ||
         mimeType === 'text/csv');
 
-    // Escludi minuscoli tracking pixel / icone firma inline (< 2.5 KB con Content-ID)
-    const isTinyInlineSignatureIcon =
+    // Escludi tracking pixel, loghi aziendali e banner firma inline (immagini inline con Content-ID < 500 KB)
+    const isInlineSignatureImage =
       !isExplicitAttachment &&
-      dispositionType === 'inline' &&
-      Boolean(contentId) &&
+      (dispositionType === 'inline' || Boolean(contentId)) &&
       mimeType.startsWith('image/') &&
-      decodedBytes.length < 2500;
+      decodedBytes.length < 500_000;
 
     if (
       (isExplicitAttachment || isDocumentOrArchive || isMediaWithFilename) &&
-      !isTinyInlineSignatureIcon
+      !isInlineSignatureImage
     ) {
       if (decodedBytes.length === 0) return;
 
@@ -645,6 +644,7 @@ export function classifyInboundEmail(params: {
   freshReplyText: string;
   fullText: string;
   attachmentsCount: number;
+  attachments?: ParsedEmailAttachment[];
   autoSubmitted?: string;
 }): InboundReplyClassification {
   const fromLower = (params.fromEmail || '').trim().toLowerCase();
@@ -685,8 +685,16 @@ export function classifyInboundEmail(params: {
     return 'Opt_Out';
   }
 
-  // 4. Qualsiasi risposta con allegati (PDF, Excel, distinte, immagini) va subito a Daniele per intero!
-  if (params.attachmentsCount > 0) {
+  // 4. Qualsiasi risposta con documenti/distinte allegate (PDF, Excel, Word, CSV, ZIP o foto grandi) va subito a Daniele per intero!
+  // Eccezione intelligente: se i soli allegati residui sono piccole immagini di firma (< 300 KB) senza parole "allegato/foto", valutiamo il consenso breve.
+  const onlySmallSignatureImages =
+    Array.isArray(params.attachments) &&
+    params.attachments.length === params.attachmentsCount &&
+    params.attachments.every(
+      (a) => String(a.contentType || '').toLowerCase().startsWith('image/') && a.sizeBytes < 300_000
+    );
+
+  if (params.attachmentsCount > 0 && !onlySmallSignatureImages) {
     return 'Domanda_Specifica';
   }
 
@@ -702,6 +710,14 @@ export function classifyInboundEmail(params: {
         )
     );
   const coreText = coreLines.join(' ').replace(/\s+/g, ' ').trim();
+
+  if (
+    params.attachmentsCount > 0 &&
+    onlySmallSignatureImages &&
+    (coreText.length > 65 || /\b(foto|immagin[ei]|allegat[oaie]|etichett[ae]|sched[ae])\b/i.test(coreText))
+  ) {
+    return 'Domanda_Specifica';
+  }
 
   // Se contiene punti interrogativi, o è lungo, o cita richieste specifiche su codici/marchi/pagamenti/chiamate -> Domanda Specifica
   const hasQuestionMark = fresh.includes('?');

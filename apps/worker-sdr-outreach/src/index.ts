@@ -182,7 +182,80 @@ function escapeHtml(s?: string | null): string {
 }
 
 /**
- * Avviso informativo su Brevo a Daniele quando il cliente invia un Consenso Semplice ("Sì grazie")
+ * Trasmissione diretta su Aruba SSL 465 per gli avvisi/inoltri interni a Daniele Savoia
+ * (usata automaticamente quando Brevo API non è attiva o fallisce, senza consumare sentToday B2B).
+ */
+async function sendInternalAlertViaArubaSmtp(opts: {
+  preferredInboxEmail?: string | null;
+  toEmail: string;
+  toName: string;
+  replyToEmail?: string | null;
+  replyToName?: string | null;
+  subject: string;
+  textContent: string;
+  htmlContent: string;
+  attachments?: ParsedEmailAttachment[];
+}): Promise<boolean> {
+  try {
+    const inbox =
+      (opts.preferredInboxEmail
+        ? await sdrPrisma.sdrInboxAccount.findFirst({
+            where: { email: opts.preferredInboxEmail.toLowerCase(), isActive: true },
+          })
+        : null) ||
+      (await sdrPrisma.sdrInboxAccount.findFirst({
+        where: { isActive: true },
+        orderBy: { consecutiveErrors: 'asc' },
+      }));
+
+    if (!inbox) return false;
+    const smtpPass = decryptSdrSecret(inbox.smtpPasswordEnc);
+    if (!smtpPass || smtpPass === 'DRY_RUN_TOKEN') return false;
+
+    const transporter = nodemailer.createTransport({
+      host: inbox.smtpHost,
+      port: inbox.smtpPort,
+      secure: inbox.smtpPort === 465,
+      auth: { user: inbox.smtpUser || inbox.email, pass: smtpPass },
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+    });
+
+    await transporter.sendMail({
+      from: `"Izzo Distribuzione AI SDR" <${inbox.email}>`,
+      to: `"${opts.toName}" <${opts.toEmail}>`,
+      ...(opts.replyToEmail
+        ? {
+            replyTo: opts.replyToName
+              ? `"${opts.replyToName.replace(/"/g, '')}" <${opts.replyToEmail}>`
+              : opts.replyToEmail,
+          }
+        : {}),
+      subject: opts.subject,
+      text: opts.textContent,
+      html: opts.htmlContent,
+      ...(opts.attachments && opts.attachments.length > 0
+        ? {
+            attachments: opts.attachments.map((att) => ({
+              filename: att.name,
+              content: Buffer.from(att.content, 'base64'),
+              contentType: att.contentType,
+            })),
+          }
+        : {}),
+    });
+    transporter.close();
+    return true;
+  } catch (err: any) {
+    log.error(`Errore invio alert interno via Aruba SSL: ${err.message}`, {
+      module: MODULE_NAME,
+    });
+    return false;
+  }
+}
+
+/**
+ * Avviso informativo a Daniele quando il cliente invia un Consenso Semplice ("Sì grazie")
  * e AI SDR pianifica in automatico la risposta Step 1B tra 15-25 minuti sulla stessa casella Aruba.
  */
 async function sendBrevoConsentInfoAlertToAgent(params: {
@@ -207,41 +280,17 @@ async function sendBrevoConsentInfoAlertToAgent(params: {
     return false;
   }
 
-  if (!env.BREVO_API_KEY) {
-    log.warn('BREVO_API_KEY assente: impossibile inviare avviso consenso a referente B2B', {
-      module: MODULE_NAME,
-    });
-    return false;
-  }
-
   const finalRecipient = resolveSafeBrevoRecipient(params.agent.email);
-
-  try {
-    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        'api-key': env.BREVO_API_KEY,
-      },
-      body: JSON.stringify({
-        sender: {
-          name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
-          email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
-        },
-        to: [{ email: finalRecipient, name: params.agent.name }],
-        replyTo: { email: params.fromEmail, name: params.companyName },
-        subject: `✅ [CONSENSO LISTINO] ${params.companyName} (${params.city || 'IT'}) ha risposto SÌ — Invio offerta automatico tra ${params.delayMinutes} min`,
-        tags: ['sdr-imap-consent-alert'],
-        textContent: [
-          `Ciao ${params.agent.name},`,
-          `${params.companyName} (${params.city || ''} ${params.province || ''}) ha risposto affermativamente alla tua presentazione su ${params.inboxEmail}.`,
-          `AI SDR invierà automaticamente il collegamento riservato (${params.smartOfferUrl}) tra circa ${params.delayMinutes} minuti dalla stessa casella ${params.inboxEmail}.`,
-          ``,
-          `--- TESTO INTEGRALE DEL CLIENTE ---`,
-          params.fullText,
-        ].join('\n'),
-        htmlContent: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 640px;">
+  const subjectLine = `✅ [CONSENSO LISTINO] ${params.companyName} (${params.city || 'IT'}) ha risposto SÌ — Invio offerta automatico tra ${params.delayMinutes} min`;
+  const textContent = [
+    `Ciao ${params.agent.name},`,
+    `${params.companyName} (${params.city || ''} ${params.province || ''}) ha risposto affermativamente alla tua presentazione su ${params.inboxEmail}.`,
+    `AI SDR invierà automaticamente il collegamento riservato (${params.smartOfferUrl}) tra circa ${params.delayMinutes} minuti dalla stessa casella ${params.inboxEmail}.`,
+    ``,
+    `--- TESTO INTEGRALE DEL CLIENTE ---`,
+    params.fullText,
+  ].join('\n');
+  const htmlContent = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 640px;">
           <h2 style="color: #15803d; margin-bottom: 6px;">✅ Consenso Ricevuto — Invio Offerta Pianificato (${params.delayMinutes} min)</h2>
           <p>Ciao <strong>${escapeHtml(params.agent.name)}</strong>, <strong>${escapeHtml(params.companyName)}</strong> ha risposto positivamente alla prima email. Il sistema risponderà in automatico dalla stessa casella <code>${escapeHtml(params.inboxEmail)}</code> tra <strong>${params.delayMinutes} minuti</strong> inviando il link all'offerta e al Catalistino PDF riservato.</p>
           <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 14px; margin: 16px 0;">
@@ -254,14 +303,46 @@ async function sendBrevoConsentInfoAlertToAgent(params: {
           </div>
           <div style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 14px; font-size: 13px; white-space: pre-wrap;">${escapeHtml(params.fullText)}</div>
           <p style="font-size: 12px; color: #64748b; margin-top: 12px;">Il prospect è già visibile tra i <strong>Lead Caldi da Gestire</strong> sul Portale B2B. Se desideri rispondergli direttamente tu, il Reply-To di questa mail punta già a ${escapeHtml(params.fromEmail)}.</p>
-        </div>`,
-      }),
-    });
-    return resp.ok;
-  } catch (err: any) {
-    log.error(`Errore Brevo Consent Alert IMAP: ${err.message}`, { module: MODULE_NAME });
-    return false;
+        </div>`;
+
+  if (env.BREVO_API_KEY) {
+    try {
+      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': env.BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+          sender: {
+            name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
+            email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
+          },
+          to: [{ email: finalRecipient, name: params.agent.name }],
+          replyTo: { email: params.fromEmail, name: params.companyName },
+          subject: subjectLine,
+          tags: ['sdr-imap-consent-alert'],
+          textContent,
+          htmlContent,
+        }),
+      });
+      if (resp.ok) return true;
+    } catch {
+      // fallback to Aruba SSL below
+    }
   }
+
+  return sendInternalAlertViaArubaSmtp({
+    preferredInboxEmail: params.inboxEmail,
+    toEmail: finalRecipient,
+    toName: params.agent.name,
+    replyToEmail: params.fromEmail,
+    replyToName: params.companyName,
+    subject: subjectLine,
+    textContent,
+    htmlContent,
+  });
 }
 
 /**
@@ -288,13 +369,6 @@ async function sendBrevoFullForwardToAgent(params: {
       `[DRY-RUN] Inoltro integrale risposta IMAP per Agente ${params.agent.name} simulato — Prospect: ${params.companyName} (${params.sentiment}, allegati: ${params.attachments.length})`,
       'INFO'
     );
-    return false;
-  }
-
-  if (!env.BREVO_API_KEY) {
-    log.warn('BREVO_API_KEY assente: impossibile inoltrare risposta integrale a referente B2B', {
-      module: MODULE_NAME,
-    });
     return false;
   }
 
@@ -326,27 +400,19 @@ async function sendBrevoFullForwardToAgent(params: {
         )}: ${escapeHtml(params.oversizedAttachmentsSkipped.join(', '))}</p>`
       : '';
 
-  const brevoPayload: Record<string, any> = {
-    sender: {
-      name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
-      email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
-    },
-    to: [{ email: finalRecipient, name: params.agent.name }],
-    replyTo: { email: params.fromEmail, name: params.companyName },
-    subject: `🔥 [RISPOSTA LEAD B2B${params.attachments.length > 0 ? ` + ${params.attachments.length} ALLEGATI` : ''}] ${params.companyName} (${params.city || 'IT'}) — ${params.subject}`,
-    tags: ['sdr-imap-reply-forward'],
-    textContent: [
-      `Ciao ${params.agent.name},`,
-      `Nuova risposta diretta intercettata su ${params.inboxEmail}. Il Kill-Switch Atomico ha fermato tutti gli invii automatici e ti passa subito la conversazione.`,
-      `Azienda: ${params.companyName} (${params.city || ''} ${params.province || ''})`,
-      `Email Cliente (Reply-To): ${params.fromEmail}`,
-      `Telefono: ${params.phone || 'N/D'}`,
-      `Allegati inclusi: ${params.attachments.length}`,
-      ``,
-      `================ TESTO INTEGRALE DEL CLIENTE ================`,
-      fullBodyUntruncated,
-    ].join('\n'),
-    htmlContent: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 680px;">
+  const subjectLine = `🔥 [RISPOSTA LEAD B2B${params.attachments.length > 0 ? ` + ${params.attachments.length} ALLEGATI` : ''}] ${params.companyName} (${params.city || 'IT'}) — ${params.subject}`;
+  const textContent = [
+    `Ciao ${params.agent.name},`,
+    `Nuova risposta diretta intercettata su ${params.inboxEmail}. Il Kill-Switch Atomico ha fermato tutti gli invii automatici e ti passa subito la conversazione.`,
+    `Azienda: ${params.companyName} (${params.city || ''} ${params.province || ''})`,
+    `Email Cliente (Reply-To): ${params.fromEmail}`,
+    `Telefono: ${params.phone || 'N/D'}`,
+    `Allegati inclusi: ${params.attachments.length}`,
+    ``,
+    `================ TESTO INTEGRALE DEL CLIENTE ================`,
+    fullBodyUntruncated,
+  ].join('\n');
+  const htmlContent = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; line-height: 1.6; max-width: 680px;">
       <h2 style="color: #15803d; margin-bottom: 6px;">💬 Risposta Cliente B2B — Conversazione Passata a Te!</h2>
       <p>Ciao <strong>${escapeHtml(params.agent.name)}</strong>, il Kill-Switch Atomico ha fermato ogni follow-up automatico per questo prospect e ti inoltra qui sotto il <strong>messaggio integrale${params.attachments.length > 0 ? ' completo di allegati' : ''}</strong>:</p>
       <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 14px; margin: 16px 0;">
@@ -361,37 +427,54 @@ async function sendBrevoFullForwardToAgent(params: {
       </div>
       <div style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 16px; font-size: 13.5px; white-space: pre-wrap; word-break: break-word;">${escapeHtml(fullBodyUntruncated)}</div>
       <p style="font-size: 12px; color: #64748b; margin-top: 12px;">Puoi cliccare direttamente <strong>Rispondi</strong> nel tuo client email: il campo Reply-To è già impostato sull'indirizzo del cliente (<code>${escapeHtml(params.fromEmail)}</code>).</p>
-    </div>`,
-  };
+    </div>`;
 
-  if (params.attachments.length > 0) {
-    brevoPayload.attachment = params.attachments.map((att) => ({
-      name: att.name,
-      content: att.content,
-    }));
-  }
-
-  try {
-    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        'api-key': env.BREVO_API_KEY,
-      },
-      body: JSON.stringify(brevoPayload),
-    });
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => '');
-      log.warn(`Brevo forward HTTP ${resp.status}: ${errText.slice(0, 300)}`, {
-        module: MODULE_NAME,
+  if (env.BREVO_API_KEY) {
+    try {
+      const brevoPayload: Record<string, any> = {
+        sender: {
+          name: env.BREVO_SENDER_NAME || 'Izzo Distribuzione AI SDR',
+          email: env.BREVO_SENDER_EMAIL || 'noreply@izzodistribuzione.it',
+        },
+        to: [{ email: finalRecipient, name: params.agent.name }],
+        replyTo: { email: params.fromEmail, name: params.companyName },
+        subject: subjectLine,
+        tags: ['sdr-imap-reply-forward'],
+        textContent,
+        htmlContent,
+      };
+      if (params.attachments.length > 0) {
+        brevoPayload.attachment = params.attachments.map((att) => ({
+          name: att.name,
+          content: att.content,
+        }));
+      }
+      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': env.BREVO_API_KEY,
+        },
+        body: JSON.stringify(brevoPayload),
       });
+      if (resp.ok) return true;
+    } catch {
+      // fallback to Aruba SSL below
     }
-    return resp.ok;
-  } catch (err: any) {
-    log.error(`Errore Brevo inoltro integrale IMAP: ${err.message}`, { module: MODULE_NAME });
-    return false;
   }
+
+  return sendInternalAlertViaArubaSmtp({
+    preferredInboxEmail: params.inboxEmail,
+    toEmail: finalRecipient,
+    toName: params.agent.name,
+    replyToEmail: params.fromEmail,
+    replyToName: params.companyName,
+    subject: subjectLine,
+    textContent,
+    htmlContent,
+    attachments: params.attachments,
+  });
 }
 
 // ============================================================================
@@ -2423,6 +2506,7 @@ async function pollSingleArubaInboxImap(inbox: {
           freshReplyText,
           fullText,
           attachmentsCount: parsed.attachments.length + parsed.oversizedAttachmentsSkipped.length,
+          attachments: parsed.attachments,
           autoSubmitted: parsed.autoSubmitted,
         });
 
