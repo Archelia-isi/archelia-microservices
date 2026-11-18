@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { searchProducts } from '@archelia/typesense/dist/search.js';
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
+import {
+  typesenseClient,
+  PRODUCTS_COLLECTION_NAME,
+  B2B_DISABLED_SKUS_FILTER,
+} from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import HeroCarousel from '../components/HeroCarousel';
@@ -45,7 +49,7 @@ export default async function Home() {
       q,
       query_by: 'sku_prefixes,sku,title,original_name,semantic_tags,brand,family,product_group,category,technical_desc,description',
       query_by_weights: '200,150,100,100,100,100,80,80,80,60,50',
-      filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+      filter_by: `catalog_source:=zucchetti && stock_main:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
       sort_by: sortBy,
       per_page: 250,
     });

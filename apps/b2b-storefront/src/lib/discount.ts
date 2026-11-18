@@ -343,9 +343,12 @@ export async function fetchRuleTargetedProductsForCarousel(
   );
 
   try {
-    const { typesenseClient, PRODUCTS_COLLECTION_NAME } = await import(
-      '@archelia/typesense/dist/client.js'
-    );
+    const {
+      typesenseClient,
+      PRODUCTS_COLLECTION_NAME,
+      B2B_DISABLED_SKUS_FILTER,
+      isB2bDisabledSku,
+    } = await import('@archelia/typesense/dist/client.js');
 
     const searches: Promise<any>[] = [];
 
@@ -358,7 +361,7 @@ export async function fetchRuleTargetedProductsForCarousel(
           .search({
             q: '*',
             query_by: 'sku,title',
-            filter_by: `catalog_source:=zucchetti && stock:>0 && sku:=[${skuList}]`,
+            filter_by: `catalog_source:=zucchetti && stock:>0 && sku:=[${skuList}] && ${B2B_DISABLED_SKUS_FILTER}`,
             sort_by: 'stock_main:desc,stock:desc,natural_sku:asc',
             per_page: Math.min(50, Math.max(limit, targetSkus.length)),
           })
@@ -391,7 +394,7 @@ export async function fetchRuleTargetedProductsForCarousel(
           .search({
             q: '*',
             query_by: 'sku,title',
-            filter_by: `catalog_source:=zucchetti && stock_main:>0 && (${taxonomyOrClauses.join(' || ')})`,
+            filter_by: `catalog_source:=zucchetti && stock_main:>0 && (${taxonomyOrClauses.join(' || ')}) && ${B2B_DISABLED_SKUS_FILTER}`,
             sort_by: 'stock_main:desc,natural_sku:asc',
             per_page: 40,
           })
@@ -408,6 +411,7 @@ export async function fetchRuleTargetedProductsForCarousel(
       for (const hit of res?.hits || []) {
         const doc = hit?.document;
         if (!doc) continue;
+        if (isB2bDisabledSku(doc.sku) || isB2bDisabledSku(doc.id)) continue;
         const key = String(doc.sku || doc.id || '');
         if (!key || seen.has(key)) continue;
         seen.add(key);

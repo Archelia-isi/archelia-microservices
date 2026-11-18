@@ -1,9 +1,27 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
 import { shopifyPromoService, TypesensePromoData } from '@archelia/shopify';
 import { prisma } from '@archelia/database';
+import {
+  B2B_DISABLED_SKUS_TYPESENSE_LIST,
+  isB2bDisabledSku,
+} from './b2bExclusions.js';
 
 export * from './client.js';
 export * from './search.js';
+export * from './b2bExclusions.js';
+
+export async function purgeDisabledB2bOnlyProductsFromTypesense() {
+  try {
+    await typesenseClient
+      .collections(PRODUCTS_COLLECTION_NAME)
+      .documents()
+      .delete({
+        filter_by: `publishedOnWeb:=false && sku:=[${B2B_DISABLED_SKUS_TYPESENSE_LIST}]`,
+      });
+  } catch (error) {
+    console.error('Failed to purge disabled B2B-only products from Typesense:', error);
+  }
+}
 /**
  * Initializes the Typesense collection schema for products if it doesn't exist.
  * If forceRecreate is true, it will drop the collection first.
@@ -172,6 +190,15 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
       skuPrefixesArray.push(currentPrefix);
     }
 
+    const b2bDisabled = isB2bDisabledSku(product.sku) || isB2bDisabledSku(product.id);
+    const publishedOnWeb = Boolean(product.publishedOnWeb && product.shopifyId && product.shopifyStatus === 'ACTIVE');
+    const publishedOnB2b = b2bDisabled ? false : Boolean(product.publishedOnB2b);
+
+    if (b2bDisabled && !publishedOnWeb) {
+      await deleteProductFromTypesense(String(product.id));
+      return;
+    }
+
     const document = {
       id: product.id,
       sku: product.sku || '',
@@ -195,8 +222,8 @@ export async function syncProductToTypesense(product: any, promoData?: Typesense
       stock_ek: Math.floor(product.stockEk || 0),
       image_url: product.imageUrl || '',
       image_urls: Array.isArray(product.imageUrls) ? product.imageUrls : [],
-      publishedOnWeb: Boolean(product.publishedOnWeb && product.shopifyId && product.shopifyStatus === 'ACTIVE'),
-      publishedOnB2b: Boolean(product.publishedOnB2b),
+      publishedOnWeb,
+      publishedOnB2b,
       keywords: keywordsArray,
       semantic_tags: semanticTagsArray,
       sku_prefixes: skuPrefixesArray,
@@ -268,7 +295,9 @@ export async function syncPromotionsToTypesense() {
   
   // 2. Fetch all products IDs from DB
   console.log('Recupero ID e SKU prodotti dal DB...');
-  const products = await prisma.product.findMany({ select: { id: true, sku: true } });
+  const rawProducts = await prisma.product.findMany({ select: { id: true, sku: true } });
+  const products = rawProducts.filter(p => !isB2bDisabledSku(p.sku) && !isB2bDisabledSku(p.id));
+  await purgeDisabledB2bOnlyProductsFromTypesense();
   const mappings = await prisma.productMapping.findMany({ select: { zucchettiSku: true, shopifyProductId: true } });
   
   const skuToShopifyId = new Map<string, string>();
@@ -442,6 +471,8 @@ export async function runBulkSync() {
     await Promise.all(promises);
     console.log(`Progress: ${Math.min(i + batchSize, allProductsToSync.length)} / ${allProductsToSync.length}`);
   }
+
+  await purgeDisabledB2bOnlyProductsFromTypesense();
 
   console.log(`
 Bulk sync complete!`);

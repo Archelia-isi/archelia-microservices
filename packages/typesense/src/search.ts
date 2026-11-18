@@ -1,4 +1,7 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
+import { B2B_DISABLED_SKUS_FILTER, isB2bDisabledSku } from './b2bExclusions.js';
+
+export * from './b2bExclusions.js';
 
 export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string, limit?: number, l1?: string, l2?: string, l3?: string, catalogSource?: 'zucchetti' | 'elmark' }) {
   try {
@@ -11,7 +14,7 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
       per_page: limit
     };
 
-    const baseFilters: string[] = [];
+    const baseFilters: string[] = [B2B_DISABLED_SKUS_FILTER];
     if (!options?.includeUnpublished) {
       if (!options?.b2bMode) {
         baseFilters.push('publishedOnWeb:true');
@@ -129,6 +132,7 @@ async function flushProductBatch() {
       for (const h of hits) {
         const doc = h?.document;
         if (!doc) continue;
+        if (isB2bDisabledSku(doc.sku) || isB2bDisabledSku(doc.id)) continue;
         if (doc.sku) foundMap.set(String(doc.sku).trim().toUpperCase(), doc);
         if (doc.natural_sku) {
           const ns = String(doc.natural_sku).trim().toUpperCase();
@@ -146,12 +150,15 @@ async function flushProductBatch() {
     const upperKey = rawKey.toUpperCase();
     let doc = foundMap.get(upperKey) || null;
 
-    if (!doc) {
+    if (!doc && !isB2bDisabledSku(rawKey)) {
       try {
         doc = await typesenseClient
           .collections(PRODUCTS_COLLECTION_NAME)
           .documents(rawKey)
           .retrieve();
+        if (doc && (isB2bDisabledSku(doc.sku) || isB2bDisabledSku(doc.id))) {
+          doc = null;
+        }
       } catch {
         doc = null;
       }
@@ -170,7 +177,7 @@ async function flushProductBatch() {
 
 export async function getProductById(idOrSku: string) {
   const cleanKey = String(idOrSku || '').trim();
-  if (!cleanKey) return null;
+  if (!cleanKey || isB2bDisabledSku(cleanKey)) return null;
 
   const upperKey = cleanKey.toUpperCase();
   const cached = productCache.get(upperKey);

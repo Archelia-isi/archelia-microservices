@@ -1,6 +1,11 @@
 'use server';
 
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
+import {
+  typesenseClient,
+  PRODUCTS_COLLECTION_NAME,
+  B2B_DISABLED_SKUS_FILTER,
+  isB2bDisabledSku,
+} from '@archelia/typesense/dist/client.js';
 
 import { cookies } from 'next/headers';
 
@@ -19,25 +24,27 @@ export async function searchBySkuPrefix(q: string, storeMode?: string) {
     if (effectiveMode === 'ELMARK') {
       const searchResults = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         ...baseParams,
-        filter_by: 'brand:=ELMARK',
+        filter_by: `brand:=ELMARK && ${B2B_DISABLED_SKUS_FILTER}`,
       });
-      return (searchResults?.hits || []).map((hit: any) => hit.document);
+      return (searchResults?.hits || [])
+        .map((hit: any) => hit.document)
+        .filter((doc: any) => !isB2bDisabledSku(doc?.sku) && !isB2bDisabledSku(doc?.id));
     }
 
     const [tier1Res, tier2Res, tier3Res] = await Promise.all([
       typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         ...baseParams,
-        filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+        filter_by: `catalog_source:=zucchetti && stock_main:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
         sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc'
       }),
       typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         ...baseParams,
-        filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0',
+        filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
         sort_by: '_text_match:desc,stock_ek:desc,natural_sku:asc'
       }),
       typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         ...baseParams,
-        filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0',
+        filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0 && ${B2B_DISABLED_SKUS_FILTER}`,
         sort_by: '_text_match:desc,natural_sku:asc'
       })
     ]);
@@ -47,8 +54,9 @@ export async function searchBySkuPrefix(q: string, storeMode?: string) {
       ...(tier2Res?.hits || []),
       ...(tier3Res?.hits || [])
     ]
-      .slice(0, 8)
-      .map((hit: any) => hit.document);
+      .map((hit: any) => hit.document)
+      .filter((doc: any) => !isB2bDisabledSku(doc?.sku) && !isB2bDisabledSku(doc?.id))
+      .slice(0, 8);
   } catch (error) {
     console.error('Quick Add search error:', error);
     return [];

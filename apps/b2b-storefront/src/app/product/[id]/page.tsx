@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProductById, searchProducts } from '@archelia/typesense/dist/search.js';
+import {
+  getProductById,
+  searchProducts,
+  B2B_DISABLED_SKUS_FILTER,
+  isB2bDisabledSku,
+} from '@archelia/typesense/dist/search.js';
 import ProductCarousel from '../../../components/ProductCarousel';
 import AddToCartBox from '../../../components/AddToCartBox';
 import FastShippingBanner from '../../../components/FastShippingBanner';
@@ -29,9 +34,13 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   const isAuthenticated = !!session;
   
 
+  if (isB2bDisabledSku(params.id)) {
+    notFound();
+  }
+
   const productRaw = await getProductById(params.id);
 
-  if (!productRaw) {
+  if (!productRaw || isB2bDisabledSku((productRaw as any).sku) || isB2bDisabledSku((productRaw as any).id)) {
     notFound();
   }
   
@@ -141,7 +150,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
         return p;
       });
   } else {
-    const relatedFilterBy = 'catalog_source:=zucchetti && stock_main:>0';
+    const relatedFilterBy = `catalog_source:=zucchetti && stock_main:>0 && ${B2B_DISABLED_SKUS_FILTER}`;
     const relatedSortOptions = [
       'stock_main:desc,natural_sku:asc',
       'stock_main:asc,natural_sku:desc',
@@ -156,6 +165,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
 
     const isValidCarouselProduct = (p: any) => {
       if (!p || p.id === product.id || p.sku === product.sku) return false;
+      if (isB2bDisabledSku(p.sku) || isB2bDisabledSku(p.id)) return false;
       const mainStock = Number('stock_main' in p ? p.stock_main : p.stock ?? 0);
       return p.catalog_source !== 'elmark' && mainStock > 0;
     };

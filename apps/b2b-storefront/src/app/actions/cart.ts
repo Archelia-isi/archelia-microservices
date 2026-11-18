@@ -5,7 +5,7 @@ import { getCart, saveCartToRedis, generateItemId, RedisCart } from '@/lib/cart'
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
 import { cookies } from "next/headers";
-import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getProductById, isB2bDisabledSku } from '@archelia/typesense/dist/search.js';
 import { getAvailableStock } from '@/lib/stock';
 
 
@@ -38,6 +38,9 @@ export async function getCartQuery() {
 }
 
 export async function addToCart(sku: string, quantity: number) {
+  if (isB2bDisabledSku(sku)) {
+    return { success: false, error: 'Articolo non disponibile a catalogo B2B' };
+  }
   const storeMode = (cookies().get('b2b_store_mode')?.value as 'ZUCCHETTI' | 'ELMARK') || 'ZUCCHETTI';
   const cartType = storeMode;
   const session = await verifySession();
@@ -304,6 +307,12 @@ export async function addMultipleToCart(items: { sku: string, quantity: number }
     const requestedBySku = new Map<string, number>();
     for (const item of items) {
       if (item.quantity <= 0) continue;
+      if (isB2bDisabledSku(item.sku)) {
+        return {
+          success: false,
+          error: `Articolo ${item.sku} non disponibile a catalogo B2B`,
+        };
+      }
       requestedBySku.set(item.sku, (requestedBySku.get(item.sku) || 0) + item.quantity);
     }
 

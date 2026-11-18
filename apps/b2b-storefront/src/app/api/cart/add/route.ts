@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/session';
 import { getCart, saveCartToRedis, generateItemId } from '@/lib/cart';
 import { getTargetUserId, getCartQuery } from '@/app/actions/cart';
-import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getProductById, isB2bDisabledSku } from '@archelia/typesense/dist/search.js';
 import { getAvailableStock } from '@/lib/stock';
 
 export async function POST(request: NextRequest) {
@@ -12,6 +12,10 @@ export async function POST(request: NextRequest) {
 
     if (!sku || typeof quantity !== 'number' || quantity < 1) {
       return NextResponse.json({ success: false, error: 'Parametri non validi' }, { status: 400 });
+    }
+
+    if (isB2bDisabledSku(sku)) {
+      return NextResponse.json({ success: false, error: 'Articolo non disponibile a catalogo B2B' }, { status: 400 });
     }
 
     const hostname = request.headers.get('host') || '';

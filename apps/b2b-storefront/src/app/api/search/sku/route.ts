@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
+import {
+  typesenseClient,
+  PRODUCTS_COLLECTION_NAME,
+  B2B_DISABLED_SKUS_FILTER,
+  isB2bDisabledSku,
+} from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
 import {
   getEffectiveClientDiscountContext,
@@ -19,8 +24,8 @@ export async function GET(request: Request) {
     }
 
     const filterBy = storeMode === 'ELMARK' 
-      ? 'brand:=ELMARK' 
-      : 'brand:!=[ELMARK]';
+      ? `brand:=ELMARK && ${B2B_DISABLED_SKUS_FILTER}` 
+      : `brand:!=[ELMARK] && ${B2B_DISABLED_SKUS_FILTER}`;
 
     const [searchResults, session, discountCtx] = await Promise.all([
       typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
@@ -35,7 +40,9 @@ export async function GET(request: Request) {
       getEffectiveClientDiscountContext(),
     ]);
 
-    const rawHits = searchResults?.hits?.map((hit: any) => hit.document) || [];
+    const rawHits = (searchResults?.hits?.map((hit: any) => hit.document) || []).filter(
+      (doc: any) => !isB2bDisabledSku(doc?.sku) && !isB2bDisabledSku(doc?.id)
+    );
     const hits = session
       ? rawHits.map((doc: any) => {
           const evaluated = evaluateTypesenseProductWithContext(doc, storeMode, discountCtx);

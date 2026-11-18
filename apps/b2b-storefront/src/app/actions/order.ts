@@ -3,7 +3,7 @@
 import { verifySession } from '@/lib/session';
 import { prisma } from '@archelia/b2b-database';
 import { revalidatePath } from 'next/cache';
-import { getProductById } from '@archelia/typesense/dist/search.js';
+import { getProductById, isB2bDisabledSku } from '@archelia/typesense/dist/search.js';
 import {
   getEffectiveDiscount,
   getEffectiveClientDiscountContext,
@@ -136,6 +136,10 @@ export async function addQuickItemToOrder(orderId: string, sku: string, quantity
     
     if (order.status !== 'PENDING_AGENT_REVIEW' && !(order.status === 'DRAFT' && order.createdById === targetUserId)) {
       return { success: false, error: 'Non puoi modificare questo ordine' };
+    }
+
+    if (isB2bDisabledSku(sku)) {
+      return { success: false, error: 'Articolo non disponibile a catalogo B2B' };
     }
 
     const product = await getProductById(sku) as any;

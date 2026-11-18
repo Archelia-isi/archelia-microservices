@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from '@archelia/typesense/dist/client.js';
+import {
+  typesenseClient,
+  PRODUCTS_COLLECTION_NAME,
+  B2B_DISABLED_SKUS_FILTER,
+  isB2bDisabledSku,
+} from '@archelia/typesense/dist/client.js';
 import { verifySession } from '@/lib/session';
 import {
   getEffectiveClientDiscountContext,
@@ -45,31 +50,33 @@ export async function GET(request: Request) {
       const [searchRes, sess] = await Promise.all([
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           ...baseSearchParams,
-          filter_by: 'brand:=ELMARK',
+          filter_by: `brand:=ELMARK && ${B2B_DISABLED_SKUS_FILTER}`,
           sort_by: '_text_match:desc,natural_sku:asc'
         }),
         verifySession()
       ]);
 
       session = sess;
-      rawHits = (searchRes?.hits || []).slice(0, 8);
+      rawHits = (searchRes?.hits || [])
+        .filter((h: any) => !isB2bDisabledSku(h?.document?.sku) && !isB2bDisabledSku(h?.document?.id))
+        .slice(0, 8);
       totalFound = searchRes?.found || 0;
       searchFacetSets = [searchRes?.facet_counts || []];
     } else {
       const [tier1Res, tier2Res, tier3Res, sess] = await Promise.all([
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           ...baseSearchParams,
-          filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+          filter_by: `catalog_source:=zucchetti && stock_main:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
           sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc'
         }),
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           ...baseSearchParams,
-          filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0',
+          filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
           sort_by: '_text_match:desc,stock_ek:desc,natural_sku:asc'
         }),
         typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
           ...baseSearchParams,
-          filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0',
+          filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0 && ${B2B_DISABLED_SKUS_FILTER}`,
           sort_by: '_text_match:desc,natural_sku:asc'
         }),
         verifySession()
@@ -80,7 +87,9 @@ export async function GET(request: Request) {
         ...(tier1Res?.hits || []),
         ...(tier2Res?.hits || []),
         ...(tier3Res?.hits || [])
-      ].slice(0, 8);
+      ]
+        .filter((h: any) => !isB2bDisabledSku(h?.document?.sku) && !isB2bDisabledSku(h?.document?.id))
+        .slice(0, 8);
       totalFound = (tier1Res?.found || 0) + (tier2Res?.found || 0) + (tier3Res?.found || 0);
       searchFacetSets = [
         tier1Res?.facet_counts || [],
