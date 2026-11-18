@@ -3885,7 +3885,7 @@ export async function runDailyAutoFeederAndLoop(options?: {
       const seenBatchEmails = new Set<string>();
 
       const RUNTIME_PEC_RX =
-        /(^|[.@])pec[.-]|pec\.(it|eu|com|net|org)$|(^|[.@])cert\.|cert\.(it|eu)$|legalmail\.|arubapec\.|infocert\.it$|ticertifica\.it$|postacert|postecert|sicurezzapostale|namirialpec|registerpec|poste-certificate\.it$/i;
+        /(^|[.@])pec[.-]|pec\.(it|eu|com|net|org)$|pecimprese\.it$|pecaruba\.it$|(^|[.@])cert\.|cert\.(it|eu)$|legalmail\.|arubapec\.|infocert\.it$|ticertifica\.it$|postacert|postecert|sicurezzapostale|namirialpec|registerpec|poste-certificate\.it$/i;
       const RUNTIME_PEC_LOCAL_RX =
         /^pec($|[._-])|[._-]pec$|^postacertificata|^posta\.certificata|^fatturazione\.pec/i;
       const RUNTIME_JUNK_DOMAIN_RX =
