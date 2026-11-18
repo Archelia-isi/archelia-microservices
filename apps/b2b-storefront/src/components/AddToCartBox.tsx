@@ -139,7 +139,11 @@ export default function AddToCartBox({ product, isLoggedIn, storeMode = 'ZUCCHET
   const hasDiscount = isLoggedIn && product.originalPriceB2b && product.price_b2b < product.originalPriceB2b;
   const discountPercentage = hasDiscount ? Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100) : 0;
   const discountBadgeText = hasDiscount
-    ? `-${product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPercentage}%`}`
+    ? product.discountLabel
+      ? String(product.discountLabel).includes('+')
+        ? `Sc. ${String(product.discountLabel).replace(/^-+/, '').replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+').replace(/\s*\+\s*/g, '+')}`
+        : `-${String(product.discountLabel).replace(/^-/, '')}`
+      : `-${discountPercentage}%`
     : '';
 
   return (

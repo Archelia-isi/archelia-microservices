@@ -405,7 +405,11 @@ export default function PredictiveSearchBar({
                               € {originalPrice.toFixed(2).replace('.', ',')}
                             </span>
                             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                              -{product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${discountPct}%`}
+                              {product.discountLabel
+                                ? String(product.discountLabel).includes('+')
+                                  ? `Sc. ${String(product.discountLabel).replace(/^-+/, '').replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+').replace(/\s*\+\s*/g, '+')}`
+                                  : `-${String(product.discountLabel).replace(/^-/, '')}`
+                                : `-${discountPct}%`}
                             </span>
                             {product.discountExpiresFormatted && (
                               <span className="text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded whitespace-nowrap">

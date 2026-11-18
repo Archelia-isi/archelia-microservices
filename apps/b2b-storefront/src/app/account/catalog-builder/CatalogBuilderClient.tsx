@@ -1418,9 +1418,15 @@ export default function CatalogBuilderClient({
                         {pricing.discountPct > 0 ? (
                           <div>
                             <div className="text-[10px] font-extrabold text-red-600">
-                              Sconto riservato: -
-                              {pricing.discountLabel ||
-                                `${pricing.discountPct.toFixed(1).replace('.0', '')}%`}
+                              Sconto riservato:{' '}
+                              {pricing.discountLabel
+                                ? pricing.discountLabel.includes('+')
+                                  ? pricing.discountLabel
+                                      .replace(/^-+/, '')
+                                      .replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+')
+                                      .replace(/\s*\+\s*/g, '+')
+                                  : `-${pricing.discountLabel.replace(/^-+/, '')}`
+                                : `-${pricing.discountPct.toFixed(1).replace('.0', '')}%`}
                             </div>
                             {pricing.appliedRuleName && (
                               <div className="text-[9px] font-bold text-emerald-700 truncate max-w-[140px]">

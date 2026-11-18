@@ -139,7 +139,7 @@ export default async function PublicSdrOfferPage({
       mustChangePassword: dbPromo.mustChangePassword,
       baseDiscount: baseDisc,
       extraDiscount: extraDisc,
-      discountFormula: `${baseDisc}% + ${extraDisc}%`,
+      discountFormula: `${baseDisc}%+${extraDisc}%`,
       offerTitle: 'Invito conoscitivo e sconto di benvenuto sul primo ordine',
       minOrderText: "Nessun minimo d'ordine",
       shippingText: 'Spedizione curata e tracciata in tutta Italia',

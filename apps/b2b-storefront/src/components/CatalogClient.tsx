@@ -312,7 +312,11 @@ export default function CatalogClient({ initialProducts, query, isAuthenticated,
                           € {Number(product.originalPriceB2b).toFixed(2).replace('.', ',')}
                         </span>
                         <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-                          -{product.discountLabel ? String(product.discountLabel).replace(/^-/, '') : `${Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100)}%`}
+                          {product.discountLabel
+                            ? String(product.discountLabel).includes('+')
+                              ? `Sc. ${String(product.discountLabel).replace(/^-+/, '').replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+').replace(/\s*\+\s*/g, '+')}`
+                              : `-${String(product.discountLabel).replace(/^-/, '')}`
+                            : `-${Math.round((1 - (product.price_b2b / product.originalPriceB2b)) * 100)}%`}
                         </span>
                         {product.discountExpiresFormatted && (
                           <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded whitespace-nowrap">

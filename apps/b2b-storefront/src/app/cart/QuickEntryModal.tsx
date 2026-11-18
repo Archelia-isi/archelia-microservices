@@ -165,7 +165,7 @@ function QuickEntryRow({
     const discountPct = original > 0 && original > final ? Math.round((1 - (final / original)) * 100) : 0;
     const discountLabel =
       storeMode !== 'ELMARK' && userDiscount > 0 && extraDiscount > 0
-        ? `${userDiscount}+${extraDiscount}%`
+        ? `${userDiscount}%+${extraDiscount}%`
         : `${discountPct}%`;
     return { original, final, discountPct, discountLabel };
   };

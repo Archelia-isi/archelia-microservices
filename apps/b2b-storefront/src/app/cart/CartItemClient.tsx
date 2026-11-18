@@ -215,9 +215,11 @@ export default function CartItemClient({ item, isAgent = false, storeMode = 'ZUC
               € {item.originalPrice.toFixed(2).replace('.', ',')}
             </span>
             <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1 rounded">
-              -{item.discountLabel
-                ? String(item.discountLabel).replace(/^-/, '')
-                : `${Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%`}
+              {item.discountLabel
+                ? String(item.discountLabel).includes('+')
+                  ? `Sc. ${String(item.discountLabel).replace(/^-+/, '').replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+').replace(/\s*\+\s*/g, '+')}`
+                  : `-${String(item.discountLabel).replace(/^-/, '')}`
+                : `-${Math.round((1 - ((item.basePrice || item.finalPrice) / item.originalPrice)) * 100)}%`}
             </span>
           </div>
         )}

@@ -1893,9 +1893,15 @@ export async function generateAgentCatalogPdfAction(
                   priceBoxY + 25
                 } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
               );
-              const discText = item.discountLabel
-                ? `Sconto riservato: -${item.discountLabel}`
-                : `Sconto riservato: -${item.discountPct.toFixed(1).replace('.0', '')}%`;
+              const formattedDiscLabel = item.discountLabel
+                ? item.discountLabel.includes('+')
+                  ? item.discountLabel
+                      .replace(/^-+/, '')
+                      .replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+')
+                      .replace(/\s*\+\s*/g, '+')
+                  : `-${item.discountLabel.replace(/^-+/, '')}`
+                : `-${item.discountPct.toFixed(1).replace('.0', '')}%`;
+              const discText = `Sconto riservato: ${formattedDiscLabel}`;
               cmd.push(
                 `BT /F2 7.2 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
                   priceBoxY + 15.5
@@ -1913,9 +1919,15 @@ export async function generateAgentCatalogPdfAction(
                 } Td (Listino: ${toPdfSafeLatin1(listFmt)}) Tj ET`
               );
               if (item.discountPct > 0) {
-                const discText = item.discountLabel
-                  ? `Sconto riservato: -${item.discountLabel}`
-                  : `Sconto riservato: -${item.discountPct.toFixed(1).replace('.0', '')}%`;
+                const formattedDiscLabel = item.discountLabel
+                  ? item.discountLabel.includes('+')
+                    ? item.discountLabel
+                        .replace(/^-+/, '')
+                        .replace(/(\d+(?:[.,]\d+)?)(?!%)\s*\+/g, '$1%+')
+                        .replace(/\s*\+\s*/g, '+')
+                    : `-${item.discountLabel.replace(/^-+/, '')}`
+                  : `-${item.discountPct.toFixed(1).replace('.0', '')}%`;
+                const discText = `Sconto riservato: ${formattedDiscLabel}`;
                 cmd.push(
                   `BT /F2 7.5 Tf 0.80 0.14 0.14 rg ${priceBoxX + 8} ${
                     priceBoxY + 10
