@@ -554,7 +554,7 @@ export default function SdrProspectsTableTab({
                     <td style={{ padding: '10px 12px' }}>
                       <div style={{ fontWeight: 700, fontSize: '12px' }}>{p.categoryCluster}</div>
                       <Badge variant={isRiv ? 'primary' : 'neutral'} size="sm">
-                        {isRiv ? 'RIV 50% + 10% (2gg)' : 'IST 40% + 10% (2gg)'}
+                        {isRiv ? 'RIV 50%+10% (2gg)' : 'IST 40%+10% (2gg)'}
                       </Badge>
                     </td>
                     <td style={{ padding: '10px 12px' }}>

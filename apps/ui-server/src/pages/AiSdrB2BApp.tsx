@@ -201,7 +201,7 @@ export default function AiSdrB2BApp() {
       warehouseFilter: 'MAIN_2GG',
       stockDisplayMode: 'BADGE_ONLY',
       catalogTitle: `Catalistino Riservato a ${companyName}`,
-      catalogSubtitle: `Offerta esclusiva 1° acquisto — Sconto Riservato ${baseDiscount}% + ${extraPct}%`,
+      catalogSubtitle: `Offerta esclusiva 1° acquisto — Sconto Riservato ${baseDiscount}%+${extraPct}%`,
       minOrderText: config.minOrderAmountText,
       shippingText: config.freeShippingText,
       openPreview: true,
@@ -646,7 +646,7 @@ export default function AiSdrB2BApp() {
 
     const basePct = cat?.baseDiscount ?? (p?.commercialCategory === 'RIV' ? 50 : 40);
     const extraPct = cat?.extraFirstPurchasePct ?? 10;
-    const formula = `${basePct}% + ${extraPct}%`;
+    const formula = `${basePct}%+${extraPct}%`;
     const agentName = promo?.assignedAgentName || config.defaultAgentName || 'Daniele Savoia';
     const defaultSubject = `Forniture materiale elettrico e illuminazione per ${p?.companyName || 'Vostra Azienda'}`;
     const defaultBody = `Buongiorno,

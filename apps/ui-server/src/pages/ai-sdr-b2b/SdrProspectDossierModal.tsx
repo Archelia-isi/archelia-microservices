@@ -103,7 +103,7 @@ export default function SdrProspectDossierModal({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <Badge variant={p.commercialCategory === 'RIV' ? 'primary' : 'success'} size="sm">
-                  {p.commercialCategory === 'RIV' ? '🏪 RIV 50% + 10% (2gg)' : '⚡ IST 40% + 10% (2gg)'}
+                  {p.commercialCategory === 'RIV' ? '🏪 RIV 50%+10% (2gg)' : '⚡ IST 40%+10% (2gg)'}
                 </Badge>
                 <Badge variant="neutral" size="sm">{p.categoryCluster}</Badge>
                 {p.vatNumber && <Badge variant="primary" size="sm">IT{p.vatNumber}</Badge>}

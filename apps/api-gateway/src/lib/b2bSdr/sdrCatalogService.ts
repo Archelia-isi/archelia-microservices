@@ -212,7 +212,7 @@ export function buildProspectCatalogPdfCacheKey(params: {
   credsFingerprint: string;
 }): string {
   const cycle = Math.max(1, Number(params.outreachCycle || 1));
-  return `sdr:catalog:pdf:v4:${params.prospectId}:c${cycle}:${params.baseDiscount}:${params.extraDiscount}:${params.maxProducts}:${params.agentCode}:${params.credsFingerprint}`;
+  return `sdr:catalog:pdf:v5:${params.prospectId}:c${cycle}:${params.baseDiscount}:${params.extraDiscount}:${params.maxProducts}:${params.agentCode}:${params.credsFingerprint}`;
 }
 
 export async function invalidateProspectCatalogPdfCache(prospectId: number): Promise<number> {
@@ -275,7 +275,7 @@ export async function generateProspectReservedCatalogPdf(options: {
   const effectiveDiscountPct = Number(
     (100 - (100 - baseDiscount) * (1 - extraDiscount / 100)).toFixed(2)
   );
-  const discountFormula = `${baseDiscount}% + ${extraDiscount}%`;
+  const discountFormula = extraDiscount > 0 ? `${baseDiscount}%+${extraDiscount}%` : `${baseDiscount}%`;
 
   const agent = await resolveSdrAgent(prospect.assignedAgentId || prospect.assignedAgentCode);
   const maxProducts = Math.min(160, Math.max(24, Number(config?.catalogMaxProducts || 120)));

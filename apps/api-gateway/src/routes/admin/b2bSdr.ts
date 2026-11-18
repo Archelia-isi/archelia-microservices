@@ -1515,7 +1515,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const discountFormulaLabel = `${baseDiscountNum}% + ${extraFirstPurchasePct}%`;
+        const discountFormulaLabel = `${baseDiscountNum}%+${extraFirstPurchasePct}%`;
         const effectiveNetPct = Number(
           (100 - (100 - baseDiscountNum) * (1 - extraFirstPurchasePct / 100)).toFixed(2)
         );
@@ -3268,7 +3268,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const extraFirstPurchasePct = isRiv
           ? Number(config.rivExtraDiscountPct || 10)
           : Number(config.istExtraDiscountPct || 10);
-        const formula = `${baseDiscount}% + ${extraFirstPurchasePct}%`;
+        const formula = `${baseDiscount}%+${extraFirstPurchasePct}%`;
         const unpackedMeta = unpackProspectRichData(sampledRealProspect);
         const provSuffix = sampledRealProspect.province
           ? `.${String(sampledRealProspect.province).toLowerCase()}`
@@ -3338,7 +3338,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const province = String(body.province || '').trim() || 'NA';
       const cluster =
         body.categoryCluster || (isRiv ? 'Ferramenta' : 'Installatore_Civile');
-      const formula = `${baseDiscount}% + ${extraFirstPurchasePct}%`;
+      const formula = `${baseDiscount}%+${extraFirstPurchasePct}%`;
 
       const preview = await generateCombinatorialOutreachEmail(
         {
@@ -3683,7 +3683,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       const extraFirstPurchasePct = isRiv
         ? Number(config?.rivExtraDiscountPct ?? 10)
         : Number(config?.istExtraDiscountPct ?? 10);
-      const formula = `${baseDiscountNum}% + ${extraFirstPurchasePct}%`;
+      const formula = `${baseDiscountNum}%+${extraFirstPurchasePct}%`;
       const trackingToken = existingDraft?.trackingToken || generateTrackingToken();
       const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
       const unpackedMeta = unpackProspectRichData(prospect);
@@ -3876,7 +3876,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
         const extraPct = isRiv
           ? Number(config?.rivExtraDiscountPct ?? 10)
           : Number(config?.istExtraDiscountPct ?? 10);
-        const formula = `${baseDiscountNum}% + ${extraPct}%`;
+        const formula = `${baseDiscountNum}%+${extraPct}%`;
         const trackingToken = d.trackingToken || generateTrackingToken();
         const smartUrls = buildSmartCatalogOfferUrls(trackingToken);
 

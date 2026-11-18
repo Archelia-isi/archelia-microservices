@@ -189,7 +189,7 @@ export default function SdrActivationTab({
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <Badge variant="success" size="sm">
-                        ⚡ {item.baseDiscount || 40}% + {item.extraFirstPurchasePct || 10}% (2gg)
+                        ⚡ {item.baseDiscount || 40}%+{item.extraFirstPurchasePct || 10}% (2gg)
                       </Badge>
                       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
                         {item.commercialCategory === 'RIV' ? 'Listino RIV Rivenditore' : 'Listino IST Installatore'}

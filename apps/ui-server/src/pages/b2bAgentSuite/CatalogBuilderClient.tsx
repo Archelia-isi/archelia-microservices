@@ -413,15 +413,20 @@ export default function CatalogBuilderClient({
     if (initialPreset.stockDisplayMode) setStockMode(initialPreset.stockDisplayMode);
 
     if (initialPreset.targetCompanyName && clients.length > 0) {
-      const targetLower = String(initialPreset.targetCompanyName).trim().toLowerCase();
+      const stripInAttivazione = (s: string) =>
+        String(s || '')
+          .replace(/^\[IN ATTIVAZIONE\]\s*/i, '')
+          .trim()
+          .toLowerCase();
+      const targetLower = stripInAttivazione(initialPreset.targetCompanyName);
       const matched = clients.find(
-        c => (c.companyName || '').trim().toLowerCase() === targetLower
+        c => stripInAttivazione(c.companyName || '') === targetLower
       );
       if (matched) {
         setSelectedClientId(matched.id);
         setClientSearchText(`${matched.companyName} (${matched.zucchettiCode})`);
         setBaseDiscount(Number(matched.discount || (initialPreset.commercialCategory === 'RIV' ? 50 : 40)));
-        setExtraDiscount(0);
+        setExtraDiscount(Number(initialPreset.extraDiscountPct ?? 0));
         setElmarkDiscounts(matched.elmarkDiscounts || {});
       } else {
         setClientSearchText(initialPreset.targetCompanyName);
@@ -758,6 +763,7 @@ export default function CatalogBuilderClient({
 
   // Calcolo prezzo netto e sconto per singolo prodotto (Sconto Base Fisso + Regole Sconto Prodotto/Marchio/Categoria)
   const calculateProductPricing = (product: CatalogProductItem) => {
+    const stockMainNum = Number(product.stockMain || 0);
     return evaluateProductDiscountWithRules(
       {
         sku: product.sku,
@@ -768,6 +774,8 @@ export default function CatalogBuilderClient({
         listPrice: Number(product.listPrice || 0),
         catalogSource: product.catalogSource,
         discgroup: product.discgroup,
+        stockMain: stockMainNum,
+        is2ggAvailable: product.catalogSource !== 'elmark' && stockMainNum > 0,
       },
       Number(baseDiscount || 0),
       discountRules || [],
@@ -1584,9 +1592,12 @@ export default function CatalogBuilderClient({
                         {pricing.discountPct > 0 ? (
                           <div>
                             <div className="text-[10px] font-extrabold text-red-600">
-                              Sconto riservato: -
-                              {pricing.discountLabel ||
-                                `${pricing.discountPct.toFixed(1).replace('.0', '')}%`}
+                              Sconto riservato:{' '}
+                              {pricing.discountLabel
+                                ? pricing.discountLabel.includes('+')
+                                  ? pricing.discountLabel.replace(/^-+/, '').replace(/\s*\+\s*/g, '+')
+                                  : `-${pricing.discountLabel.replace(/^-+/, '')}`
+                                : `-${pricing.discountPct.toFixed(1).replace('.0', '')}%`}
                             </div>
                             {pricing.appliedRuleName && (
                               <div className="text-[9px] font-bold text-emerald-700 truncate max-w-[140px]">

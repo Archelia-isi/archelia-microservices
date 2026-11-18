@@ -2265,7 +2265,10 @@ function executeCombinatorialSynthesis(
   options?: GenerateCombinatorialOptions
 ): CombinatorialEmailResult & { chosenTemplateId?: number } {
   const catCfg = resolveClusterConfig(input.categoryCluster);
-  const discountFormulaLabel = `${input.baseDiscount}% + ${input.extraFirstPurchasePct}%`;
+  const discountFormulaLabel =
+    Number(input.extraFirstPurchasePct) > 0
+      ? `${input.baseDiscount}%+${input.extraFirstPurchasePct}%`
+      : `${input.baseDiscount}%`;
 
   const seedCursor =
     typeof options?.deterministicSeed === 'number'
@@ -2983,7 +2986,7 @@ function resolveFollowupCommonContext(input: SdrSequenceFollowupInput) {
     typeof input.extraFirstPurchasePct === 'number' && input.extraFirstPurchasePct >= 0
       ? input.extraFirstPurchasePct
       : 10;
-  const discountFormulaLabel = extraPct > 0 ? `${baseDiscount}% + ${extraPct}%` : `${baseDiscount}%`;
+  const discountFormulaLabel = extraPct > 0 ? `${baseDiscount}%+${extraPct}%` : `${baseDiscount}%`;
 
   const meta =
     input.richMetadata && typeof input.richMetadata === 'object'

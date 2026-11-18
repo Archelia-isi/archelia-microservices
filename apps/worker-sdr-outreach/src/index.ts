@@ -1181,7 +1181,7 @@ export async function prepareOutreachPackageForProspect(
     commercialCategory === 'RIV'
       ? Number(configRow?.rivExtraDiscountPct ?? 10)
       : Number(configRow?.istExtraDiscountPct ?? 10);
-  const discountFormulaLabel = `${baseDiscount}% + ${extraDiscountPct}%`;
+  const discountFormulaLabel = `${baseDiscount}%+${extraDiscountPct}%`;
   const catalistinoTitle = `Catalistino Illustrativo per ${prospect.companyName}`;
   const catalistinoSubtitle = `Invito a valutarci come fornitore B2B — Benvenuto 1° ordine ${discountFormulaLabel}`;
   const minOrderAmountText =

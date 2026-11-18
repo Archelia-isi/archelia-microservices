@@ -557,8 +557,8 @@ export default function SdrCombinatorialStudioPanel({
                   onChange={(e) => setSimCategory(e.target.value as 'ALL' | 'IST' | 'RIV')}
                   options={[
                     { value: 'ALL', label: 'Tutti i Profili B2B (Installatori + Rivendite)' },
-                    { value: 'IST', label: 'Solo Installatori & Tecnici (40% + 10%)' },
-                    { value: 'RIV', label: 'Solo Rivenditori & Ferramenta (50% + 10%)' },
+                    { value: 'IST', label: 'Solo Installatori & Tecnici (40%+10%)' },
+                    { value: 'RIV', label: 'Solo Rivenditori & Ferramenta (50%+10%)' },
                   ]}
                 />
               </div>

@@ -324,7 +324,7 @@ async function trackCatalogOpenAndNotifyAgent(
             <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 14px; margin: 16px 0;">
               <div><strong>Azienda:</strong> ${escapeHtml(prospect.companyName)}</div>
               <div><strong>Località:</strong> ${escapeHtml(prospect.city)} (${escapeHtml(prospect.province)}) — ${escapeHtml(prospect.region)}</div>
-              <div><strong>Cluster:</strong> ${escapeHtml(catCfg.label)} [${catCfg.commercialCategory} ${catCfg.baseDiscount}% + ${extraPct}%]</div>
+              <div><strong>Cluster:</strong> ${escapeHtml(catCfg.label)} [${catCfg.commercialCategory} ${catCfg.baseDiscount}%+${extraPct}%]</div>
               <div><strong>Telefono / WhatsApp:</strong> ${escapeHtml(prospect.phone || prospect.whatsappPhone || 'N/D')}</div>
               <div><strong>Email:</strong> ${escapeHtml(prospect.ordinaryEmail || 'N/D')}</div>
               <div><strong>Username Portale B2B:</strong> <code>${escapeHtml(promoAny?.username || prospect.promotedUsername || 'N/D')}</code></div>
@@ -382,7 +382,7 @@ async function trackCatalogOpenAndNotifyAgent(
     scannerDetected,
     baseDiscount,
     extraDiscount,
-    discountFormula: `${baseDiscount}% + ${extraDiscount}%`,
+    discountFormula: extraDiscount > 0 ? `${baseDiscount}%+${extraDiscount}%` : `${baseDiscount}%`,
     effectiveNetPct,
     username,
     tempPassword,
@@ -624,7 +624,7 @@ export async function publicSdrOfferRoutes(fastify: FastifyInstance) {
         <div class="meta">
           ✅ <strong>Accesso B2B gratuito predisposto per Vostra comodità, senza alcun costo né vincolo</strong><br/>
           🚚 ${escapeHtml(cleanMinOrder)} • ${escapeHtml(cleanShipping)}<br/>
-          🏷️ Prezzi netti B2B calcolati con Sconto Base <strong>${ctx.baseDiscount}%</strong> + Benvenuto 1° Ordine <strong>+${ctx.extraDiscount}%</strong>
+          🏷️ Prezzi netti B2B calcolati con Sconto Riservato 1° Ordine <strong>${ctx.baseDiscount}%+${ctx.extraDiscount}%</strong> a cascata
         </div>
       </div>
       <div class="promo-box">

@@ -407,7 +407,7 @@ export function evaluateProductDiscountWithRules(
       const netPrice = Number((afterBase * (1 - safeFallbackExtra / 100)).toFixed(4));
       const effectivePct =
         listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
-      const label = safeBase > 0 ? `${safeBase}+${safeFallbackExtra}%` : `${safeFallbackExtra}%`;
+      const label = safeBase > 0 ? `${safeBase}%+${safeFallbackExtra}%` : `${safeFallbackExtra}%`;
       return {
         listPrice,
         netPrice,
@@ -483,7 +483,7 @@ export function evaluateProductDiscountWithRules(
   const effectivePct =
     listPrice > 0 ? Number(((1 - netPrice / listPrice) * 100).toFixed(2)) : 0;
   const label =
-    safeBase > 0 ? `${safeBase}+${ruleVal}%` : `${ruleVal}%`;
+    safeBase > 0 ? `${safeBase}%+${ruleVal}%` : `${ruleVal}%`;
 
   return {
     listPrice,
