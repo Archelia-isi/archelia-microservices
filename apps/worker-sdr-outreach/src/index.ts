@@ -1601,14 +1601,45 @@ async function selectAvailableArubaMailbox(options?: {
     }
   }
 
-  eligible.sort((a, b) => {
+  // Mescolamento casuale preventivo per distribuire uniformemente su tutte le 60 caselle a pari ratio/lastSentAt
+  const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+  shuffled.sort((a, b) => {
     if (Math.abs(a.ratio - b.ratio) > 0.01) return a.ratio - b.ratio;
     const tA = a.acc.lastSentAt ? a.acc.lastSentAt.getTime() : 0;
     const tB = b.acc.lastSentAt ? b.acc.lastSentAt.getTime() : 0;
     return tA - tB;
   });
 
-  return { selected: eligible[0] || null, rescheduleReason: null };
+  // Prenotazione atomica Redis anti-race-condition (slot inflight + eventuale slot giornaliero CATCH_ALL)
+  for (const cand of shuffled) {
+    const inflightKey = `sdr:inbox:inflight:${cand.acc.id}`;
+    const locked = await redisClient
+      .set(inflightKey, '1', 'EX', 60, 'NX')
+      .then((r) => r === 'OK')
+      .catch(() => true);
+    if (!locked) continue;
+
+    if (options?.isCatchAll && !options?.isConsentReply) {
+      const catchAllKey = `sdr:catchall:${dateKey}:inbox:${cand.acc.id}`;
+      const catchReserved = await redisClient
+        .set(catchAllKey, '1', 'EX', 172800, 'NX')
+        .then((r) => r === 'OK')
+        .catch(() => false);
+      if (!catchReserved) {
+        await redisClient.del(inflightKey).catch(() => {});
+        continue;
+      }
+    }
+
+    return { selected: cand, rescheduleReason: null };
+  }
+
+  return {
+    selected: null,
+    rescheduleReason: options?.isCatchAll
+      ? ('CATCH_ALL_DAILY_LIMIT_REACHED' as const)
+      : ('DAILY_POOL_QUOTA_REACHED' as const),
+  };
 }
 
 async function resolveConversationHeadersAndInboxForDraft(draft: {
@@ -2170,6 +2201,10 @@ async function dispatchSingleOutreachEmail(
     };
   } catch (smtpErr: any) {
     transporter.close();
+    const { dateKey: errDateKey } = getRomeDateParts();
+    if (verifyOutcome.isCatchAll && !isConsentReply) {
+      await redisClient.del(`sdr:catchall:${errDateKey}:inbox:${inbox.id}`).catch(() => {});
+    }
     await sdrPrisma.sdrInboxAccount
       .update({
         where: { id: inbox.id },
@@ -2180,6 +2215,8 @@ async function dispatchSingleOutreachEmail(
       })
       .catch(() => {});
     throw smtpErr;
+  } finally {
+    await redisClient.del(`sdr:inbox:inflight:${inbox.id}`).catch(() => {});
   }
 }
 
@@ -2209,22 +2246,32 @@ async function scheduleDispatchBatchWithJitter(
     await sdrPrisma.sdrInboxAccount.count({ where: { isActive: true } })
   );
   const baseFenceDelay = SDR_INTERCEPT_TO ? 0 : computeTimeFencingDelayMs(config || {});
-  const minJ = config?.jitterMinSeconds || 180;
-  const maxJ = config?.jitterMaxSeconds || 420;
 
+  // Spalmatura umana progressiva lungo la finestra di 30 minuti (1 email ogni ~75-125s nei lotti automatici,
+  // mai raffiche simultanee da 0-45s sullo stesso IP statico!)
+  let cumulativeDelayMs = Math.floor(Math.random() * 12_000) + 3_000;
   let queued = 0;
+
   for (let idx = 0; idx < draftIds.length; idx++) {
     const did = Number(draftIds[idx]);
     if (Number.isNaN(did)) continue;
-    const waveNumber = Math.floor(idx / activeCount);
-    const slotJitterMs = SDR_INTERCEPT_TO
-      ? idx * 4500
-      : waveNumber * computeGaussianJitterSeconds(minJ, maxJ) * 1000 +
-        Math.floor(Math.random() * 45000);
 
-    const scheduledAt = new Date(Date.now() + baseFenceDelay + slotJitterMs);
+    if (idx > 0) {
+      if (SDR_INTERCEPT_TO) {
+        cumulativeDelayMs += 4_500;
+      } else if (draftIds.length <= 20) {
+        // Lotto standard 30min (max 15 email): ~75s-125s tra un invio e l'altro (~24 min totali su 30 min)
+        cumulativeDelayMs += 75_000 + Math.floor(Math.random() * 50_000);
+      } else {
+        // Lotto manuale ampio: distribuisce regolarmente senza mai scendere sotto 25s tra due invii
+        const perItemMs = Math.max(25_000, Math.min(90_000, Math.floor((3 * 3600_000) / draftIds.length)));
+        cumulativeDelayMs += perItemMs + Math.floor(Math.random() * 15_000);
+      }
+    }
+
+    const scheduledAt = new Date(Date.now() + baseFenceDelay + cumulativeDelayMs);
     await sdrPrisma.sdrOutreachDraft
-      .update({ where: { id: did }, data: { scheduledFor: scheduledAt } })
+      .update({ where: { id: did }, data: { status: 'In_Coda_SMTP', scheduledFor: scheduledAt } })
       .catch(() => {});
 
     await sdrOutreachQueue.add(
@@ -2234,14 +2281,14 @@ async function scheduleDispatchBatchWithJitter(
         draftId: did,
         manualOverride: Boolean(opts?.manualOverride),
       },
-      { delay: baseFenceDelay + slotJitterMs, jobId: `send-${did}-${Date.now()}` }
+      { delay: baseFenceDelay + cumulativeDelayMs, jobId: `send-${did}-${Date.now()}` }
     );
     queued++;
   }
 
   pushSdrConsoleLog(
     'SCHEDULER',
-    `Pianificati ${queued} invii singoli su ${activeCount} caselle Aruba con Jitter Gaussiano (${minJ}-${maxJ}s).`,
+    `Pianificati ${queued} invii singoli progressivi su ${activeCount} caselle Aruba (spalmati in ~${Math.max(1, Math.round(cumulativeDelayMs / 60_000))} min).`,
     'INFO'
   );
   return { dryRun: false, scheduledCount: queued };
@@ -2330,7 +2377,14 @@ async function pollSingleArubaInboxImap(inbox: {
 
         const fromAddr = (msg.envelope?.from?.[0]?.address || '').trim().toLowerCase();
         const fromName = (msg.envelope?.from?.[0]?.name || '').trim();
-        if (!fromAddr || fromAddr === inbox.email.toLowerCase()) continue;
+        if (
+          !fromAddr ||
+          fromAddr === inbox.email.toLowerCase() ||
+          fromAddr.endsWith('@staff.aruba.it') ||
+          fromAddr === 'comunicazioni@aruba.it'
+        ) {
+          continue;
+        }
 
         const msgId = String(msg.envelope?.messageId || `imap-${inbox.id}-${msg.uid}`).trim();
 
@@ -3828,12 +3882,33 @@ export async function runDailyAutoFeederAndLoop(options?: {
 
       const preparedVirginDraftIds: number[] = [];
       let skippedExcludedVirgins = 0;
+      const seenBatchEmails = new Set<string>();
+
+      const RUNTIME_PEC_RX =
+        /(^|[.@])pec[.-]|pec\.(it|eu|com|net|org)$|(^|[.@])cert\.|cert\.(it|eu)$|legalmail\.|arubapec\.|infocert\.it$|ticertifica\.it$|postacert|postecert|sicurezzapostale|namirialpec|registerpec|poste-certificate\.it$/i;
+      const RUNTIME_PEC_LOCAL_RX =
+        /^pec($|[._-])|[._-]pec$|^postacertificata|^posta\.certificata|^fatturazione\.pec/i;
+      const RUNTIME_JUNK_DOMAIN_RX =
+        /(^|\.)(duckduckgo\.com|webador\.it|webador\.com|godaddy\.com|netsons\.com|altervista\.org|sentry\.io|wixpress\.com|wix\.com|jimdo\.com|squarespace\.com|wordpress\.org|wordpress\.com|w3\.org|schema\.org|surecart\.com|archiproducts\.com|houzz\.com|prontopro\.it|habitissimo\.it|ufficiocamerale\.com|kompass-italia\.it|paginegialle\.it|paginebianche\.it|italiaonline\.it|iubenda\.com|cookiebot\.com|iqos\.it|apple\.com|amazon\.com|google\.com|facebook\.com|instagram\.com|esempio\.it|esempio\.com|example\.com|example\.org|dominio\.it|dominio\.com|domain\.com|mysite\.com|website\.com|yoursite\.com|mailservice\.com|test\.it|test\.com|gov\.it|edu\.it|istruzione\.it)$/i;
+      const RUNTIME_JUNK_PREFIX_RX =
+        /^(iltuo@email\.it|nome@email\.it|nome@email\.com|tuaemail@|info@email\.it|email@email\.it|user@|utente@|noreply|no-reply|donotreply|do-not-reply|mailer-daemon|postmaster@|abuse@|privacy\.|dpo@|gdpr@|press@)/i;
 
       for (const virgin of virginBatch) {
         if (preparedVirginDraftIds.length >= batchCap) break;
 
-        const cleanEmail = (virgin.ordinaryEmail || '').trim().toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
+        const cleanEmail = (virgin.ordinaryEmail || '')
+          .replace(/^(?:%20|\s)+/gi, '')
+          .replace(/(?:%20|\s)+$/gi, '')
+          .trim()
+          .toLowerCase();
+        const [localPart, domainPart] = cleanEmail.split('@');
+
+        if (
+          !cleanEmail ||
+          !localPart ||
+          !domainPart ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)
+        ) {
           const hasPhone = prospectHasPhoneOrWhatsapp(virgin);
           await sdrPrisma.sdrProspect
             .update({
@@ -3851,7 +3926,52 @@ export async function runDailyAutoFeederAndLoop(options?: {
           continue;
         }
 
-        // Controllo incrociato preventivo su B2B (se già cliente attivo, già ordinato o già chiamato da Daniele)
+        if (RUNTIME_PEC_RX.test(domainPart) || RUNTIME_PEC_LOCAL_RX.test(localPart)) {
+          await sdrPrisma.sdrProspect
+            .update({
+              where: { id: virgin.id },
+              data: {
+                ordinaryEmail: null,
+                isPecVerified: true,
+                pecRejectedLog: 'Bloccata PEC pre-preparazione',
+                section: 'PEC_Scartata',
+              },
+            })
+            .catch(() => {});
+          skippedExcludedVirgins++;
+          continue;
+        }
+
+        if (RUNTIME_JUNK_DOMAIN_RX.test(domainPart) || RUNTIME_JUNK_PREFIX_RX.test(cleanEmail)) {
+          const hasPhone = prospectHasPhoneOrWhatsapp(virgin);
+          await sdrPrisma.sdrProspect
+            .update({
+              where: { id: virgin.id },
+              data: hasPhone
+                ? { ordinaryEmail: null, section: 'Senza_Email' }
+                : { ordinaryEmail: null, section: 'Senza_Email', pipelineStatus: 'Scartata' },
+            })
+            .catch(() => {});
+          skippedExcludedVirgins++;
+          continue;
+        }
+
+        // Evita collisioni email duplicate nello stesso lotto
+        if (seenBatchEmails.has(cleanEmail)) {
+          await sdrPrisma.sdrProspect
+            .update({
+              where: { id: virgin.id },
+              data: {
+                autoFollowupPaused: true,
+                auditNotes: 'Email già contattata su altra sede/ragione sociale collegata',
+              },
+            })
+            .catch(() => {});
+          skippedExcludedVirgins++;
+          continue;
+        }
+
+        // Controllo incrociato preventivo su B2B (se già cliente attivo, già presente in b2b_promo_prospects o email duplicata)
         const [existingActiveUser, existingPromo] = await Promise.all([
           b2bPrisma.b2BUser
             .findFirst({
@@ -3875,6 +3995,7 @@ export async function runDailyAutoFeederAndLoop(options?: {
               },
               select: {
                 id: true,
+                sdrProspectId: true,
                 status: true,
                 autoFollowupPaused: true,
                 agentContactedAt: true,
@@ -3892,9 +4013,12 @@ export async function runDailyAutoFeederAndLoop(options?: {
               .catch(() => 0)
           : 0;
 
+        // Se esiste già un b2b_promo_prospects con questa email su un altro prospect (es. filiale con email condivisa),
+        // non chiamare prepareOutreachPackageForProspect per evitare P2002 e doppio invio alla stessa casella!
         if (
           existingActiveUser ||
           existingPromoOrders > 0 ||
+          (existingPromo && existingPromo.sdrProspectId !== virgin.id) ||
           existingPromo?.convertedToUserId != null ||
           existingPromo?.firstOrderId != null ||
           existingPromo?.status === 'CONVERTED' ||
@@ -3914,13 +4038,17 @@ export async function runDailyAutoFeederAndLoop(options?: {
                   existingPromo?.convertedToUserId != null ||
                   existingPromo?.firstOrderId != null
                     ? 'Convertito'
-                    : 'Ha_Risposto',
+                    : existingPromo && existingPromo.sdrProspectId !== virgin.id
+                      ? 'Email_Condivisa_Gia_Contattata'
+                      : 'Ha_Risposto',
               },
             })
             .catch(() => {});
           skippedExcludedVirgins++;
           continue;
         }
+
+        seenBatchEmails.add(cleanEmail);
 
         try {
           const pkg = await prepareOutreachPackageForProspect(virgin.id);
@@ -4505,7 +4633,7 @@ async function startWorker() {
 
   const outreachWorker = new Worker('sdr-outreach-queue', processOutreachJob, {
     connection: outreachConn as any,
-    concurrency: 3,
+    concurrency: 1,
   });
 
   copywriterWorker.on('failed', (job, err) => {

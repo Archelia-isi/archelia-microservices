@@ -663,12 +663,12 @@ export function classifyInboundEmail(params: {
     return 'Bounce';
   }
 
-  // 2. Out Of Office / Risponditore Automatico Ferie
+  // 2. Out Of Office / Risponditore Automatico Ferie o Ricevuta Automatica Casella
   if (
     (params.autoSubmitted &&
       params.autoSubmitted !== 'no' &&
       /auto-replied|auto-generated|yes/i.test(params.autoSubmitted)) ||
-    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
+    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|automatic mailbox response|automatic response|auto-?response|auto-?reply|messaggio automatico|messaggio generato automaticamente|abbiamo correttamente ricevuto|abbiamo ricevuto la (?:vostra|sua|tua)|vi risponderemo al pi[uù] presto|ti risponderemo il prima possibile|grazie per aver contattato il team|grazie per averci contattat|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
       `${subjectLower}\n${freshLower}`
     )
   ) {
@@ -715,8 +715,9 @@ export function classifyInboundEmail(params: {
   }
 
   // 5. Consenso Semplice ("Sì grazie", "Mandate pure", "Ok inviate listino", "Va bene", "Volentieri", ecc.)
+  // Nota: "grazie" o "pure" da soli (senza sì/ok/manda/invia/procedi) NON bastano per evitare falsi positivi su ricevute cortesi!
   const hasAffirmativeConsent =
-    /\b(s[iì]|si'|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|inviat[ei]|invii|trasmettet[ei]|trasmetta|inoltrat[ei]|attendiamo|attendo|grazie|pure|visioniamo|valutiamo|riceviamo|mandateci|inviateci|fateci\s+avere|interessati\s+al\s+listino|interessati\s+a\s+ricevere)\b/i.test(
+    /\b(s[iì]|si'|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|manda|inviat[ei]|invii|invia|girat[ei]|giri|gira|trasmettet[ei]|trasmetta|inoltrat[ei]|attendiamo|attendo|visioniamo|valutiamo|riceviamo|mandateci|inviateci|girateci|fateci\s+avere|interessati\s+al\s+listino|interessati\s+a\s+ricevere)\b/i.test(
       coreText
     );
 
