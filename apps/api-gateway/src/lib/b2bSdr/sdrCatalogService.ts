@@ -234,7 +234,7 @@ export function buildProspectCatalogPdfCacheKey(params: {
   credsFingerprint: string;
 }): string {
   const cycle = Math.max(1, Number(params.outreachCycle || 1));
-  return `sdr:catalog:pdf:v5:${params.prospectId}:c${cycle}:${params.baseDiscount}:${params.extraDiscount}:${params.maxProducts}:${params.agentCode}:${params.credsFingerprint}`;
+  return `sdr:catalog:pdf:v6:${params.prospectId}:c${cycle}:${params.baseDiscount}:${params.extraDiscount}:${params.maxProducts}:${params.agentCode}:${params.credsFingerprint}`;
 }
 
 export async function invalidateProspectCatalogPdfCache(prospectId: number): Promise<number> {

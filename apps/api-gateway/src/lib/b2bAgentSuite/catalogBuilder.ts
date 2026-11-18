@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
-import { typesenseClient, PRODUCTS_COLLECTION_NAME } from "@archelia/typesense";
+import {
+  typesenseClient,
+  PRODUCTS_COLLECTION_NAME,
+  B2B_DISABLED_SKUS_FILTER,
+  isB2bDisabledSku,
+} from "@archelia/typesense";
 import { getAgentClientsList, AgentManagedClient, DEFAULT_AGENT_ID, DEFAULT_AGENT_CODE, DEFAULT_AGENT_NAME } from "./agentClients.js";
 import { AgentDiscountRule, getAgentDiscountRulesFromDb } from "./discountRules.js";
 
@@ -234,8 +239,9 @@ function escapeTypesenseFilterValue(val: string): string {
 function buildTypesenseFilterString(filters: CatalogSearchFilters): string {
   const clauses: string[] = [];
 
-  // 1. Sorgente catalogo: esclusivamente negozio Izzo Distribuzione (catalog_source:=zucchetti)
+  // 1. Sorgente catalogo: esclusivamente negozio Izzo Distribuzione (catalog_source:=zucchetti) + esclusione SKU disattivati B2B
   clauses.push('catalog_source:=zucchetti');
+  clauses.push(B2B_DISABLED_SKUS_FILTER);
 
   // 2. Filtro Deposito / Giacenza (3 modalità + opzione includi giacenza 0)
   if (!filters.includeZeroStock) {
@@ -440,7 +446,7 @@ export async function searchAgentCatalogProducts(
     const filterBy = buildTypesenseFilterString(filters);
 
     // Costruisce anche una query facet di contesto (filtrata per negozio Izzo e deposito) così le tendine mostrano tutte le opzioni disponibili
-    const baseFacetClauses: string[] = ['catalog_source:=zucchetti'];
+    const baseFacetClauses: string[] = ['catalog_source:=zucchetti', B2B_DISABLED_SKUS_FILTER];
     if (!filters.includeZeroStock) {
       if (filters.warehouse === 'MAIN_2GG') {
         baseFacetClauses.push('stock_main:>0');
@@ -706,19 +712,19 @@ export async function searchCatalogPredictiveAction(
         ? Promise.resolve({ hits: [], found: 0 })
         : typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
             ...baseSearchParams,
-            filter_by: 'catalog_source:=zucchetti && stock_main:>0',
+            filter_by: `catalog_source:=zucchetti && stock_main:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
             sort_by: '_text_match:desc,stock_main:desc,natural_sku:asc',
           }),
       warehouse === 'MAIN_2GG' && !includeZeroStock
         ? Promise.resolve({ hits: [], found: 0 })
         : typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
             ...baseSearchParams,
-            filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0',
+            filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:>0 && ${B2B_DISABLED_SKUS_FILTER}`,
             sort_by: '_text_match:desc,stock_ek:desc,natural_sku:asc',
           }),
       typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents().search({
         ...baseSearchParams,
-        filter_by: 'catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0',
+        filter_by: `catalog_source:=zucchetti && stock_main:<=0 && stock_ek:<=0 && ${B2B_DISABLED_SKUS_FILTER}`,
         sort_by: '_text_match:desc,natural_sku:asc',
       }),
     ]);
@@ -727,7 +733,9 @@ export async function searchCatalogPredictiveAction(
       ...(tier1Res?.hits || []),
       ...(tier2Res?.hits || []),
       ...(tier3Res?.hits || []),
-    ].slice(0, 10);
+    ]
+      .filter((hit: any) => !isB2bDisabledSku(hit?.document?.sku) && !isB2bDisabledSku(hit?.document?.id))
+      .slice(0, 10);
 
     const totalFound =
       (tier1Res?.found || 0) + (tier2Res?.found || 0) + (tier3Res?.found || 0);

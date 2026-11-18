@@ -6,6 +6,22 @@ const LISTINI_ECOMMERCE = ['ARC', 'VAELK'];
 const LISTINI_B2B = ['B2B']; // Inserire qui il codice listino B2B corretto di Zucchetti
 const MAGAZZINI_ABILITATI = ['PR', 'EK'];
 
+// Articoli disattivati permanentemente sul portale B2B (non devono mai tornare publishedOnB2b=true con i sync Zucchetti)
+const B2B_DISABLED_SKUS_SET = new Set<string>([
+  'IL216.HG570',
+  'IL217.HG577',
+  'IL218.HG585',
+  'IL219.HG572',
+  'IL220.HG586',
+  'IL226.HG577',
+  'IL227.HG585',
+]);
+
+function isB2bDisabledZucchettiSku(sku?: string | null): boolean {
+  if (!sku) return false;
+  return B2B_DISABLED_SKUS_SET.has(String(sku).trim().toUpperCase());
+}
+
 export interface ZucchettiArticle {
   arcodart: string;
   arcodar2: string;
@@ -296,7 +312,7 @@ export class ZucchettiPullService {
                   imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
-                  publishedOnB2b: article.arpubweb === 'S',
+                  publishedOnB2b: isB2bDisabledZucchettiSku(article.arcodar2) ? false : article.arpubweb === 'S',
                   zucchettiUpdatedAt: article.utdv || null,
                 },
                 create: {
@@ -331,7 +347,7 @@ export class ZucchettiPullService {
                   imageUrls: images.length > 0 ? images : Prisma.DbNull,
                   grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                   publishedOnWeb: article.arpubweb === 'S',
-                  publishedOnB2b: article.arpubweb === 'S',
+                  publishedOnB2b: isB2bDisabledZucchettiSku(article.arcodar2) ? false : article.arpubweb === 'S',
                   zucchettiCreatedAt: article.utdc || null,
                   zucchettiUpdatedAt: article.utdv || null,
                 },
@@ -379,7 +395,7 @@ export class ZucchettiPullService {
                     committedStockEk: agg.committedStockEk,
                     grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                     publishedOnWeb: article.arpubweb === 'S',
-                    publishedOnB2b: article.arpubweb === 'S',
+                    publishedOnB2b: isB2bDisabledZucchettiSku(article.arcodar2) ? false : article.arpubweb === 'S',
                     zucchettiUpdatedAt: article.utdv || null,
                   },
                   create: {
@@ -410,6 +426,7 @@ export class ZucchettiPullService {
                     committedStockEk: agg.committedStockEk,
                     grossWeight: article.arpeslor ? parseFloat(article.arpeslor) : 0,
                     publishedOnWeb: article.arpubweb === 'S',
+                    publishedOnB2b: isB2bDisabledZucchettiSku(article.arcodar2) ? false : article.arpubweb === 'S',
                     zucchettiCreatedAt: article.utdc || null,
                     zucchettiUpdatedAt: article.utdv || null,
                   },

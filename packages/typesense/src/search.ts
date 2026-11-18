@@ -1,4 +1,7 @@
 import { typesenseClient, PRODUCTS_COLLECTION_NAME, GUIDES_COLLECTION_NAME } from './client.js';
+import { B2B_DISABLED_SKUS_FILTER, isB2bDisabledSku } from './b2bExclusions.js';
+
+export * from './b2bExclusions.js';
 
 export async function searchProducts(q: string, options?: { includeUnpublished?: boolean, b2bMode?: boolean, sortBy?: string, limit?: number, l1?: string, l2?: string, l3?: string }) {
   try {
@@ -17,13 +20,10 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
     }
     
     let filters = [];
-    if (!options?.includeUnpublished) {
-      if (options?.b2bMode) {
-        // TEMP FIX: Do not filter by publishedOnWeb in B2B mode since all 11084 products in Typesense are B2B products,
-        // and publishedOnB2b is not yet populated.
-      } else {
-        filters.push('publishedOnWeb:true');
-      }
+    if (options?.b2bMode) {
+      filters.push(B2B_DISABLED_SKUS_FILTER);
+    } else if (!options?.includeUnpublished) {
+      filters.push('publishedOnWeb:true');
     }
 
     if (options?.l1) filters.push(`product_group:=${options.l1}`);
@@ -44,10 +44,15 @@ export async function searchProducts(q: string, options?: { includeUnpublished?:
 
 export async function getProductById(idOrSku: string) {
   try {
+    if (isB2bDisabledSku(idOrSku)) return null;
+
     // Prima proviamo a prenderlo direttamente per ID (metodo più veloce e sicuro per gli ID esatti)
     try {
-      const doc = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents(idOrSku).retrieve();
-      if (doc) return doc;
+      const doc: any = await typesenseClient.collections(PRODUCTS_COLLECTION_NAME).documents(idOrSku).retrieve();
+      if (doc) {
+        if (isB2bDisabledSku(doc.sku) || isB2bDisabledSku(doc.id)) return null;
+        return doc;
+      }
     } catch (e) {
       // Se fallisce, potrebbe non essere l'ID ma lo SKU
     }
@@ -58,7 +63,11 @@ export async function getProductById(idOrSku: string) {
       filter_by: `sku:=${idOrSku} || natural_sku:=${idOrSku}`,
       per_page: 1
     });
-    return searchResults?.hits?.[0]?.document || null;
+    const foundDoc: any = searchResults?.hits?.[0]?.document || null;
+    if (foundDoc && (isB2bDisabledSku(foundDoc.sku) || isB2bDisabledSku(foundDoc.id))) {
+      return null;
+    }
+    return foundDoc;
   } catch (error) {
     console.error('Typesense getProductById error:', error);
     return null;

@@ -25,3 +25,4 @@ export const typesenseClient = new Client({
 
 export const PRODUCTS_COLLECTION_NAME = 'products';
 export const GUIDES_COLLECTION_NAME = 'guides';
+export * from './b2bExclusions.js';
