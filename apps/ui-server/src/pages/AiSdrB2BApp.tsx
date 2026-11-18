@@ -9,6 +9,8 @@ import {
   Flame,
   MapPin,
   Bot,
+  Play,
+  Square,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppSplashScreen from '../components/os/AppSplashScreen';
@@ -41,6 +43,7 @@ export default function AiSdrB2BApp() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('search');
   const [loading, setLoading] = useState(false);
+  const [engineToggling, setEngineToggling] = useState(false);
 
   const [statsData, setStatsData] = useState<any>(null);
   const [b2bAgents, setB2bAgents] = useState<SdrB2BAgentOption[]>([]);
@@ -893,8 +896,9 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
   const handleSaveConfig = async () => {
     try {
       setLoading(true);
+      const { autoFeederEnabled: _ignoreEngineState, ...settingsOnly } = config;
       const safePayload = {
-        ...config,
+        ...settingsOnly,
         loopCooldownDays: Math.max(90, Number(config.loopCooldownDays ?? 90) || 90),
       };
       const res = await fetch(`${API_URL}/api/admin/sdr/config`, {
@@ -906,7 +910,7 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
       if (data.success) {
         setConfig((prev) => ({ ...prev, ...data.config }));
         fetchStats();
-        toast.success('Configurazione SDR, Alimentatore & Loop 90gg salvati!');
+        toast.success('Impostazioni SDR salvate! (Lo stato del Motore Invii resta invariato)');
       } else {
         toast.error(data.error || 'Errore salvataggio configurazione');
       }
@@ -914,6 +918,43 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
       toast.error('Errore connessione salvataggio configurazione');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleOutreachEngine = async (nextEnabled: boolean) => {
+    const confirmMsg = nextEnabled
+      ? 'Vuoi AVVIARE il Motore Automatico di Invio Email B2B sulle 60 caselle Aruba?'
+      : 'Vuoi FERMARE subito il Motore Invii e bloccare immediatamente eventuali email in coda?';
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setEngineToggling(true);
+      const res = await fetch(`${API_URL}/api/admin/sdr/engine/toggle`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ enabled: nextEnabled }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConfig((prev) => ({
+          ...prev,
+          ...(data.config || {}),
+          autoFeederEnabled: Boolean(data.enabled),
+        }));
+        toast.success(
+          data.message ||
+            (nextEnabled ? 'Motore Invii AVVIATO!' : 'Motore Invii FERMATO immediatamente!')
+        );
+        fetchStats();
+        fetchDrafts();
+        fetchSearchStatusAndLogs();
+      } else {
+        toast.error(data.error || 'Errore cambio stato Motore Invii');
+      }
+    } catch {
+      toast.error('Errore di connessione comando Motore Invii');
+    } finally {
+      setEngineToggling(false);
     }
   };
 
@@ -1079,10 +1120,23 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
                 { id: 'overview', label: 'Pool 60 Aruba SSL', icon: <Radar size={14} /> },
               ]}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-              <Badge variant={statsData?.enableGlobalWrites ? 'success' : 'warning'} size="sm">
-                {statsData?.enableGlobalWrites ? 'LIVE MODE' : 'DRY-RUN PROTETTO'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', flexShrink: 0 }}>
+              <Badge variant={config.autoFeederEnabled ? 'success' : 'neutral'} size="sm">
+                {config.autoFeederEnabled ? 'MOTORE INVII: ATTIVO' : 'MOTORE INVII: SPENTO'}
               </Badge>
+              <Button
+                variant={config.autoFeederEnabled ? 'danger' : 'success'}
+                size="sm"
+                icon={config.autoFeederEnabled ? <Square size={13} /> : <Play size={13} />}
+                disabled={!canWrite || engineToggling}
+                onClick={() => handleToggleOutreachEngine(!config.autoFeederEnabled)}
+              >
+                {engineToggling
+                  ? 'Attendere...'
+                  : config.autoFeederEnabled
+                    ? 'Ferma Motore Invii'
+                    : 'Avvia Motore Invii'}
+              </Button>
               <Button
                 variant="secondary"
                 size="sm"
@@ -1356,6 +1410,8 @@ Comunicazione B2B tra operatori economici; se non d'interesse rispondete STOP e 
               onRerollSingleDraft={handleRerollSingleDraft}
               onRerollReadyDrafts={handleRerollReadyDrafts}
               onSaveConfig={handleSaveConfig}
+              onToggleEngine={handleToggleOutreachEngine}
+              engineToggling={engineToggling}
               onOpenDiscountsApp={openDiscountsApp}
               onOpenDossier={handleOpenProspectDossier}
               onDownloadCatalogPdf={handleDownloadCatalogPdf}

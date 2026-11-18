@@ -13,6 +13,8 @@ import {
   Inbox,
   ShieldCheck,
   Clock,
+  Play,
+  Square,
 } from 'lucide-react';
 import GlassPanel from '../../components/ui/GlassPanel';
 import Badge from '../../components/ui/Badge';
@@ -43,6 +45,8 @@ interface SdrDraftsConfigTabProps {
   onRerollSingleDraft: (prospectId: number) => void;
   onRerollReadyDrafts: () => void;
   onSaveConfig: () => void;
+  onToggleEngine: (nextEnabled: boolean) => void;
+  engineToggling?: boolean;
   onOpenDiscountsApp: () => void;
   onOpenDossier: (prospectId: number) => void;
   onDownloadCatalogPdf: (prospectId: number, companyName: string) => void;
@@ -126,6 +130,8 @@ export default function SdrDraftsConfigTab({
   onRerollSingleDraft,
   onRerollReadyDrafts,
   onSaveConfig,
+  onToggleEngine,
+  engineToggling,
   onOpenDiscountsApp,
   onOpenDossier,
   onDownloadCatalogPdf,
@@ -890,13 +896,26 @@ export default function SdrDraftsConfigTab({
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <Badge variant={config.autoFeederEnabled ? 'success' : 'neutral'} size="sm">
-              {config.autoFeederEnabled ? 'ALIMENTATORE ATTIVO (LUN–VEN)' : 'ALIMENTATORE SPENTO (MANUALE)'}
+              {config.autoFeederEnabled ? 'MOTORE INVII: ATTIVO' : 'MOTORE INVII: SPENTO'}
             </Badge>
             <Badge variant={config.loopEnabled !== false ? 'primary' : 'warning'} size="sm">
               {config.loopEnabled !== false
                 ? `LOOP ATTIVO (MIN. ${Math.max(90, Number(config.loopCooldownDays ?? 90) || 90)}GG)`
                 : 'LOOP DISATTIVATO'}
             </Badge>
+            <Button
+              variant={config.autoFeederEnabled ? 'danger' : 'success'}
+              size="sm"
+              icon={config.autoFeederEnabled ? <Square size={13} /> : <Play size={13} />}
+              disabled={!canWrite || Boolean(engineToggling)}
+              onClick={() => onToggleEngine(!config.autoFeederEnabled)}
+            >
+              {engineToggling
+                ? 'Attendere...'
+                : config.autoFeederEnabled
+                  ? 'Ferma Motore Invii'
+                  : 'Avvia Motore Invii'}
+            </Button>
           </div>
         </div>
 
@@ -963,29 +982,6 @@ export default function SdrDraftsConfigTab({
             alignItems: 'end',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '6px' }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(config.autoFeederEnabled)}
-                onChange={(e) => setConfig({ ...config, autoFeederEnabled: e.target.checked })}
-              />
-              Attiva Alimentatore Automatico Giornaliero (Lun–Ven)
-            </label>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', paddingLeft: '22px' }}>
-              Priorità 1: Risposte e Follow-up 5gg → Priorità 2: Tutte le aziende vergini mai contattate → Priorità 3: Solo a vergini esaurite, ricontatto dopo min. 90 giorni
-            </span>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '6px' }}>
             <label
               style={{

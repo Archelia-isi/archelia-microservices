@@ -1703,6 +1703,7 @@ async function dispatchSingleOutreachEmail(
     preferredInboxId?: number | null;
     inReplyTo?: string | null;
     references?: string[] | string | null;
+    manualOverride?: boolean;
   }
 ) {
   const [draft, config] = await Promise.all([
@@ -1720,6 +1721,17 @@ async function dispatchSingleOutreachEmail(
   const isConsentReply =
     draft.sequenceStep === STEP_1B_CONSENT_REPLY ||
     String(draft.templateCode || '').toUpperCase().startsWith('STEP1B_');
+
+  // Freno istantaneo Motore Invii: se l'interruttore generale è SPENTO, nessun invio automatico può partire
+  if (!dispatchOpts?.manualOverride && !isConsentReply && config?.autoFeederEnabled !== true) {
+    await sdrPrisma.sdrOutreachDraft
+      .update({
+        where: { id: draft.id },
+        data: { status: 'Bozza_Pronta', scheduledFor: null },
+      })
+      .catch(() => {});
+    return { skipped: true, reason: 'MOTORE_INVII_FERMATO' };
+  }
 
   // Rispetto assoluto di Kill-Switch / Template Disarmati / Già Inviata
   if (
@@ -2171,14 +2183,19 @@ async function dispatchSingleOutreachEmail(
   }
 }
 
-async function scheduleDispatchBatchWithJitter(draftIds: number[]) {
+async function scheduleDispatchBatchWithJitter(
+  draftIds: number[],
+  opts?: { manualOverride?: boolean }
+) {
   const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
 
   if (!IS_SDR_LIVE) {
     const results = [];
     for (const did of draftIds) {
       try {
-        const r = await dispatchSingleOutreachEmail(Number(did));
+        const r = await dispatchSingleOutreachEmail(Number(did), {
+          manualOverride: Boolean(opts?.manualOverride),
+        });
         results.push({ success: true, ...r });
       } catch (e: any) {
         results.push({ success: false, draftId: did, error: e.message });
@@ -2212,7 +2229,11 @@ async function scheduleDispatchBatchWithJitter(draftIds: number[]) {
 
     await sdrOutreachQueue.add(
       SDR_JOBS.DISPATCH_SINGLE,
-      { action: SDR_JOBS.DISPATCH_SINGLE, draftId: did },
+      {
+        action: SDR_JOBS.DISPATCH_SINGLE,
+        draftId: did,
+        manualOverride: Boolean(opts?.manualOverride),
+      },
       { delay: baseFenceDelay + slotJitterMs, jobId: `send-${did}-${Date.now()}` }
     );
     queued++;
@@ -3677,13 +3698,6 @@ export async function runDailyAutoFeederAndLoop(options?: {
   _dailyAutoFeederRunning = true;
 
   try {
-    // ------------------------------------------------------------------------
-    // PRIORITÀ 1: Esegue SEMPRE prima lo scheduler dei follow-up +5gg (Step 2 Giro 1 + Step 3 Caldi)
-    // ------------------------------------------------------------------------
-    const followupResult = await runAutomatedFollowupScheduler({
-      includeInterceptedDryRun: options?.includeInterceptedDryRun,
-    });
-
     const config = await sdrPrisma.sdrOutreachConfig.findUnique({ where: { id: 'default' } });
 
     if (!options?.forceManualQa) {
@@ -3691,7 +3705,6 @@ export async function runDailyAutoFeederAndLoop(options?: {
         return {
           skipped: true,
           reason: 'AUTO_FEEDER_DISABLED',
-          followupResult,
         };
       }
 
@@ -3699,7 +3712,6 @@ export async function runDailyAutoFeederAndLoop(options?: {
         return {
           skipped: true,
           reason: 'SDR_LIVE_DISABLED',
-          followupResult,
         };
       }
 
@@ -3709,10 +3721,16 @@ export async function runDailyAutoFeederAndLoop(options?: {
           skipped: true,
           reason: 'OUTSIDE_BUSINESS_WINDOW',
           nextWindowInMs: fenceDelayMs,
-          followupResult,
         };
       }
     }
+
+    // ------------------------------------------------------------------------
+    // PRIORITÀ 1: Esegue prima lo scheduler dei follow-up +5gg (Step 2 Giro 1 + Step 3 Caldi)
+    // ------------------------------------------------------------------------
+    const followupResult = await runAutomatedFollowupScheduler({
+      includeInterceptedDryRun: options?.includeInterceptedDryRun,
+    });
 
     await resetDailyInboxQuotasIfNeeded();
     const { minutesOfDay } = getRomeDateParts();
@@ -4393,6 +4411,7 @@ async function processOutreachJob(job: Job) {
       preferredInboxId: data.preferredInboxId ? Number(data.preferredInboxId) : null,
       inReplyTo: data.inReplyTo || null,
       references: data.references || null,
+      manualOverride: Boolean(data.manualOverride),
     });
   }
 
@@ -4402,7 +4421,9 @@ async function processOutreachJob(job: Job) {
       action === 'SEND_BATCH') &&
     Array.isArray(data.draftIds)
   ) {
-    return await scheduleDispatchBatchWithJitter(data.draftIds);
+    return await scheduleDispatchBatchWithJitter(data.draftIds, {
+      manualOverride: Boolean(data.manualOverride),
+    });
   }
 
   if (action === SDR_JOBS.IMAP_POLL_TICK) {

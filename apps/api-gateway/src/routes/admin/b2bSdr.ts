@@ -1295,7 +1295,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           millionVerifierApiKey: shouldUpdateMvKey ? rawMvKey || null : null,
           step2DelayDays: step2Days ?? 5,
           step3WarmDelayDays: step3Days ?? 5,
-          autoFeederEnabled: Boolean(body.autoFeederEnabled ?? false),
+          autoFeederEnabled: false,
           loopEnabled: body.loopEnabled !== undefined ? Boolean(body.loopEnabled) : true,
           loopCooldownDays: loopCooldownDays ?? 90,
         },
@@ -1342,14 +1342,101 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
           ...(shouldUpdateMvKey ? { millionVerifierApiKey: rawMvKey || null } : {}),
           ...(step2Days !== undefined ? { step2DelayDays: step2Days } : {}),
           ...(step3Days !== undefined ? { step3WarmDelayDays: step3Days } : {}),
-          ...(body.autoFeederEnabled !== undefined
-            ? { autoFeederEnabled: Boolean(body.autoFeederEnabled) }
-            : {}),
           ...(body.loopEnabled !== undefined ? { loopEnabled: Boolean(body.loopEnabled) } : {}),
           ...(loopCooldownDays !== undefined ? { loopCooldownDays } : {}),
         },
       });
       return reply.send({ success: true, config: sanitizeOutreachConfigForAdmin(config) });
+    } catch (error: any) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // 4B. INTERRUTTORE DEDICATO ACCENSIONE / SPEGNIMENTO MOTORE INVII (SEPARATO DALLE IMPOSTAZIONI)
+  // ============================================================================
+  fastify.post('/api/admin/sdr/engine/toggle', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { enabled?: boolean };
+      const nextEnabled = Boolean(body.enabled);
+
+      const updatedConfig = await sdrPrisma.sdrOutreachConfig.upsert({
+        where: { id: 'default' },
+        create: { id: 'default', autoFeederEnabled: nextEnabled },
+        update: { autoFeederEnabled: nextEnabled },
+      });
+
+      let cancelledJobs = 0;
+      let pausedDrafts = 0;
+
+      if (nextEnabled) {
+        await sdrOutreachQueue
+          .add(
+            'DAILY_AUTO_FEEDER_TICK',
+            { action: 'DAILY_AUTO_FEEDER_TICK' },
+            { jobId: `engine-start-${Date.now()}`, removeOnComplete: true }
+          )
+          .catch(() => {});
+
+        addSdrLog(
+          'OUTREACH',
+          'Motore Automatico Invii Email B2B AVVIATO dall’operatore.',
+          'SUCCESS'
+        );
+      } else {
+        // Freno istantaneo: rimuove dalla coda i job automatici in attesa/differiti (lasciando attiva la Sentinella IMAP)
+        try {
+          const [delayedJobs, waitingJobs] = await Promise.all([
+            sdrOutreachQueue.getDelayed(0, 2000),
+            sdrOutreachQueue.getWaiting(0, 2000),
+          ]);
+          for (const j of [...delayedJobs, ...waitingJobs]) {
+            const act = String(j?.data?.action || j?.name || '');
+            if (
+              act !== SDR_JOBS.IMAP_POLL_TICK &&
+              act !== SDR_JOBS.DAILY_RESET_QUOTA &&
+              !j?.data?.isConsentReply
+            ) {
+              await j.remove().catch(() => {});
+              cancelledJobs++;
+            }
+          }
+        } catch {
+          // ignore queue cleanup errors
+        }
+
+        const reverted = await sdrPrisma.sdrOutreachDraft.updateMany({
+          where: {
+            sequenceStep: { not: 10 },
+            OR: [
+              { status: 'In_Coda_SMTP' },
+              { status: 'Bozza_Pronta', scheduledFor: { not: null } },
+            ],
+          },
+          data: {
+            status: 'Bozza_Pronta',
+            scheduledFor: null,
+          },
+        });
+        pausedDrafts = reverted.count;
+
+        addSdrLog(
+          'OUTREACH',
+          `Motore Automatico Invii Email B2B FERMATO istantaneamente (${cancelledJobs} invii in coda annullati, ${pausedDrafts} bozze messe in pausa).`,
+          'WARN'
+        );
+      }
+
+      return reply.send({
+        success: true,
+        enabled: nextEnabled,
+        cancelledJobs,
+        pausedDrafts,
+        message: nextEnabled
+          ? 'Motore Automatico Invii AVVIATO! Gli invii partono automaticamente Lun–Ven negli orari impostati.'
+          : `Motore Automatico Invii FERMATO immediatamente${cancelledJobs > 0 ? ` (${cancelledJobs} email in coda bloccate)` : ''}.`,
+        config: sanitizeOutreachConfigForAdmin(updatedConfig),
+      });
     } catch (error: any) {
       return reply.status(500).send({ success: false, error: error.message });
     }
@@ -1861,6 +1948,7 @@ export async function adminB2BSdrRoutes(fastify: FastifyInstance) {
       await sdrOutreachQueue.add(SDR_JOBS.DISPATCH_BATCH, {
         action: SDR_JOBS.DISPATCH_BATCH,
         draftIds: validDraftIds,
+        manualOverride: true,
       });
 
       addSdrLog(
