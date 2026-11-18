@@ -16,1092 +16,1095 @@ export interface SeedEmailTemplate {
 }
 
 /**
- * 100 Email Madri Universali Izzo Distribuzione S.r.l. (T001 - T100) — STEP 1: Contatto Umano Puro.
- * Regola Anti-Spam Tassativa Step 1:
- * - ZERO link cliccabili (http://, https://, <a href>) nel corpo e nella firma
- * - ZERO parola "Password" o "Username" e zero credenziali in chiaro
- * - ZERO tabelle, riquadri o bottoni HTML (stile mail scritta a mano da Outlook)
- * - Chiusura naturale che invita a rispondere con un cenno per ricevere l'estratto listino netto riservato
- *   e l'accesso gratuito di consultazione (sconto di benvenuto 40%+10% / 50%+10% sul 1° ordine eventuale).
+ * 100 Email Madri Universali Izzo Distribuzione S.r.l. (T001 - T100) — STEP 1: Stile Diretto B2B 2025-2026.
+ * Regole Tassative Step 1:
+ * - Oggetti brevi e naturali (4-6 parole, 22-55 caratteri, tutti con prefisso a 2 parole prima di 'per {COMPANY_SHORT}'),
+ *   ZERO trattini '—' o '|', ZERO 'S.r.l.' o 'Izzo Distribuzione', ZERO '%'
+ * - Corpi snelli, idiomatici e centrati nella fascia [75 .. 100] parole (esclusa firma) in qualsiasi combinazione cartesiana
+ * - Struttura rapida a 3 paragrafi brevi + saluto finale:
+ *   1. {SALUTO_MODERNO} + presentazione con {AGENT_NAME} di Izzo Distribuzione S.r.l. e micro-descrizione ingrosso Partita IVA
+ *   2. Gancio reale su azienda/territorio/settore + 2-3 prodotti mirati {PRODOTTI_MIRATI} + vantaggio concreto + condizione 1° ordine senza '%'
+ *   3. Domanda finale corta di 1 sola riga + [SALUTO_CHIUSURA]
+ * - Concordanza automatica 100% pura 'Lei' (titolare verificato) vs 'voi' minuscolo (azienda), zero mescolanze, zero zeugmi e zero echi di radice.
  */
 export const DEFAULT_EMAIL_TEMPLATES: SeedEmailTemplate[] = [
   // ==========================================================================
-  // FAMIGLIA 01 (T001-T005) — PROSA PURA DISCORSIVA
+  // FAMIGLIA 01 (T001-T005) — PRESENTAZIONE DIRETTA & FILIERA CORTA
   // ==========================================================================
   {
     code: 'T001',
-    name: 'F01.1 Prosa Pura — Presentazione Diretta & Marchi nel Testo',
+    name: 'F01.1 Diretta — Presentazione Filiera Corta & Zero Minimo',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_TIPO_DOC] per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} [VERBO_CONTATTARE] Izzo Distribuzione S.r.l. quale fornitore B2B alternativo {SCOPO_FORNITURA_SETTORE}, con disponibilità continuativa su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[FRASE_DISPONIBILITA] [COME_RISPONDERE] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimo d’ordine, a prezzi netti e con un’agevolazione sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del nostro catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T002',
-    name: 'F01.2 Prosa Pura — Taglio Istituzionale & Filiera Diretta',
+    name: 'F01.2 Diretta — Prezzi Netti da Grossista & Pronta Consegna',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture all’ingrosso B2B — {INTESTAZIONE_OGGETTO} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_TIPO_DOC] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n[VERBO_CONTATTARE] Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}. Operiamo su tutto il territorio nazionale distribuendo agli operatori con Partita IVA {PRODOTTI_PROSA}, tutti [CONFORMITA_QUALITA].\n\n{INVITO_RISPOSTA_PROSA}\n\n[QUOTAZIONI_SU_COMMESSA].\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le esigenze operative {COMP_REF_DI} {LOC_PHRASE}, teniamo [IN_PRONTA_CONSEGNA] {PRODOTTI_MIRATI}, senza alcuna soglia minima, a prezzi netti e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T003',
-    name: 'F01.3 Prosa Pura — Ufficio Acquisti & Documentazione CE',
+    name: 'F01.3 Diretta — Fornitura Snella & Margine Protetto',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Proposta riservata per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Sottoponiamo la struttura B2B di Izzo Distribuzione S.r.l. quale canale complementare di approvvigionamento su {PRODOTTI_PROSA}, [COPERTURA_ITALIA].\n\n{INVITO_RISPOSTA_PROSA}\n\nPer distinte materiali o forniture programmate elaboriamo inoltre quotazioni dedicate su richiesta diretta.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nConoscendo l’ambito operativo {COMP_REF_DI} {LOC_PHRASE}, mettiamo a disposizione {PRODOTTI_MIRATI} [ZERO_MINIMO_ORDINE], a quotazioni nette da filiera corta e con un’agevolazione sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T004',
-    name: 'F01.4 Prosa Pura — Accentramento Acquisti & Zero Formalità',
+    name: 'F01.4 Diretta — Listino Ingrosso Chiaro & Spedizioni Rapide',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Canale di fornitura B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione',
+    subjectTemplate: 'Catalogo B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nin qualità di [QUALIFICA_DISTRIBUTORE], contattiamo la Vostra struttura {INCISO_CONTESTO_DB} per proporre un unico riferimento all’ingrosso su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le realtà del {POSS_M} comparto attive {LOC_PHRASE}, proponiamo senza minimo d’ordine {PRODOTTI_MIRATI}, con spedizioni rapide in tutta Italia e uno sconto di benvenuto sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del listino per valutare i prezzi?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T005',
-    name: 'F01.5 Prosa Pura — Confronto Libero Prezzi Netti',
+    name: 'F01.5 Diretta — Confronto Libero sui Prezzi Netti',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino riservato Partite IVA per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_FORMULA_PROMO] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Il catalogo riservato agli operatori B2B di Izzo Distribuzione S.r.l. affianca condizioni all’ingrosso trasparenti e pronta disponibilità su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con prezzi netti chiari e un’agevolazione [AGGETTIVO_RISERVATA_F] d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto sintetico del nostro catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 02 (T006-T010) — NOTA FLASH ESECUTIVA BREVE
+  // FAMIGLIA 02 (T006-T010) — NOTA RAPIDA & CONFRONTO VELOCE
   // ==========================================================================
   {
     code: 'T006',
-    name: 'F02.1 Nota Flash — Riferimenti Diretti in 6 Righe',
+    name: 'F02.1 Nota Rapida — Riferimento Diretto in Tre Passaggi',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Dettaglio condizioni per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, sottoponiamo il canale B2B diretto di Izzo Distribuzione S.r.l. su {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] anche su singola commessa. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nVisto il profilo operativo {COMP_REF_DI} {LOC_PHRASE}, proponiamo senza quantitativi minimi {PRODOTTI_MIRATI} a quotazioni nette competitive, con merce pronta e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T007',
-    name: 'F02.2 Nota Flash — Sintesi Ufficio Acquisti',
+    name: 'F02.2 Nota Rapida — Sintesi Prezzi & Stock Reale',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Sintesi forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\noperando {INCISO_CONTESTO_DB}, presentiamo Izzo Distribuzione S.r.l. {SCOPO_FORNITURA_SETTORE} ({PRODOTTI_COMPATTI}).\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con [STOCK_REALE], quotazioni chiare e un’agevolazione d’ingresso.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T008',
-    name: 'F02.3 Nota Flash — Ingrosso & Colli Frazionati',
+    name: 'F02.3 Nota Rapida — Colli Piccoli & Consegna Veloce',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_TIPO_DOC] — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Izzo Distribuzione S.r.l. distribuisce direttamente a listino B2B {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le forniture che {VERBO_GESTIRE} {LOC_PHRASE}, spediamo anche in piccoli colli senza soglie minime {PRODOTTI_MIRATI}, a prezzi netti e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T009',
-    name: 'F02.4 Nota Flash — Essenziale Direzione Aziendale',
+    name: 'F02.4 Nota Rapida — Essenziale per Titolare e Acquisti',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Nota conoscitiva B2B — {INTESTAZIONE_OGGETTO} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Listino B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nsegnaliamo il canale B2B diretto di Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}, con pronta disponibilità su {PRODOTTI_COMPATTI}.\n\nSe desiderate verificare senza vincoli i nostri prezzi netti ({DISCOUNT_FORMULA} a cascata sul primo ordine eventuale, zero minimo), rispondete pure con un cenno a questa mail e Vi inviamo subito l’estratto listino riservato e l’accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer i {POSS_MP} approvvigionamenti operativi {LOC_PHRASE}, teniamo [IN_PRONTA_CONSEGNA] {PRODOTTI_MIRATI}, senza soglie minime, a prezzi netti e con [IL_DOPPIO_SCONTO].\n\nPosso {LASCIARE_PRON} qui in risposta un estratto del catalogo da consultare [AVVERBIO_LIBERAMENTE]?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T010',
-    name: 'F02.5 Nota Flash — Verifica Rapida Prezzi & Stock',
+    name: 'F02.5 Nota Rapida — Verifica Immediata Convenienza',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Confronto listini B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Confronto listini per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Attraverso la divisione all’ingrosso di Izzo Distribuzione S.r.l. trattiamo {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] per preventivi su distinta. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimi d’ordine, a quotazioni nette chiare e con una condizione [AGGETTIVO_RISERVATA_F] d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del catalogo con i nostri prezzi?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 03 (T011-T015) — PRIMA PERSONA DANIELE SAVOIA (1-A-1)
+  // FAMIGLIA 03 (T011-T015) — CONTATTO PERSONALE 1-A-1 DANIELE SAVOIA
   // ==========================================================================
   {
     code: 'T011',
-    name: 'F03.1 Prima Persona — Daniele Savoia Diretto + Distinta WhatsApp',
+    name: 'F03.1 Prima Persona — Daniele Savoia Diretto Senza Filtri',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Contatto diretto B2B per {COMPANY_NAME} — {AGENT_NAME} (Izzo Distribuzione)',
+    subjectTemplate: 'Contatto B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nsono {AGENT_NAME} e seguo lo sviluppo commerciale B2B di Izzo Distribuzione S.r.l. Vi scrivo direttamente {INCISO_CONTESTO_DB}, per metterVi a disposizione un canale di fornitura alternativo, snello e senza filtri intermedi su {PRODOTTI_PROSA}.\n\nSe può esserVi utile per un confronto prezzi rispetto agli attuali fornitori, rispondete pure con un cenno a questa mail e Vi trasmetto qui l’estratto del nostro listino netto riservato insieme a un accesso gratuito di consultazione, con sconto di benvenuto {DISCOUNT_FORMULA} a cascata sul primo ordine eventuale ([ZERO_MINIMO_ORDINE]).\n\nSe invece preferite mettermi alla prova su una lista materiali in corso, potete girarmela direttamente in risposta o su WhatsApp al numero in firma.\n\nBuon lavoro e cordiali saluti,',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: per {PRODOTTI_MIRATI} garantiamo assistenza senza call center, assenza di minimi d’ordine, prezzi netti e un’agevolazione d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del listino per un rapido confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T012',
-    name: 'F03.2 Prima Persona — Filo Diretto Referente B2B in Prosa',
+    name: 'F03.2 Prima Persona — Referente Unico & Risposte Veloci',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Referente diretto B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Referente forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nmi chiamo {AGENT_NAME} e sono il referente B2B di Izzo Distribuzione S.r.l. {FRASE_CONTESTO_DB} Vi contatto personalmente per presentarVi la nostra distribuzione diretta su {PRODOTTI_COMPATTI}, tutti [CONFORMITA_QUALITA].\n\nQualora vogliate dare uno sguardo senza alcun impegno ai nostri netti ({CONDIZIONE_BREVE}), basta rispondere anche con un breve «Sì» a questa mail e Vi invio subito il prospetto PDF riservato con l’abilitazione gratuita di sola lettura.\n\nResto raggiungibile direttamente per telefono o WhatsApp al {AGENT_PHONE} {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nmi chiamo {AGENT_NAME} e seguo il reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer l’attività {COMP_REF_DI} {LOC_PHRASE}, {PRON_IND} propongo senza soglie minime {PRODOTTI_MIRATI}, a quotazioni nette da filiera corta e con [IL_DOPPIO_SCONTO].\n\n{SE_FA_COMODO}, posso {GIRARE_PRON} qui un estratto del catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T013',
-    name: 'F03.3 Prima Persona — Presentazione Personale Senza Call Center',
+    name: 'F03.3 Prima Persona — Assistenza Diretta & Prezzi da Filiera Corta',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Filo diretto forniture B2B per {COMPANY_NAME} — {AGENT_NAME}',
+    subjectTemplate: 'Contatto B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nVi scrivo da Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}. Seguo personalmente i clienti professionali B2B e vorrei sottoporre la nostra realtà alla Vostra valutazione come fornitore integrativo su {PRODOTTI_PROSA}.\n\nSe Vi fa piacere ricevere l’estratto del nostro listino netto riservato e un accesso conoscitivo gratuito al portale (già allineato allo sconto {DISCOUNT_FORMULA} sul primo eventuale ordine e zero minimo d’acquisto), rispondete pure con un cenno a questa mail. Se avete anche una distinta articoli da confrontare, inviatemela qui e Vi rispondo personalmente con quotazione dedicata.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSeguo in prima persona diverse realtà {LOC_PHRASE} dello stesso comparto {COMP_REF_DI}: per {PRODOTTI_MIRATI} uniamo quotazioni nette da filiera corta, assenza di quantitativi minimi e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T014',
-    name: 'F03.4 Prima Persona — Taglio Pratico per Risparmio Acquisti',
+    name: 'F03.4 Prima Persona — Risparmio Concreto sugli Acquisti Ricorrenti',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture B2B e riferimento diretto per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Forniture B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nsono {AGENT_NAME}, referente commerciale di Izzo Distribuzione S.r.l. {FRASE_CONTESTO_DB} Vi scrivo per presentarVi una soluzione pratica con cui molte aziende del settore riducono i costi d’acquisto su {PRODOTTI_COMPATTI}.\n\nSe può interessarVi controllare liberamente i prezzi netti riservati alla Vostra categoria ({DISCOUNT_FORMULA} a cascata sul primo eventuale acquisto, [ZERO_MINIMO_ORDINE]), rispondete pure con un cenno a questa mail e Vi giro subito l’estratto PDF del catalistino insieme a un profilo gratuito di sola consultazione.\n\nPer qualsiasi esigenza resto a Vostra diretta disposizione ai contatti sotto indicati.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con un’agevolazione d’ingresso e prezzi netti studiati per ridurre i costi.\n\nPosso {INVIARE_PRON} qui in risposta un estratto sintetico del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T015',
-    name: 'F03.5 Prima Persona — Riferimento Tecnico-Commerciale Dedicato',
+    name: 'F03.5 Prima Persona — Riferimento Personale per Ogni Esigenza',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione commerciale B2B — {AGENT_NAME} per {COMPANY_NAME}',
+    subjectTemplate: 'Condizioni riservate per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nmi presento brevemente: sono {AGENT_NAME} dell’ufficio commerciale B2B di Izzo Distribuzione S.r.l. Conoscendo il Vostro ambito operativo {INCISO_CONTESTO_DB}, desidero lasciarVi il mio riferimento diretto per le forniture di {PRODOTTI_COMPATTI}.\n\nA titolo puramente conoscitivo, se rispondete con un cenno a questa comunicazione Vi trasmetto qui il prospetto PDF riservato a {COMPANY_NAME} e l’accesso gratuito di consultazione già valorizzati con {CONDIZIONE_BREVE}.\n\nPer preventivi fuori standard, campionature o verifiche di disponibilità potete chiamarmi o scrivermi direttamente.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI}, con quotazioni nette chiare, scorte pronte e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 04 (T016-T020) — STRUTTURA CON P.S. FINALE
+  // FAMIGLIA 04 (T016-T020) — PRATICITÀ OPERATIVA & ZERO MINIMO D'ORDINE
   // ==========================================================================
   {
     code: 'T016',
-    name: 'F04.1 Struttura P.S. — Corpo Tecnico Pulito + Invito nel Post-Scriptum',
+    name: 'F04.1 Praticità — Libertà Totale sui Quantitativi',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione Izzo Distribuzione S.r.l. — Forniture B2B per {COMPANY_NAME}',
+    subjectTemplate: 'Catalogo forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB}\n\nSottoponiamo alla Vostra valutazione Izzo Distribuzione S.r.l. quale fornitore strutturato {SCOPO_FORNITURA_SETTORE}: distribuiamo su scala nazionale {PRODOTTI_PROSA}.\n\nOperiamo [COPERTURA_ITALIA], con gestione flessibile senza minimi d’ordine e ufficio commerciale diretto per quotazioni su specifica distinta di commessa.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimo d’ordine, a prezzi netti chiari e con un’agevolazione sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto sintetico del nostro listino per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T017',
-    name: 'F04.2 Struttura P.S. — Taglio Marginalità & Assortimento + P.S.',
+    name: 'F04.2 Praticità — Ricarico Protetto & Articoli Alta Rotazione',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Distribuzione B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Catalogo B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n[VERBO_CONTATTARE] Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}, presentandoci come partner all’ingrosso [FILOSOFIA_OPERATIVA].\n\nIl nostro modello distributivo punta a tutelare la marginalità operativa su famiglie complementari ad alta rotazione: {PRODOTTI_PROSA}.\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer {COMPANY_BODY_SHORT} {LOC_PHRASE}, mettiamo a disposizione {PRODOTTI_MIRATI} [ZERO_MINIMO_ORDINE], tutelando i margini operativi con quotazioni nette da filiera corta e un’agevolazione d’ingresso.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T018',
-    name: 'F04.3 Struttura P.S. — Focus Continuità Stock & Preventivi + P.S.',
+    name: 'F04.3 Praticità — Approvvigionamento Veloce & Qualità Garantita',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] — Alla c.a. di {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Desideriamo sottoporre Izzo Distribuzione S.r.l. quale canale B2B per l’approvvigionamento rapido di {PRODOTTI_COMPATTI}, tutti [CONFORMITA_QUALITA].\n\nPer commesse specifiche potete trasmetterci in risposta la distinta materiali per ricevere un’offerta dedicata dal nostro ufficio tecnico-commerciale.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con conformità normativa garantita e un’agevolazione sul primo acquisto.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del catalogo con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T019',
-    name: 'F04.4 Struttura P.S. — Unico Fornitore Multi-Famiglia + P.S.',
+    name: 'F04.4 Praticità — Consumi Ricorrenti & Consegna Flessibile',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Fornitura tecnica all’ingrosso per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Consegne B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nconoscendo il Vostro profilo operativo {INCISO_CONTESTO_DB}, Vi contattiamo da Izzo Distribuzione S.r.l. per proporre una linea di approvvigionamento diretto sui materiali di consumo ricorrente.\n\nCon un unico interlocutore B2B copriamo {PRODOTTI_PROSA}, [DESTINAZIONE_FLESSIBILE]. Restiamo a Vostro riferimento per concordare quotazioni su forniture programmate.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nOperando con le realtà del {POSS_M} settore {LOC_PHRASE}, copriamo senza soglie minime {PRODOTTI_MIRATI} con recapito rapido in sede o all’indirizzo indicato, prezzi netti e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T020',
-    name: 'F04.5 Struttura P.S. — Razionalizzazione Acquisti + P.S.',
+    name: 'F04.5 Praticità — Imballi Curati & Listini Chiari',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Accentramento forniture B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Listino forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB}\n\nAffianchiamo le realtà strutturate con listini d’ingrosso trasparenti su {PRODOTTI_COMPATTI}, coniugando [CURA_IMBALLO] e referente commerciale unico. Per ogni approfondimento o valorizzazione di capitolati potete fare riferimento ai recapiti sottostanti.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti {COMP_REF_DI} {LOC_PHRASE}, spediamo senza soglie minime {PRODOTTI_MIRATI}, unendo imballi curati, quotazioni nette e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 05 (T021-T025) — SINTESI QUALIFICA ALBO FORNITORI (TESTO PURO)
+  // FAMIGLIA 05 (T021-T025) — RUBRICA FORNITORI & PREZZI NETTI
   // ==========================================================================
   {
     code: 'T021',
-    name: 'F05.1 Qualifica Albo Fornitori — Sintesi Ufficio Acquisti',
+    name: 'F05.1 Rubrica Fornitori — Nuovo Riferimento Ingrosso Snello',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Qualifica fornitore B2B — Alla c.a. Ufficio Acquisti {COMPANY_NAME}',
+    subjectTemplate: 'Nuovo riferimento per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\ntrasmettiamo una sintetica nota di presentazione di Izzo Distribuzione S.r.l. per l’eventuale inserimento nel Vostro albo fornitori B2B, {INCISO_CONTESTO_DB}.\n\n{SCHEDA_QUALIFICA_FORNITORE}\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSe {VERBO_CONSIDERARE} fornitori di affiancamento per {COMPANY_BODY_SHORT} {LOC_PHRASE}, spediamo senza soglie minime {PRODOTTI_MIRATI}, con prezzi netti chiari, scorte pronte e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T022',
-    name: 'F05.2 Qualifica Albo Fornitori — Accreditamento Fornitore all’Ingrosso',
+    name: 'F05.2 Rubrica Fornitori — Valutazione Pratica sui Prezzi Reali',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Accreditamento fornitore all’ingrosso — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Condizioni B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Sottoponiamo i riferimenti societari e commerciali di Izzo Distribuzione S.r.l. per una valutazione quale fornitore all’ingrosso {SCOPO_FORNITURA_SETTORE}:\n\n{SCHEDA_QUALIFICA_FORNITORE}\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con merce pronta a magazzino e uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del listino per un rapido confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T023',
-    name: 'F05.3 Qualifica Albo Fornitori — Sintesi Direzione & Gare',
+    name: 'F05.3 Rubrica Fornitori — Alternativa Solida per Acquisti e Preventivi',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Prospetto accreditamento fornitore B2B — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Riferimento B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, inviamo il riepilogo operativo di Izzo Distribuzione S.r.l. ai fini delle Vostre valutazioni fornitori:\n\n{SCHEDA_QUALIFICA_FORNITORE}\n\n{INVITO_RISPOSTA_FLASH} [AIUTO_PRIMA_LISTA].\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer supportare le richieste operative {COMP_REF_DI} {LOC_PHRASE}, mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI} a quotazioni nette trasparenti, con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T024',
-    name: 'F05.4 Qualifica Albo Fornitori — Nota Tecnica di Qualifica',
+    name: 'F05.4 Rubrica Fornitori — Verifica Rapida Reparto Acquisti',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Nota qualifica fornitore per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Sintesi B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Per agevolare un’eventuale verifica da parte del Vostro ufficio acquisti, riepiloghiamo i nostri riferimenti operativi:\n\n{SCHEDA_QUALIFICA_FORNITORE}\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con scorte reali aggiornate, prezzi netti e uno sconto sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del listino per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T025',
-    name: 'F05.5 Qualifica Albo Fornitori — Riepilogo Parametri Commerciali B2B',
+    name: 'F05.5 Rubrica Fornitori — Parametri Chiari Fin dal Primo Sguardo',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti fornitore B2B Izzo Distribuzione S.r.l. — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Offerta forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nsottoponiamo i parametri essenziali di Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}, restando a disposizione per una verifica libera e gratuita dei nostri listini netti:\n\n{SCHEDA_QUALIFICA_FORNITORE}\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSeguendo da vicino il {POSS_M} comparto {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI} a prezzi netti e con [IL_DOPPIO_SCONTO].\n\n{SE_FA_COMODO}, posso {LASCIARE_PRON} qui un estratto del catalogo da consultare in piena libertà?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 06 (T026-T030) — APERTURA DIRETTA SULLA CONDIZIONE RISERVATA
+  // FAMIGLIA 06 (T026-T030) — CONDIZIONE DEDICATA SUL PRIMO ORDINE
   // ==========================================================================
   {
     code: 'T026',
-    name: 'F06.1 Apertura Diretta — Condizione Benvenuto in Testa + Profilo Izzo',
+    name: 'F06.1 Condizione Dedicata — Prova Operativa Senza Rischi',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Proposta confronto listino B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Proposta dedicata per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nper consentire al Vostro ufficio acquisti di confrontare prezzi netti e disponibilità reali senza alcun impegno commerciale, abbiamo previsto per i nuovi interlocutori B2B una condizione di benvenuto pari a {CONDIZIONE_BREVE}.\n\nVi scriviamo da Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}. Distribuiamo su scala nazionale {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer {COMPANY_BODY_SHORT} {LOC_PHRASE}, se {VERBO_PREFERIRE} partire anche da piccoli quantitativi, applichiamo quotazioni nette da filiera corta su {PRODOTTI_MIRATI}, con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T027',
-    name: 'F06.2 Apertura Diretta — Fascia Sconto in Apertura + Gamma Settore',
+    name: 'F06.2 Condizione Dedicata — Agevolazione Primo Acquisto & Zero Minimi',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Condizione listino B2B ({DISCOUNT_FORMULA}) — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Condizioni riservate per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nqualora voleste confrontare in autonomia i nostri prezzi d’ingrosso ({CONDIZIONE_BREVE}), siamo disponibili a trasmetterVi su semplice richiesta l’estratto del nostro listino riservato alle Partite IVA.\n\nSiamo Izzo Distribuzione S.r.l. e, {INCISO_CONTESTO_DB}, supportiamo gli operatori professionali fornendo direttamente {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimi d’ordine, a prezzi netti chiari e con uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T028',
-    name: 'F06.3 Apertura Diretta — Consultazione Sola Lettura + Copertura Tecnica',
+    name: 'F06.3 Condizione Dedicata — Listino Netto & Benvenuto Nuovi Partner',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione catalogo B2B per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Gamma prodotti per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nmettiamo a disposizione degli uffici tecnico-acquisti del settore la possibilità di consultare liberamente il nostro listino B2B riservato, valorizzato con {CONDIZIONE_BREVE} e privo di qualsiasi vincolo.\n\nIzzo Distribuzione S.r.l. affianca in tutta Italia le strutture del Vostro comparto — {INCISO_CONTESTO_DB} — fornendo {PRODOTTI_COMPATTI}, [CONFORMITA_QUALITA].\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti {COMP_REF_DI} {LOC_PHRASE}, teniamo [IN_PRONTA_CONSEGNA] {PRODOTTI_MIRATI}, operando senza quantitativi minimi, a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T029',
-    name: 'F06.4 Apertura Diretta — Parametri Netti + Presentazione Sobria',
+    name: 'F06.4 Condizione Dedicata — Prezzi Finiti Chiari & Zero Vincoli',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino netto B2B riservato per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Sintesi prezzi per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\ncontattiamo la Vostra struttura {INCISO_CONTESTO_DB} per presentare Izzo Distribuzione S.r.l. quale fornitore diretto {SCOPO_FORNITURA_SETTORE}, con copertura continuativa su {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con quotazioni nette chiare e un’agevolazione sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del listino da valutare [AVVERBIO_LIBERAMENTE]?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T030',
-    name: 'F06.5 Apertura Diretta — Confronto Diretto Netti + Preventivi',
+    name: 'F06.5 Condizione Dedicata — Verifica Convenienza sul Campo',
     angleGroup: 'Credenziali_Comodita',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Confronto listino ingrosso {DISCOUNT_FORMULA} — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_FORMULA_PROMO] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Izzo Distribuzione S.r.l. si propone quale partner distributivo su {PRODOTTI_PROSA}, riservando ai nuovi partner B2B {CONDIZIONE_BREVE}.\n\n{INVITO_RISPOSTA_FLASH} [FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le realtà del {POSS_M} comparto attive {LOC_PHRASE}, spediamo {PRODOTTI_MIRATI} anche in piccoli colli senza soglie minime, con prezzi netti chiari e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 07 (T031-T035) — RFQ-FIRST (QUOTAZIONE SU COMPUTO O DISTINTA)
+  // FAMIGLIA 07 (T031-T035) — PREVENTIVI VELOCI SU LISTA MATERIALI & WHATSAPP
   // ==========================================================================
   {
     code: 'T031',
-    name: 'F07.1 RFQ-First — Quotazione di Confronto su Computo o Distinta',
+    name: 'F07.1 Preventivi su Lista — Quotazione Rapida di Confronto',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Disponibilità quotazioni su computo e distinta materiali — {COMPANY_NAME}',
+    subjectTemplate: 'Preventivi veloci per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nqualora abbiate in fase di analisi una distinta materiali o un computo metrico — {INCISO_CONTESTO_DB} — l’ufficio commerciale di Izzo Distribuzione S.r.l. è disponibile a sottoporVi senza impegno una quotazione netta di confronto in tempi rapidi.\n\nOperiamo come distributori B2B diretti su {PRODOTTI_PROSA}, garantendo schede tecniche complete per capitolati e dichiarazioni di conformità.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSe {VERBO_AVERE} progetti o approvvigionamenti in corso {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI}, quotando in giornata anche distinte materiali con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T032',
-    name: 'F07.2 RFQ-First — Invio Lista via Email o WhatsApp + Estratto Listino',
+    name: 'F07.2 Preventivi su Lista — Risposta Diretta o Estratto PDF',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Quotazione di confronto su distinta articoli — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Preventivi diretti per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Vi proponiamo una modalità estremamente concreta per valutare Izzo Distribuzione S.r.l. come fornitore: potete inviarci in risposta — o via WhatsApp al {AGENT_PHONE} — un elenco tipo di materiali per ricevere una valorizzazione netta riservata.\n\nTrattiamo in pronta disponibilità {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nmi chiamo {AGENT_NAME} e seguo le forniture di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer {COMPANY_BODY_SHORT} {LOC_PHRASE}, proponiamo senza minimo d’ordine {PRODOTTI_MIRATI}, con assistenza rapida su distinta via email o WhatsApp e uno sconto sul primo acquisto.\n\n{SE_FA_COMODO}, posso {INVIARE_PRON} intanto qui un estratto del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T033',
-    name: 'F07.3 RFQ-First — Preventivi Commessa con Resa su Cantiere',
+    name: 'F07.3 Preventivi su Lista — Richieste con Consegna Flessibile',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Preventivi forniture B2B e capitolati per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Preventivi rapidi per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, mettiamo a disposizione della Vostra azienda il nostro ufficio commerciale per quotare forniture complete o parziali di commessa, [DESTINAZIONE_FLESSIBILE].\n\nCon Izzo Distribuzione S.r.l. copriamo internamente {PRODOTTI_PROSA}.\n\nOltre alla possibilità di richiederci un preventivo su lista materiali, se rispondete con un cenno a questa mail Vi trasmettiamo subito l’estratto del listino netto riservato insieme a un accesso gratuito di consultazione ({CONDIZIONE_BREVE}).\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nAffianchiamo {COMPANY_BODY_SHORT} {LOC_PHRASE} quotando senza soglie minime {PRODOTTI_MIRATI}, con recapito in sede o presso l’indirizzo indicato e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T034',
-    name: 'F07.4 RFQ-First — Supporto Tecnico-Economico su Capitolati',
+    name: 'F07.4 Preventivi su Lista — Schede Prodotto & Prezzi Netti',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Supporto capitolati e quotazioni B2B — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Segnaliamo la disponibilità dell’ufficio tecnico-commerciale di Izzo Distribuzione S.r.l. a fornire schede tecniche, equivalenze prestazionali e quotazioni B2B di riferimento per le Vostre commesse su {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli acquisti ricorrenti {COMP_REF_DI} {LOC_PHRASE}, garantiamo documentazione tecnica completa e prezzi netti chiari su {PRODOTTI_MIRATI}, senza minimo d’ordine e con un’agevolazione d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del nostro catalogo o {VERBO_PREFERIRE} inviare una distinta?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T035',
-    name: 'F07.5 RFQ-First — Test Operativo su Lista Riassortimento',
+    name: 'F07.5 Preventivi su Lista — Test Veloce sugli Articoli Più Usati',
     angleGroup: 'Presentazione_Referente',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Offerta di confronto su lista materiali — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Quotazioni B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nconoscendo il taglio professionale della Vostra struttura {INCISO_CONTESTO_DB}, Vi invitiamo a mettere alla prova Izzo Distribuzione S.r.l. anche su una semplice lista di articoli ad alta rotazione: elaboriamo quotazioni dedicate sia su colli frazionati sia su forniture a volume per {PRODOTTI_COMPATTI}.\n\nQualora preferiste esaminare prima il nostro listino netto generale ({CONDIZIONE_BREVE}), basta rispondere con un cenno a questa comunicazione e Vi inviamo qui il prospetto PDF riservato e l’accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con preventivi rapidi su distinta e uno sconto sul primo acquisto.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 08 (T036-T040) — FLUSSO IN TRE PUNTI DISCORSIVI
+  // FAMIGLIA 08 (T036-T040) — GAMMA CHIAVE PRONTA A MAGAZZINO
   // ==========================================================================
   {
     code: 'T036',
-    name: 'F08.1 Flusso 1-2-3 — Gamma, Condizioni e Confronto Netti',
+    name: 'F08.1 Gamma Pronta — Disponibilità Reale sui Prodotti Chiave',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Proposta operativa di fornitura B2B per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Scorte B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, sottoponiamo in tre punti concreti come Izzo Distribuzione S.r.l. può affiancare i Vostri approvvigionamenti:\n\n1. Gamma tecnica trattata: forniamo direttamente {PRODOTTI_COMPATTI}, completi di marcatura CE e schede tecniche.\n2. Gestione commesse e condizioni: {CONDIZIONE_BREVE}, [TEMPI_RESA] e referente diretto per quotazioni su distinta materiali.\n3. Confronto prezzi senza impegno: rispondendo anche con un semplice cenno a questa mail Vi trasmettiamo l’estratto del listino netto riservato e un accesso gratuito di sola consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con merce pronta in magazzino, prezzi netti e uno sconto d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto sintetico del nostro catalogo?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T037',
-    name: 'F08.2 Flusso 1-2-3 — Sintesi Tecnica per Direzione & Acquisti',
+    name: 'F08.2 Gamma Pronta — Reparti Essenziali & Spedizione Veloce',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] — Tre punti operativi per {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Gamma pronta per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Sintetizziamo in tre passaggi l’offerta B2B di Izzo Distribuzione S.r.l.:\n\n1. Unico fornitore multi-reparto: {PRODOTTI_PROSA}.\n2. Condizione d’ingresso trasparente: {CONDIZIONE_BREVE}, [DESTINAZIONE_FLESSIBILE].\n3. Invio listino su semplice richiesta: basta rispondere a questa email per ricevere qui il prospetto PDF coi prezzi netti di categoria e l’abilitazione gratuita di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nA supporto {COMP_REF_DI} {LOC_PHRASE}, teniamo a magazzino {PRODOTTI_MIRATI}, senza soglie minime, con corriere espresso tracciato e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T038',
-    name: 'F08.3 Flusso 1-2-3 — Prodotti, Elasticità Ordini e Verifica',
+    name: 'F08.3 Gamma Pronta — Alta Rotazione & Elasticità sugli Ordini',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Fornitura B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Riordini agili per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\npresentiamo in modo diretto il servizio all’ingrosso di Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}:\n\n1) Linee ad alta rotazione: {PRODOTTI_COMPATTI}.\n2) Massima elasticità negli acquisti: [VANTAGGIO_ZERO_SCORTE], con {CONDIZIONE_BREVE}.\n3) Verifica libera dei netti: se può esserVi utile, rispondete pure con un cenno a questa mail e Vi inviamo subito l’estratto PDF del catalistino e l’accesso conoscitivo gratuito.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} anche per piccoli quantitativi senza minimi d’ordine, a prezzi netti e con uno sconto d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta un estratto sintetico del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T039',
-    name: 'F08.4 Flusso 1-2-3 — Schema Esecutivo per Valutazione Fornitore',
+    name: 'F08.4 Gamma Pronta — Selezione Marchi & Referente Unico',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Schema fornitura tecnica B2B — {INTESTAZIONE_OGGETTO} | Izzo Distribuzione',
+    subjectTemplate: '[OGG_TIPO_DOC] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Riassumiamo in tre punti la proposta di fornitura diretta di Izzo Distribuzione S.r.l.:\n\nPunto 1 — Dotazioni e marchi: {PRODOTTI_COMPATTI}.\nPunto 2 — Condizioni applicate: {CONDIZIONE_BREVE} e referente commerciale diretto {CHIUSURA_SETTORE}.\nPunto 3 — Listino riservato: rispondendo con un breve cenno alla presente Vi giriamo qui l’estratto del listino netto in PDF insieme a un accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer i fabbisogni operativi che {VERBO_GESTIRE} {LOC_PHRASE}, mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI}, con un canale dedicato su WhatsApp e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T040',
-    name: 'F08.5 Flusso 1-2-3 — Copertura Tecnica, Condizioni e Preventivi',
+    name: 'F08.5 Gamma Pronta — Continuità di Scorta & Prezzi Trasparenti',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti operativi B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Gamma prodotti per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nconoscendo il Vostro ambito di attività {INCISO_CONTESTO_DB}, sottoponiamo Izzo Distribuzione S.r.l. attraverso tre elementi operativi:\n\n1. Materiali per la Vostra operatività: {PRODOTTI_PROSA}.\n2. Condizioni B2B chiare: {CONDIZIONE_BREVE} e preventivi rapidi su commesse dedicate.\n3. Consultazione gratuita: su un Vostro semplice cenno di risposta a questa mail Vi trasmettiamo il prospetto PDF riservato e l’abilitazione conoscitiva al portale.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con [STOCK_REALE], prezzi netti trasparenti e uno sconto d’ingresso.\n\nPosso {MANDARE_PRON} qui in risposta un estratto sintetico del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 09 (T041-T045) — DOPPIO CANALE (LISTINO RISERVATO VS PREVENTIVO)
+  // FAMIGLIA 09 (T041-T045) — DOPPIO VANTAGGIO: LISTINO O PREVENTIVO
   // ==========================================================================
   {
     code: 'T041',
-    name: 'F09.1 Doppio Canale — Estratto Listino Riservato / Preventivo Diretto',
+    name: 'F09.1 Doppio Canale — Listino Online più Referente Umano',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Due modalità per valutare Izzo Distribuzione S.r.l. — {COMPANY_NAME}',
+    subjectTemplate: 'Offerta forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Presentiamo Izzo Distribuzione S.r.l. per la fornitura diretta di {PRODOTTI_COMPATTI}.\n\nPer valutare liberamente la nostra competitività potete scegliere la modalità più comoda per il Vostro ufficio acquisti:\n\nModalità A — Listino netto e portale B2B (gratuito e non vincolante): rispondete con un breve cenno a questa mail e Vi trasmettiamo qui l’estratto PDF riservato insieme all’accesso di consultazione con {CONDIZIONE_BREVE}.\nModalità B — Quotazione diretta su distinta: rispondete allegando una lista materiali o scriveteci su WhatsApp al {AGENT_PHONE} per ricevere un’offerta dedicata dal referente commerciale.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo senza minimo d’ordine {PRODOTTI_MIRATI}, con prezzi netti chiari, preventivi rapidi su lista e un’agevolazione d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del nostro catalogo riservato?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T042',
-    name: 'F09.2 Doppio Canale — Area Digitale Riservata & Canale Project/Commessa',
+    name: 'F09.2 Doppio Canale — Autonomia sui Netti & Assistenza Dedicata',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino B2B e ufficio preventivi per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Proposta forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, sottoponiamo il servizio B2B di Izzo Distribuzione S.r.l. sulle linee {PRODOTTI_PROSA}.\n\nMettiamo a Vostra disposizione due canali operativi complementari:\n\nCanale Catalogo & Listino Riservato: rispondendo con un cenno a questa mail Vi inviamo l’estratto PDF dedicato e l’accesso conoscitivo gratuito al portale ({CONDIZIONE_BREVE}).\nCanale Commesse & Capitolati: assistenza diretta del nostro ufficio commerciale {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer affiancare {COMPANY_BODY_SHORT} {LOC_PHRASE}, mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI} a prezzi netti da filiera corta, con quotazioni su misura e [IL_DOPPIO_SCONTO].\n\n{SE_FA_COMODO}, posso {GIRARE_PRON} qui un estratto del listino per un rapido confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T043',
-    name: 'F09.3 Doppio Canale — Verifica Listino vs Ufficio Gare/Acquisti',
+    name: 'F09.3 Doppio Canale — Verifica Veloce Prezzi & Capitolati',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Approvvigionamento B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Schede prodotto per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Izzo Distribuzione S.r.l. propone un canale diretto su {PRODOTTI_COMPATTI}, [CONFORMITA_QUALITA].\n\nPotete verificare le nostre condizioni in due modi:\n1. Richiedendo con un breve cenno in risposta l’estratto del catalistino PDF e l’abilitazione gratuita di consultazione al portale ({CONDIZIONE_BREVE}).\n2. Trasmettendo un computo o una distinta materiali ai recapiti in firma per quotazione dedicata, [DESTINAZIONE_FLESSIBILE].\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con documentazione completa pronta e un’agevolazione sul primo acquisto.\n\nPosso {LASCIARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T044',
-    name: 'F09.4 Doppio Canale — Confronto Prezzi o Contatto col Referente',
+    name: 'F09.4 Doppio Canale — Confronto Immediato o Contatto Diretto',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Confronto listini ingrosso B2B per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nconoscendo l’attività svolta dalla Vostra azienda {INCISO_CONTESTO_DB}, Izzo Distribuzione S.r.l. sottopone la propria struttura all’ingrosso su {PRODOTTI_COMPATTI}.\n\nPer ricevere l’estratto del listino riservato e un accesso conoscitivo gratuito ({CONDIZIONE_BREVE}), è sufficiente rispondere con un cenno a questa mail. Per un confronto diretto col referente potete anche contattarci telefonicamente o su WhatsApp al {AGENT_PHONE} {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le esigenze operative {COMP_REF_DI} {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI}, con prezzi netti competitivi, scorte pronte e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T045',
-    name: 'F09.5 Doppio Canale — Giacenze Reali + Offerte su Misura',
+    name: 'F09.5 Doppio Canale — Giacenze Vere & Quotazioni Dedicate',
     angleGroup: 'Valutazione_Listino_B2B',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Canale B2B e quotazioni su distinta — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Disponibilità immediata per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Con Izzo Distribuzione S.r.l. uniamo operatività digitale e supporto umano diretto su {PRODOTTI_PROSA}.\n\nSe desiderate esaminare disponibilità effettive e prezzi netti con {CONDIZIONE_BREVE}, rispondete pure con un cenno a questa email per ricevere il prospetto PDF riservato e l’accesso gratuito di consultazione; in alternativa potete inviarci una distinta articoli per un’offerta su misura.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimi d’ordine, con scorte reali a magazzino, quotazioni nette e uno sconto sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del catalogo riservato?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 10 (T046-T050) — ATTACCO TECNICO SU COMPATIBILITÀ & NORMATIVA CE
+  // FAMIGLIA 10 (T046-T050) — QUALITÀ CERTIFICATA & TUTELA MARGINE
   // ==========================================================================
   {
     code: 'T046',
-    name: 'F10.1 Attacco Tecnico — Compatibilità Installativa & Impatto sul Margine',
+    name: 'F10.1 Taglio Tecnico — Affidabilità Installativa & Margine',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Compatibilità tecnica e listino B2B per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Forniture dirette per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nnelle forniture tecniche professionali — {INCISO_CONTESTO_DB} — l’affidabilità costruttiva dei materiali e la tenuta dei prezzi netti determinano gran parte del margine operativo.\n\nIzzo Distribuzione S.r.l. distribuisce all’ingrosso {PRODOTTI_PROSA}, tutte linee provviste di certificazione CE e schede tecniche.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimo d’ordine, tutelando qualità e margine operativo anche con un’agevolazione d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del catalogo con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T047',
-    name: 'F10.2 Attacco Tecnico — Continuità di Stock & Schede Prodotto CE',
+    name: 'F10.2 Taglio Tecnico — Materiali Certificati & Pronti a Stock',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] certificati CE — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Materiali certificati per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nper le strutture operative {INCISO_CONTESTO_DB}, la continuità di stock su materiali certificati è essenziale quanto la competitività dei listini d’acquisto.\n\nCon Izzo Distribuzione S.r.l. rendiamo immediatamente approvvigionabili a listino B2B:\n{LINEE_PRODOTTI_IZZO}\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] anche per quotazioni su distinte ricorrenti. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer realtà qualificate come {COMPANY_BODY_SHORT} {LOC_PHRASE}, forniamo {PRODOTTI_MIRATI} [ZERO_MINIMO_ORDINE], con piena conformità normativa, prezzi netti e un’agevolazione sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T048',
-    name: 'F10.3 Attacco Tecnico — Standard Qualitativo & Filiera Diretta',
+    name: 'F10.3 Taglio Tecnico — Affidabilità sul Campo & Filiera Corta',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Linee professionali certificate B2B per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Nella selezione dei materiali tecnici, Izzo Distribuzione S.r.l. opera [EQUIVALENZA_TECNICA], mettendo a disposizione a listino diretto {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con affidabilità garantita, prezzi netti chiari e uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del catalogo riservato?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T049',
-    name: 'F10.4 Attacco Tecnico — Sostenibilità Budget & Conformità Normativa',
+    name: 'F10.4 Taglio Tecnico — Tenuta del Budget & Qualità Garantita',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture certificate CE e listini netti per {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Forniture garantite per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nnei lavori e negli approvvigionamenti seguiti da realtà come {COMPANY_NAME} — {INCISO_CONTESTO_DB} — coniugare conformità normativa e sostenibilità del budget richiede linee affidabili a filiera corta.\n\nDa Izzo Distribuzione S.r.l. supportiamo gli operatori B2B su {PRODOTTI_COMPATTI}, [CONFORMITA_QUALITA].\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI}, con qualità certificata, quotazioni nette e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T050',
-    name: 'F10.5 Attacco Tecnico — Dettaglio 3 Direttrici Tecniche + Invito Risposta',
+    name: 'F10.5 Taglio Tecnico — Marchi Specializzati ad Alta Resa',
     angleGroup: 'Gamma_Tecnica_Completa',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Gamma tecnica e quotazioni nette B2B — {COMPANY_NAME} | Izzo Distribuzione',
+    subjectTemplate: 'Marchi selezionati per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Attraverso il canale B2B di Izzo Distribuzione S.r.l. articoliamo l’assortimento dedicato al Vostro settore su tre direttrici principali:\n{LINEE_PRODOTTI_IZZO}\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimo d’ordine, difendendo il margine operativo con prezzi netti chiari e un’agevolazione d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta un estratto sintetico del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 11 (T051-T055) — DISPONIBILITÀ ESTRATTO CATALISTINO SU RICHIESTA
+  // FAMIGLIA 11 (T051-T055) — ESTRATTO CATALISTINO RISERVATO PER REPARTO
   // ==========================================================================
   {
     code: 'T051',
-    name: 'F11.1 Focus Catalistino — Disponibilità Estratto Riservato per Categoria',
+    name: 'F11.1 Estratto Listino — Selezione Mirata coi Prezzi Netti',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino riservato per comparto B2B — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Selezione B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nsiamo Izzo Distribuzione S.r.l. e, {INCISO_CONTESTO_DB}, proponiamo la nostra distribuzione all’ingrosso su {PRODOTTI_PROSA}.\n\nAbbiamo predisposto per gli operatori della Vostra categoria un estratto illustrativo del catalistino con prezzi netti riservati ({CONDIZIONE_BREVE}): se può esserVi utile riceverlo qui insieme a un accesso gratuito di consultazione al portale, rispondete pure con un breve cenno a questa mail.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer {COMPANY_BODY_SHORT} {LOC_PHRASE}, mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI}, per i quali abbiamo preparato [IL_CATALISTINO_PDF] abbinato a un’agevolazione sul primo acquisto.\n\n{SE_FA_COMODO}, posso {INVIARE_PRON} qui in risposta il documento per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T052',
-    name: 'F11.2 Focus Catalistino — Doppio Riferimento Listino Ufficiale / Netto',
+    name: 'F11.2 Estratto Listino — Confronto Immediato Listino e Netto',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Confronto listino ufficiale e netto B2B ({DISCOUNT_FORMULA}) — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Quotazioni chiare per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Izzo Distribuzione S.r.l. opera come fornitore diretto su {PRODOTTI_COMPATTI}, [VANTAGGIO_ZERO_SCORTE].\n\nPer offrire al Vostro responsabile acquisti un confronto immediato tra listino ufficiale e prezzo netto riservato ({CONDIZIONE_BREVE}), basta rispondere anche con un semplice «Sì» a questa comunicazione e Vi trasmettiamo subito il prospetto PDF dedicato con l’accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nmi chiamo {AGENT_NAME} e seguo il reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le realtà del {POSS_M} comparto attive {LOC_PHRASE}, forniamo senza minimo d’ordine {PRODOTTI_MIRATI}, indicando nel prospetto prezzo ufficiale e netto riservato, con un’agevolazione sul primo acquisto.\n\n{SE_FA_COMODO}, posso {GIRARE_PRON} qui in risposta un estratto del listino per dare un’occhiata?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T053',
-    name: 'F11.3 Focus Catalistino — Riscontro Immediato su Articoli Alta Rotazione',
+    name: 'F11.3 Estratto Listino — Articoli Più Usati Pronti da Sfogliare',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Selezione catalogo B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Gamma prodotti per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\ncon Izzo Distribuzione S.r.l. — {INCISO_CONTESTO_DB} — affianchiamo gli operatori professionali su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo in pronta consegna a magazzino {PRODOTTI_MIRATI}, senza minimo d’ordine e con un’agevolazione sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T054',
-    name: 'F11.4 Focus Catalistino — Nota Informativa per Ufficio Acquisti',
+    name: 'F11.4 Estratto Listino — Prospetto Veloce da Consultare',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture tecniche e listino B2B — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_FORMULA_PROMO] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Attraverso Izzo Distribuzione S.r.l. trattiamo direttamente {PRODOTTI_COMPATTI} {SCOPO_FORNITURA_SETTORE}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le esigenze operative {COMP_REF_DI} {LOC_PHRASE}, mettiamo a disposizione in pronta consegna a magazzino e senza soglie minime {PRODOTTI_MIRATI}, a prezzi netti chiari e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T055',
-    name: 'F11.5 Focus Catalistino — Listino Netto Partite IVA su Cenno di Risposta',
+    name: 'F11.5 Estratto Listino — Invio Rapido Senza Impegno',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino B2B riservato a {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, Izzo Distribuzione S.r.l. garantisce pronta disponibilità su {PRODOTTI_PROSA} con listini riservati esclusivamente alle Partite IVA.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI}, con consegne rapide e un’agevolazione d’ingresso.\n\nPosso {LASCIARE_PRON} qui in risposta un riepilogo dei prezzi netti per un confronto diretto?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 12 (T056-T060) — SECONDO FORNITORE INDIPENDENTE
+  // FAMIGLIA 12 (T056-T060) — SECONDO FORNITORE DIRETTO ACCANTO AGLI ABITUALI
   // ==========================================================================
   {
     code: 'T056',
-    name: 'F12.1 Secondo Fornitore — Parametro Oggettivo di Confronto Acquisti',
+    name: 'F12.1 Secondo Fornitore — Parametro Concreto sui Prezzi',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Affiancamento secondo fornitore B2B per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Fornitore alternativo per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nnelle aziende strutturate — {INCISO_CONTESTO_DB} — disporre di un secondo fornitore indipendente oltre ai grossisti storici consente di avere un parametro oggettivo sui prezzi netti e di proteggere la marginalità sui materiali ad alta rotazione.\n\nÈ con questa logica che presentiamo Izzo Distribuzione S.r.l.: non chiediamo esclusive né volumi minimi annui, ma mettiamo a disposizione una filiera distributiva diretta su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer {COMPANY_BODY_SHORT} {LOC_PHRASE}, affiancare ai riferimenti abituali un interlocutore senza soglie minime permette di reperire con rapidità {PRODOTTI_MIRATI}, a prezzi netti e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T057',
-    name: 'F12.2 Secondo Fornitore — Difesa del Margine Operativo',
+    name: 'F12.2 Secondo Fornitore — Difesa dei Margini Operativi',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Diversificazione fornitori B2B — {INTESTAZIONE_OGGETTO} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Secondo fornitore per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Oggi difendere il margine operativo significa affiancare ai canali tradizionali linee professionali certificate con listino riservato alle sole Partite IVA e forte competitività d’acquisto.\n\nIzzo Distribuzione S.r.l. lavora esattamente in questo spazio, distribuendo {PRODOTTI_PROSA}, [VANTAGGIO_ZERO_SCORTE].\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nmi chiamo {AGENT_NAME} e seguo il reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nCon {COMPANY_BODY_SHORT} {LOC_PHRASE} operiamo volentieri in affiancamento ai canali abituali, trattando senza minimo d’ordine {PRODOTTI_MIRATI} a prezzi netti e con un’agevolazione sul primo acquisto.\n\n{SE_FA_COMODO}, posso {GIRARE_PRON} qui in risposta un estratto del nostro listino?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T058',
-    name: 'F12.3 Secondo Fornitore — Canale Integrativo Senza Vincoli di Volume',
+    name: 'F12.3 Secondo Fornitore — Zero Esclusive & Massima Libertà',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Canale integrativo forniture B2B per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Canale flessibile per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, sottoponiamo Izzo Distribuzione S.r.l. come fornitore integrativo da affiancare in piena libertà ai Vostri attuali riferimenti commerciali.\n\nQuando occorre contenere il costo medio di approvvigionamento mantenendo piena certificazione CE, le linee distribuite a nostro catalogo ({PRODOTTI_COMPATTI}) offrono un rapporto qualità/prezzo netto immediatamente misurabile.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nCon {COMPANY_BODY_SHORT} {LOC_PHRASE} siamo disponibili a collaborare senza obblighi né soglie minime, fornendo {PRODOTTI_MIRATI} a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T059',
-    name: 'F12.4 Secondo Fornitore — Riduzione Dispersione su Fornitori Multipli',
+    name: 'F12.4 Secondo Fornitore — Appoggio Veloce per Urgenze e Scorte',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Fornitore B2B complementare per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Consegne rapide per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Nella gestione acquisti, disporre di un canale B2B diretto che raggruppa più famiglie tecniche evita dispersioni su fornitori diversi e riduce l’incidenza sui costi di commessa e di magazzino.\n\nIzzo Distribuzione S.r.l. serve operatori professionali in tutta Italia su {PRODOTTI_COMPATTI}, [DESTINAZIONE_FLESSIBILE].\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: sulle urgenze trattiamo senza minimo d’ordine {PRODOTTI_MIRATI}, a prezzi netti e con uno sconto sul primo acquisto.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del listino per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T060',
-    name: 'F12.5 Secondo Fornitore — Alternativa Snella su Materiali Ricorrenti',
+    name: 'F12.5 Secondo Fornitore — Alternativa Snella sui Materiali Ricorrenti',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Secondo riferimento B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_TIPO_DOC] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nproponiamo Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB} quale secondo fornitore B2B snello per tutta la componentistica di impiego ricorrente: {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_FLASH} [FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer alleggerire i {POSS_MP} costi dei materiali di uso ricorrente {LOC_PHRASE}, trattiamo a prezzi netti {PRODOTTI_MIRATI} [ZERO_MINIMO_ORDINE] e [IN_PRONTA_CONSEGNA], con un’agevolazione sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 13 (T061-T065) — MAPPA SINTETICA REPARTI
+  // FAMIGLIA 13 (T061-T065) — UNICO INTERLOCUTORE SUI REPARTI CHIAVE
   // ==========================================================================
   {
     code: 'T061',
-    name: 'F13.1 Mappa Reparti — Riepilogo Merceologico + Invito Confronto',
+    name: 'F13.1 Reparti Chiave — Unica Spedizione Senza Minimi',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riepilogo reparti e listino ingrosso B2B per {COMPANY_NAME}',
+    subjectTemplate: 'Spedizione unica per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, presentiamo in sintesi i reparti coperti all’ingrosso da Izzo Distribuzione S.r.l.:\n\n{PRODOTTI_MATRICE_REPARTI}\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] per qualsiasi approfondimento commerciale.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: raggruppiamo in una sola fornitura {PRODOTTI_MIRATI} senza minimi d’ordine, a prezzi netti e con uno sconto d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto sintetico del nostro catalogo?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T062',
-    name: 'F13.2 Mappa Reparti — Copertura Diretta per Comparto',
+    name: 'F13.2 Reparti Chiave — Meno Fornitori Dispersivi & Più Margine',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Linee tecniche B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Linee dirette per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Riassumiamo la copertura diretta garantita dal catalogo B2B di Izzo Distribuzione S.r.l.:\n\n{PRODOTTI_MATRICE_REPARTI}\n\n{INVITO_RISPOSTA_PROSA}\n\n[QUOTAZIONI_SU_COMMESSA].\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer snellire gli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, copriamo senza soglie minime {PRODOTTI_MIRATI} a quotazioni nette competitive e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T063',
-    name: 'F13.3 Mappa Reparti — Unico Canale B2B su Tre Famiglie',
+    name: 'F13.3 Reparti Chiave — Copertura Quotidiana Pronta a Partire',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture B2B multi-famiglia per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione',
+    subjectTemplate: 'Scorte B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nper supportare in un unico canale B2B l’operatività di {COMPANY_NAME} — {INCISO_CONTESTO_DB} — Izzo Distribuzione S.r.l. raggruppa le seguenti famiglie di consumo quotidiano:\n\n{PRODOTTI_MATRICE_REPARTI}\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] anche per preventivi su distinta. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: rendiamo disponibili senza minimi d’ordine {PRODOTTI_MIRATI} a magazzino, con condizioni chiare e uno sconto d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T064',
-    name: 'F13.4 Mappa Reparti — Quadro Sinottico Marchi + Invito Risposta',
+    name: 'F13.4 Reparti Chiave — Selezione Marchi & Prezzi Finiti',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Quadro linee e marchi B2B — {INTESTAZIONE_OGGETTO} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Marchi diretti per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Sintetizziamo qui sotto le linee professionali distribuite da Izzo Distribuzione S.r.l. {SCOPO_FORNITURA_SETTORE}:\n\n{PRODOTTI_MATRICE_REPARTI}\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le realtà del {POSS_M} comparto attive {LOC_PHRASE}, riuniamo in un unico fornitore {PRODOTTI_MIRATI} [ZERO_MINIMO_ORDINE], a quotazioni nette chiare e con uno sconto sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T065',
-    name: 'F13.5 Mappa Reparti — Unificazione Ordini B2B + Riferimenti Essenziali',
+    name: 'F13.5 Reparti Chiave — Gestione Accentrata & Spedizione Rapida',
     angleGroup: 'Catalogo_Illustrativo_PDF',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Fornitura accentrata B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Assortimento completo per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, Izzo Distribuzione S.r.l. consente di unificare in un solo ordine B2B più famiglie merceologiche certificate CE:\n\n{PRODOTTI_MATRICE_REPARTI}\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimo d’ordine, con spedizioni tracciate in tutta Italia e un’agevolazione d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un prospetto sintetico con i prezzi netti dedicati?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 14 (T066-T070) — LOGISTICA NAZIONALE & ZERO MINIMO D'ORDINE
+  // FAMIGLIA 14 (T066-T070) — CONSEGNE FLESSIBILI & COLLI FRAZIONATI
   // ==========================================================================
   {
     code: 'T066',
-    name: 'F14.1 Logistica & Zero Minimo — Consegne in Sede o Cantiere',
+    name: 'F14.1 Logistica Snella — Scarico in Sede o a Destinazione',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Consegne tracciate in sede o cantiere senza minimo d’ordine — {COMPANY_NAME}',
+    subjectTemplate: 'Consegne flessibili per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nquando si gestiscono più commesse o riassortimenti — {INCISO_CONTESTO_DB} — poter ordinare anche singole integrazioni senza vincoli di importo minimo e con recapito diretto presso la sede o l’area lavori semplifica concretamente l’operatività.\n\nIzzo Distribuzione S.r.l. opera su tutto il territorio nazionale dal proprio polo distributivo di Benevento, fornendo a listino B2B {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le esigenze operative {COMP_REF_DI} {LOC_PHRASE}, spediamo {PRODOTTI_MIRATI} senza soglie minime, con recapito in sede o presso l’indirizzo indicato, prezzi netti e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T067',
-    name: 'F14.2 Logistica & Zero Minimo — Riassortimento Snello Senza Immobilizzo Scorte',
+    name: 'F14.2 Logistica Snella — Colli Frazionati Senza Immobilizzare Scorte',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture B2B anche a colli frazionati senza minimo — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Forniture agili per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Mantenere coperti i fabbisogni operativi senza immobilizzare capitale in lotti minimi sovradimensionati è un vantaggio gestionale immediato.\n\nCon Izzo Distribuzione S.r.l. potete approvvigionare liberamente — [ZERO_MINIMO_ORDINE] — {PRODOTTI_COMPATTI}, [TEMPI_RESA].\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: spediamo {PRODOTTI_MIRATI} anche a colli frazionati senza minimi d’ordine, con consegna rapida e uno sconto d’ingresso.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del catalogo con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T068',
-    name: 'F14.3 Logistica & Zero Minimo — Resa Flessibile & Stock Verificabile',
+    name: 'F14.3 Logistica Snella — Centro Logistico & Giacenze Reali',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture B2B con resa diretta e stock reale — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Spedizioni rapide per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nsegnaliamo l’organizzazione logistica e commerciale di Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB} per l’approvvigionamento di {PRODOTTI_COMPATTI}.\n\nGestiamo spedizioni tracciate sia presso il Vostro magazzino sia direttamente presso destinazioni esterne di cantiere, senza imporre minimi d’ordine e con giacenze reali sempre allineate.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nDal nostro centro logistico riforniamo direttamente {COMPANY_BODY_SHORT} {LOC_PHRASE}, coprendo {PRODOTTI_MIRATI} senza soglie minime, a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T069',
-    name: 'F14.4 Logistica & Zero Minimo — Approvvigionamenti Calibrati per Commessa',
+    name: 'F14.4 Logistica Snella — Ordini Calibrati sul Fabbisogno Reale',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Logistica B2B e listino riservato per {COMPANY_NAME} — Izzo Distribuzione',
+    subjectTemplate: 'Consegne dirette per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Ogni commessa richiede forniture calibrate per stato d’avanzamento lavori senza appesantire il deposito aziendale.\n\nIzzo Distribuzione S.r.l. affianca le aziende con spedizioni tracciate in tutta Italia e zero minimo d’ordine su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo {PRODOTTI_MIRATI} senza minimi d’ordine, con recapito rapido in sede o all’indirizzo indicato e uno sconto d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta un prospetto sintetico con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T070',
-    name: 'F14.5 Logistica & Zero Minimo — Giacenze Fisiche & Chiarezza Prezzi',
+    name: 'F14.5 Logistica Snella — Spedizione Tracciata & Prezzo Netto Subito',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture tecniche senza minimo d’ordine — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nper chi pianifica acquisti tecnici — {INCISO_CONTESTO_DB} — avere certezza su disponibilità a magazzino e costo netto prima dell’ordine evita fermi operativi e attese impreviste.\n\nCon Izzo Distribuzione S.r.l. ogni fornitura su {PRODOTTI_COMPATTI} unisce giacenza fisica verificata e prezzo netto riservato, [ZERO_MINIMO_ORDINE].\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSul fabbisogno corrente {COMP_REF_DI} {LOC_PHRASE}, uniamo [STOCK_REALE] e prezzi netti diretti per {PRODOTTI_MIRATI}, senza alcuna soglia minima e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 15 (T071-T075) — NOTA PER ARCHIVIO / RUBRICA FORNITORI
+  // FAMIGLIA 15 (T071-T075) — RIFERIMENTO DIRETTO PER PROSSIMI ACQUISTI
   // ==========================================================================
   {
     code: 'T071',
-    name: 'F15.1 Archivio Fornitori — Nota da Protocollare per Future Consultazioni',
+    name: 'F15.1 Riferimento Acquisti — Contatto Utile da Tenere a Portata',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti B2B per archivio fornitori — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Contatto diretto per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\ninviamo una sintetica nota conoscitiva affinché possiate, ove ritenuto utile, registrare i riferimenti di Izzo Distribuzione S.r.l. nell’archivio fornitori consultato da {COMPANY_NAME} {INCISO_CONTESTO_DB}.\n\nOperiamo nella distribuzione all’ingrosso B2B di {PRODOTTI_PROSA}, supportando le aziende sia in fase di preventivazione sia in fase esecutiva.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer i prossimi approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, mettiamo a disposizione senza soglie minime {PRODOTTI_MIRATI} a quotazioni nette chiare, con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T072',
-    name: 'F15.2 Archivio Fornitori — Rubrica Ufficio Acquisti Senza Scadenze',
+    name: 'F15.2 Riferimento Acquisti — Confronto Senza Scadenze',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Nota informativa per rubrica fornitori B2B — {COMPANY_NAME}',
+    subjectTemplate: '[OGG_TIPO_DOC] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\ntrasmettiamo i recapiti commerciali di Izzo Distribuzione S.r.l. perché restino a disposizione del Vostro ufficio acquisti — {INCISO_CONTESTO_DB} — in occasione dei prossimi confronti fornitori.\n\nTrattiamo all’ingrosso con listino riservato alle Partite IVA {PRODOTTI_COMPATTI}. {INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimo d’ordine né scadenze, a quotazioni nette e con un’agevolazione sul primo acquisto.\n\nPosso {LASCIARE_PRON} qui una scheda sintetica dei prezzi per i prossimi confronti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T073',
-    name: 'F15.3 Archivio Fornitori — Presentazione Societaria per Albo Interno',
+    name: 'F15.3 Riferimento Acquisti — Canale Pratico per Preventivi Futuri',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione societaria per albo fornitori — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Supporto forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Sottoponiamo la presentazione istituzionale di Izzo Distribuzione S.r.l. per un eventuale inserimento tra i fornitori consultabili dalla Vostra struttura.\n\nIl nostro catalogo B2B riunisce {PRODOTTI_PROSA}. {INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nIn vista dei {POSS_MP} prossimi fabbisogni {LOC_PHRASE}, teniamo senza soglie minime {PRODOTTI_MIRATI} [IN_PRONTA_CONSEGNA], abbinando quotazioni nette e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T074',
-    name: 'F15.4 Archivio Fornitori — Riferimenti Agli Atti Ufficio Tecnico-Acquisti',
+    name: 'F15.4 Riferimento Acquisti — Listino Diretto per Operatori del Settore',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimenti commerciali B2B Izzo Distribuzione S.r.l. — c.a. {COMPANY_NAME}',
+    subjectTemplate: 'Quotazioni dirette per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nlasciamo agli atti del Vostro ufficio tecnico-acquisti i riferimenti diretti di Izzo Distribuzione S.r.l. {INCISO_CONTESTO_DB}, quale distributore all’ingrosso su {PRODOTTI_COMPATTI}.\n\nSenza alcuna scadenza né impegno d’acquisto, qualora voleste confrontare le nostre quotazioni nette ({CONDIZIONE_BREVE}), rispondete pure con un cenno a questa mail e Vi trasmettiamo il prospetto PDF riservato e l’accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con prezzi netti trasparenti e un’agevolazione sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto sintetico del nostro listino per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T075',
-    name: 'F15.5 Archivio Fornitori — Contatti Diretti per Futuri Approvvigionamenti',
+    name: 'F15.5 Riferimento Acquisti — Filo Diretto per Scorte e Urgenze',
     angleGroup: 'Fornitore_Alternativo',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Contatti fornitore B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_APPROCCIO_SOFT] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Inviamo i riferimenti di Izzo Distribuzione S.r.l. quale potenziale fornitore da tenere in rubrica {SCOPO_FORNITURA_SETTORE}: {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer le forniture correnti {COMP_REF_DI} {LOC_PHRASE}, spediamo senza quantitativi minimi {PRODOTTI_MIRATI} con filiera corta, prezzi netti chiari e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 16 (T076-T080) — SCENARIO REALE DI MESTIERE
+  // FAMIGLIA 16 (T076-T080) — SCENARIO CONCRETO DI GESTIONE O BANCO
   // ==========================================================================
   {
     code: 'T076',
-    name: 'F16.1 Scenario di Mestiere — Esigenza Reale di Comparto & Soluzione B2B',
+    name: 'F16.1 Scenario Reale — Difesa del Margine Quotidiano',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Continuità forniture e prezzi netti B2B — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Tutela margini per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{SCENARIO_MESTIERE_SETTORE}\n\nIzzo Distribuzione S.r.l. risponde a questa esigenza con una fornitura B2B diretta su {PRODOTTI_PROSA}, completi di certificazione CE e schede tecniche.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nNegli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, evitare scorte forzate sostiene la redditività: proponiamo senza soglie minime {PRODOTTI_MIRATI} a quotazioni nette, con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T077',
-    name: 'F16.2 Scenario di Mestiere — Tutela Marginalità su Linee Riservate P.IVA',
+    name: 'F16.2 Scenario Reale — Linee Professionali Non Inflazionate',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Linee professionali riservate Partite IVA per {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Marchi selezionati per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{SCENARIO_MESTIERE_SETTORE}\n\nCon Izzo Distribuzione S.r.l. mettiamo a disposizione degli operatori professionali {PRODOTTI_COMPATTI}, ordinabili [ZERO_MINIMO_ORDINE] e con spedizione tracciata in tutta Italia.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con linee non inflazionate al dettaglio e un’agevolazione sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del catalogo con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T078',
-    name: 'F16.3 Scenario di Mestiere — Competitività in Fase di Offerta/Commessa',
+    name: 'F16.3 Scenario Reale — Più Competitività nei Preventivi',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Ottimizzazione costi materiali B2B — {COMPANY_NAME} | Izzo Distribuzione',
+    subjectTemplate: 'Costi forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{SCENARIO_MESTIERE_SETTORE}\n\nIzzo Distribuzione S.r.l. fornisce direttamente {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} e {PRON_IND} scrivo da Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nNegli approvvigionamenti ricorrenti {COMP_REF_DI} {LOC_PHRASE}, contare su prezzi netti chiari per {PRODOTTI_MIRATI} fa la differenza: spediamo senza soglie minime e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T079',
-    name: 'F16.4 Scenario di Mestiere — Accentramento Voci Frammentate',
+    name: 'F16.4 Scenario Reale — Taglio dei Ricarichi Intermedi',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Fornitura diretta B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_FORMULA_PROMO] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{SCENARIO_MESTIERE_SETTORE}\n\nAccentrando queste forniture tramite Izzo Distribuzione S.r.l. accedete direttamente a listini d’ingrosso su {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_PROSA}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, tagliando gli intermediari con prezzi netti e uno sconto sul primo acquisto.\n\nPosso {INVIARE_PRON} qui in risposta un estratto del catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T080',
-    name: 'F16.5 Scenario di Mestiere — Pacchetto Completo ad Alto Margine',
+    name: 'F16.5 Scenario Reale — Continuità e Rapidità sul Campo',
     angleGroup: 'Presentazione_Fornitore',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Spedizioni celeri per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{SCENARIO_MESTIERE_SETTORE}\n\nIzzo Distribuzione S.r.l. affianca la Vostra operatività con {PRODOTTI_PROSA}, restando disponibile per quotazioni dedicate {CHIUSURA_SETTORE}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer affiancare l’operatività {COMP_REF_DI} {LOC_PHRASE}, teniamo [IN_PRONTA_CONSEGNA] {PRODOTTI_MIRATI}, senza quantitativi minimi, a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 17 (T081-T085) — TRE CHIAVI SINTETICHE
+  // FAMIGLIA 17 (T081-T085) — SINTESI ESSENZIALE DA SMARTPHONE
   // ==========================================================================
   {
     code: 'T081',
-    name: 'F17.1 Tre Chiavi — Cosa Forniamo / Condizioni / Come Confrontare i Netti',
+    name: 'F17.1 Sintesi Smartphone — Diretta al Punto in Poche Righe',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Sintesi fornitura B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Parametri B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, riassumiamo senza preamboli la proposta di Izzo Distribuzione S.r.l.:\n\nCosa forniamo per il Vostro settore: {PRODOTTI_COMPATTI}.\nCondizioni commerciali: listino riservato Partite IVA con {CONDIZIONE_BREVE} e [TEMPI_RESA].\nCome confrontare i prezzi senza impegno: rispondete con un cenno a questa mail e Vi trasmettiamo qui l’estratto del listino riservato insieme a un accesso gratuito di consultazione.\n\n[FRASE_DISPONIBILITA] anche per quotazioni su distinta.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, affianchiamo senza minimi d’ordine le forniture di {PRODOTTI_MIRATI} con merce pronta in magazzino, prezzi netti e uno sconto sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T082',
-    name: 'F17.2 Tre Chiavi — Assortimento / Politica B2B / Invio Listino',
+    name: 'F17.2 Sintesi Smartphone — Prodotti Mirati & Zero Vincoli',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Proposta ingrosso B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione',
+    subjectTemplate: 'Offerta riservata per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Sottoponiamo in sintesi i riferimenti di Izzo Distribuzione S.r.l.:\n\nAssortimento trattato: {PRODOTTI_COMPATTI}.\nPolitica commerciale: {CONDIZIONE_BREVE}, stock reale e referente dedicato.\nConfronto listini: rispondendo anche con un breve «Sì» alla presente Vi inviamo il prospetto PDF riservato e l’abilitazione conoscitiva gratuita al portale.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con consegna rapida e uno sconto d’ingresso.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T083',
-    name: 'F17.3 Tre Chiavi — Linee Disponibili / Vantaggio / Consultazione su Richiesta',
+    name: 'F17.3 Sintesi Smartphone — Rapida da Leggere Ovunque',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Sintesi commerciale B2B per {COMPANY_NAME} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Quotazioni riservate per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\nconoscendo l’operatività di {COMPANY_NAME} — {INCISO_CONTESTO_DB} — presentiamo Izzo Distribuzione S.r.l. in tre righe operative:\n\nLinee disponibili: {PRODOTTI_COMPATTI}.\nVantaggio d’ingresso: {CONDIZIONE_BREVE} e preventivi dedicati su commessa.\nVerifica gratuita: basta un cenno di risposta a questa email per ricevere l’estratto del catalistino PDF e un accesso gratuito di sola consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nA supporto {COMP_REF_DI} {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI} a condizioni competitive, con un canale diretto e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T084',
-    name: 'F17.4 Tre Chiavi — Prodotti / Condizioni / Verifica Senza Impegno',
+    name: 'F17.4 Sintesi Smartphone — Chiarezza Prezzi & Consegna Diretta',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riepilogo fornitura B2B per {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Condizioni chiare per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nper supportare le attività svolte da {COMPANY_NAME} {INCISO_CONTESTO_DB}, ecco cosa mette a disposizione Izzo Distribuzione S.r.l.:\n\nProdotti: {PRODOTTI_COMPATTI}.\nCondizioni: {CONDIZIONE_BREVE}, [DESTINAZIONE_FLESSIBILE].\nListino riservato: rispondete pure a questa mail se desiderate ricevere qui l’estratto PDF coi prezzi netti e l’abilitazione gratuita di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con recapito rapido in sede o al cliente e uno sconto d’ingresso.\n\nPosso {LASCIARE_PRON} qui un estratto del listino con i prezzi netti?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T085',
-    name: 'F17.5 Tre Chiavi — Gamma / Condizioni d’Acquisto / Sola Consultazione',
+    name: 'F17.5 Sintesi Smartphone — Confronto Immediato Senza Impegno',
     angleGroup: 'Nota_Conoscitiva_Breve',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Scheda rapida B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione',
+    subjectTemplate: 'Offerta B2B per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Riepiloghiamo in forma essenziale l’offerta all’ingrosso di Izzo Distribuzione S.r.l.:\n\nGamma di comparto: {PRODOTTI_PROSA}.\nCondizioni d’acquisto: {CONDIZIONE_BREVE}, quotazioni su capitolato o distinta.\nConsultazione gratuita: rispondendo con un cenno alla presente Vi giriamo l’estratto del listino riservato e l’accesso di sola lettura al portale.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti operativi della {POSS_F} attività {LOC_PHRASE}, forniamo senza soglie minime {PRODOTTI_MIRATI} con [STOCK_REALE], prezzi netti e un’agevolazione sul primo ordine.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 18 (T086-T090) — MONOPARAGRAFO ESECUTIVO COMPATTO
+  // FAMIGLIA 18 (T086-T090) — GIACENZE REALI & ZERO ATTESE
   // ==========================================================================
   {
     code: 'T086',
-    name: 'F18.1 Monoparagrafo — Blocco Unico Denso & Invito Risposta',
+    name: 'F18.1 Giacenze Reali — Merce Pronta & Preventivi Veloci',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione B2B Izzo Distribuzione S.r.l. — c.a. {COMPANY_NAME}',
+    subjectTemplate: 'Pronta consegna per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{INCISO_CONTESTO_DB}, sottoponiamo Izzo Distribuzione S.r.l. quale fornitore B2B diretto per l’approvvigionamento di {PRODOTTI_PROSA}, restando disponibili anche per quotazioni dedicate su specifica distinta di commessa o magazzino.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo {PRODOTTI_MIRATI} senza minimo d’ordine, con scorte reali nel nostro magazzino, quotazioni nette e uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui in risposta un estratto del catalogo generale?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T087',
-    name: 'F18.2 Monoparagrafo — Ingrosso Senza Minimi + Chiusura Diretta',
+    name: 'F18.2 Giacenze Reali — Partenza Rapida & Conformità Garantita',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Ingrosso B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Forniture certificate per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Presentiamo Izzo Distribuzione S.r.l. per la fornitura all’ingrosso — [VANTAGGIO_ZERO_SCORTE] — di {PRODOTTI_COMPATTI}, tutti corredati da certificazione CE e spedizione tracciata su scala nazionale.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nmi chiamo {AGENT_NAME} e seguo il reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nA supporto {COMP_REF_DI} {LOC_PHRASE}, spediamo senza soglie minime {PRODOTTI_MIRATI}, con conformità normativa, pronta disponibilità e [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T088',
-    name: 'F18.3 Monoparagrafo — Giacenze Reali & Preventivi',
+    name: 'F18.3 Giacenze Reali — Stock Allineato & Assistenza Diretta',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Forniture tecniche B2B per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Listino riservato per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, Izzo Distribuzione S.r.l. propone la propria struttura B2B per la fornitura diretta di {PRODOTTI_PROSA}, con giacenze reali e supporto diretto dell’ufficio commerciale {CHIUSURA_SETTORE}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo senza minimi d’ordine {PRODOTTI_MIRATI}, con [STOCK_REALE], prezzi netti in fattura e uno sconto sul primo acquisto.\n\nPosso {MANDARE_PRON} qui un estratto sintetico delle condizioni?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T089',
-    name: 'F18.4 Monoparagrafo — Unico Interlocutore B2B + Consegne Flessibili',
+    name: 'F18.4 Giacenze Reali — Copertura Nazionale & Zero Formalità',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_TIPO_DOC] — {COMPANY_NAME} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: 'Consegne tracciate per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\noperando a supporto delle realtà del Vostro comparto — {INCISO_CONTESTO_DB} — Izzo Distribuzione S.r.l. consente di approvvigionare da un unico fornitore B2B {PRODOTTI_COMPATTI}, [DESTINAZIONE_FLESSIBILE].\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nForniamo alle realtà del {POSS_M} settore attive {LOC_PHRASE} {PRODOTTI_MIRATI}, con corriere espresso in tutta Italia, assenza di minimo d’ordine, prezzi netti e un’agevolazione sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T090',
-    name: 'F18.5 Monoparagrafo — Riferimento Tecnico-Commerciale Diretto',
+    name: 'F18.5 Giacenze Reali — Controllo Immediato di Prezzi e Disponibilità',
     angleGroup: 'Supporto_Aziende_Territorio',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimento B2B e listini netti — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Stock pronto per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Sottoponiamo Izzo Distribuzione S.r.l. quale riferimento tecnico-commerciale {SCOPO_FORNITURA_SETTORE} sulle linee {PRODOTTI_COMPATTI}, affiancando catalogo digitale e referente dedicato.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo {PRODOTTI_MIRATI} senza minimi d’ordine, con disponibilità a magazzino, quotazioni nette e uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui un estratto del listino per una verifica veloce?\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 19 (T091-T095) — TAGLIO ANALITICO SU LISTINO NETTO & SCONTO CASCATA
+  // FAMIGLIA 19 (T091-T095) — LISTINI OSCURATI AI PRIVATI & MARGINE PROTETTO
   // ==========================================================================
   {
     code: 'T091',
-    name: 'F19.1 Taglio Analitico — Calcolo Netto Effettivo da Listino ({NET_DISCOUNT_PCT}%)',
+    name: 'F19.1 Margine Protetto — Listini Riservati Oscurati al Pubblico',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Confronto analitico prezzi netti B2B ({DISCOUNT_FORMULA}) — {COMPANY_NAME}',
+    subjectTemplate: 'Quotazioni protette per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\nsottoponiamo a {COMPANY_NAME} — {INCISO_CONTESTO_DB} — i parametri economici riservati da Izzo Distribuzione S.r.l. ai {LISTINO_RUOLO}: listino B2B con sconto base {BASE_DISCOUNT}% integrato da un ulteriore {EXTRA_DISCOUNT}% in cascata sul primo eventuale ordine di fornitura (pari al {NET_DISCOUNT_PCT}% netto effettivo da listino ufficiale), [ZERO_MINIMO_ORDINE].\n\nLa scontistica opera sull’intera gamma in pronta disponibilità: {PRODOTTI_PROSA}.\n\nSe può esserVi utile verificare codice per codice l’incidenza sui Vostri acquisti abituali, rispondete pure con un cenno a questa mail e Vi trasmettiamo l’estratto PDF del listino netto insieme a un accesso gratuito di consultazione.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nOscuriamo i listini al pubblico privato a tutela {COMP_REF_DI} {LOC_PHRASE}, fornendo senza soglie minime {PRODOTTI_MIRATI} a prezzi netti da filiera corta e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T092',
-    name: 'F19.2 Taglio Analitico — Sconto Primo Ordine + Stabilità Fascia Base {BASE_DISCOUNT}%',
+    name: 'F19.2 Margine Protetto — Prezzi Netti Stabili & Agevolazione Iniziale',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Condizione B2B {DISCOUNT_FORMULA} a cascata ({NET_DISCOUNT_PCT}% netto) — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: 'Prezzi protetti per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{FRASE_CONTESTO_DB} Per offrire al Vostro ufficio acquisti un riscontro numerico oggettivo, Izzo Distribuzione S.r.l. prevede per i nuovi partner la fascia {DISCOUNT_FORMULA} a cascata valida sul primo ordine eventuale (abbattimento netto effettivo del {NET_DISCOUNT_PCT}% da listino ufficiale), con successivo mantenimento stabile dello sconto base {BASE_DISCOUNT}% senza obblighi di fatturato né minimo d’ordine.\n\n{INVITO_RISPOSTA_PROSA}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con listini chiusi ai privati, stock pronto e uno sconto sul primo acquisto.\n\nPosso {INVIARE_PRON} qui un estratto del catalogo per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T093',
-    name: 'F19.3 Taglio Analitico — Listini Oscurati al Pubblico & Tutela Marginalità',
+    name: 'F19.3 Margine Protetto — Canale Puro B2B Senza Concorrenza al Dettaglio',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino netto riservato Partite IVA per {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Circuito protetto per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{INCISO_CONTESTO_DB}, Izzo Distribuzione S.r.l. imposta la propria proposta su listini oscurati al pubblico privato e scontistica riservata {DISCOUNT_FORMULA} in cascata sul primo ordine eventuale, [ZERO_MINIMO_ORDINE].\n\nTale condizione consente un’elevata competitività d’acquisto su {PRODOTTI_PROSA}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME}, del reparto B2B di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer tutelare la {POSS_F} competitività {LOC_PHRASE}, forniamo a listini oscurati al dettaglio e senza soglie minime {PRODOTTI_MIRATI}, a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T094',
-    name: 'F19.4 Taglio Analitico — Confronto Codice per Codice Listino vs Netto',
+    name: 'F19.4 Margine Protetto — Confronto Codice per Codice sui Netti',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Verifica netti B2B ({NET_DISCOUNT_PCT}% effettivo 1° ordine) — {COMPANY_NAME}',
+    subjectTemplate: 'Verifica condizioni per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{FRASE_CONTESTO_DB} Attraverso il catalogo B2B di Izzo Distribuzione S.r.l. ogni articolo espone affiancati listino ufficiale, giacenza effettiva e prezzo netto calcolato con sconto primo ordine {DISCOUNT_FORMULA} a cascata ({NET_DISCOUNT_PCT}% netto effettivo), senza minimo d’ordine.\n\nPer ricevere qui l’estratto PDF sulle linee {PRODOTTI_COMPATTI} e un accesso conoscitivo gratuito di consultazione, è sufficiente rispondere con un breve cenno a questa mail.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: proponiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con giacenze reali a portale, quotazioni nette e uno sconto sul primo acquisto.\n\nPosso {GIRARE_PRON} qui un estratto del listino da valutare [AVVERBIO_LIBERAMENTE]?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T095',
-    name: 'F19.5 Taglio Analitico — Riduzione Costi di Commessa & Magazzino',
+    name: 'F19.5 Margine Protetto — Ottimizzazione Costi di Approvvigionamento',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Ottimizzazione costi forniture B2B ({DISCOUNT_FORMULA}) — {INTESTAZIONE_OGGETTO}',
+    subjectTemplate: '[OGG_RAPIDITA] per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\nacquistare direttamente a listino d’ingrosso B2B {PRODOTTI_COMPATTI} permette a una realtà strutturata come {COMPANY_NAME} — {INCISO_CONTESTO_DB} — di ridurre sensibilmente l’incidenza dei materiali su ogni commessa o riassortimento.\n\nCon Izzo Distribuzione S.r.l. beneficiate fin dall’eventuale primo ordine dello sconto riservato {DISCOUNT_FORMULA} in cascata ({NET_DISCOUNT_PCT}% netto) senza alcun minimo d’ordine, [DESTINAZIONE_FLESSIBILE].\n\n{INVITO_RISPOSTA_FLASH}\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nCon la nostra filiera corta e senza minimi d’ordine su {PRODOTTI_MIRATI}, affianchiamo {COMPANY_BODY_SHORT} {LOC_PHRASE} per ottimizzare i costi di approvvigionamento a prezzi netti, con un’agevolazione sul primo acquisto.\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 
   // ==========================================================================
-  // FAMIGLIA 20 (T096-T100) — IMPOSTAZIONE TERRITORIALE PER AZIENDE LOCALI
+  // FAMIGLIA 20 (T096-T100) — PRESIDIO TERRITORIALE & PROVA SENZA VINCOLI
   // ==========================================================================
   {
     code: 'T096',
-    name: 'F20.1 Territoriale Prosa — Lettera Fluida su Città/Provincia e Settore',
+    name: 'F20.1 Territoriale — Servizio Diretto per il Comparto Locale',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Presentazione fornitore B2B per {COMPANY_NAME}{CITY_PAREN} — Izzo Distribuzione',
+    subjectTemplate: 'Supporto forniture per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{CONTESTO_TERRITORIO_FALLBACK} Distribuiamo su tutto il territorio nazionale {PRODOTTI_PROSA}, accompagnati da certificazione CE e schede tecniche.\n\n{INVITO_RISPOSTA_PROSA}\n\n[FRASE_DISPONIBILITA] anche per quotazioni dirette su distinta materiali.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nServendo con continuità le realtà del {POSS_M} settore {LOC_PHRASE}, proponiamo senza soglie minime {PRODOTTI_MIRATI} a quotazioni nette da filiera corta, con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T097',
-    name: 'F20.2 Territoriale Flash — Nota Breve per Operatori Locali',
+    name: 'F20.2 Territoriale — Nota Diretta per Realtà Locali',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Listino B2B per {INTESTAZIONE_OGGETTO} — Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_TIPO_DOC] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_UFFICIO] {COMPANY_NAME},\n\n{CONTESTO_TERRITORIO_FALLBACK} Trattiamo a listino diretto {PRODOTTI_COMPATTI}.\n\n{INVITO_RISPOSTA_FLASH}\n\n[FRASE_DISPONIBILITA] {CHIUSURA_SETTORE}. [SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: trattiamo senza minimi d’ordine {PRODOTTI_MIRATI}, con scorte pronte a magazzino, quotazioni nette e un’agevolazione d’ingresso.\n\nPosso {INVIARE_PRON} qui in risposta una scheda riepilogativa dei prezzi per un confronto?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T098',
-    name: 'F20.3 Territoriale 1ª Persona — Daniele Savoia per Aziende del Territorio',
+    name: 'F20.3 Territoriale — Daniele Savoia per le Aziende del Territorio',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Riferimento diretto ingrosso B2B — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Offerta riservata per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_UMANO_1A1}\n\nsono {AGENT_NAME} dell’ufficio commerciale B2B di Izzo Distribuzione S.r.l. Seguiamo diverse realtà professionali su {CITY} e Vi scrivo direttamente per sottoporre alla Vostra valutazione il nostro catalogo all’ingrosso su {PRODOTTI_COMPATTI}.\n\nSe può esserVi utile dare uno sguardo ai prezzi netti senza alcun impegno e [ZERO_MINIMO_ORDINE], rispondete pure con un cenno a questa mail e Vi invio qui una sintesi in PDF del nostro listino insieme a un accesso conoscitivo gratuito ({CONDIZIONE_BREVE}).\n\nPer qualsiasi informazione potete rispondermi qui o chiamarmi direttamente al numero in firma.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nSeguendo diverse realtà {LOC_PHRASE} dello stesso comparto {COMP_REF_DI}, {PRON_IND} propongo senza soglie minime {PRODOTTI_MIRATI}, a quotazioni nette chiare e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T099',
-    name: 'F20.4 Territoriale con P.S. — Presentazione Sobria + Invito nel P.S.',
+    name: 'F20.4 Territoriale — Spedizioni Tracciate & Prova Senza Impegno',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: '[OGG_RAPIDITA] — {COMPANY_NAME}{CITY_PAREN} | Izzo Distribuzione S.r.l.',
+    subjectTemplate: '[OGG_FORMULA_PROMO] per {COMPANY_SHORT}',
     bodyTemplate:
-      '[SALUTO_AZIENDA] {COMPANY_NAME},\n\n{CONTESTO_TERRITORIO_FALLBACK} Riforniamo direttamente gli operatori con Partita IVA su {PRODOTTI_PROSA}, operando con spedizioni tracciate anche direttamente su cantiere e referente commerciale dedicato per quotazioni su commessa.\n\n[SALUTO_CHIUSURA]\n\n{INVITO_RISPOSTA_PS}',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\n{FRASE_AGGANCIO_BREVE}: forniamo senza minimi d’ordine {PRODOTTI_MIRATI}, con spedizioni rapide e uno sconto sul primo acquisto.\n\nPosso {MANDARE_PRON} qui in risposta un estratto del listino per un confronto sui prezzi?\n\n[SALUTO_CHIUSURA]',
   },
   {
     code: 'T100',
-    name: 'F20.5 Territoriale 1-2-3 — Schema in Tre Punti per Libera Valutazione',
+    name: 'F20.5 Territoriale — Disponibilità Pronta per Acquisti e Progetti',
     angleGroup: 'Sconto_Benvenuto_Prova',
     targetCategory: 'ALL',
     htmlLayoutVariant: 'plain_personal',
-    subjectTemplate: 'Canale B2B forniture tecniche — {COMPANY_NAME}{CITY_PAREN}',
+    subjectTemplate: 'Assortimento pronto per {COMPANY_SHORT}',
     bodyTemplate:
-      '{SALUTO_PERSONALIZZATO}\n\n{CONTESTO_TERRITORIO_FALLBACK} Sintetizziamo in tre punti i nostri riferimenti operativi per una Vostra libera valutazione quale fornitore:\n\n1. Unico interlocutore B2B: {PRODOTTI_COMPATTI}.\n2. Condizioni trasparenti senza vincoli: {CONDIZIONE_BREVE}, [DESTINAZIONE_FLESSIBILE].\n3. Verifica listino su richiesta: rispondendo anche con un breve cenno a questa mail Vi trasmettiamo l’estratto PDF del listino riservato e un accesso gratuito di sola consultazione.\n\n[FRASE_DISPONIBILITA] per eventuali preventivi su capitolato o distinta.\n\n[SALUTO_CHIUSURA]',
+      '{SALUTO_MODERNO}\n\nsono {AGENT_NAME} di Izzo Distribuzione S.r.l., {MICRO_PRESENTAZIONE_IZZO}.\n\nPer gli approvvigionamenti operativi {COMP_REF_DI} {LOC_PHRASE}, rendiamo disponibili a stock e senza soglie minime {PRODOTTI_MIRATI}, a quotazioni nette e con [IL_DOPPIO_SCONTO].\n\n{DOMANDA_FINALE_BREVE}\n\n[SALUTO_CHIUSURA]',
   },
 ];
