@@ -595,16 +595,20 @@ export function extractFreshReplyText(fullText: string): string {
         trimmed
       ) ||
       /^_{6,}$/.test(trimmed) ||
-      /^Il giorno .+ ha scritto:\s*$/i.test(trimmed) ||
-      /^Il \d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}.+ha scritto:\s*$/i.test(trimmed) ||
+      /^Il (?:giorno\s+|(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*[\s,]+|\d{1,2}[/.\-\s]).*ha scritto:\s*$/i.test(
+        trimmed
+      ) ||
       /^On .+ wrote:\s*$/i.test(trimmed)
     ) {
       break;
     }
 
-    // Gmail / Apple Mail wrap su 2 righe: "Il giorno lun 17 nov 2026..." + riga successiva "...ha scritto:"
+    // Gmail / Apple Mail wrap su 2 righe: "Il giorno lun 17 nov 2026..." o "Il mer 19 nov 2026..." + riga successiva "...ha scritto:"
     if (
-      (/^Il giorno /i.test(trimmed) || /^On (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d)/i.test(trimmed)) &&
+      (/^Il (?:giorno\s+|(?:lun|mar|mer|gio|ven|sab|dom)[a-zì]*[\s,]+|\d{1,2}[/.\-\s])/i.test(
+        trimmed
+      ) ||
+        /^On (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d)/i.test(trimmed)) &&
       i + 1 < lines.length &&
       /(?:ha scritto|wrote):\s*$/i.test(lines[i + 1].trim())
     ) {
@@ -663,21 +667,22 @@ export function classifyInboundEmail(params: {
     return 'Bounce';
   }
 
-  // 2. Out Of Office / Risponditore Automatico Ferie o Ricevuta Automatica Casella
+  // 2. Out Of Office / Risponditore Automatico Ferie o Ricevuta Automatica Casella / Helpdesk Ticket
+  // Nota: NON includere mai "grazie per averci contattato" generico perché è un normale incipit cortese umano B2B!
   if (
     (params.autoSubmitted &&
       params.autoSubmitted !== 'no' &&
       /auto-replied|auto-generated|yes/i.test(params.autoSubmitted)) ||
-    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|automatic mailbox response|automatic response|auto-?response|auto-?reply|messaggio automatico|messaggio generato automaticamente|abbiamo correttamente ricevuto|abbiamo ricevuto la (?:vostra|sua|tua)|vi risponderemo al pi[uù] presto|ti risponderemo il prima possibile|grazie per aver contattato il team|grazie per averci contattat|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
+    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|automatic mailbox response|automatic response|auto-?response|auto-?reply|messaggio automatico|messaggio generato automaticamente|abbiamo correttamente ricevuto|abbiamo ricevuto la (?:vostra|sua|tua)|vi risponderemo al pi[uù] presto|ti risponderemo il prima possibile|grazie per aver contattato il (?:team|servizio|supporto|reparto|centro)|uw vraag is ontvangen|custhelp\.com|zendesk\.com|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
       `${subjectLower}\n${freshLower}`
     )
   ) {
     return 'Out_Of_Office';
   }
 
-  // 3. Opt-Out / Rifiuto Esplicito (incluso "STOP" o "No grazie")
+  // 3. Opt-Out / Rifiuto Esplicito (incluso "STOP" o "No grazie" con word-boundary rigoroso per non colpire "Buongiorno grazie"!)
   if (
-    /non siamo interessati|non interessat[oi]|non ci interessa|non ci serve|cancellatemi|rimuovetemi|disiscriv|unsubscribe|non inviate|stop email|gdpr|rimuovere il nostro indirizzo|no\s*,?\s*grazie|siamo gi[aà] coperti|abbiamo gi[aà] i nostri fornitori/i.test(
+    /non siamo interessati|\bnon interessat[oi]\b|non ci interessa|non ci serve|\bcancellatemi\b|\brimuovetemi\b|\bdisiscriv|\bunsubscribe\b|\bnon inviate\b|\bstop email\b|\bgdpr\b|rimuovere il nostro indirizzo|(?:^|[\s,.;:!?'"(])no\s*,?\s*grazie\b|siamo gi[aà] coperti|abbiamo gi[aà] i nostri fornitori/i.test(
       `${subjectLower}\n${freshLower}`
     ) ||
     /^\s*stop\s*[.!]*\s*$/i.test(fresh)
@@ -705,7 +710,7 @@ export function classifyInboundEmail(params: {
     .filter(
       (l) =>
         l.length > 0 &&
-        !/^(?:cordiali saluti|distinti saluti|saluti|buona giornata|buon lavoro|inviato da iphone|inviato da outlook|inviato dal mio|get outlook for)/i.test(
+        !/^(?:cordiali saluti|distinti saluti|saluti|buona giornata|buona serata|buon lavoro|grazie e buona (?:giornata|serata)|inviato da iphone|inviato da outlook|inviato dal mio|get outlook for)/i.test(
           l
         )
     );
@@ -726,14 +731,14 @@ export function classifyInboundEmail(params: {
       coreText
     );
 
-  if (hasQuestionMark || hasSpecificMeritRequest || coreText.length > 260) {
+  if (hasQuestionMark || hasSpecificMeritRequest || coreText.length > 340) {
     return 'Domanda_Specifica';
   }
 
-  // 5. Consenso Semplice ("Sì grazie", "Mandate pure", "Ok inviate listino", "Va bene", "Volentieri", ecc.)
+  // 5. Consenso Semplice ("Sì grazie", "Mandate pure", "Ok inviate listino", "Siamo disponibili a ricevere listino", ecc.)
   // Nota: "grazie" o "pure" da soli (senza sì/ok/manda/invia/procedi) NON bastano per evitare falsi positivi su ricevute cortesi!
   const hasAffirmativeConsent =
-    /(?:^|[\s,.;:!?'"(])s[iì](?=$|[\s,.;:!?)'"])|\b(si'|si|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|manda|inviat[ei]|invii|invia|girat[ei]|giri|gira|trasmettet[ei]|trasmetta|inoltrat[ei]|attendiamo|attendo|visioniamo|valutiamo|riceviamo|mandateci|inviateci|girateci|fateci\s+avere|interessati\s+al\s+listino|interessati\s+a\s+ricevere)\b/i.test(
+    /(?:^|[\s,.;:!?'"(])s[iì](?=$|[\s,.;:!?)'"])|\b(si'|si|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|manda|inviat[ei]|invii|invia|girat[ei]|giri|gira|trasmettet[ei]|trasmetta|inoltrat[ei]|attendiamo|attendo|visioniamo|valutiamo|riceviamo|mandateci|inviateci|girateci|fateci\s+avere|disponibil[ei]\s+a\s+ricevere|ricevere\s+(?:il|un|l['’])?\s*(?:vostro\s+)?(?:estratto|listino|catalogo|catalistino)|interessat[oi]\s+al\s+listino|interessat[oi]\s+a\s+ricevere)\b/i.test(
       coreText
     );
 
