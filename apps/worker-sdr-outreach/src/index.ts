@@ -4822,6 +4822,62 @@ async function runSdrGuardianSelfHealingTick() {
       pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'SUCCESS');
     }
 
+    // 3b. Accodamento automatico sul Redis interno di eventuali Step 1B (`Bozza_Pronta` con scheduledFor <= now)
+    if (IS_SDR_LIVE) {
+      const readyStep1b = await sdrPrisma.sdrOutreachDraft.findMany({
+        where: {
+          sequenceStep: STEP_1B_CONSENT_REPLY,
+          status: 'Bozza_Pronta',
+          OR: [{ scheduledFor: null }, { scheduledFor: { lte: now } }],
+        },
+        take: 10,
+      });
+
+      for (const d1b of readyStep1b) {
+        const [step1, latestReply] = await Promise.all([
+          sdrPrisma.sdrOutreachDraft.findFirst({
+            where: { prospectId: d1b.prospectId, sequenceStep: STEP_1_INITIAL },
+            select: { messageIdHeader: true, senderInboxId: true },
+          }),
+          sdrPrisma.sdrInboxEvent.findFirst({
+            where: { prospectId: d1b.prospectId, eventType: 'REPLY' },
+            orderBy: { id: 'desc' },
+            select: { messageId: true, inboxAccountId: true },
+          }),
+        ]);
+        const targetInboxId = d1b.senderInboxId || latestReply?.inboxAccountId || step1?.senderInboxId || undefined;
+        const inReplyTo =
+          latestReply?.messageId && latestReply.messageId.startsWith('<')
+            ? latestReply.messageId
+            : step1?.messageIdHeader || undefined;
+        const threadRefs = Array.from(
+          new Set([step1?.messageIdHeader, inReplyTo].filter((x): x is string => Boolean(x && x.trim())))
+        );
+
+        await sdrPrisma.sdrOutreachDraft.update({
+          where: { id: d1b.id },
+          data: { status: 'In_Coda_SMTP', scheduledFor: new Date(Date.now() + 15_000) },
+        });
+        await sdrOutreachQueue.add(
+          SDR_JOBS.DISPATCH_SINGLE,
+          {
+            action: SDR_JOBS.DISPATCH_SINGLE,
+            draftId: d1b.id,
+            preferredInboxId: targetInboxId,
+            inReplyTo,
+            references: threadRefs,
+          },
+          {
+            delay: 15_000,
+            jobId: `consent-step1b-auto-${d1b.id}`,
+          }
+        );
+        const msg = `Accodato automaticamente Step 1B #${d1b.id} per prospect #${d1b.prospectId}.`;
+        actionsTaken.push(msg);
+        pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'SUCCESS');
+      }
+    }
+
     // 4. Riprova automatica avvisi a Daniele rimasti con `agentAlertSent = false` nelle ultime 24h (escluse email tecniche/sistema)
     if (IS_SDR_LIVE) {
       const oneDayAgo = new Date(now.getTime() - 24 * 3600_000);

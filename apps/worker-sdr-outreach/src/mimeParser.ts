@@ -738,7 +738,7 @@ export function classifyInboundEmail(params: {
   // 5. Consenso Semplice ("Sì grazie", "Mandate pure", "Ok inviate listino", "Siamo disponibili a ricevere listino", ecc.)
   // Nota: "grazie" o "pure" da soli (senza sì/ok/manda/invia/procedi) NON bastano per evitare falsi positivi su ricevute cortesi!
   const hasAffirmativeConsent =
-    /(?:^|[\s,.;:!?'"(])s[iì](?=$|[\s,.;:!?)'"])|\b(si'|si|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|manda|inviat[ei]|invii|invia|girat[ei]|giri|gira|trasmettet[ei]|trasmetta|inoltrat[ei]|attendiamo|attendo|visioniamo|valutiamo|riceviamo|mandateci|inviateci|girateci|fateci\s+avere|disponibil[ei]\s+a\s+ricevere|ricevere\s+(?:il|un|l['’])?\s*(?:vostro\s+)?(?:estratto|listino|catalogo|catalistino)|interessat[oi]\s+al\s+listino|interessat[oi]\s+a\s+ricevere)\b/i.test(
+    /(?:^|[\s,.;:!?'"(])s[iì](?=$|[\s,.;:!?)'"])|\b(si'|si|ok|okay|va\s*bene|volentieri|certo|certamente|perfetto|procedete|proceda|mandat[ei]|mandi|manda|mandar(?:ci|mi|lo|li|le)|inviat[ei]|invii|invia|inviar(?:ci|mi|lo|li|le|celo|meli)|girat[ei]|giri|gira|girar(?:ci|mi|lo|li|le)|trasmettet[ei]|trasmetta|trasmetter(?:ci|mi)|inoltrat[ei]|attendiamo|attendo|visioniamo|valutiamo|riceviamo|mandateci|inviateci|girateci|fateci\s+avere|farci\s+avere|farmi\s+avere|disponibil[ei]\s+a\s+ricevere|ricevere\s+(?:il|un|l['’])?\s*(?:vostro\s+)?(?:estratto|listino|catalogo|catalistino|sched[ae])|interessat[oi]\s+al\s+listino|interessat[oi]\s+a\s+ricevere)\b/i.test(
       coreText
     );
 
