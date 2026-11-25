@@ -4996,6 +4996,175 @@ async function runSdrGuardianSelfHealingTick() {
       pushSdrConsoleLog('GUARDIANO-AUTO', msg, 'INFO');
     }
 
+    // 6. REGOLA AUTOMATICA SEGNALAZIONE CLIENTI INTERESSATI A DANIELE (Login sul Sito B2B >= 1 oppure Aperture Catalistino PDF >= 2)
+    if (IS_SDR_LIVE) {
+      const hotPromos = await b2bPrisma.b2BPromoProspect.findMany({
+        where: {
+          isActive: true,
+          agentContactedAt: null,
+          convertedToUserId: null,
+          firstOrderId: null,
+          status: { notIn: ['EXPIRED', 'CONVERTED'] },
+          OR: [{ loginCount: { gte: 1 } }, { catalogOpenCount: { gte: 2 } }],
+        },
+        orderBy: [{ loginCount: 'desc' }, { catalogOpenCount: 'desc' }, { updatedAt: 'desc' }],
+        take: 10,
+      });
+
+      const formatWhatsAppUrl = (rawPhone?: string | null, company?: string | null) => {
+        const digits = String(rawPhone || '').replace(/\D+/g, '');
+        if (!digits || digits.length < 8) return null;
+        const intl = digits.startsWith('39') ? digits : digits.startsWith('0039') ? digits.slice(2) : `39${digits}`;
+        const greet = encodeURIComponent(
+          `Buongiorno${company ? ` ${company}` : ''}, sono Daniele Savoia di Izzo Distribuzione. Ho visto che avete consultato il nostro Catalistino riservato B2B: resto a completa disposizione per qualsiasi informazione o quotazione dedicata.`
+        );
+        return `https://wa.me/${intl}?text=${greet}`;
+      };
+
+      for (const hp of hotPromos) {
+        const snap: Record<string, any> =
+          hp.orderDetailsSnapshot && typeof hp.orderDetailsSnapshot === 'object'
+            ? { ...(hp.orderDetailsSnapshot as Record<string, any>) }
+            : {};
+
+        const isLoggedIn = (hp.loginCount || 0) >= 1;
+        const needsLoginAlert = isLoggedIn && !snap.hotLoginAlertSentAt;
+        // Per le sole aperture PDF (senza login), invia l'avviso se ha aperto >= 2 volte e non aveva già risposto via email (altrimenti Daniele ha già ricevuto l'alert della risposta email)
+        const needsPdfAlert =
+          !isLoggedIn &&
+          (hp.catalogOpenCount || 0) >= 2 &&
+          !snap.hotPdfAlertSentAt &&
+          !hp.lastReplyAt;
+
+        if (!needsLoginAlert && !needsPdfAlert) continue;
+
+        const sdrRow = hp.sdrProspectId
+          ? await sdrPrisma.sdrProspect.findUnique({ where: { id: hp.sdrProspectId } })
+          : null;
+
+        const agent = await resolveAgentForProspect(
+          hp.agentId || sdrRow?.assignedAgentId,
+          hp.agentCode || sdrRow?.assignedAgentCode
+        );
+        const recipientEmail = resolveSafeBrevoRecipient(agent.email);
+        const phoneDisplay = hp.phone || hp.whatsappPhone || sdrRow?.phone || sdrRow?.whatsappPhone || 'N/D';
+        const waUrl = formatWhatsAppUrl(hp.whatsappPhone || hp.phone || sdrRow?.whatsappPhone || sdrRow?.phone, hp.companyName);
+        const locLabel = [hp.city, hp.province ? `(${hp.province})` : ''].filter(Boolean).join(' ') || 'Italia';
+        const discFormula = String(snap.discountFormula || `${hp.discount || 40}%+10%`);
+        const b2bDashboardUrl = `${(env.B2B_PUBLIC_URL || 'https://www.izzodistribuzione.it').replace(/\/$/, '')}/account/prospects`;
+        const offerPageUrl = hp.smartOfferToken
+          ? `${(env.B2B_PUBLIC_URL || 'https://www.izzodistribuzione.it').replace(/\/$/, '')}/offerta/${encodeURIComponent(hp.smartOfferToken)}`
+          : b2bDashboardUrl;
+
+        const subjectLine = needsLoginAlert
+          ? `🚨 [CLIENTE ENTRATO NEL SITO B2B - LAVORARE SUBITO] ${hp.companyName} (${locLabel}) — ${hp.loginCount} accessi al sito / ${hp.catalogOpenCount || 0} aperture listino!`
+          : `🔥 [CLIENTE INTERESSATO - ${hp.catalogOpenCount} APERTURE LISTINO PDF] ${hp.companyName} (${locLabel}) — Da contattare!`;
+
+        const badgeColor = needsLoginAlert ? '#dc2626' : '#ea580c';
+        const headerTitle = needsLoginAlert
+          ? `🚨 Cliente entrato nel portale B2B (${hp.loginCount} ${hp.loginCount === 1 ? 'accesso' : 'accessi'})`
+          : `🔥 Cliente molto interessato (${hp.catalogOpenCount} aperture Catalistino PDF)`;
+
+        const aiNotes = sdrRow?.aiProfileSummary ? sdrRow.aiProfileSummary.trim() : '';
+
+        const textContent = [
+          headerTitle,
+          `Azienda: ${hp.companyName} — ${locLabel}`,
+          `Settore: ${hp.categoryCluster || sdrRow?.categoryCluster || 'B2B'} | Condizione attiva: ${discFormula}`,
+          `Accessi al Sito B2B: ${hp.loginCount || 0} | Aperture Catalistino PDF: ${hp.catalogOpenCount || 0}`,
+          `Telefono / Cellulare: ${phoneDisplay}`,
+          `Email: ${hp.email || sdrRow?.ordinaryEmail || 'N/D'}`,
+          waUrl ? `WhatsApp diretto: ${waUrl}` : '',
+          `Bacheca Lead Caldi: ${b2bDashboardUrl}`,
+          aiNotes ? `\nScheda operativa e leva commerciale:\n${aiNotes}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
+
+        const htmlContent = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#0f172a; max-width:640px; line-height:1.55;">
+          <div style="background:${badgeColor}; color:#ffffff; padding:14px 18px; border-radius:10px 10px 0 0; font-weight:700; font-size:16px;">
+            ${escapeHtml(headerTitle)}
+          </div>
+          <div style="border:1px solid #cbd5e1; border-top:none; border-radius:0 0 10px 10px; padding:18px; background:#ffffff;">
+            <p style="margin:0 0 12px 0; font-size:18px; font-weight:700; color:#0f172a;">
+              ${escapeHtml(hp.companyName)} <span style="font-weight:500; color:#475569; font-size:15px;">— ${escapeHtml(locLabel)}</span>
+            </p>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:14px; font-size:14px;">
+              <tr><td style="padding:5px 0; color:#64748b; width:170px;"><strong>Segnale rilevato:</strong></td><td style="padding:5px 0; font-weight:700; color:${badgeColor};">${hp.loginCount || 0} accessi al sito B2B &bull; ${hp.catalogOpenCount || 0} aperture Catalistino PDF</td></tr>
+              <tr><td style="padding:5px 0; color:#64748b;"><strong>Settore &amp; Sconto:</strong></td><td style="padding:5px 0;">${escapeHtml(hp.categoryCluster || sdrRow?.categoryCluster || 'B2B')} &mdash; <strong>${escapeHtml(discFormula)}</strong></td></tr>
+              <tr><td style="padding:5px 0; color:#64748b;"><strong>Telefono diretto:</strong></td><td style="padding:5px 0;"><a href="tel:${escapeHtml(phoneDisplay.replace(/\s+/g, ''))}" style="color:#0284c7; font-weight:700; text-decoration:none;">${escapeHtml(phoneDisplay)}</a></td></tr>
+              <tr><td style="padding:5px 0; color:#64748b;"><strong>Email cliente:</strong></td><td style="padding:5px 0;"><a href="mailto:${escapeHtml(hp.email || '')}" style="color:#0284c7;">${escapeHtml(hp.email || 'N/D')}</a></td></tr>
+              <tr><td style="padding:5px 0; color:#64748b;"><strong>Username Demo B2B:</strong></td><td style="padding:5px 0;"><code>${escapeHtml(hp.username || '')}</code></td></tr>
+            </table>
+            <div style="margin:16px 0; display:flex; gap:10px; flex-wrap:wrap;">
+              ${waUrl ? `<a href="${waUrl}" style="display:inline-block; background:#16a34a; color:#ffffff; font-weight:700; text-decoration:none; padding:10px 16px; border-radius:8px; margin-right:8px;">💬 Scrivi su WhatsApp</a>` : ''}
+              <a href="${b2bDashboardUrl}" style="display:inline-block; background:#0f172a; color:#ffffff; font-weight:700; text-decoration:none; padding:10px 16px; border-radius:8px; margin-right:8px;">🔥 Apri Bacheca Lead Caldi</a>
+              <a href="${offerPageUrl}" style="display:inline-block; background:#e2e8f0; color:#0f172a; font-weight:600; text-decoration:none; padding:10px 14px; border-radius:8px;">📄 Vedi Offerta Cliente</a>
+            </div>
+            ${
+              aiNotes
+                ? `<div style="margin-top:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; font-size:13px; color:#334155; white-space:pre-wrap;">${escapeHtml(aiNotes)}</div>`
+                : ''
+            }
+          </div>
+        </div>`;
+
+        const sentOk = await sendInternalAlertViaArubaSmtp({
+          toEmail: recipientEmail,
+          toName: agent.name,
+          replyToEmail: hp.email || sdrRow?.ordinaryEmail || undefined,
+          replyToName: hp.companyName,
+          subject: subjectLine,
+          textContent,
+          htmlContent,
+        });
+
+        if (sentOk) {
+          const updatedSnap = {
+            ...snap,
+            ...(needsLoginAlert
+              ? {
+                  hotLoginAlertSentAt: now.toISOString(),
+                  hotPdfAlertSentAt: snap.hotPdfAlertSentAt || now.toISOString(),
+                }
+              : {
+                  hotPdfAlertSentAt: now.toISOString(),
+                }),
+          };
+
+          await b2bPrisma.b2BPromoProspect.update({
+            where: { id: hp.id },
+            data: {
+              orderDetailsSnapshot: updatedSnap,
+              ...(isLoggedIn ? { autoFollowupPaused: true } : {}),
+            },
+          });
+
+          if (isLoggedIn && sdrRow) {
+            await Promise.all([
+              sdrPrisma.sdrProspect.update({
+                where: { id: sdrRow.id },
+                data: { autoFollowupPaused: true },
+              }),
+              sdrPrisma.sdrOutreachDraft.updateMany({
+                where: {
+                  prospectId: sdrRow.id,
+                  sequenceStep: { in: [STEP_2_FOLLOWUP, STEP_3_WARM_FOLLOWUP, STEP_20_QUARTERLY_LOOP] },
+                  status: { notIn: ['Inviata', 'Inviata_Dry_Run'] },
+                },
+                data: { status: 'Annullato_KillSwitch' },
+              }),
+            ]);
+          }
+
+          const logMsg = `Segnalato automaticamente a ${agent.name} cliente caldo ${hp.companyName} (${needsLoginAlert ? `${hp.loginCount} login B2B` : `${hp.catalogOpenCount} aperture PDF`}).`;
+          actionsTaken.push(logMsg);
+          pushSdrConsoleLog('HOT-LEAD-ALERT', logMsg, 'SUCCESS');
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
+    }
+
     return { ok: true, checkedAt: now.toISOString(), actionsTaken };
   } catch (err: any) {
     log.error(`Errore runSdrGuardianSelfHealingTick: ${err.message}`, { module: MODULE_NAME });
@@ -5095,10 +5264,10 @@ async function startWorker() {
       .add(
         'GUARDIAN_WATCHDOG_TICK',
         { action: 'GUARDIAN_WATCHDOG_TICK' },
-        { jobId: `guardian-tick-${Math.floor(Date.now() / 600_000)}`, removeOnComplete: true }
+        { jobId: `guardian-tick-${Math.floor(Date.now() / 180_000)}`, removeOnComplete: true }
       )
       .catch(() => {});
-  }, 10 * 60 * 1000);
+  }, 3 * 60 * 1000);
 
   // Tick periodico ogni 30 minuti:
   // 1) Reset quote giornaliere Aruba
