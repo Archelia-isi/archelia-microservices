@@ -5008,7 +5008,7 @@ async function runSdrGuardianSelfHealingTick() {
           OR: [{ loginCount: { gte: 1 } }, { catalogOpenCount: { gte: 2 } }],
         },
         orderBy: [{ loginCount: 'desc' }, { catalogOpenCount: 'desc' }, { updatedAt: 'desc' }],
-        take: 10,
+        take: 500,
       });
 
       const formatWhatsAppUrl = (rawPhone?: string | null, company?: string | null) => {
@@ -5021,7 +5021,9 @@ async function runSdrGuardianSelfHealingTick() {
         return `https://wa.me/${intl}?text=${greet}`;
       };
 
+      let alertsSentThisTick = 0;
       for (const hp of hotPromos) {
+        if (alertsSentThisTick >= 6) break;
         const snap: Record<string, any> =
           hp.orderDetailsSnapshot && typeof hp.orderDetailsSnapshot === 'object'
             ? { ...(hp.orderDetailsSnapshot as Record<string, any>) }
@@ -5158,6 +5160,7 @@ async function runSdrGuardianSelfHealingTick() {
           }
 
           const logMsg = `Segnalato automaticamente a ${agent.name} cliente caldo ${hp.companyName} (${needsLoginAlert ? `${hp.loginCount} login B2B` : `${hp.catalogOpenCount} aperture PDF`}).`;
+          alertsSentThisTick++;
           actionsTaken.push(logMsg);
           pushSdrConsoleLog('HOT-LEAD-ALERT', logMsg, 'SUCCESS');
           await new Promise((r) => setTimeout(r, 1500));
