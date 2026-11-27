@@ -703,8 +703,12 @@ export function classifyInboundEmail(params: {
     return 'Domanda_Specifica';
   }
 
-  // Rimuove saluti/firme standard solo ai fini del conteggio lunghezza/domande della frase di consenso
-  const coreLines = fresh
+  // Rimuove saluti/firme standard e blocchi legali privacy/GDPR in calce solo ai fini del conteggio lunghezza/domande della frase di consenso
+  const freshWithoutLegalFooter = fresh.replace(
+    /\n\s*(?:nota di riservatezza|avviso di riservatezza|informativa privacy|tutela della privacy|confidentiality notice|disclaimer\s*:|ai sensi (?:del\s+)?(?:d\.?\s*lgs|regolamento\s*\(?ue|art\.?\s*13)|le informazioni contenute (?:in questo|nel presente) messaggio|questo messaggio (?:di posta elettronica )?contiene informazioni riservate|this (?:e-?mail|message) (?:and any attachments )?(?:is|are) confidential)[\s\S]*$/i,
+    ''
+  );
+  const coreLines = freshWithoutLegalFooter
     .split('\n')
     .map((l) => l.trim())
     .filter(
@@ -724,8 +728,8 @@ export function classifyInboundEmail(params: {
     return 'Domanda_Specifica';
   }
 
-  // Se contiene punti interrogativi, o è lungo, o cita richieste specifiche su codici/marchi/pagamenti/chiamate -> Domanda Specifica
-  const hasQuestionMark = fresh.includes('?');
+  // Se contiene punti interrogativi (nel testo utile fuori dal disclaimer legale), o è lungo, o cita richieste specifiche su codici/marchi/pagamenti/chiamate -> Domanda Specifica
+  const hasQuestionMark = freshWithoutLegalFooter.includes('?');
   const hasSpecificMeritRequest =
     /\b(preventiv[oi]|quotazion[ei]|offerta per|avete disponibil|disponibilit[aà]\s+di|quanto costa|prezzo di|riba|ri\.ba|bonifico\s*\d+|30\s*gg|60\s*gg|90\s*gg|fido|dilazion|chiamatemi|potete chiamar|ricontattatemi|passare in sede|appuntamento|distinta|capitolato|in\s+allegato|allegat[oaie]|visura|codic[ei]|articolo|bticino|vimar|gewiss|schneider|abb|urmet|comelit|finder|meanwell)\b/i.test(
       coreText
