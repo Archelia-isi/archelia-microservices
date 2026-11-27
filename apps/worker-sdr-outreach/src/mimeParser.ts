@@ -673,7 +673,7 @@ export function classifyInboundEmail(params: {
     (params.autoSubmitted &&
       params.autoSubmitted !== 'no' &&
       /auto-replied|auto-generated|yes/i.test(params.autoSubmitted)) ||
-    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|automatic mailbox response|automatic response|auto-?response|auto-?reply|messaggio automatico|messaggio generato automaticamente|abbiamo correttamente ricevuto|abbiamo ricevuto la (?:vostra|sua|tua)|vi risponderemo al pi[uù] presto|ti risponderemo il prima possibile|grazie per aver contattato il (?:team|servizio|supporto|reparto|centro)|uw vraag is ontvangen|custhelp\.com|zendesk\.com|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
+    /assente dall'ufficio|fuori sede|out of office|risposta automatica|automatic reply|automatic mailbox response|automatic response|auto-?response|auto-?reply|messaggio automatico|messaggio generato automaticamente|abbiamo correttamente ricevuto|abbiamo ricevuto la (?:vostra|sua|tua)|confermiamo di aver preso in carico|il tuo messaggio [eè] stato inoltrato|gli orari lavorativi durante i quali|ezmlm response|vi risponderemo al pi[uù] presto|ti risponderemo il prima possibile|grazie per aver contattato il (?:team|servizio|supporto|reparto|centro)|uw vraag is ontvangen|custhelp\.com|zendesk\.com|chiusura estiva|chiusi per ferie|in ferie fino|rientrer[oò] in ufficio/i.test(
       `${subjectLower}\n${freshLower}`
     )
   ) {
