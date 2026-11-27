@@ -1898,7 +1898,7 @@ async function dispatchSingleOutreachEmail(
         })
         .catch(() => null);
 
-  if (draft.prospect.autoFollowupPaused || promoState?.autoFollowupPaused) {
+  if (!isConsentReply && (draft.prospect.autoFollowupPaused || promoState?.autoFollowupPaused)) {
     await Promise.all([
       sdrPrisma.sdrOutreachDraft.update({
         where: { id: draft.id },
